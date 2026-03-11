@@ -214,6 +214,178 @@ class CloléoAPITester:
                 # Remove from favorites
                 self.run_test("Remove from Favorites", "DELETE", f"/favorites/{self.session_id}/{product_id}")
 
+    def test_auth_endpoints(self):
+        """Test authentication endpoints"""
+        print("\n" + "="*50)
+        print("TESTING AUTHENTICATION ENDPOINTS")
+        print("="*50)
+        
+        # Test admin login
+        admin_success, admin_data, _ = self.run_test("Admin Login", "POST", "/auth/login", 
+            data={"email": "admin@cloleo.com", "password": "admin123"})
+        
+        admin_token = None
+        if admin_success and 'token' in admin_data:
+            admin_token = admin_data['token']
+            print("   ✅ Admin login successful")
+        
+        # Test vendor registration
+        vendor_email = f"testvendor_{datetime.now().strftime('%H%M%S')}@test.com"
+        vendor_success, vendor_data, _ = self.run_test("Vendor Registration", "POST", "/auth/register",
+            data={
+                "name": "Test Vendor",
+                "email": vendor_email,
+                "password": "test123",
+                "role": "vendor",
+                "phone": "+225 07 00 00 00"
+            })
+        
+        vendor_token = None
+        if vendor_success and 'token' in vendor_data:
+            vendor_token = vendor_data['token']
+            print("   ✅ Vendor registration successful")
+            
+            # Test vendor login
+            login_success, login_data, _ = self.run_test("Vendor Login", "POST", "/auth/login",
+                data={"email": vendor_email, "password": "test123"})
+            
+            if login_success and 'token' in login_data:
+                vendor_token = login_data['token']
+        
+        return admin_token, vendor_token
+
+    def test_admin_endpoints(self, admin_token):
+        """Test admin-only endpoints"""
+        print("\n" + "="*50)
+        print("TESTING ADMIN ENDPOINTS")
+        print("="*50)
+        
+        if not admin_token:
+            print("❌ Skipping admin tests - no admin token")
+            return
+        
+        headers = {'Authorization': f'Bearer {admin_token}'}
+        
+        # Test admin dashboard
+        success, dashboard_data, _ = self.run_test("Admin Dashboard", "GET", "/admin/dashboard")
+        if success:
+            self.api_url = f"{self.base_url}/api"
+            url = f"{self.api_url}/admin/dashboard"
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                print("   ✅ Admin dashboard accessible with token")
+            else:
+                print("   ❌ Admin dashboard failed with token")
+        
+        # Test get vendors
+        url = f"{self.api_url}/admin/vendors"
+        response = requests.get(url, headers=headers, timeout=10)
+        success = response.status_code == 200
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ PASSED - Admin Get Vendors - Status: {response.status_code}")
+        else:
+            print(f"❌ FAILED - Admin Get Vendors - Status: {response.status_code}")
+        
+        # Test get pending products
+        url = f"{self.api_url}/admin/products/pending"
+        response = requests.get(url, headers=headers, timeout=10)
+        success = response.status_code == 200
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ PASSED - Admin Pending Products - Status: {response.status_code}")
+        else:
+            print(f"❌ FAILED - Admin Pending Products - Status: {response.status_code}")
+
+    def test_vendor_endpoints(self, vendor_token):
+        """Test vendor-only endpoints"""
+        print("\n" + "="*50)
+        print("TESTING VENDOR ENDPOINTS")
+        print("="*50)
+        
+        if not vendor_token:
+            print("❌ Skipping vendor tests - no vendor token")
+            return
+        
+        headers = {'Authorization': f'Bearer {vendor_token}'}
+        
+        # Test vendor dashboard
+        url = f"{self.api_url}/vendor/dashboard"
+        response = requests.get(url, headers=headers, timeout=10)
+        success = response.status_code == 200
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ PASSED - Vendor Dashboard - Status: {response.status_code}")
+            dashboard_data = response.json()
+            print(f"   User: {dashboard_data.get('user', {}).get('name', 'Unknown')}")
+        else:
+            print(f"❌ FAILED - Vendor Dashboard - Status: {response.status_code}")
+        
+        # Test get vendor products
+        url = f"{self.api_url}/vendor/products"
+        response = requests.get(url, headers=headers, timeout=10)
+        success = response.status_code == 200
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ PASSED - Vendor Get Products - Status: {response.status_code}")
+        else:
+            print(f"❌ FAILED - Vendor Get Products - Status: {response.status_code}")
+        
+        # Test create vendor product
+        product_data = {
+            "name": "Test Product",
+            "description": "A test product for API testing",
+            "price_fcfa": 10000,
+            "stock": 5,
+            "condition": "neuf",
+            "category_slug": "mode-textile",
+            "images": ["https://images.unsplash.com/photo-1768212565426-58b089b6386d?w=600"],
+            "tags": ["test", "api"]
+        }
+        url = f"{self.api_url}/vendor/products"
+        response = requests.post(url, json=product_data, headers=headers, timeout=10)
+        success = response.status_code == 200
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ PASSED - Create Vendor Product - Status: {response.status_code}")
+            return response.json().get('id')
+        else:
+            print(f"❌ FAILED - Create Vendor Product - Status: {response.status_code}")
+            print(f"   Response: {response.text[:200]}")
+            return None
+
+    def test_subscription_endpoints(self, vendor_token):
+        """Test subscription-related endpoints"""
+        print("\n" + "="*50)
+        print("TESTING SUBSCRIPTION ENDPOINTS")
+        print("="*50)
+        
+        # Test get subscription plans (public)
+        self.run_test("Get Subscription Plans", "GET", "/subscriptions/plans")
+        
+        if vendor_token:
+            headers = {'Authorization': f'Bearer {vendor_token}'}
+            
+            # Test free plan activation
+            checkout_data = {
+                "plan_id": "free",
+                "origin_url": self.base_url
+            }
+            url = f"{self.api_url}/subscriptions/checkout"
+            response = requests.post(url, json=checkout_data, headers=headers, timeout=10)
+            success = response.status_code == 200
+            self.tests_run += 1
+            if success:
+                self.tests_passed += 1
+                print(f"✅ PASSED - Free Plan Checkout - Status: {response.status_code}")
+            else:
+                print(f"❌ FAILED - Free Plan Checkout - Status: {response.status_code}")
+
     def test_database_seed(self):
         """Test database seeding (optional, as it resets data)"""
         print("\n" + "="*50)
@@ -261,6 +433,20 @@ def main():
     try:
         # Run all test suites
         tester.test_health_endpoints()
+        
+        # Test authentication first to get tokens
+        admin_token, vendor_token = tester.test_auth_endpoints()
+        
+        # Test admin endpoints
+        tester.test_admin_endpoints(admin_token)
+        
+        # Test vendor endpoints  
+        tester.test_vendor_endpoints(vendor_token)
+        
+        # Test subscription endpoints
+        tester.test_subscription_endpoints(vendor_token)
+        
+        # Test public endpoints
         tester.test_categories_endpoints()
         tester.test_products_endpoints()
         tester.test_search_endpoints()

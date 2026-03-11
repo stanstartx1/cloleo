@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import axios from "axios";
 
 // Context
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 
@@ -12,7 +13,7 @@ import { FavoritesProvider } from "./context/FavoritesContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
-// Pages
+// Public Pages
 import HomePage from "./pages/HomePage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -21,12 +22,49 @@ import ProductsPage from "./pages/ProductsPage";
 import CartPage from "./pages/CartPage";
 import SearchPage from "./pages/SearchPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import AuthPage from "./pages/AuthPage";
+
+// Vendor Pages
+import VendorDashboard from "./pages/VendorDashboard";
+import VendorProducts from "./pages/VendorProducts";
+import VendorAddProduct from "./pages/VendorAddProduct";
+import VendorSubscription from "./pages/VendorSubscription";
+
+// Admin Pages
+import AdminDashboard from "./pages/AdminDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Layout wrapper
-const Layout = ({ children }) => (
+// Protected Route Component
+const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false }) => {
+  const { user, loading, isVendor, isAdmin } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/connexion" replace />;
+  }
+
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireVendor && !isVendor) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+// Public Layout (with Navbar/Footer)
+const PublicLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
     <main className="flex-1">{children}</main>
@@ -34,7 +72,16 @@ const Layout = ({ children }) => (
   </div>
 );
 
-function App() {
+// Dashboard Layout (no Footer for dashboards)
+const DashboardLayout = ({ children }) => (
+  <div className="min-h-screen flex flex-col">
+    <Navbar />
+    <main className="flex-1">{children}</main>
+  </div>
+);
+
+// App Routes Component
+const AppRoutes = () => {
   // Seed database on first load (if needed)
   useEffect(() => {
     const seedIfNeeded = async () => {
@@ -53,36 +100,76 @@ function App() {
   }, []);
 
   return (
-    <CartProvider>
-      <FavoritesProvider>
-        <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/categories/:slug" element={<CategoryPage />} />
-              <Route path="/produit/:id" element={<ProductPage />} />
-              <Route path="/produits" element={<ProductsPage />} />
-              <Route path="/panier" element={<CartPage />} />
-              <Route path="/recherche" element={<SearchPage />} />
-              <Route path="/favoris" element={<FavoritesPage />} />
-              {/* Fallback */}
-              <Route path="*" element={<HomePage />} />
-            </Routes>
-          </Layout>
-          <Toaster 
-            position="bottom-right" 
-            richColors 
-            closeButton
-            toastOptions={{
-              style: {
-                fontFamily: 'Work Sans, sans-serif',
-              },
-            }}
-          />
-        </BrowserRouter>
-      </FavoritesProvider>
-    </CartProvider>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
+      <Route path="/categories" element={<PublicLayout><CategoriesPage /></PublicLayout>} />
+      <Route path="/categories/:slug" element={<PublicLayout><CategoryPage /></PublicLayout>} />
+      <Route path="/produit/:id" element={<PublicLayout><ProductPage /></PublicLayout>} />
+      <Route path="/produits" element={<PublicLayout><ProductsPage /></PublicLayout>} />
+      <Route path="/panier" element={<PublicLayout><CartPage /></PublicLayout>} />
+      <Route path="/recherche" element={<PublicLayout><SearchPage /></PublicLayout>} />
+      <Route path="/favoris" element={<PublicLayout><FavoritesPage /></PublicLayout>} />
+      
+      {/* Auth */}
+      <Route path="/connexion" element={<AuthPage />} />
+
+      {/* Vendor Routes */}
+      <Route path="/vendeur" element={
+        <ProtectedRoute requireVendor>
+          <DashboardLayout><VendorDashboard /></DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/vendeur/produits" element={
+        <ProtectedRoute requireVendor>
+          <DashboardLayout><VendorProducts /></DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/vendeur/produits/nouveau" element={
+        <ProtectedRoute requireVendor>
+          <DashboardLayout><VendorAddProduct /></DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/vendeur/abonnement" element={
+        <ProtectedRoute requireVendor>
+          <DashboardLayout><VendorSubscription /></DashboardLayout>
+        </ProtectedRoute>
+      } />
+
+      {/* Admin Routes */}
+      <Route path="/admin" element={
+        <ProtectedRoute requireAdmin>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <FavoritesProvider>
+          <BrowserRouter>
+            <AppRoutes />
+            <Toaster 
+              position="bottom-right" 
+              richColors 
+              closeButton
+              toastOptions={{
+                style: {
+                  fontFamily: 'Work Sans, sans-serif',
+                },
+              }}
+            />
+          </BrowserRouter>
+        </FavoritesProvider>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
@@ -25,6 +27,7 @@ const CATEGORIES = [
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
+  const { user, isAuthenticated, isVendor, isAdmin, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,6 +39,11 @@ const Navbar = () => {
       setSearchOpen(false);
       setSearchQuery('');
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   return (
@@ -50,9 +58,18 @@ const Navbar = () => {
               <span>Service client: +225 07 00 00 00</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link to="/favoris" className="hover:text-primary transition-colors">Mes favoris</Link>
+              {isVendor && !isAdmin && (
+                <Link to="/vendeur" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <Store className="w-3 h-3" /> Espace vendeur
+                </Link>
+              )}
+              {isAdmin && (
+                <Link to="/admin" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <Crown className="w-3 h-3" /> Administration
+                </Link>
+              )}
               <span>•</span>
-              <Link to="/aide" className="hover:text-primary transition-colors">Aide</Link>
+              <Link to="/favoris" className="hover:text-primary transition-colors">Mes favoris</Link>
             </div>
           </div>
 
@@ -142,6 +159,55 @@ const Navbar = () => {
                 </Button>
               </Link>
 
+              {/* User Menu */}
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative" data-testid="user-menu-btn">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white text-sm font-bold">
+                        {user?.name?.[0]?.toUpperCase() || 'U'}
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-3 py-2">
+                      <p className="font-medium">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center gap-2">
+                          <Crown className="w-4 h-4" /> Administration
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {isVendor && !isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/vendeur" className="flex items-center gap-2">
+                          <Store className="w-4 h-4" /> Espace vendeur
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link to="/favoris" className="flex items-center gap-2">
+                        <Heart className="w-4 h-4" /> Mes favoris
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild variant="default" size="sm" className="hidden md:flex" data-testid="login-btn">
+                  <Link to="/connexion">
+                    <User className="w-4 h-4 mr-2" /> Connexion
+                  </Link>
+                </Button>
+              )}
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -166,6 +232,41 @@ const Navbar = () => {
             </Button>
           </div>
           <div className="p-4 space-y-4">
+            {isAuthenticated ? (
+              <div className="p-4 bg-muted/50 rounded-lg mb-4">
+                <p className="font-medium">{user?.name}</p>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              </div>
+            ) : (
+              <Link 
+                to="/connexion" 
+                className="flex items-center gap-2 p-3 bg-primary text-white rounded-lg font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User className="w-5 h-5" /> Connexion / Inscription
+              </Link>
+            )}
+
+            {isAdmin && (
+              <Link 
+                to="/admin" 
+                className="flex items-center gap-2 py-3 border-b font-medium text-amber-600"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Crown className="w-5 h-5" /> Administration
+              </Link>
+            )}
+
+            {isVendor && !isAdmin && (
+              <Link 
+                to="/vendeur" 
+                className="flex items-center gap-2 py-3 border-b font-medium text-primary"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Store className="w-5 h-5" /> Espace vendeur
+              </Link>
+            )}
+
             <Link 
               to="/categories" 
               className="block py-3 border-b font-medium"
@@ -199,6 +300,17 @@ const Navbar = () => {
                 <ShoppingCart className="w-5 h-5" /> Mon panier ({cart.item_count})
               </Link>
             </div>
+
+            {isAuthenticated && (
+              <div className="pt-4 border-t">
+                <button 
+                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-2 py-2 text-destructive"
+                >
+                  <LogOut className="w-5 h-5" /> Déconnexion
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
