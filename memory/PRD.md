@@ -1,121 +1,165 @@
 # Cloléo - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Cloléo - Marketplace e-commerce africaine Phase 1 Accélérée. Création d'une boutique professionnelle avec:
-- 8 catégories principales avec sous-catégories
-- 300+ produits réalistes
-- Système de filtres et tri
-- Panier fonctionnel
-- Recherche
-- Favoris
+Cloléo - Marketplace e-commerce africaine
+- **Phase 1**: Boutique publique avec 8 catégories, 300+ produits, panier, favoris, recherche
+- **Phase 2**: Dashboard Admin, Dashboard Vendeur, Système d'abonnements avec Stripe
 
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: React 19, React Router, TailwindCSS, Radix UI, Sonner (toasts)
-- **Backend**: FastAPI, Motor (MongoDB async driver)
+- **Backend**: FastAPI, Motor (MongoDB async), JWT Auth
 - **Database**: MongoDB
-- **State Management**: React Context (Cart, Favorites)
+- **Payments**: Stripe via emergentintegrations library
+- **State Management**: React Context (Auth, Cart, Favorites)
 
 ### Key Files
-- `/app/backend/server.py` - API complet (catégories, produits, panier, favoris, recherche)
-- `/app/frontend/src/App.js` - Routing principal
-- `/app/frontend/src/context/CartContext.js` - Gestion panier global
-- `/app/frontend/src/context/FavoritesContext.js` - Gestion favoris
-- `/app/frontend/src/pages/*` - Pages (Home, Categories, Category, Product, Cart, Search, Favorites)
-- `/app/frontend/src/components/*` - Composants réutilisables
+- `/app/backend/server.py` - API complet (auth, abonnements, vendeurs, admin, produits)
+- `/app/frontend/src/context/AuthContext.js` - Authentification JWT
+- `/app/frontend/src/pages/AdminDashboard.js` - Dashboard administrateur
+- `/app/frontend/src/pages/VendorDashboard.js` - Dashboard vendeur
+- `/app/frontend/src/pages/VendorSubscription.js` - Page abonnements Stripe
 
 ## User Personas
-1. **Acheteur africain** - Recherche produits authentiques locaux
-2. **Diaspora africaine** - Achète en ligne depuis l'étranger (USD)
-3. **Visiteur curieux** - Découvre l'artisanat africain
+1. **Acheteur** - Parcours boutique, panier, favoris
+2. **Vendeur** - Gestion boutique, produits, abonnement
+3. **Admin** - Validation produits, gestion vendeurs, analytics
 
-## Core Requirements (Static)
-- [x] 8 catégories: Mode & Textile, Artisanat, Bijoux, Beauté, Électronique, Maison, Produits Locaux, Sport
-- [x] 300+ produits avec noms réalistes en français
-- [x] Prix en FCFA + conversion USD
-- [x] Localisation vendeur (5 pays: CI, Sénégal, Nigeria, Cameroun, Ghana)
-- [x] États produits (neuf, quasi-neuf, occasion)
-- [x] Système de rating et avis
-- [x] Stock et nombre de ventes
+## Subscription Plans (Phase 2)
+
+| Plan | Prix | Commission | Produits Max | Badge |
+|------|------|-----------|--------------|-------|
+| 🌱 Débutant | Gratuit | 10% | 3 | - |
+| 🎨 Artisan | 5 000 FCFA/mois (~$8) | 7% | 25 | Vérifié |
+| 🏪 Commerçant | 15 000 FCFA/mois (~$24) | 5% | 100 | Pro |
+| 🏢 Entreprise | 35 000 FCFA/mois (~$56) | 3% | Illimité | Premium |
 
 ## What's Been Implemented
 
-### ✅ Phase 1 Accélérée (11 Jan 2026)
-- **Catégories**: 8 catégories avec images, descriptions, sous-catégories
-- **Produits**: 315 produits générés avec données réalistes
-- **Pages créées**:
-  - `/` - Page d'accueil avec hero, catégories, tendances, nouveautés
-  - `/categories` - Liste toutes les catégories
-  - `/categories/[slug]` - Page catégorie avec filtres (prix, état, localisation, tri)
-  - `/produit/[id]` - Fiche produit complète avec galerie, détails, produits similaires
-  - `/panier` - Panier fonctionnel avec modification quantité, suppression, totaux
-  - `/recherche` - Page de recherche
-  - `/favoris` - Liste des favoris
-- **Fonctionnalités**:
-  - Ajout au panier avec toast de confirmation
-  - Gestion quantité dans le panier
-  - Favoris (ajout/suppression)
-  - Recherche par nom, description, tags
-  - Filtres: prix (slider), état, localisation
-  - Tri: date, prix, popularité, note
-  - Pagination
-  - Navigation complète
-  - Design africain vibrant (orange/ambre/vert)
-  - Mobile-first responsive
+### ✅ Phase 1 (Boutique publique)
+- 8 catégories avec images et sous-catégories
+- 300+ produits générés avec données réalistes
+- Pages: accueil, catégories, produit, panier, recherche, favoris
+- Filtres: prix, état, localisation, tri
+- Panier fonctionnel avec toasts
+
+### ✅ Phase 2 (Admin & Vendeur)
+- **Authentification JWT** (inscription, connexion, rôles)
+- **Dashboard Admin** (/admin)
+  - Stats globales (utilisateurs, vendeurs, produits, revenus)
+  - Liste des vendeurs avec statut abonnement
+  - Produits en attente de validation
+  - Approbation/Rejet de produits
+  - Activation/Désactivation vendeurs
+- **Dashboard Vendeur** (/vendeur)
+  - Stats personnelles (produits, ventes, revenus)
+  - Statut abonnement actuel
+  - Jauge limite produits
+  - Actions rapides
+- **Gestion Produits** (/vendeur/produits)
+  - Liste avec filtres par statut
+  - Ajout/Modification/Suppression
+  - Statuts: pending, approved, rejected
+- **Abonnements Stripe** (/vendeur/abonnement)
+  - 4 plans avec détails complets
+  - Intégration Stripe Checkout
+  - Polling status après paiement
+  - Activation automatique
 
 ## API Endpoints
-- `GET /api/categories` - Liste catégories
-- `GET /api/categories/{slug}` - Détail catégorie
-- `GET /api/products` - Liste produits (filtres: category, condition, location, price, sort, pagination)
-- `GET /api/products/{id}` - Détail produit
-- `GET /api/products/{id}/similar` - Produits similaires
-- `GET /api/products/{id}/also-bought` - Clients ont aussi acheté
-- `GET /api/search?q=` - Recherche
-- `POST /api/cart/add` - Ajouter au panier
-- `GET /api/cart/{session_id}` - Voir panier
-- `PUT /api/cart/{session_id}/{item_id}` - Modifier quantité
-- `DELETE /api/cart/{session_id}/{item_id}` - Supprimer article
-- `POST/DELETE /api/favorites/{session_id}/{product_id}` - Favoris
+
+### Auth
+- `POST /api/auth/register` - Inscription
+- `POST /api/auth/login` - Connexion
+- `GET /api/auth/me` - Profil utilisateur
+
+### Subscriptions
+- `GET /api/subscriptions/plans` - Liste des plans
+- `POST /api/subscriptions/checkout` - Créer session Stripe
+- `GET /api/subscriptions/status/{session_id}` - Vérifier paiement
+
+### Vendor
+- `GET /api/vendor/dashboard` - Stats vendeur
+- `GET /api/vendor/products` - Mes produits
+- `POST /api/vendor/products` - Créer produit
+- `PUT /api/vendor/products/{id}` - Modifier produit
+- `DELETE /api/vendor/products/{id}` - Supprimer produit
+
+### Admin
+- `GET /api/admin/dashboard` - Stats admin
+- `GET /api/admin/vendors` - Liste vendeurs
+- `GET /api/admin/products/pending` - Produits en attente
+- `POST /api/admin/products/{id}/approve` - Approuver
+- `POST /api/admin/products/{id}/reject` - Rejeter
+
+## Test Credentials
+
+### Admin
+- **Email**: admin@cloleo.com
+- **Password**: admin123
+- **Access**: /admin - Dashboard complet
+
+### Vendeur Test
+- **Email**: ama@test.com
+- **Password**: test123
+- **Access**: /vendeur - Dashboard vendeur, /vendeur/abonnement - Plans
+
+### Stripe Test
+- Les paiements utilisent le mode test Stripe
+- Carte de test: 4242 4242 4242 4242, date future, CVC quelconque
+
+## Comment Tester
+
+### 1. Se connecter en Admin
+1. Aller sur https://cloleo-shop.preview.emergentagent.com/connexion
+2. Email: admin@cloleo.com, Password: admin123
+3. Accéder au dashboard admin avec stats et gestion
+
+### 2. Créer un compte Vendeur
+1. Aller sur /connexion → onglet "Inscription"
+2. Sélectionner "Vendeur"
+3. Remplir le formulaire et soumettre
+4. Redirection vers le dashboard vendeur
+
+### 3. Payer un abonnement
+1. Connecté en vendeur, aller sur /vendeur/abonnement
+2. Choisir un plan payant (ex: Artisan à 5 000 FCFA)
+3. Cliquer "Souscrire" → Stripe Checkout
+4. Carte test: 4242 4242 4242 4242
+5. Paiement confirmé → Plan activé
+
+### 4. Ajouter un produit (Vendeur)
+1. Dashboard vendeur → "Ajouter un produit"
+2. Remplir le formulaire avec images
+3. Soumettre → Produit en attente de validation
+
+### 5. Valider un produit (Admin)
+1. Dashboard admin → onglet "Produits en attente"
+2. Cliquer "Approuver" ou "Rejeter"
+3. Produit visible sur la boutique si approuvé
 
 ## Prioritized Backlog
 
-### P0 (Critical) - ✅ DONE
-- [x] Catégories avec images
-- [x] Produits avec tous les champs
-- [x] Panier fonctionnel
-- [x] Navigation fluide
+### P0 (Done) ✅
+- [x] Dashboard Admin
+- [x] Dashboard Vendeur
+- [x] Système abonnements Stripe
+- [x] Validation produits
 
-### P1 (High Priority) - Next Phase
-- [ ] Authentification utilisateurs (inscription/connexion)
-- [ ] Dashboard vendeur
-- [ ] Intégration paiement (Wave, Orange Money, Stripe)
-- [ ] Système d'abonnements vendeurs
-- [ ] Vraies images produits via IA ou upload
+### P1 (Next)
+- [ ] Système de commandes et paiements clients
+- [ ] Notifications email (SendGrid)
+- [ ] Chat vendeur/acheteur temps réel
 
-### P2 (Medium Priority)
-- [ ] Chat temps réel vendeur/acheteur
-- [ ] Système de commandes et suivi
-- [ ] Notifications push
-- [ ] Système d'avis et commentaires
-- [ ] Mode sombre
+### P2 (Future)
 - [ ] App mobile React Native + Expo
-
-### P3 (Low Priority)
-- [ ] Recommandations IA personnalisées
-- [ ] Analytics vendeur
+- [ ] Analytics avancés vendeurs
 - [ ] Programme de fidélité
-- [ ] Wishlist partageable
-- [ ] Comparaison produits
-
-## Next Tasks
-1. Authentification utilisateurs
-2. Dashboard vendeur de base
-3. Intégration paiement mobile money
-4. Système de commandes
 
 ## Notes Techniques
-- Session ID généré côté client (localStorage) pour panier anonyme
-- Taux FCFA/USD: 0.0016 (fixe pour l'instant)
-- Images produits via Unsplash (placeholder)
-- MongoDB indexes recommandés sur category_slug, tags, price_fcfa
+- JWT Token expire après 7 jours
+- Session ID client (localStorage) pour panier anonyme
+- Produits vendeur = status "pending" par défaut
+- Webhook Stripe: `/api/webhook/stripe`
+- Taux FCFA/USD: 0.0016 (fixe)
