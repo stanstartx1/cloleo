@@ -195,7 +195,26 @@ async def health():
 async def register(data: UserRegister):
     if await db.users.find_one({"email": data.email}):
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    user = {"id": str(uuid.uuid4()), "email": data.email, "password": hash_password(data.password), "name": data.name, "role": data.role, "phone": data.phone, "created_at": datetime.now(timezone.utc).isoformat(), "is_active": True, "subscription_plan": "free" if data.role == UserRole.VENDOR else None, "subscription_expires": None, "shop_name": None, "location": None, "city": None}
+    
+    # Vendors need admin approval (like drivers)
+    is_vendor = data.role == UserRole.VENDOR
+    
+    user = {
+        "id": str(uuid.uuid4()), 
+        "email": data.email, 
+        "password": hash_password(data.password), 
+        "name": data.name, 
+        "role": data.role, 
+        "phone": data.phone, 
+        "created_at": datetime.now(timezone.utc).isoformat(), 
+        "is_active": not is_vendor,  # Vendors start inactive, need approval
+        "is_verified": not is_vendor,  # Vendors start unverified
+        "subscription_plan": "free" if is_vendor else None, 
+        "subscription_expires": None, 
+        "shop_name": data.name if is_vendor else None, 
+        "location": None, 
+        "city": None
+    }
     await db.users.insert_one(user)
     return {"token": create_token(user["id"], user["role"]), "user": {k: v for k, v in user.items() if k not in ["password", "_id"]}}
 
@@ -204,8 +223,8 @@ async def login(data: UserLogin):
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
     if not user or not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
-    # Allow drivers to login even if not active (they'll see pending verification message in dashboard)
-    if not user.get("is_active", True) and user.get("role") != UserRole.DRIVER:
+    # Allow drivers and vendors to login even if not active (they'll see pending verification message)
+    if not user.get("is_active", True) and user.get("role") not in [UserRole.DRIVER, UserRole.VENDOR]:
         raise HTTPException(status_code=401, detail="Compte désactivé")
     return {"token": create_token(user["id"], user["role"]), "user": {k: v for k, v in user.items() if k != "password"}}
 
@@ -401,6 +420,42 @@ async def get_products(category: Optional[str] = None, search: Optional[str] = N
     products = await db.products.find(query, {"_id": 0}).sort(sort_by, -1 if sort_order == "desc" else 1).skip(skip).limit(limit).to_list(limit)
     return {"products": products, "total": total, "page": page, "total_pages": (total + limit - 1) // limit}
 
+@api_router.get("/products/featured")
+async def get_featured_products_public(limit: int = 12):
+    """Get featured products for homepage animations - MUST be before /products/{product_id}"""
+    # Get manually featured products first
+    manual_featured = await db.products.find(
+        {"is_featured": True, "status": "approved"}, 
+        {"_id": 0}
+    ).limit(limit).to_list(limit)
+    
+    # If not enough, get products from premium vendors
+    remaining = limit - len(manual_featured)
+    if remaining > 0:
+        premium_vendors = await db.users.find(
+            {"role": UserRole.VENDOR, "subscription_plan": {"$in": ["entreprise", "commercant", "artisan"]}, "is_active": True},
+            {"_id": 0, "id": 1, "subscription_plan": 1}
+        ).to_list(100)
+        
+        plan_order = {"entreprise": 0, "commercant": 1, "artisan": 2}
+        premium_vendors.sort(key=lambda v: plan_order.get(v.get("subscription_plan"), 3))
+        vendor_ids = [v["id"] for v in premium_vendors]
+        
+        if vendor_ids:
+            featured_ids = [p["id"] for p in manual_featured]
+            auto_featured = await db.products.find(
+                {"seller_id": {"$in": vendor_ids}, "status": "approved", "id": {"$nin": featured_ids}},
+                {"_id": 0}
+            ).limit(remaining).to_list(remaining)
+            manual_featured.extend(auto_featured)
+    
+    # Enrich with seller info
+    for product in manual_featured:
+        seller = await db.users.find_one({"id": product.get("seller_id")}, {"_id": 0, "password": 0})
+        product["seller"] = seller
+    
+    return manual_featured
+
 @api_router.get("/products/{product_id}")
 async def get_product(product_id: str):
     p = await db.products.find_one({"$or": [{"id": product_id}, {"slug": product_id}], "status": "approved"}, {"_id": 0})
@@ -566,6 +621,37 @@ async def toggle_vendor_status(vendor_id: str, user: dict = Depends(require_admi
     new_status = not vendor.get("is_active", True)
     await db.users.update_one({"id": vendor_id}, {"$set": {"is_active": new_status}})
     return {"is_active": new_status}
+
+@api_router.put("/admin/vendors/{vendor_id}/verify")
+async def verify_vendor(vendor_id: str, user: dict = Depends(require_admin)):
+    """Verify a vendor (approve their account)"""
+    vendor = await db.users.find_one({"id": vendor_id, "role": UserRole.VENDOR})
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendeur non trouvé")
+    await db.users.update_one({"id": vendor_id}, {"$set": {"is_verified": True, "is_active": True}})
+    return {"message": "Vendeur vérifié et activé"}
+
+# ============== FEATURED PRODUCTS SYSTEM ==============
+
+@api_router.put("/admin/products/{product_id}/feature")
+async def toggle_product_featured(product_id: str, user: dict = Depends(require_admin)):
+    """Toggle product featured status"""
+    product = await db.products.find_one({"id": product_id})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    new_status = not product.get("is_featured", False)
+    await db.products.update_one({"id": product_id}, {"$set": {"is_featured": new_status}})
+    return {"is_featured": new_status, "message": "En vedette" if new_status else "Retiré des vedettes"}
+
+@api_router.get("/admin/products/featured")
+async def admin_get_featured_products(user: dict = Depends(require_admin)):
+    """Get all featured products for admin"""
+    products = await db.products.find({"is_featured": True}, {"_id": 0}).to_list(100)
+    for p in products:
+        seller = await db.users.find_one({"id": p.get("seller_id")}, {"_id": 0, "password": 0})
+        p["seller"] = seller
+    return {"products": products, "total": len(products)}
 
 # ============== DRIVER SYSTEM ==============
 

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Package, ShoppingBag, DollarSign, TrendingUp, Clock, CheckCircle, XCircle,
-  Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles
+  Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -89,16 +89,37 @@ const VendorDashboard = () => {
 
   const plan = dashboard?.subscription?.plan;
   const stats = dashboard?.stats;
+  const isPendingVerification = !user?.is_verified || !user?.is_active;
 
   return (
     <div className="min-h-screen py-8 bg-muted/30" data-testid="vendor-dashboard">
       <div className="container mx-auto px-4">
+        {/* Pending Verification Alert */}
+        {isPendingVerification && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-amber-800">Compte en attente de vérification</h3>
+              <p className="text-sm text-amber-700 mt-1">
+                Votre compte vendeur est en cours de vérification par notre équipe.
+                Vous pouvez préparer vos produits, mais ils ne seront visibles qu'après activation de votre compte.
+              </p>
+              <p className="text-xs text-amber-600 mt-2">
+                La vérification prend généralement 24 à 48 heures.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <Store className="w-8 h-8 text-primary" />
               Tableau de bord Vendeur
+              {isPendingVerification && (
+                <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">En attente</span>
+              )}
             </h1>
             <p className="text-muted-foreground mt-1">
               Bienvenue, {user?.shop_name || user?.name} !

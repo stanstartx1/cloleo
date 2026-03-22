@@ -67,6 +67,17 @@ Cloléo - Marketplace e-commerce africaine
   - Gestion statut (disponible, occupé, hors ligne)
   - Mise à jour localisation
   - Vérification admin requise pour activation
+- **Système Vendeur avec vérification** (Ajouté):
+  - Validation par admin requise (comme livreurs)
+  - Dashboard vendeur avec alerte "En attente de vérification"
+  - Vendeurs peuvent préparer produits même non vérifiés
+- **Produits en vedette avec animations** (Ajouté):
+  - Section "Produits en Vedette" - Carousel animé sur homepage
+  - Section "Coup de Projecteur" - Top 5 produits avec animations
+  - Mise en vedette automatique selon plan d'abonnement
+  - Mise en vedette manuelle par admin (bouton étoile)
+  - Filtre "En vedette" dans admin produits
+  - Page Admin "Plans abonnement" avec répartition vendeurs
 
 ## API Endpoints
 
@@ -92,6 +103,16 @@ Cloléo - Marketplace e-commerce africaine
 - `GET /api/admin/drivers` - Liste livreurs
 - `PUT /api/admin/drivers/{id}/verify` - Vérifier livreur
 - `PUT /api/admin/drivers/{id}/toggle` - Activer/désactiver
+
+### Admin - Vendors
+- `GET /api/admin/vendors` - Liste vendeurs
+- `PUT /api/admin/vendors/{id}/verify` - Vérifier vendeur
+- `PUT /api/admin/vendors/{id}/toggle-status` - Activer/désactiver
+
+### Featured Products
+- `GET /api/products/featured` - Produits en vedette (public)
+- `PUT /api/admin/products/{id}/feature` - Mettre/retirer vedette
+- `GET /api/admin/products/featured` - Liste admin vedettes
 
 ### Admin - Settings
 - `GET /api/admin/settings/{type}` - Récupérer paramètres (vendor, delivery, platform)

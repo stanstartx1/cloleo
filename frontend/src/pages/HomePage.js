@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowRight, Sparkles, Truck, Shield, HeadphonesIcon } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import FeaturedProducts from '../components/FeaturedProducts';
+import SpotlightProducts from '../components/SpotlightProducts';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 
@@ -100,6 +102,9 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Animated Featured Products Carousel */}
+      <FeaturedProducts />
+
       {/* Categories */}
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4">
@@ -152,6 +157,9 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Spotlight Section - Dark with animations */}
+      <SpotlightProducts />
 
       {/* Featured Products */}
       <section className="py-12 md:py-16 bg-muted/30">

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
-  BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog
+  BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -146,6 +146,30 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleVerifyVendor = async (vendorId) => {
+    try {
+      await axios.put(`${API}/admin/vendors/${vendorId}/verify`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Vendeur vérifié et activé !');
+      fetchAllData();
+    } catch (error) {
+      toast.error('Erreur lors de la vérification');
+    }
+  };
+
+  const handleToggleProductFeatured = async (productId) => {
+    try {
+      const response = await axios.put(`${API}/admin/products/${productId}/feature`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error('Erreur lors de la mise en avant');
+    }
+  };
+
   const handleVerifyDriver = async (driverId) => {
     try {
       await axios.put(`${API}/admin/drivers/${driverId}/verify`, {}, {
@@ -208,9 +232,9 @@ const AdminDashboard = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'stats':
-        return <StatsSection stats={stats} pendingCount={pendingProducts.length} />;
+        return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
       case 'vendors':
-        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} searchTerm={searchTerm} />;
+        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} searchTerm={searchTerm} />;
       case 'drivers':
         return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} />;
       case 'products':
@@ -221,6 +245,7 @@ const AdminDashboard = () => {
           setFilter={setProductFilter}
           onApprove={handleApproveProduct}
           onReject={handleRejectProduct}
+          onToggleFeatured={handleToggleProductFeatured}
         />;
       case 'transactions':
         return <TransactionsSection transactions={transactions} />;
@@ -235,7 +260,7 @@ const AdminDashboard = () => {
       case 'settings-general':
         return <SettingsSection type="platform" settings={settings.platform} onUpdate={(k, v) => updateSetting('platform', k, v)} onSave={() => handleSaveSettings('platform')} />;
       default:
-        return <StatsSection stats={stats} pendingCount={pendingProducts.length} />;
+        return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
     }
   };
 
@@ -340,15 +365,26 @@ const AdminDashboard = () => {
 
 // ============== SECTION COMPONENTS ==============
 
-const StatsSection = ({ stats, pendingCount }) => (
+const StatsSection = ({ stats, pendingCount, pendingVendors }) => (
   <div className="space-y-6">
-    {/* Alert for pending */}
+    {/* Alert for pending products */}
     {pendingCount > 0 && (
       <div className="p-4 bg-amber-500/20 border border-amber-500/50 rounded-xl flex items-center gap-3">
         <Clock className="w-6 h-6 text-amber-400" />
         <div>
           <p className="font-bold text-amber-200">{pendingCount} produit(s) en attente de validation</p>
           <p className="text-sm text-amber-300/70">Des vendeurs attendent votre approbation</p>
+        </div>
+      </div>
+    )}
+
+    {/* Alert for pending vendors */}
+    {pendingVendors > 0 && (
+      <div className="p-4 bg-purple-500/20 border border-purple-500/50 rounded-xl flex items-center gap-3">
+        <Store className="w-6 h-6 text-purple-400" />
+        <div>
+          <p className="font-bold text-purple-200">{pendingVendors} vendeur(s) en attente de vérification</p>
+          <p className="text-sm text-purple-300/70">De nouveaux vendeurs attendent votre approbation</p>
         </div>
       </div>
     )}
@@ -413,74 +449,118 @@ const StatCard = ({ icon: Icon, color, value, label }) => (
   </div>
 );
 
-const VendorsSection = ({ vendors, onToggle, searchTerm }) => {
+const VendorsSection = ({ vendors, onToggle, onVerify, searchTerm }) => {
   const filteredVendors = vendors.filter(v => 
     v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Sort: unverified first
+  const sortedVendors = [...filteredVendors].sort((a, b) => {
+    if (!a.is_verified && b.is_verified) return -1;
+    if (a.is_verified && !b.is_verified) return 1;
+    return 0;
+  });
+
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-slate-700/50">
-            <tr>
-              <th className="text-left p-4 text-sm font-medium text-slate-400">Vendeur</th>
-              <th className="text-left p-4 text-sm font-medium text-slate-400">Abonnement</th>
-              <th className="text-left p-4 text-sm font-medium text-slate-400">Produits</th>
-              <th className="text-left p-4 text-sm font-medium text-slate-400">Statut</th>
-              <th className="text-left p-4 text-sm font-medium text-slate-400">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredVendors.map((vendor) => (
-              <tr key={vendor.id} className="border-t border-slate-700 hover:bg-slate-700/30">
-                <td className="p-4">
-                  <p className="font-medium">{vendor.shop_name || vendor.name}</p>
-                  <p className="text-sm text-slate-400">{vendor.email}</p>
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    vendor.subscription_plan === 'free' ? 'bg-slate-600' :
-                    vendor.subscription_plan === 'artisan' ? 'bg-blue-500/20 text-blue-400' :
-                    vendor.subscription_plan === 'commercant' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-purple-500/20 text-purple-400'
-                  }`}>
-                    {vendor.subscription_plan || 'free'}
-                  </span>
-                </td>
-                <td className="p-4 font-medium">{vendor.product_count || 0}</td>
-                <td className="p-4">
-                  {vendor.is_active ? (
-                    <span className="flex items-center gap-1 text-green-400 text-sm">
-                      <CheckCircle className="w-4 h-4" /> Actif
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-red-400 text-sm">
-                      <XCircle className="w-4 h-4" /> Inactif
-                    </span>
-                  )}
-                </td>
-                <td className="p-4">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onToggle(vendor.id)}
-                    className="text-slate-400 hover:text-white"
-                  >
-                    {vendor.is_active ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {filteredVendors.length === 0 && (
-        <div className="p-12 text-center text-slate-500">
-          Aucun vendeur trouvé
+    <div className="space-y-4">
+      {/* Pending vendors alert */}
+      {sortedVendors.filter(v => !v.is_verified).length > 0 && (
+        <div className="p-4 bg-purple-500/20 border border-purple-500/50 rounded-xl flex items-center gap-3">
+          <Clock className="w-6 h-6 text-purple-400" />
+          <div>
+            <p className="font-bold text-purple-200">{sortedVendors.filter(v => !v.is_verified).length} vendeur(s) en attente de vérification</p>
+            <p className="text-sm text-purple-300/70">Vérifiez leurs informations avant de les activer</p>
+          </div>
         </div>
       )}
+
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-700/50">
+              <tr>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Vendeur</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Abonnement</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Produits</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Vérification</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Statut</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedVendors.map((vendor) => (
+                <tr key={vendor.id} className={`border-t border-slate-700 hover:bg-slate-700/30 ${!vendor.is_verified ? 'bg-purple-500/5' : ''}`}>
+                  <td className="p-4">
+                    <p className="font-medium">{vendor.shop_name || vendor.name}</p>
+                    <p className="text-sm text-slate-400">{vendor.email}</p>
+                    {vendor.phone && <p className="text-xs text-slate-500">{vendor.phone}</p>}
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      vendor.subscription_plan === 'free' ? 'bg-slate-600' :
+                      vendor.subscription_plan === 'artisan' ? 'bg-blue-500/20 text-blue-400' :
+                      vendor.subscription_plan === 'commercant' ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-purple-500/20 text-purple-400'
+                    }`}>
+                      {vendor.subscription_plan || 'free'}
+                    </span>
+                  </td>
+                  <td className="p-4 font-medium">{vendor.product_count || 0}</td>
+                  <td className="p-4">
+                    {vendor.is_verified ? (
+                      <span className="flex items-center gap-1 text-green-400 text-xs">
+                        <CheckCircle className="w-4 h-4" /> Vérifié
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-amber-400 text-xs">
+                        <Clock className="w-4 h-4" /> En attente
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {vendor.is_active ? (
+                      <span className="flex items-center gap-1 text-green-400 text-sm">
+                        <CheckCircle className="w-4 h-4" /> Actif
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-red-400 text-sm">
+                        <XCircle className="w-4 h-4" /> Inactif
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      {!vendor.is_verified && (
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => onVerify(vendor.id)}
+                        >
+                          <Check className="w-4 h-4 mr-1" /> Vérifier
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onToggle(vendor.id)}
+                        className="text-slate-400 hover:text-white"
+                      >
+                        {vendor.is_active ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {sortedVendors.length === 0 && (
+          <div className="p-12 text-center text-slate-500">
+            Aucun vendeur trouvé
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -566,24 +646,29 @@ const DriversSection = ({ drivers, onVerify, onToggle }) => (
   </div>
 );
 
-const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject }) => {
+const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured }) => {
   const displayProducts = filter === 'pending' ? pendingProducts : 
-                          filter === 'all' ? products : 
+                          filter === 'all' ? products :
+                          filter === 'featured' ? products.filter(p => p.is_featured) :
                           products.filter(p => p.status === filter);
 
   return (
     <div className="space-y-4">
       {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {['all', 'pending', 'approved', 'rejected'].map((f) => (
+      <div className="flex gap-2 flex-wrap">
+        {['all', 'pending', 'approved', 'featured', 'rejected'].map((f) => (
           <Button
             key={f}
             variant={filter === f ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilter(f)}
-            className={filter === f ? 'bg-slate-700' : 'border-slate-600 text-slate-400'}
+            className={filter === f ? (f === 'featured' ? 'bg-amber-600' : 'bg-slate-700') : 'border-slate-600 text-slate-400'}
           >
-            {f === 'all' ? 'Tous' : f === 'pending' ? `En attente (${pendingProducts.length})` : f === 'approved' ? 'Approuvés' : 'Rejetés'}
+            {f === 'all' ? 'Tous' : 
+             f === 'pending' ? `En attente (${pendingProducts.length})` : 
+             f === 'approved' ? 'Approuvés' : 
+             f === 'featured' ? `⭐ En vedette (${products.filter(p => p.is_featured).length})` :
+             'Rejetés'}
           </Button>
         ))}
       </div>
@@ -595,20 +680,34 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">Aucun produit</h3>
             <p className="text-slate-400">
-              {filter === 'pending' ? 'Aucun produit en attente de validation' : 'Aucun produit dans cette catégorie'}
+              {filter === 'pending' ? 'Aucun produit en attente de validation' : 
+               filter === 'featured' ? 'Aucun produit en vedette' :
+               'Aucun produit dans cette catégorie'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-700">
             {displayProducts.map((product) => (
-              <div key={product.id} className="p-4 flex gap-4 items-center">
-                <img 
-                  src={product.images?.[0] || 'https://via.placeholder.com/80'}
-                  alt={product.name}
-                  className="w-16 h-16 rounded-lg object-cover"
-                />
+              <div key={product.id} className={`p-4 flex gap-4 items-center ${product.is_featured ? 'bg-amber-500/5' : ''}`}>
+                <div className="relative">
+                  <img 
+                    src={product.images?.[0] || 'https://via.placeholder.com/80'}
+                    alt={product.name}
+                    className="w-16 h-16 rounded-lg object-cover"
+                  />
+                  {product.is_featured && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+                      <Star className="w-3 h-3 text-white fill-white" />
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium truncate">{product.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium truncate">{product.name}</h4>
+                    {product.is_featured && (
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">En vedette</span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-400 truncate">{product.description}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
                     <span className="text-amber-400 font-bold">{formatPrice(product.price_fcfa)} FCFA</span>
@@ -624,6 +723,20 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                   }`}>
                     {product.status}
                   </span>
+                  
+                  {/* Featured toggle button */}
+                  {product.status === 'approved' && (
+                    <Button
+                      size="sm"
+                      variant={product.is_featured ? "default" : "outline"}
+                      className={product.is_featured ? 'bg-amber-500 hover:bg-amber-600' : 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10'}
+                      onClick={() => onToggleFeatured(product.id)}
+                      title={product.is_featured ? 'Retirer des vedettes' : 'Mettre en vedette'}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </Button>
+                  )}
+                  
                   {product.status === 'pending' && (
                     <>
                       <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onApprove(product.id)}>
