@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Truck, Shield, HeadphonesIcon } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import HeroSection from '../components/HeroSection';
 import FeaturedProducts from '../components/FeaturedProducts';
 import SpotlightProducts from '../components/SpotlightProducts';
 import { Button } from '../components/ui/button';
@@ -13,20 +14,17 @@ const API = `${BACKEND_URL}/api`;
 
 const HomePage = () => {
   const [categories, setCategories] = useState([]);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
   const [newProducts, setNewProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, featuredRes, newRes] = await Promise.all([
+        const [catRes, newRes] = await Promise.all([
           axios.get(`${API}/categories`),
-          axios.get(`${API}/products?featured=true&limit=8`),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=8`)
         ]);
         setCategories(catRes.data);
-        setFeaturedProducts(featuredRes.data.products || []);
         setNewProducts(newRes.data.products || []);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -39,81 +37,24 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen" data-testid="home-page">
-      {/* Hero Section */}
-      <section className="hero-gradient text-white py-16 md:py-24 african-pattern">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Découvrez l'Afrique<br />
-              <span className="text-amber-200">authentique</span>
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 mb-8 max-w-xl">
-              La marketplace africaine qui connecte artisans, créateurs et acheteurs passionnés du monde entier.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-amber-100">
-                <Link to="/categories" data-testid="explore-btn">
-                  Explorer les produits <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <Link to="/produits?featured=true">
-                  <Sparkles className="mr-2 w-5 h-5" /> Tendances
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-8 bg-muted/30 border-b">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-4">
-              <Truck className="w-8 h-8 text-primary" />
-              <div>
-                <p className="font-medium text-sm">Livraison rapide</p>
-                <p className="text-xs text-muted-foreground">Partout en Afrique</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4">
-              <Shield className="w-8 h-8 text-primary" />
-              <div>
-                <p className="font-medium text-sm">Paiement sécurisé</p>
-                <p className="text-xs text-muted-foreground">100% sécurisé</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4">
-              <HeadphonesIcon className="w-8 h-8 text-primary" />
-              <div>
-                <p className="font-medium text-sm">Support 24/7</p>
-                <p className="text-xs text-muted-foreground">À votre écoute</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4">
-              <Sparkles className="w-8 h-8 text-primary" />
-              <div>
-                <p className="font-medium text-sm">Produits authentiques</p>
-                <p className="text-xs text-muted-foreground">Qualité garantie</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* New Animated Hero Section */}
+      <HeroSection />
 
       {/* Animated Featured Products Carousel */}
       <FeaturedProducts />
 
-      {/* Categories */}
-      <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
+      {/* Categories Grid with Animations */}
+      <section className="py-16 bg-white relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-100/50 to-amber-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Nos catégories</h2>
-              <p className="text-muted-foreground">Explorez notre sélection unique</p>
+              <h2 className="text-3xl font-bold">Parcourir par catégorie</h2>
+              <p className="text-muted-foreground mt-1">Trouvez ce que vous cherchez</p>
             </div>
-            <Button asChild variant="ghost" className="hidden md:flex">
+            <Button asChild variant="outline" className="hidden md:flex">
               <Link to="/categories">
                 Voir tout <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
@@ -121,36 +62,52 @@ const HomePage = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
+                <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories.slice(0, 8).map((category) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {categories.map((category, index) => (
                 <Link
                   key={category.slug}
                   to={`/categories/${category.slug}`}
-                  className="category-card relative aspect-[4/3] rounded-xl overflow-hidden group"
+                  className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500"
+                  style={{ animationDelay: `${index * 100}ms` }}
                   data-testid={`category-${category.slug}`}
                 >
+                  {/* Image */}
                   <img
-                    src={category.image}
+                    src={category.image || `https://source.unsplash.com/400x300/?${category.name}`}
                     alt={category.name}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-10" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-                    <h3 className="text-white font-bold text-lg">{category.name}</h3>
-                    <p className="text-white/70 text-sm">{category.product_count} produits</p>
+                  
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  
+                  {/* Hover effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-amber-500/0 group-hover:from-orange-500/20 group-hover:to-amber-500/20 transition-all duration-500" />
+                  
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <h3 className="text-white font-bold text-lg group-hover:translate-x-1 transition-transform duration-300">
+                      {category.name}
+                    </h3>
+                    <p className="text-white/70 text-sm flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                      Explorer <ArrowRight className="w-3 h-3" />
+                    </p>
                   </div>
+                  
+                  {/* Border animation */}
+                  <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/30 rounded-2xl transition-all duration-500" />
                 </Link>
               ))}
             </div>
           )}
 
-          <div className="mt-6 text-center md:hidden">
+          <div className="mt-8 text-center md:hidden">
             <Button asChild variant="outline">
               <Link to="/categories">Voir toutes les catégories</Link>
             </Button>
@@ -161,104 +118,100 @@ const HomePage = () => {
       {/* Spotlight Section - Dark with animations */}
       <SpotlightProducts />
 
-      {/* Featured Products */}
-      <section className="py-12 md:py-16 bg-muted/30">
+      {/* New Products with Entrance Animations */}
+      <section className="py-16 bg-gradient-to-b from-white to-slate-50">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">
-                <Sparkles className="inline w-6 h-6 mr-2 text-amber-500" />
-                Produits tendances
-              </h2>
-              <p className="text-muted-foreground">Les favoris de nos clients</p>
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">Nouveautés</h2>
+                <p className="text-muted-foreground">Les dernières créations de nos artisans</p>
+              </div>
             </div>
-            <Button asChild variant="ghost" className="hidden md:flex">
-              <Link to="/produits?featured=true">
+            <Button asChild variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 hidden md:flex">
+              <Link to="/produits?sort_by=created_at">
                 Voir tout <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
             </Button>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <Skeleton className="aspect-square rounded-xl" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
+                <Skeleton key={i} className="aspect-square rounded-xl" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {featuredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {newProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="opacity-0 animate-fade-in-up"
+                  style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'forwards' }}
+                >
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           )}
 
           <div className="mt-8 text-center md:hidden">
             <Button asChild variant="outline">
-              <Link to="/produits?featured=true">Voir plus de tendances</Link>
+              <Link to="/produits?sort_by=created_at">Voir toutes les nouveautés</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* New Products */}
-      <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Nouveautés</h2>
-              <p className="text-muted-foreground">Fraîchement arrivés sur Cloléo</p>
-            </div>
-            <Button asChild variant="ghost" className="hidden md:flex">
-              <Link to="/produits?sort_by=created_at&sort_order=desc">
-                Voir tout <ArrowRight className="ml-2 w-4 h-4" />
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10 text-center text-white">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Rejoignez notre communauté
+          </h2>
+          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+            Vendez vos créations à des milliers d'acheteurs passionnés ou découvrez des produits uniques du continent africain.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-white/90 rounded-full px-8">
+              <Link to="/connexion">
+                Commencer à vendre
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 rounded-full px-8">
+              <Link to="/categories">
+                Explorer la marketplace
               </Link>
             </Button>
           </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <Skeleton className="aspect-square rounded-xl" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {newProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
         </div>
       </section>
 
-      {/* CTA Banner */}
-      <section className="py-12 md:py-16 bg-gradient-to-r from-orange-500 to-amber-500">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
-            Rejoignez la communauté Cloléo
-          </h2>
-          <p className="text-white/90 mb-8 max-w-xl mx-auto">
-            Plus de 10 000 vendeurs et 100 000 clients nous font confiance chaque jour.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button size="lg" className="bg-white text-orange-600 hover:bg-amber-100">
-              Créer un compte
-            </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              En savoir plus
-            </Button>
-          </div>
-        </div>
-      </section>
+      {/* Custom animations */}
+      <style>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

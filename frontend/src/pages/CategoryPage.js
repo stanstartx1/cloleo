@@ -191,40 +191,63 @@ const CategoryPage = () => {
   );
 
   return (
-    <div className="min-h-screen py-8" data-testid="category-page">
-      <div className="container mx-auto px-4">
-        {/* Breadcrumb */}
-        <nav className="flex items-center text-sm text-muted-foreground mb-6">
-          <Link to="/" className="hover:text-primary">Accueil</Link>
-          <span className="mx-2">/</span>
-          <Link to="/categories" className="hover:text-primary">Catégories</Link>
-          <span className="mx-2">/</span>
-          <span className="text-foreground">{category?.name || slug}</span>
-        </nav>
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">{category?.name}</h1>
-          <p className="text-muted-foreground">{category?.description}</p>
-          <p className="text-sm text-muted-foreground mt-2">{totalProducts} produits trouvés</p>
+    <div className="min-h-screen" data-testid="category-page">
+      {/* Animated Category Header */}
+      <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-16 overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          {/* Breadcrumb */}
+          <nav className="flex items-center text-sm text-slate-400 mb-6">
+            <Link to="/" className="hover:text-white transition-colors">Accueil</Link>
+            <span className="mx-2">/</span>
+            <Link to="/categories" className="hover:text-white transition-colors">Catégories</Link>
+            <span className="mx-2">/</span>
+            <span className="text-amber-400">{category?.name || slug}</span>
+          </nav>
 
-        {/* Subcategories */}
-        {category?.subcategories && category.subcategories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {category.subcategories.map((sub) => (
-              <Button
-                key={sub.slug}
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-              >
-                {sub.name}
-              </Button>
-            ))}
+          {/* Category info */}
+          <div className="max-w-2xl">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 animate-fade-in">
+              {category?.name}
+            </h1>
+            <p className="text-slate-300 text-lg mb-4">{category?.description}</p>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm">
+                {totalProducts} produits
+              </span>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
 
+      {/* Subcategories with hover animations */}
+      {category?.subcategories && category.subcategories.length > 0 && (
+        <div className="bg-white border-b py-4 sticky top-16 z-20 shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground mr-2">Sous-catégories:</span>
+              {category.subcategories.map((sub, index) => (
+                <Button
+                  key={sub.slug}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600 transition-all duration-300"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {sub.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
           {/* Desktop Filters Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
@@ -300,7 +323,7 @@ const CategoryPage = () => {
               </div>
             </div>
 
-            {/* Products Grid */}
+            {/* Products Grid with Animations */}
             {loading ? (
               <div className={`grid gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}>
                 {[...Array(12)].map((_, i) => (
@@ -313,8 +336,14 @@ const CategoryPage = () => {
               </div>
             ) : products.length > 0 ? (
               <div className={`grid gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}>
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {products.map((product, index) => (
+                  <div
+                    key={product.id}
+                    className="opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <ProductCard product={product} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -351,6 +380,27 @@ const CategoryPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Animation styles */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

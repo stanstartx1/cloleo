@@ -93,9 +93,6 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-6">
-              <Link to="/categories" className="font-medium hover:text-primary transition-colors" data-testid="nav-categories">
-                Catégories
-              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-1 font-medium hover:text-primary transition-colors">
@@ -108,6 +105,10 @@ const Navbar = () => {
                       <Link to={`/categories/${cat.slug}`}>{cat.name}</Link>
                     </DropdownMenuItem>
                   ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/categories" className="font-medium">Voir toutes les catégories</Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Link to="/produits?featured=true" className="font-medium hover:text-primary transition-colors">

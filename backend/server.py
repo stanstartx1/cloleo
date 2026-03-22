@@ -423,11 +423,11 @@ async def get_products(category: Optional[str] = None, search: Optional[str] = N
 @api_router.get("/products/featured")
 async def get_featured_products_public(limit: int = 12):
     """Get featured products for homepage animations - MUST be before /products/{product_id}"""
-    # Get manually featured products first
+    # Get ALL manually featured products, sorted by featured_at (most recent first)
     manual_featured = await db.products.find(
         {"is_featured": True, "status": "approved"}, 
         {"_id": 0}
-    ).limit(limit).to_list(limit)
+    ).sort([("featured_at", -1), ("created_at", -1)]).limit(limit).to_list(limit)
     
     # If not enough, get products from premium vendors
     remaining = limit - len(manual_featured)
@@ -641,7 +641,12 @@ async def toggle_product_featured(product_id: str, user: dict = Depends(require_
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
     new_status = not product.get("is_featured", False)
-    await db.products.update_one({"id": product_id}, {"$set": {"is_featured": new_status}})
+    update_data = {
+        "is_featured": new_status,
+        "featured_at": datetime.now(timezone.utc).isoformat() if new_status else None,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.products.update_one({"id": product_id}, {"$set": update_data})
     return {"is_featured": new_status, "message": "En vedette" if new_status else "Retiré des vedettes"}
 
 @api_router.get("/admin/products/featured")
