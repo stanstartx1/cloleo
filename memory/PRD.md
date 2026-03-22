@@ -4,162 +4,153 @@
 Cloléo - Marketplace e-commerce africaine
 - **Phase 1**: Boutique publique avec 8 catégories, 300+ produits, panier, favoris, recherche
 - **Phase 2**: Dashboard Admin, Dashboard Vendeur, Système d'abonnements avec Stripe
+- **Phase 3**: Correction upload images, Sidebar Admin complète, Système Livreur complet
 
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: React 19, React Router, TailwindCSS, Radix UI, Sonner (toasts)
-- **Backend**: FastAPI, Motor (MongoDB async), JWT Auth
+- **Backend**: FastAPI, Motor (MongoDB async), JWT Auth, aiofiles (file uploads)
 - **Database**: MongoDB
 - **Payments**: Stripe via emergentintegrations library
+- **File Storage**: Local storage (/app/backend/uploads/)
 - **State Management**: React Context (Auth, Cart, Favorites)
 
 ### Key Files
-- `/app/backend/server.py` - API complet (auth, abonnements, vendeurs, admin, produits)
-- `/app/frontend/src/context/AuthContext.js` - Authentification JWT
-- `/app/frontend/src/pages/AdminDashboard.js` - Dashboard administrateur
+- `/app/backend/server.py` - API complet (auth, abonnements, vendeurs, admin, livreurs, uploads)
+- `/app/frontend/src/context/AuthContext.js` - Authentification JWT (customer, vendor, admin, driver)
+- `/app/frontend/src/pages/AdminDashboard.js` - Dashboard administrateur avec sidebar 9 onglets
 - `/app/frontend/src/pages/VendorDashboard.js` - Dashboard vendeur
-- `/app/frontend/src/pages/VendorSubscription.js` - Page abonnements Stripe
+- `/app/frontend/src/pages/VendorAddProduct.js` - Ajout produit avec upload images
+- `/app/frontend/src/pages/DriverRegisterPage.js` - Inscription livreur
+- `/app/frontend/src/pages/DriverDashboard.js` - Dashboard livreur
+- `/app/frontend/src/components/ImageUpload.js` - Composant réutilisable d'upload
 
 ## User Personas
 1. **Acheteur** - Parcours boutique, panier, favoris
 2. **Vendeur** - Gestion boutique, produits, abonnement
-3. **Admin** - Validation produits, gestion vendeurs, analytics
-
-## Subscription Plans (Phase 2)
-
-| Plan | Prix | Commission | Produits Max | Badge |
-|------|------|-----------|--------------|-------|
-| 🌱 Débutant | Gratuit | 10% | 3 | - |
-| 🎨 Artisan | 5 000 FCFA/mois (~$8) | 7% | 25 | Vérifié |
-| 🏪 Commerçant | 15 000 FCFA/mois (~$24) | 5% | 100 | Pro |
-| 🏢 Entreprise | 35 000 FCFA/mois (~$56) | 3% | Illimité | Premium |
+3. **Admin** - Validation produits, gestion vendeurs/livreurs, analytics
+4. **Livreur** - Gestion des livraisons, statut de disponibilité
 
 ## What's Been Implemented
 
-### ✅ Phase 1 (Boutique publique)
+### ✅ Phase 1 (Boutique publique) - COMPLETED
 - 8 catégories avec images et sous-catégories
 - 300+ produits générés avec données réalistes
 - Pages: accueil, catégories, produit, panier, recherche, favoris
 - Filtres: prix, état, localisation, tri
 - Panier fonctionnel avec toasts
 
-### ✅ Phase 2 (Admin & Vendeur)
+### ✅ Phase 2 (Admin & Vendeur) - COMPLETED
 - **Authentification JWT** (inscription, connexion, rôles)
-- **Dashboard Admin** (/admin)
-  - Stats globales (utilisateurs, vendeurs, produits, revenus)
-  - Liste des vendeurs avec statut abonnement
-  - Produits en attente de validation
-  - Approbation/Rejet de produits
-  - Activation/Désactivation vendeurs
-- **Dashboard Vendeur** (/vendeur)
-  - Stats personnelles (produits, ventes, revenus)
-  - Statut abonnement actuel
-  - Jauge limite produits
-  - Actions rapides
+- **Dashboard Admin** (/admin) - Stats et gestion
+- **Dashboard Vendeur** (/vendeur) - Stats personnelles
 - **Gestion Produits** (/vendeur/produits)
-  - Liste avec filtres par statut
-  - Ajout/Modification/Suppression
-  - Statuts: pending, approved, rejected
-- **Abonnements Stripe** (/vendeur/abonnement)
-  - 4 plans avec détails complets
-  - Intégration Stripe Checkout
-  - Polling status après paiement
-  - Activation automatique
+- **Abonnements Stripe** (/vendeur/abonnement) - 4 plans
+
+### ✅ Phase 3 (Upload, Admin Sidebar, Livreurs) - COMPLETED (22 Mars 2026)
+- **Upload d'images local** - Endpoint `/api/upload` et `/api/upload/multiple`
+- **Composant ImageUpload** - Drag & drop, multi-fichiers, prévisualisation
+- **Admin Sidebar complète** avec 9 onglets:
+  1. Vendeurs - Liste et gestion des vendeurs
+  2. Livreurs - Liste et vérification des livreurs
+  3. Produits - Tous les produits (filtrable par statut)
+  4. Stats - Statistiques globales
+  5. Transactions - Historique des paiements
+  6. Trajet livreurs - Placeholder (temps réel reporté)
+  7. Paramètres vendeurs - Configuration vendeurs
+  8. Paramètres livreurs - Configuration livreurs
+  9. Paramètre général - Configuration site
+- **Système Livreur complet**:
+  - Inscription (/devenir-livreur) avec upload permis
+  - Dashboard livreur (/livreur)
+  - Gestion statut (disponible, occupé, hors ligne)
+  - Mise à jour localisation
+  - Vérification admin requise pour activation
 
 ## API Endpoints
 
 ### Auth
-- `POST /api/auth/register` - Inscription
+- `POST /api/auth/register` - Inscription (customer, vendor)
+- `POST /api/auth/register/driver` - Inscription livreur
 - `POST /api/auth/login` - Connexion
 - `GET /api/auth/me` - Profil utilisateur
 
-### Subscriptions
-- `GET /api/subscriptions/plans` - Liste des plans
-- `POST /api/subscriptions/checkout` - Créer session Stripe
-- `GET /api/subscriptions/status/{session_id}` - Vérifier paiement
+### File Upload
+- `POST /api/upload` - Upload fichier unique
+- `POST /api/upload/multiple` - Upload multiple fichiers
+- `GET /api/uploads/{filename}` - Récupérer fichier
 
-### Vendor
-- `GET /api/vendor/dashboard` - Stats vendeur
-- `GET /api/vendor/products` - Mes produits
-- `POST /api/vendor/products` - Créer produit
-- `PUT /api/vendor/products/{id}` - Modifier produit
-- `DELETE /api/vendor/products/{id}` - Supprimer produit
+### Driver
+- `GET /api/driver/dashboard` - Stats livreur
+- `PUT /api/driver/status` - Mettre à jour statut
+- `PUT /api/driver/location` - Mettre à jour position
+- `POST /api/driver/upload-license` - Upload permis
+- `GET /api/driver/deliveries` - Mes livraisons
 
-### Admin
-- `GET /api/admin/dashboard` - Stats admin
-- `GET /api/admin/vendors` - Liste vendeurs
-- `GET /api/admin/products/pending` - Produits en attente
-- `POST /api/admin/products/{id}/approve` - Approuver
-- `POST /api/admin/products/{id}/reject` - Rejeter
+### Admin - Drivers
+- `GET /api/admin/drivers` - Liste livreurs
+- `PUT /api/admin/drivers/{id}/verify` - Vérifier livreur
+- `PUT /api/admin/drivers/{id}/toggle` - Activer/désactiver
+
+### Admin - Settings
+- `GET /api/admin/settings/{type}` - Récupérer paramètres (vendor, delivery, platform)
+- `PUT /api/admin/settings/{type}` - Modifier paramètres
 
 ## Test Credentials
 
 ### Admin
 - **Email**: admin@cloleo.com
 - **Password**: admin123
-- **Access**: /admin - Dashboard complet
+- **Access**: /admin - Dashboard complet avec sidebar 9 onglets
 
 ### Vendeur Test
-- **Email**: ama@test.com
+- **Email**: testvendor@cloleo.com
 - **Password**: test123
-- **Access**: /vendeur - Dashboard vendeur, /vendeur/abonnement - Plans
+- **Access**: /vendeur - Dashboard, /vendeur/produits/nouveau - Ajout avec upload
 
 ### Stripe Test
-- Les paiements utilisent le mode test Stripe
 - Carte de test: 4242 4242 4242 4242, date future, CVC quelconque
 
-## Comment Tester
+## Routes Frontend
 
-### 1. Se connecter en Admin
-1. Aller sur https://cloleo-shop.preview.emergentagent.com/connexion
-2. Email: admin@cloleo.com, Password: admin123
-3. Accéder au dashboard admin avec stats et gestion
-
-### 2. Créer un compte Vendeur
-1. Aller sur /connexion → onglet "Inscription"
-2. Sélectionner "Vendeur"
-3. Remplir le formulaire et soumettre
-4. Redirection vers le dashboard vendeur
-
-### 3. Payer un abonnement
-1. Connecté en vendeur, aller sur /vendeur/abonnement
-2. Choisir un plan payant (ex: Artisan à 5 000 FCFA)
-3. Cliquer "Souscrire" → Stripe Checkout
-4. Carte test: 4242 4242 4242 4242
-5. Paiement confirmé → Plan activé
-
-### 4. Ajouter un produit (Vendeur)
-1. Dashboard vendeur → "Ajouter un produit"
-2. Remplir le formulaire avec images
-3. Soumettre → Produit en attente de validation
-
-### 5. Valider un produit (Admin)
-1. Dashboard admin → onglet "Produits en attente"
-2. Cliquer "Approuver" ou "Rejeter"
-3. Produit visible sur la boutique si approuvé
+| Route | Accès | Description |
+|-------|-------|-------------|
+| / | Public | Accueil |
+| /categories | Public | Liste catégories |
+| /produit/:id | Public | Détail produit |
+| /panier | Public | Panier |
+| /favoris | Public | Favoris |
+| /connexion | Public | Login/Register |
+| /devenir-livreur | Public | Inscription livreur |
+| /vendeur | Vendor | Dashboard vendeur |
+| /vendeur/produits | Vendor | Mes produits |
+| /vendeur/produits/nouveau | Vendor | Ajouter produit |
+| /vendeur/abonnement | Vendor | Plans Stripe |
+| /admin | Admin | Dashboard admin |
+| /livreur | Driver | Dashboard livreur |
 
 ## Prioritized Backlog
 
 ### P0 (Done) ✅
-- [x] Dashboard Admin
-- [x] Dashboard Vendeur
-- [x] Système abonnements Stripe
-- [x] Validation produits
+- [x] Dashboard Admin avec sidebar 9 onglets
+- [x] Système livreur complet (inscription + dashboard)
+- [x] Upload d'images local fonctionnel
+- [x] Paramètres admin (vendeurs, livreurs, plateforme)
 
 ### P1 (Next)
 - [ ] Système de commandes et paiements clients
-- [ ] Notifications email (SendGrid)
-- [ ] Chat vendeur/acheteur temps réel
+- [ ] Attribution livraisons aux livreurs
+- [ ] Notifications (email ou in-app)
 
 ### P2 (Future)
-- [ ] App mobile React Native + Expo
-- [ ] Analytics avancés vendeurs
-- [ ] Programme de fidélité
+- [ ] Suivi temps réel livreurs (WebSockets)
+- [ ] Chat vendeur/acheteur
+- [ ] App mobile React Native
 
 ## Notes Techniques
 - JWT Token expire après 7 jours
-- Session ID client (localStorage) pour panier anonyme
-- Produits vendeur = status "pending" par défaut
-- Webhook Stripe: `/api/webhook/stripe`
+- Upload max: 10 MB par fichier
+- Types acceptés: JPEG, PNG, WebP, GIF, PDF
+- Livreurs doivent être vérifiés par admin pour être actifs
 - Taux FCFA/USD: 0.0016 (fixe)
