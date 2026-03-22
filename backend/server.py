@@ -465,10 +465,27 @@ async def get_product(product_id: str):
 
 @api_router.get("/products/{product_id}/similar")
 async def similar(product_id: str, limit: int = 6):
-    p = await db.products.find_one({"id": product_id}, {"_id": 0})
+    p = await db.products.find_one({"$or": [{"id": product_id}, {"slug": product_id}]}, {"_id": 0})
     if not p:
         raise HTTPException(status_code=404, detail="Non trouvé")
-    return await db.products.find({"category_slug": p["category_slug"], "id": {"$ne": product_id}, "status": "approved"}, {"_id": 0}).limit(limit).to_list(limit)
+    return await db.products.find({"category_slug": p["category_slug"], "id": {"$ne": p["id"]}, "status": "approved"}, {"_id": 0}).limit(limit).to_list(limit)
+
+@api_router.get("/products/{product_id}/also-bought")
+async def also_bought(product_id: str, limit: int = 6):
+    """Get products that are often bought together (for now, just returns random products from same category)"""
+    p = await db.products.find_one({"$or": [{"id": product_id}, {"slug": product_id}]}, {"_id": 0})
+    if not p:
+        return []
+    # Return random products from same price range
+    price = p.get("price_fcfa", 10000)
+    min_price = int(price * 0.5)
+    max_price = int(price * 2)
+    products = await db.products.find({
+        "id": {"$ne": p["id"]}, 
+        "status": "approved",
+        "price_fcfa": {"$gte": min_price, "$lte": max_price}
+    }, {"_id": 0}).limit(limit).to_list(limit)
+    return products
 
 @api_router.get("/search")
 async def search(q: str, page: int = 1, limit: int = 20):
