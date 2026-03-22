@@ -33,12 +33,16 @@ import VendorSubscription from "./pages/VendorSubscription";
 // Admin Pages
 import AdminDashboard from "./pages/AdminDashboard";
 
+// Driver Pages
+import DriverRegisterPage from "./pages/DriverRegisterPage";
+import DriverDashboard from "./pages/DriverDashboard";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false }) => {
-  const { user, loading, isVendor, isAdmin } = useAuth();
+const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false }) => {
+  const { user, loading, isVendor, isAdmin, isDriver } = useAuth();
 
   if (loading) {
     return (
@@ -57,6 +61,10 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false 
   }
 
   if (requireVendor && !isVendor) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireDriver && !isDriver) {
     return <Navigate to="/" replace />;
   }
 
@@ -140,6 +148,14 @@ const AppRoutes = () => {
       <Route path="/admin" element={
         <ProtectedRoute requireAdmin>
           <AdminDashboard />
+        </ProtectedRoute>
+      } />
+
+      {/* Driver Routes */}
+      <Route path="/devenir-livreur" element={<DriverRegisterPage />} />
+      <Route path="/livreur" element={
+        <ProtectedRoute requireDriver>
+          <DriverDashboard />
         </ProtectedRoute>
       } />
 

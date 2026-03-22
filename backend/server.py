@@ -1,5 +1,6 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, Request, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -14,6 +15,8 @@ import random
 import hashlib
 import jwt
 import secrets
+import shutil
+import aiofiles
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -40,6 +43,11 @@ class UserRole:
     CUSTOMER = "customer"
     VENDOR = "vendor"
     ADMIN = "admin"
+    DRIVER = "driver"
+
+# Upload directory
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 class ProductStatus:
     PENDING = "pending"
@@ -107,6 +115,23 @@ class SubscriptionCheckout(BaseModel):
 class SettingsUpdate(BaseModel):
     settings: Dict[str, Any]
 
+class DriverRegister(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    phone: str
+    vehicle_type: str  # moto, voiture, velo
+    license_number: str
+    city: str
+    country: str = "Côte d'Ivoire"
+
+class DriverStatusUpdate(BaseModel):
+    status: str  # available, busy, offline
+
+class DriverLocationUpdate(BaseModel):
+    latitude: float
+    longitude: float
+
 # ============== AUTH ==============
 
 def hash_password(password: str) -> str:
@@ -141,6 +166,11 @@ async def require_vendor(user: dict = Depends(get_current_user)):
 async def require_admin(user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    return user
+
+async def require_driver(user: dict = Depends(get_current_user)):
+    if user["role"] != UserRole.DRIVER:
+        raise HTTPException(status_code=403, detail="Accès réservé aux livreurs")
     return user
 
 def generate_slug(name):
@@ -470,7 +500,223 @@ async def seed():
         await db.users.insert_one({"id": str(uuid.uuid4()), "email": "admin@cloleo.com", "password": hash_password("admin123"), "name": "Admin Cloléo", "role": "admin", "is_active": True, "created_at": datetime.now(timezone.utc).isoformat()})
     return {"message": "OK", "categories": len(categories), "products": len(products), "admin": "admin@cloleo.com / admin123"}
 
+# ============== FILE UPLOAD ==============
+
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Upload a file and return its URL"""
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé")
+    
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = UPLOAD_DIR / filename
+    
+    # Save file
+    async with aiofiles.open(filepath, 'wb') as out_file:
+        content = await file.read()
+        await out_file.write(content)
+    
+    # Return URL
+    return {"url": f"/api/uploads/{filename}", "filename": filename}
+
+@api_router.post("/upload/multiple")
+async def upload_multiple_files(files: List[UploadFile] = File(...), user: dict = Depends(get_current_user)):
+    """Upload multiple files"""
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    urls = []
+    
+    for file in files:
+        if file.content_type not in allowed_types:
+            continue
+        ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        filename = f"{uuid.uuid4()}.{ext}"
+        filepath = UPLOAD_DIR / filename
+        
+        async with aiofiles.open(filepath, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+        
+        urls.append(f"/api/uploads/{filename}")
+    
+    return {"urls": urls}
+
+# ============== ADMIN PRODUCTS PENDING (MISSING ENDPOINT) ==============
+
+@api_router.get("/admin/products/pending")
+async def admin_products_pending(user: dict = Depends(require_admin), page: int = 1, limit: int = 50):
+    """Get pending products for admin review"""
+    skip = (page - 1) * limit
+    query = {"status": "pending"}
+    products = await db.products.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    for p in products:
+        seller = await db.users.find_one({"id": p["seller_id"]}, {"_id": 0, "password": 0})
+        p["seller"] = seller
+    return {"products": products, "total": await db.products.count_documents(query)}
+
+# Fix: admin vendors toggle endpoint path
+@api_router.put("/admin/vendors/{vendor_id}/toggle-status")
+async def toggle_vendor_status(vendor_id: str, user: dict = Depends(require_admin)):
+    vendor = await db.users.find_one({"id": vendor_id})
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Non trouvé")
+    new_status = not vendor.get("is_active", True)
+    await db.users.update_one({"id": vendor_id}, {"$set": {"is_active": new_status}})
+    return {"is_active": new_status}
+
+# ============== DRIVER SYSTEM ==============
+
+@api_router.post("/auth/register/driver")
+async def register_driver(data: DriverRegister):
+    """Register a new driver"""
+    if await db.users.find_one({"email": data.email}):
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    driver = {
+        "id": str(uuid.uuid4()),
+        "email": data.email,
+        "password": hash_password(data.password),
+        "name": data.name,
+        "phone": data.phone,
+        "role": UserRole.DRIVER,
+        "vehicle_type": data.vehicle_type,
+        "license_number": data.license_number,
+        "license_image": None,  # Will be updated after upload
+        "city": data.city,
+        "country": data.country,
+        "is_active": False,  # Requires admin approval
+        "is_verified": False,
+        "status": "offline",  # available, busy, offline
+        "current_location": None,
+        "rating": 0,
+        "total_deliveries": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(driver)
+    return {"token": create_token(driver["id"], driver["role"]), "user": {k: v for k, v in driver.items() if k not in ["password", "_id"]}}
+
+@api_router.post("/driver/upload-license")
+async def upload_driver_license(file: UploadFile = File(...), user: dict = Depends(require_driver)):
+    """Upload driver's license document"""
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé")
+    
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"license_{user['id']}_{uuid.uuid4()}.{ext}"
+    filepath = UPLOAD_DIR / filename
+    
+    async with aiofiles.open(filepath, 'wb') as out_file:
+        content = await file.read()
+        await out_file.write(content)
+    
+    license_url = f"/api/uploads/{filename}"
+    await db.users.update_one({"id": user["id"]}, {"$set": {"license_image": license_url}})
+    
+    return {"url": license_url, "message": "Permis uploadé avec succès"}
+
+@api_router.get("/driver/dashboard")
+async def driver_dashboard(user: dict = Depends(require_driver)):
+    """Get driver dashboard data"""
+    deliveries = await db.deliveries.find({"driver_id": user["id"]}, {"_id": 0}).to_list(100)
+    pending_deliveries = [d for d in deliveries if d.get("status") == "pending"]
+    completed_deliveries = [d for d in deliveries if d.get("status") == "completed"]
+    
+    return {
+        "user": {k: v for k, v in user.items() if k != "password"},
+        "stats": {
+            "total_deliveries": len(deliveries),
+            "pending_deliveries": len(pending_deliveries),
+            "completed_deliveries": len(completed_deliveries),
+            "rating": user.get("rating", 0),
+            "total_earnings": sum(d.get("driver_fee", 0) for d in completed_deliveries)
+        },
+        "recent_deliveries": deliveries[:10]
+    }
+
+@api_router.put("/driver/status")
+async def update_driver_status(data: DriverStatusUpdate, user: dict = Depends(require_driver)):
+    """Update driver availability status"""
+    if data.status not in ["available", "busy", "offline"]:
+        raise HTTPException(status_code=400, detail="Statut invalide")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"status": data.status}})
+    return {"status": data.status}
+
+@api_router.put("/driver/location")
+async def update_driver_location(data: DriverLocationUpdate, user: dict = Depends(require_driver)):
+    """Update driver's current location"""
+    location = {
+        "latitude": data.latitude,
+        "longitude": data.longitude,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.update_one({"id": user["id"]}, {"$set": {"current_location": location}})
+    return {"location": location}
+
+@api_router.get("/driver/deliveries")
+async def get_driver_deliveries(user: dict = Depends(require_driver), status: Optional[str] = None):
+    """Get driver's deliveries"""
+    query = {"driver_id": user["id"]}
+    if status:
+        query["status"] = status
+    deliveries = await db.deliveries.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return deliveries
+
+# ============== ADMIN DRIVER MANAGEMENT ==============
+
+@api_router.get("/admin/drivers")
+async def admin_get_drivers(user: dict = Depends(require_admin), page: int = 1, limit: int = 50, status: Optional[str] = None):
+    """Get all drivers for admin"""
+    skip = (page - 1) * limit
+    query = {"role": UserRole.DRIVER}
+    if status:
+        query["status"] = status
+    drivers = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(limit)
+    return {"drivers": drivers, "total": await db.users.count_documents(query)}
+
+@api_router.put("/admin/drivers/{driver_id}/verify")
+async def admin_verify_driver(driver_id: str, user: dict = Depends(require_admin)):
+    """Verify a driver (approve their license)"""
+    driver = await db.users.find_one({"id": driver_id, "role": UserRole.DRIVER})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Livreur non trouvé")
+    await db.users.update_one({"id": driver_id}, {"$set": {"is_verified": True, "is_active": True}})
+    return {"message": "Livreur vérifié et activé"}
+
+@api_router.put("/admin/drivers/{driver_id}/toggle")
+async def admin_toggle_driver(driver_id: str, user: dict = Depends(require_admin)):
+    """Toggle driver active status"""
+    driver = await db.users.find_one({"id": driver_id, "role": UserRole.DRIVER})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Livreur non trouvé")
+    new_status = not driver.get("is_active", False)
+    await db.users.update_one({"id": driver_id}, {"$set": {"is_active": new_status}})
+    return {"is_active": new_status}
+
+@api_router.delete("/admin/drivers/{driver_id}")
+async def admin_delete_driver(driver_id: str, user: dict = Depends(require_admin)):
+    """Delete a driver"""
+    result = await db.users.delete_one({"id": driver_id, "role": UserRole.DRIVER})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Livreur non trouvé")
+    return {"message": "Livreur supprimé"}
+
+# ============== STATIC FILES (UPLOADS) ==============
+
 app.include_router(api_router)
+
+# Mount static files for uploads AFTER router to avoid conflicts
+from fastapi.responses import FileResponse
+
+@app.get("/api/uploads/{filename}")
+async def serve_upload(filename: str):
+    filepath = UPLOAD_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Fichier non trouvé")
+    return FileResponse(filepath)
+
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','), allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("shutdown")

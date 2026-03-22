@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  ArrowLeft, Upload, Plus, X, Image as ImageIcon, Save, Loader2
+  ArrowLeft, Save, Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -11,6 +11,7 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
+import ImageUpload from '../components/ImageUpload';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -62,21 +63,8 @@ const VendorAddProduct = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageAdd = () => {
-    const url = prompt('URL de l\'image:');
-    if (url) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, url]
-      }));
-    }
-  };
-
-  const handleImageRemove = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
+  const handleImagesChange = (images) => {
+    setFormData(prev => ({ ...prev, images }));
   };
 
   const handleSubmit = async (e) => {
@@ -263,43 +251,17 @@ const VendorAddProduct = () => {
             </div>
           </div>
 
-          {/* Images */}
+          {/* Images - NEW UPLOAD COMPONENT */}
           <div className="bg-white rounded-xl border p-6 space-y-4">
             <h2 className="font-bold text-lg">Images *</h2>
-            <p className="text-sm text-muted-foreground">
-              Ajoutez des URLs d'images pour votre produit (minimum 1)
-            </p>
-            
-            <div className="grid grid-cols-4 gap-4">
-              {formData.images.map((img, index) => (
-                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                  <img src={img} alt={`Image ${index + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleImageRemove(index)}
-                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              
-              {formData.images.length < 5 && (
-                <button
-                  type="button"
-                  onClick={handleImageAdd}
-                  className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                  data-testid="add-image-btn"
-                >
-                  <ImageIcon className="w-8 h-8 mb-2" />
-                  <span className="text-xs">Ajouter</span>
-                </button>
-              )}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Astuce: Utilisez des images Unsplash (ex: https://images.unsplash.com/...)
-            </p>
+            <ImageUpload
+              images={formData.images}
+              onChange={handleImagesChange}
+              maxImages={5}
+              token={token}
+              label=""
+              hint="Uploadez jusqu'à 5 images pour votre produit (JPG, PNG, WebP)"
+            />
           </div>
 
           {/* Tags */}

@@ -44,25 +44,6 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [fetchUser]);
 
-  const login = async (email, password) => {
-    try {
-      const response = await axios.post(`${API}/auth/login`, { email, password });
-      const { token: newToken, user: userData } = response.data;
-      
-      localStorage.setItem('cloleo_token', newToken);
-      setToken(newToken);
-      setUser(userData);
-      
-      return { success: true, user: userData };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Erreur de connexion' 
-      };
-    }
-  };
-
   const register = async (name, email, password, role = 'customer', phone = null) => {
     try {
       const response = await axios.post(`${API}/auth/register`, { 
@@ -106,18 +87,49 @@ export const AuthProvider = ({ children }) => {
     return () => axios.interceptors.request.eject(interceptor);
   }, [token]);
 
+  // Direct login with token (for driver registration flow)
+  const loginWithToken = (newToken) => {
+    localStorage.setItem('cloleo_token', newToken);
+    setToken(newToken);
+    fetchUser();
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       token,
       loading,
-      login,
+      login: async (emailOrToken, password) => {
+        // If only one argument is passed, treat it as a token
+        if (password === undefined) {
+          loginWithToken(emailOrToken);
+          return { success: true };
+        }
+        // Otherwise, normal login
+        try {
+          const response = await axios.post(`${API}/auth/login`, { email: emailOrToken, password });
+          const { token: newToken, user: userData } = response.data;
+          
+          localStorage.setItem('cloleo_token', newToken);
+          setToken(newToken);
+          setUser(userData);
+          
+          return { success: true, user: userData };
+        } catch (error) {
+          console.error('Login error:', error);
+          return { 
+            success: false, 
+            error: error.response?.data?.detail || 'Erreur de connexion' 
+          };
+        }
+      },
       register,
       logout,
       refreshUser,
       isAuthenticated: !!user,
       isVendor: user?.role === 'vendor' || user?.role === 'admin',
-      isAdmin: user?.role === 'admin'
+      isAdmin: user?.role === 'admin',
+      isDriver: user?.role === 'driver'
     }}>
       {children}
     </AuthContext.Provider>
