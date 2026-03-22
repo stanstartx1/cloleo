@@ -204,7 +204,8 @@ async def login(data: UserLogin):
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
     if not user or not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
-    if not user.get("is_active", True):
+    # Allow drivers to login even if not active (they'll see pending verification message in dashboard)
+    if not user.get("is_active", True) and user.get("role") != UserRole.DRIVER:
         raise HTTPException(status_code=401, detail="Compte désactivé")
     return {"token": create_token(user["id"], user["role"]), "user": {k: v for k, v in user.items() if k != "password"}}
 

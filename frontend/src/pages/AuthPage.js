@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -43,6 +43,8 @@ const AuthPage = () => {
         navigate('/admin');
       } else if (result.user.role === 'vendor') {
         navigate('/vendeur');
+      } else if (result.user.role === 'driver') {
+        navigate('/livreur');
       } else {
         navigate(from);
       }
@@ -78,6 +80,15 @@ const AuthPage = () => {
     }
     
     setLoading(false);
+  };
+
+  // If user selects "driver", redirect to the dedicated driver registration page
+  const handleRoleSelect = (role) => {
+    if (role === 'driver') {
+      navigate('/devenir-livreur');
+    } else {
+      setRegisterRole(role);
+    }
   };
 
   return (
@@ -160,6 +171,7 @@ const AuthPage = () => {
                   <p className="text-sm text-muted-foreground mb-2">Comptes de test :</p>
                   <div className="space-y-1 text-xs">
                     <p><strong>Admin:</strong> admin@cloleo.com / admin123</p>
+                    <p><strong>Vendeur:</strong> testvendor@cloleo.com / test123</p>
                   </div>
                 </div>
               </TabsContent>
@@ -167,34 +179,43 @@ const AuthPage = () => {
               {/* Register Tab */}
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  {/* Role Selection */}
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setRegisterRole('customer')}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        registerRole === 'customer'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <User className={`w-8 h-8 mx-auto mb-2 ${registerRole === 'customer' ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <p className="font-medium text-sm">Acheteur</p>
-                      <p className="text-xs text-muted-foreground">Acheter des produits</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterRole('vendor')}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        registerRole === 'vendor'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <Store className={`w-8 h-8 mx-auto mb-2 ${registerRole === 'vendor' ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <p className="font-medium text-sm">Vendeur</p>
-                      <p className="text-xs text-muted-foreground">Vendre mes produits</p>
-                    </button>
+                  {/* Role Selection - 3 options */}
+                  <div className="mb-6">
+                    <Label className="text-sm font-medium mb-3 block">Je suis...</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleRoleSelect('customer')}
+                        className={`p-3 rounded-xl border-2 transition-all ${
+                          registerRole === 'customer'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <User className={`w-6 h-6 mx-auto mb-1 ${registerRole === 'customer' ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <p className="font-medium text-xs">Acheteur</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRoleSelect('vendor')}
+                        className={`p-3 rounded-xl border-2 transition-all ${
+                          registerRole === 'vendor'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <Store className={`w-6 h-6 mx-auto mb-1 ${registerRole === 'vendor' ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <p className="font-medium text-xs">Vendeur</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRoleSelect('driver')}
+                        className="p-3 rounded-xl border-2 border-border hover:border-blue-500/50 hover:bg-blue-50 transition-all"
+                      >
+                        <Truck className="w-6 h-6 mx-auto mb-1 text-blue-500" />
+                        <p className="font-medium text-xs text-blue-600">Livreur</p>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

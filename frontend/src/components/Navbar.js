@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -27,7 +27,7 @@ const CATEGORIES = [
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
-  const { user, isAuthenticated, isVendor, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isVendor, isAdmin, isDriver, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,6 +58,11 @@ const Navbar = () => {
               <span>Service client: +225 07 00 00 00</span>
             </div>
             <div className="flex items-center gap-4">
+              {isDriver && (
+                <Link to="/livreur" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <Truck className="w-3 h-3" /> Espace livreur
+                </Link>
+              )}
               {isVendor && !isAdmin && (
                 <Link to="/vendeur" className="hover:text-primary transition-colors flex items-center gap-1">
                   <Store className="w-3 h-3" /> Espace vendeur
@@ -182,6 +187,13 @@ const Navbar = () => {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    {isDriver && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/livreur" className="flex items-center gap-2">
+                          <Truck className="w-4 h-4" /> Espace livreur
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     {isVendor && !isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link to="/vendeur" className="flex items-center gap-2">
@@ -203,7 +215,7 @@ const Navbar = () => {
               ) : (
                 <Button asChild variant="default" size="sm" className="hidden md:flex" data-testid="login-btn">
                   <Link to="/connexion">
-                    <User className="w-4 h-4 mr-2" /> Connexion
+                    <User className="w-4 h-4 mr-2" /> Inscription / Connexion
                   </Link>
                 </Button>
               )}

@@ -24,6 +24,7 @@ const SIDEBAR_ITEMS = [
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
   { id: 'stats', label: 'Stats', icon: BarChart3, color: 'text-amber-400' },
   { id: 'transactions', label: 'Transactions', icon: CreditCard, color: 'text-emerald-400' },
+  { id: 'plans', label: 'Plans abonnement', icon: Crown, color: 'text-yellow-400' },
   { id: 'routes', label: 'Trajet livreurs', icon: MapPin, color: 'text-cyan-400' },
   { id: 'settings-vendors', label: 'Paramètres vendeurs', icon: UserCog, color: 'text-orange-400' },
   { id: 'settings-drivers', label: 'Paramètres livreurs', icon: Settings, color: 'text-pink-400' },
@@ -46,6 +47,7 @@ const AdminDashboard = () => {
   const [pendingProducts, setPendingProducts] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [settings, setSettings] = useState({});
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   
   // Filter states
   const [productFilter, setProductFilter] = useState('all');
@@ -64,19 +66,23 @@ const AdminDashboard = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes] = await Promise.all([
+      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes] = await Promise.all([
         axios.get(`${API}/admin/dashboard`, { headers }),
         axios.get(`${API}/admin/vendors`, { headers }),
         axios.get(`${API}/admin/drivers`, { headers }).catch(() => ({ data: { drivers: [] } })),
         axios.get(`${API}/admin/products`, { headers }),
         axios.get(`${API}/admin/products/pending`, { headers }),
-        axios.get(`${API}/admin/transactions`, { headers })
+        axios.get(`${API}/admin/transactions`, { headers }),
+        axios.get(`${API}/subscriptions/plans`, { headers })
       ]);
       
       setStats(dashRes.data.stats);
       setVendors(vendorsRes.data.vendors || []);
       setDrivers(driversRes.data.drivers || []);
       setProducts(productsRes.data.products || []);
+      setPendingProducts(pendingRes.data.products || []);
+      setTransactions(transactionsRes.data.transactions || []);
+      setSubscriptionPlans(plansRes.data || []);
       setPendingProducts(pendingRes.data.products || []);
       setTransactions(transactionsRes.data.transactions || []);
       
@@ -218,6 +224,8 @@ const AdminDashboard = () => {
         />;
       case 'transactions':
         return <TransactionsSection transactions={transactions} />;
+      case 'plans':
+        return <PlansSection plans={subscriptionPlans} vendors={vendors} />;
       case 'routes':
         return <RoutesSection drivers={drivers} />;
       case 'settings-vendors':
@@ -681,6 +689,160 @@ const TransactionsSection = ({ transactions }) => (
     )}
   </div>
 );
+
+const PlansSection = ({ plans, vendors }) => {
+  // Count vendors per plan
+  const planCounts = plans.reduce((acc, plan) => {
+    acc[plan.id] = vendors.filter(v => v.subscription_plan === plan.id).length;
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      {/* Plans Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {plans.map((plan) => (
+          <div 
+            key={plan.id} 
+            className={`bg-slate-800 rounded-xl border p-6 ${
+              plan.id === 'entreprise' ? 'border-purple-500/50' :
+              plan.id === 'commercant' ? 'border-amber-500/50' :
+              plan.id === 'artisan' ? 'border-blue-500/50' :
+              'border-slate-700'
+            }`}
+          >
+            <div className="text-3xl mb-2">{plan.emoji}</div>
+            <h3 className="font-bold text-lg">{plan.name}</h3>
+            <div className="mt-2">
+              <p className="text-2xl font-bold text-white">
+                {plan.price_fcfa === 0 ? 'Gratuit' : `${formatPrice(plan.price_fcfa)} FCFA`}
+              </p>
+              {plan.price_usd > 0 && (
+                <p className="text-xs text-slate-400">~${plan.price_usd}/mois</p>
+              )}
+            </div>
+            
+            <div className="my-4 py-3 border-t border-b border-slate-700">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">Vendeurs actifs</span>
+                <span className="font-bold text-white">{planCounts[plan.id] || 0}</span>
+              </div>
+            </div>
+            
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                <span>{plan.max_products === -1 ? 'Produits illimités' : `${plan.max_products} produits max`}</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                <span>Commission de {plan.commission_percent}%</span>
+              </li>
+              {plan.badge && (
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>Badge {plan.badge}</span>
+                </li>
+              )}
+              {plan.priority_support && (
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>Support prioritaire</span>
+                </li>
+              )}
+              {plan.featured_products > 0 && (
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>{plan.featured_products} produits en vedette</span>
+                </li>
+              )}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Stats Summary */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <Crown className="w-5 h-5 text-amber-400" />
+          Répartition des abonnements
+        </h3>
+        <div className="grid md:grid-cols-4 gap-4">
+          {plans.map((plan) => {
+            const count = planCounts[plan.id] || 0;
+            const percentage = vendors.length > 0 ? ((count / vendors.length) * 100).toFixed(1) : 0;
+            return (
+              <div key={plan.id} className="p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">{plan.emoji}</span>
+                  <span className="text-lg font-bold">{count}</span>
+                </div>
+                <p className="text-sm text-slate-400">{plan.name}</p>
+                <div className="mt-2 h-2 bg-slate-600 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${
+                      plan.id === 'entreprise' ? 'bg-purple-500' :
+                      plan.id === 'commercant' ? 'bg-amber-500' :
+                      plan.id === 'artisan' ? 'bg-blue-500' :
+                      'bg-slate-400'
+                    }`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">{percentage}%</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Revenue by Plan */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-green-400" />
+          Potentiel de revenus mensuels
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-sm text-slate-400">
+                <th className="p-3">Plan</th>
+                <th className="p-3">Prix/mois</th>
+                <th className="p-3">Vendeurs</th>
+                <th className="p-3">Revenu potentiel</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plans.filter(p => p.price_fcfa > 0).map((plan) => {
+                const count = planCounts[plan.id] || 0;
+                const revenue = count * plan.price_fcfa;
+                return (
+                  <tr key={plan.id} className="border-t border-slate-700">
+                    <td className="p-3">
+                      <span className="mr-2">{plan.emoji}</span>
+                      {plan.name}
+                    </td>
+                    <td className="p-3">{formatPrice(plan.price_fcfa)} FCFA</td>
+                    <td className="p-3 font-medium">{count}</td>
+                    <td className="p-3 font-bold text-green-400">{formatPrice(revenue)} FCFA</td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-slate-600 font-bold">
+                <td className="p-3" colSpan={3}>Total</td>
+                <td className="p-3 text-green-400">
+                  {formatPrice(plans.filter(p => p.price_fcfa > 0).reduce((sum, plan) => {
+                    return sum + ((planCounts[plan.id] || 0) * plan.price_fcfa);
+                  }, 0))} FCFA
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const RoutesSection = ({ drivers }) => (
   <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
