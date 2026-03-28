@@ -94,7 +94,9 @@ const VendorDashboard = () => {
   const fetchProducts = useCallback(async () => {
     try {
       const response = await axios.get(`${API}/vendor/products`, { headers: { Authorization: `Bearer ${token}` } });
-      setProducts(response.data.products || []);
+      // API returns array directly or object with products key
+      const productsData = Array.isArray(response.data) ? response.data : (response.data.products || []);
+      setProducts(productsData);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -509,7 +511,7 @@ const VendorDashboard = () => {
                         driverLocation={selectedDriverLocation}
                         customerLocation={customerLocation}
                         showRoute={!!selectedDriverLocation && !!customerLocation}
-                        height="h-64"
+                        height="260px"
                       />
                       
                       <div className="p-3 bg-slate-700/50 flex items-center gap-6 text-xs border-b border-slate-700">

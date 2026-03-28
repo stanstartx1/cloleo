@@ -1,94 +1,139 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-
-// Google Maps Loader singleton
-let googleMapsPromise = null;
-
-const loadGoogleMaps = () => {
-  if (googleMapsPromise) return googleMapsPromise;
-  if (window.google?.maps) return Promise.resolve(window.google.maps);
-  
-  googleMapsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve(window.google.maps);
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-  
-  return googleMapsPromise;
-};
 
 const GoogleMap = ({ 
   driverLocation, 
   customerLocation, 
   showRoute = false,
-  height = "h-64",
-  onMapReady = () => {}
+  height = "300px",
+  className = ""
 }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const driverMarkerRef = useRef(null);
   const customerMarkerRef = useRef(null);
   const directionsRendererRef = useRef(null);
-  const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState(null);
 
-  // Initialize map
+  // Load Google Maps script
   useEffect(() => {
-    let mounted = true;
+    // Check if already loaded
+    if (window.google?.maps) {
+      setMapReady(true);
+      return;
+    }
 
-    const initMap = async () => {
-      try {
-        await loadGoogleMaps();
-        
-        if (!mounted || !mapRef.current) return;
-        
-        // Default center (Abidjan)
-        const defaultCenter = { lat: 5.3599, lng: -4.0083 };
-        const center = driverLocation 
-          ? { lat: driverLocation.latitude, lng: driverLocation.longitude }
-          : customerLocation 
-          ? { lat: customerLocation.latitude, lng: customerLocation.longitude }
-          : defaultCenter;
-        
-        mapInstance.current = new window.google.maps.Map(mapRef.current, {
-          center,
-          zoom: 14,
-          styles: [
-            { featureType: "poi", stylers: [{ visibility: "off" }] }
-          ],
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true
-        });
-        
-        setLoading(false);
-        onMapReady(mapInstance.current);
-        
-      } catch (err) {
-        console.error('Google Maps error:', err);
-        setError('Erreur de chargement de la carte');
-        setLoading(false);
-      }
-    };
-    
-    initMap();
-    
-    return () => {
-      mounted = false;
-    };
+    // Check if script is already loading
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => setMapReady(true));
+      return;
+    }
+
+    // Load script
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setMapReady(true);
+    script.onerror = () => setError('Erreur de chargement Google Maps');
+    document.head.appendChild(script);
   }, []);
+
+  // Initialize map when ready
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || mapInstance.current) return;
+
+    try {
+      // Default center (Abidjan)
+      const defaultCenter = { lat: 5.3599, lng: -4.0083 };
+      
+      let center = defaultCenter;
+      if (driverLocation?.latitude) {
+        center = { lat: driverLocation.latitude, lng: driverLocation.longitude };
+      } else if (customerLocation?.latitude) {
+        center = { lat: customerLocation.latitude, lng: customerLocation.longitude };
+      }
+
+      mapInstance.current = new window.google.maps.Map(mapRef.current, {
+        center,
+        zoom: 13,
+        styles: [
+          { featureType: "poi", stylers: [{ visibility: "off" }] },
+          { featureType: "transit", stylers: [{ visibility: "off" }] }
+        ],
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true
+      });
+
+      // Add initial markers
+      if (driverLocation?.latitude) {
+        addDriverMarker(driverLocation);
+      }
+      if (customerLocation?.latitude) {
+        addCustomerMarker(customerLocation);
+      }
+
+    } catch (err) {
+      console.error('Map init error:', err);
+      setError('Erreur initialisation carte');
+    }
+  }, [mapReady]);
 
   // Update driver marker
   useEffect(() => {
-    if (!mapInstance.current || !window.google || !driverLocation) return;
+    if (!mapInstance.current || !driverLocation?.latitude) return;
+    addDriverMarker(driverLocation);
+  }, [driverLocation]);
+
+  // Update customer marker
+  useEffect(() => {
+    if (!mapInstance.current || !customerLocation?.latitude) return;
+    addCustomerMarker(customerLocation);
+  }, [customerLocation]);
+
+  // Update route
+  useEffect(() => {
+    if (!mapInstance.current || !showRoute || !driverLocation?.latitude || !customerLocation?.latitude) return;
     
-    const pos = { lat: driverLocation.latitude, lng: driverLocation.longitude };
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+        map: mapInstance.current,
+        suppressMarkers: true,
+        polylineOptions: {
+          strokeColor: '#4F46E5',
+          strokeWeight: 4
+        }
+      });
+    }
+
+    const directionsService = new window.google.maps.DirectionsService();
+    directionsService.route({
+      origin: { lat: driverLocation.latitude, lng: driverLocation.longitude },
+      destination: { lat: customerLocation.latitude, lng: customerLocation.longitude },
+      travelMode: window.google.maps.TravelMode.DRIVING
+    }, (result, status) => {
+      if (status === 'OK' && directionsRendererRef.current) {
+        directionsRendererRef.current.setDirections(result);
+      }
+    });
+
+    // Fit bounds
+    const bounds = new window.google.maps.LatLngBounds();
+    bounds.extend({ lat: driverLocation.latitude, lng: driverLocation.longitude });
+    bounds.extend({ lat: customerLocation.latitude, lng: customerLocation.longitude });
+    mapInstance.current.fitBounds(bounds, { padding: 60 });
+  }, [driverLocation, customerLocation, showRoute]);
+
+  const addDriverMarker = (location) => {
+    if (!mapInstance.current || !window.google) return;
+    
+    const pos = { lat: location.latitude, lng: location.longitude };
     
     if (driverMarkerRef.current) {
       driverMarkerRef.current.setPosition(pos);
@@ -104,17 +149,16 @@ const GoogleMap = ({
       });
     }
     
-    // Center on driver if no customer
-    if (!customerLocation) {
+    if (!customerLocation?.latitude) {
       mapInstance.current.setCenter(pos);
+      mapInstance.current.setZoom(15);
     }
-  }, [driverLocation, customerLocation]);
+  };
 
-  // Update customer marker
-  useEffect(() => {
-    if (!mapInstance.current || !window.google || !customerLocation) return;
+  const addCustomerMarker = (location) => {
+    if (!mapInstance.current || !window.google) return;
     
-    const pos = { lat: customerLocation.latitude, lng: customerLocation.longitude };
+    const pos = { lat: location.latitude, lng: location.longitude };
     
     if (customerMarkerRef.current) {
       customerMarkerRef.current.setPosition(pos);
@@ -129,63 +173,35 @@ const GoogleMap = ({
         title: 'Client'
       });
     }
-  }, [customerLocation]);
-
-  // Update route
-  useEffect(() => {
-    if (!mapInstance.current || !window.google || !showRoute) return;
-    if (!driverLocation || !customerLocation) return;
-    
-    // Initialize directions renderer
-    if (!directionsRendererRef.current) {
-      directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-        map: mapInstance.current,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: '#4F46E5',
-          strokeWeight: 4
-        }
-      });
-    }
-    
-    const directionsService = new window.google.maps.DirectionsService();
-    
-    directionsService.route({
-      origin: { lat: driverLocation.latitude, lng: driverLocation.longitude },
-      destination: { lat: customerLocation.latitude, lng: customerLocation.longitude },
-      travelMode: window.google.maps.TravelMode.DRIVING
-    }, (result, status) => {
-      if (status === 'OK' && directionsRendererRef.current) {
-        directionsRendererRef.current.setDirections(result);
-      }
-    });
-    
-    // Fit bounds
-    const bounds = new window.google.maps.LatLngBounds();
-    bounds.extend({ lat: driverLocation.latitude, lng: driverLocation.longitude });
-    bounds.extend({ lat: customerLocation.latitude, lng: customerLocation.longitude });
-    mapInstance.current.fitBounds(bounds, { padding: 50 });
-    
-  }, [driverLocation, customerLocation, showRoute]);
+  };
 
   if (error) {
     return (
-      <div className={`${height} bg-slate-700 flex items-center justify-center rounded-xl`}>
-        <p className="text-red-400">{error}</p>
+      <div 
+        className={`bg-slate-700 flex flex-col items-center justify-center ${className}`}
+        style={{ height }}
+      >
+        <MapPin className="w-12 h-12 text-slate-500 mb-2" />
+        <p className="text-red-400 text-sm">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ height }}>
       <div 
         ref={mapRef} 
-        className={`w-full ${height} rounded-xl overflow-hidden`}
+        className={`w-full h-full ${className}`}
+        style={{ minHeight: height }}
         data-testid="google-map"
       />
-      {loading && (
-        <div className={`absolute inset-0 ${height} bg-slate-700 flex items-center justify-center rounded-xl`}>
-          <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      {!mapReady && (
+        <div 
+          className="absolute inset-0 bg-slate-700 flex flex-col items-center justify-center"
+          style={{ height }}
+        >
+          <Loader2 className="w-8 h-8 animate-spin text-blue-400 mb-2" />
+          <p className="text-slate-400 text-sm">Chargement de la carte...</p>
         </div>
       )}
     </div>

@@ -544,7 +544,7 @@ const DriverDashboard = () => {
                   driverLocation={currentLocation}
                   customerLocation={customerLocation}
                   showRoute={!!activeOrder}
-                  height="h-80"
+                  height="320px"
                 />
                 
                 <div className="p-3 bg-slate-700/50 flex items-center gap-6 text-xs">
