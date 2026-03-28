@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, Request, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, Request, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -17,6 +17,8 @@ import jwt
 import secrets
 import shutil
 import aiofiles
+import asyncio
+import json
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -36,6 +38,60 @@ api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ============== WEBSOCKET CONNECTION MANAGER ==============
+
+class ConnectionManager:
+    def __init__(self):
+        # Store active WebSocket connections by room
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+        # Store driver locations
+        self.driver_locations: Dict[str, dict] = {}
+    
+    async def connect(self, websocket: WebSocket, room: str):
+        await websocket.accept()
+        if room not in self.active_connections:
+            self.active_connections[room] = []
+        self.active_connections[room].append(websocket)
+        logger.info(f"WebSocket connected to room: {room}")
+    
+    def disconnect(self, websocket: WebSocket, room: str):
+        if room in self.active_connections:
+            if websocket in self.active_connections[room]:
+                self.active_connections[room].remove(websocket)
+            if not self.active_connections[room]:
+                del self.active_connections[room]
+        logger.info(f"WebSocket disconnected from room: {room}")
+    
+    async def broadcast_to_room(self, room: str, message: dict):
+        if room in self.active_connections:
+            disconnected = []
+            for connection in self.active_connections[room]:
+                try:
+                    await connection.send_json(message)
+                except:
+                    disconnected.append(connection)
+            for conn in disconnected:
+                self.disconnect(conn, room)
+    
+    async def broadcast_to_all(self, message: dict):
+        for room in list(self.active_connections.keys()):
+            await self.broadcast_to_room(room, message)
+    
+    def update_driver_location(self, driver_id: str, location: dict):
+        self.driver_locations[driver_id] = {
+            **location,
+            "driver_id": driver_id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    def get_driver_location(self, driver_id: str) -> Optional[dict]:
+        return self.driver_locations.get(driver_id)
+    
+    def get_all_driver_locations(self) -> Dict[str, dict]:
+        return self.driver_locations
+
+manager = ConnectionManager()
 
 # ============== CONSTANTS ==============
 
@@ -131,6 +187,34 @@ class DriverStatusUpdate(BaseModel):
 class DriverLocationUpdate(BaseModel):
     latitude: float
     longitude: float
+
+# Order models
+class OrderStatus:
+    PENDING = "pending"           # Client just placed order
+    ASSIGNED = "assigned"         # Driver accepted
+    PICKED_UP = "picked_up"       # Driver has the package
+    IN_TRANSIT = "in_transit"     # Driver is on the way
+    DELIVERED = "delivered"       # Delivered
+    CANCELLED = "cancelled"       # Cancelled
+
+class OrderAddress(BaseModel):
+    street: str
+    city: str
+    country: str = "Côte d'Ivoire"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    phone: str
+    name: str
+
+class CreateOrder(BaseModel):
+    items: List[dict]  # [{product_id, quantity}]
+    delivery_address: OrderAddress
+    payment_method: str = "cash"  # cash, card
+    notes: Optional[str] = None
+
+class OrderUpdate(BaseModel):
+    status: str
+    notes: Optional[str] = None
 
 # ============== AUTH ==============
 
@@ -812,6 +896,519 @@ async def admin_delete_driver(driver_id: str, user: dict = Depends(require_admin
         raise HTTPException(status_code=404, detail="Livreur non trouvé")
     return {"message": "Livreur supprimé"}
 
+# ============== ORDERS SYSTEM ==============
+
+@api_router.post("/orders")
+async def create_order(data: CreateOrder, request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Create a new order (can be guest or authenticated)"""
+    user = None
+    if credentials:
+        try:
+            payload = decode_token(credentials.credentials)
+            user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+        except:
+            pass
+    
+    # Validate products and calculate totals
+    items_with_details = []
+    total_fcfa = 0
+    vendor_ids = set()
+    
+    for item in data.items:
+        product = await db.products.find_one({"id": item["product_id"], "status": "approved"}, {"_id": 0})
+        if not product:
+            raise HTTPException(status_code=400, detail=f"Produit non trouvé: {item['product_id']}")
+        
+        price = product.get("promo_price_fcfa") or product["price_fcfa"]
+        subtotal = price * item["quantity"]
+        total_fcfa += subtotal
+        vendor_ids.add(product["seller_id"])
+        
+        items_with_details.append({
+            "product_id": product["id"],
+            "product_name": product["name"],
+            "product_image": product["images"][0] if product.get("images") else None,
+            "quantity": item["quantity"],
+            "unit_price_fcfa": price,
+            "subtotal_fcfa": subtotal,
+            "vendor_id": product["seller_id"],
+            "vendor_name": product.get("seller_name", "Vendeur")
+        })
+    
+    # Calculate delivery fee
+    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0})
+    base_delivery_fee = delivery_settings.get("base_delivery_fee", 1000) if delivery_settings else 1000
+    delivery_fee = base_delivery_fee
+    
+    order = {
+        "id": str(uuid.uuid4()),
+        "order_number": f"CLO-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
+        "customer_id": user["id"] if user else None,
+        "customer_name": data.delivery_address.name,
+        "customer_email": user["email"] if user else None,
+        "customer_phone": data.delivery_address.phone,
+        "items": items_with_details,
+        "vendor_ids": list(vendor_ids),
+        "delivery_address": data.delivery_address.dict(),
+        "subtotal_fcfa": total_fcfa,
+        "delivery_fee_fcfa": delivery_fee,
+        "total_fcfa": total_fcfa + delivery_fee,
+        "total_usd": round((total_fcfa + delivery_fee) * FCFA_TO_USD, 2),
+        "payment_method": data.payment_method,
+        "payment_status": "pending",
+        "status": OrderStatus.PENDING,
+        "driver_id": None,
+        "driver_name": None,
+        "driver_location": None,
+        "notes": data.notes,
+        "status_history": [
+            {"status": OrderStatus.PENDING, "timestamp": datetime.now(timezone.utc).isoformat(), "note": "Commande créée"}
+        ],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.orders.insert_one(order)
+    
+    # Broadcast new order to drivers in the delivery zone
+    await manager.broadcast_to_room("drivers", {
+        "type": "new_order",
+        "order": {k: v for k, v in order.items() if k != "_id"}
+    })
+    
+    return {k: v for k, v in order.items() if k != "_id"}
+
+@api_router.get("/orders")
+async def get_orders(user: dict = Depends(get_current_user), status: Optional[str] = None, page: int = 1, limit: int = 20):
+    """Get orders based on user role"""
+    skip = (page - 1) * limit
+    query = {}
+    
+    if user["role"] == UserRole.CUSTOMER:
+        query["customer_id"] = user["id"]
+    elif user["role"] == UserRole.VENDOR:
+        query["vendor_ids"] = user["id"]
+    elif user["role"] == UserRole.DRIVER:
+        # Drivers see available orders or their assigned orders
+        if status == "available":
+            query["status"] = OrderStatus.PENDING
+        else:
+            query["$or"] = [
+                {"driver_id": user["id"]},
+                {"status": OrderStatus.PENDING}
+            ]
+    # Admin sees all
+    
+    if status and status != "available":
+        query["status"] = status
+    
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.orders.count_documents(query)
+    
+    return {"orders": orders, "total": total, "page": page}
+
+# Public order tracking (no auth required)
+@api_router.get("/orders/track/{order_id}")
+async def track_order(order_id: str):
+    """Public endpoint for order tracking"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Add driver info if assigned
+    if order.get("driver_id"):
+        driver = await db.users.find_one({"id": order["driver_id"]}, {
+            "_id": 0, "id": 1, "name": 1, "phone": 1, "vehicle_type": 1
+        })
+        order["driver"] = driver
+        # Add real-time location from manager
+        live_location = manager.get_driver_location(order["driver_id"])
+        if live_location:
+            order["driver_live_location"] = live_location
+    
+    # Remove sensitive info
+    order.pop("customer_email", None)
+    
+    return order
+
+@api_router.get("/orders/{order_id}")
+async def get_order(order_id: str, user: dict = Depends(get_current_user)):
+    """Get order details"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Check permission
+    if user["role"] == UserRole.CUSTOMER and order.get("customer_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    if user["role"] == UserRole.VENDOR and user["id"] not in order.get("vendor_ids", []):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    if user["role"] == UserRole.DRIVER and order.get("driver_id") != user["id"] and order["status"] != OrderStatus.PENDING:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    # Add driver info if assigned
+    if order.get("driver_id"):
+        driver = await db.users.find_one({"id": order["driver_id"]}, {"_id": 0, "password": 0})
+        order["driver"] = driver
+        # Add real-time location from manager
+        live_location = manager.get_driver_location(order["driver_id"])
+        if live_location:
+            order["driver_live_location"] = live_location
+    
+    return order
+
+@api_router.put("/orders/{order_id}/accept")
+async def accept_order(order_id: str, user: dict = Depends(require_driver)):
+    """Driver accepts an order"""
+    if not user.get("is_verified") or not user.get("is_active"):
+        raise HTTPException(status_code=403, detail="Votre compte doit être vérifié pour accepter des commandes")
+    
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order["status"] != OrderStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Cette commande n'est plus disponible")
+    
+    update_data = {
+        "status": OrderStatus.ASSIGNED,
+        "driver_id": user["id"],
+        "driver_name": user["name"],
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Add to status history
+    status_entry = {
+        "status": OrderStatus.ASSIGNED,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "note": f"Commande acceptée par {user['name']}"
+    }
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": update_data, "$push": {"status_history": status_entry}}
+    )
+    
+    # Broadcast update
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update",
+        "order_id": order_id,
+        "status": OrderStatus.ASSIGNED,
+        "driver_id": user["id"],
+        "driver_name": user["name"],
+        "message": f"Livreur {user['name']} a accepté votre commande"
+    })
+    
+    # Notify other drivers that order is taken
+    await manager.broadcast_to_room("drivers", {
+        "type": "order_taken",
+        "order_id": order_id
+    })
+    
+    return {"message": "Commande acceptée", "status": OrderStatus.ASSIGNED}
+
+@api_router.put("/orders/{order_id}/pickup")
+async def pickup_order(order_id: str, user: dict = Depends(require_driver)):
+    """Driver confirms package pickup"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée ou non assignée à vous")
+    
+    if order["status"] != OrderStatus.ASSIGNED:
+        raise HTTPException(status_code=400, detail="Statut invalide pour cette action")
+    
+    update_data = {
+        "status": OrderStatus.PICKED_UP,
+        "picked_up_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    status_entry = {
+        "status": OrderStatus.PICKED_UP,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "note": "Colis récupéré par le livreur"
+    }
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": update_data, "$push": {"status_history": status_entry}}
+    )
+    
+    # Broadcast update
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update",
+        "order_id": order_id,
+        "status": OrderStatus.PICKED_UP,
+        "message": "Le livreur a récupéré votre colis"
+    })
+    
+    return {"message": "Colis récupéré", "status": OrderStatus.PICKED_UP}
+
+@api_router.put("/orders/{order_id}/in-transit")
+async def start_delivery(order_id: str, user: dict = Depends(require_driver)):
+    """Driver starts delivery (in transit)"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order["status"] != OrderStatus.PICKED_UP:
+        raise HTTPException(status_code=400, detail="Vous devez d'abord récupérer le colis")
+    
+    update_data = {
+        "status": OrderStatus.IN_TRANSIT,
+        "in_transit_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    status_entry = {
+        "status": OrderStatus.IN_TRANSIT,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "note": "Livreur en route vers la destination"
+    }
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": update_data, "$push": {"status_history": status_entry}}
+    )
+    
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update",
+        "order_id": order_id,
+        "status": OrderStatus.IN_TRANSIT,
+        "message": "Le livreur est en route vers vous"
+    })
+    
+    return {"message": "En route", "status": OrderStatus.IN_TRANSIT}
+
+@api_router.put("/orders/{order_id}/deliver")
+async def deliver_order(order_id: str, user: dict = Depends(require_driver)):
+    """Driver confirms delivery completed"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order["status"] not in [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT]:
+        raise HTTPException(status_code=400, detail="Statut invalide pour cette action")
+    
+    update_data = {
+        "status": OrderStatus.DELIVERED,
+        "delivered_at": datetime.now(timezone.utc).isoformat(),
+        "payment_status": "paid" if order["payment_method"] == "cash" else order["payment_status"],
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    status_entry = {
+        "status": OrderStatus.DELIVERED,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "note": "Livraison effectuée avec succès"
+    }
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": update_data, "$push": {"status_history": status_entry}}
+    )
+    
+    # Update driver stats
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$inc": {"total_deliveries": 1}}
+    )
+    
+    # Broadcast completion
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update",
+        "order_id": order_id,
+        "status": OrderStatus.DELIVERED,
+        "message": "Votre commande a été livrée !"
+    })
+    
+    return {"message": "Livraison effectuée", "status": OrderStatus.DELIVERED}
+
+@api_router.put("/orders/{order_id}/cancel")
+async def cancel_order(order_id: str, reason: str = "Annulé", user: dict = Depends(get_current_user)):
+    """Cancel an order"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Check permission
+    can_cancel = (
+        user["role"] == UserRole.ADMIN or
+        (user["role"] == UserRole.CUSTOMER and order.get("customer_id") == user["id"]) or
+        (user["role"] == UserRole.DRIVER and order.get("driver_id") == user["id"])
+    )
+    
+    if not can_cancel:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez pas annuler cette commande")
+    
+    if order["status"] in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
+        raise HTTPException(status_code=400, detail="Cette commande ne peut plus être annulée")
+    
+    update_data = {
+        "status": OrderStatus.CANCELLED,
+        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+        "cancellation_reason": reason,
+        "cancelled_by": user["id"],
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    status_entry = {
+        "status": OrderStatus.CANCELLED,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "note": f"Annulée: {reason}"
+    }
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": update_data, "$push": {"status_history": status_entry}}
+    )
+    
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update",
+        "order_id": order_id,
+        "status": OrderStatus.CANCELLED,
+        "message": f"Commande annulée: {reason}"
+    })
+    
+    # If driver was assigned, make order available again for reassignment
+    if order.get("driver_id") and user["role"] == UserRole.DRIVER:
+        await manager.broadcast_to_room("drivers", {
+            "type": "order_available",
+            "order_id": order_id,
+            "message": "Commande disponible"
+        })
+    
+    return {"message": "Commande annulée", "status": OrderStatus.CANCELLED}
+
+# Driver location update endpoint
+@api_router.post("/driver/location/update")
+async def update_driver_location_realtime(data: DriverLocationUpdate, user: dict = Depends(require_driver)):
+    """Update driver location and broadcast to tracking rooms"""
+    location = {
+        "latitude": data.latitude,
+        "longitude": data.longitude,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update in database
+    await db.users.update_one({"id": user["id"]}, {"$set": {"current_location": location}})
+    
+    # Update in memory for real-time access
+    manager.update_driver_location(user["id"], {
+        **location,
+        "driver_name": user["name"],
+        "driver_phone": user.get("phone"),
+        "vehicle_type": user.get("vehicle_type")
+    })
+    
+    # Find active orders for this driver and broadcast location
+    active_orders = await db.orders.find({
+        "driver_id": user["id"],
+        "status": {"$in": [OrderStatus.ASSIGNED, OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT]}
+    }, {"_id": 0, "id": 1, "vendor_ids": 1}).to_list(100)
+    
+    for order in active_orders:
+        await manager.broadcast_to_room(f"order_{order['id']}", {
+            "type": "driver_location",
+            "driver_id": user["id"],
+            "location": location,
+            "driver_name": user["name"]
+        })
+    
+    # Broadcast to admin tracking room
+    await manager.broadcast_to_room("admin_tracking", {
+        "type": "driver_location",
+        "driver_id": user["id"],
+        "location": location,
+        "driver_name": user["name"],
+        "vehicle_type": user.get("vehicle_type")
+    })
+    
+    return {"message": "Position mise à jour", "location": location}
+
+# Get all active driver locations (for admin)
+@api_router.get("/admin/drivers/locations")
+async def get_all_driver_locations(user: dict = Depends(require_admin)):
+    """Get all active driver locations"""
+    # Get from memory (real-time) and database (last known)
+    live_locations = manager.get_all_driver_locations()
+    
+    # Get active drivers from DB
+    drivers = await db.users.find({
+        "role": UserRole.DRIVER,
+        "is_active": True,
+        "status": {"$in": ["available", "busy"]}
+    }, {"_id": 0, "password": 0}).to_list(100)
+    
+    result = []
+    for driver in drivers:
+        location = live_locations.get(driver["id"]) or driver.get("current_location")
+        if location:
+            result.append({
+                "driver_id": driver["id"],
+                "driver_name": driver["name"],
+                "phone": driver.get("phone"),
+                "vehicle_type": driver.get("vehicle_type"),
+                "status": driver.get("status"),
+                "location": location
+            })
+    
+    return {"drivers": result}
+
+# Admin orders management
+@api_router.get("/admin/orders")
+async def admin_get_orders(user: dict = Depends(require_admin), status: Optional[str] = None, page: int = 1, limit: int = 50):
+    """Get all orders for admin"""
+    skip = (page - 1) * limit
+    query = {}
+    if status:
+        query["status"] = status
+    
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.orders.count_documents(query)
+    
+    # Enrich with driver info
+    for order in orders:
+        if order.get("driver_id"):
+            driver = await db.users.find_one({"id": order["driver_id"]}, {"_id": 0, "password": 0})
+            order["driver"] = driver
+    
+    return {"orders": orders, "total": total, "page": page}
+
+@api_router.get("/admin/orders/stats")
+async def admin_order_stats(user: dict = Depends(require_admin)):
+    """Get order statistics"""
+    total = await db.orders.count_documents({})
+    pending = await db.orders.count_documents({"status": OrderStatus.PENDING})
+    assigned = await db.orders.count_documents({"status": OrderStatus.ASSIGNED})
+    in_transit = await db.orders.count_documents({"status": {"$in": [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT]}})
+    delivered = await db.orders.count_documents({"status": OrderStatus.DELIVERED})
+    cancelled = await db.orders.count_documents({"status": OrderStatus.CANCELLED})
+    
+    # Today's orders
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_orders = await db.orders.count_documents({"created_at": {"$gte": today.isoformat()}})
+    today_delivered = await db.orders.count_documents({
+        "status": OrderStatus.DELIVERED,
+        "delivered_at": {"$gte": today.isoformat()}
+    })
+    
+    # Revenue
+    delivered_orders = await db.orders.find({"status": OrderStatus.DELIVERED}, {"total_fcfa": 1, "_id": 0}).to_list(10000)
+    total_revenue = sum(o.get("total_fcfa", 0) for o in delivered_orders)
+    
+    return {
+        "total": total,
+        "pending": pending,
+        "assigned": assigned,
+        "in_transit": in_transit,
+        "delivered": delivered,
+        "cancelled": cancelled,
+        "today_orders": today_orders,
+        "today_delivered": today_delivered,
+        "total_revenue_fcfa": total_revenue
+    }
+
 # ============== STATIC FILES (UPLOADS) ==============
 
 app.include_router(api_router)
@@ -827,6 +1424,108 @@ async def serve_upload(filename: str):
     return FileResponse(filepath)
 
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','), allow_methods=["*"], allow_headers=["*"])
+
+# ============== WEBSOCKET ENDPOINTS ==============
+
+@app.websocket("/ws/orders/{room}")
+async def websocket_order_tracking(websocket: WebSocket, room: str):
+    """WebSocket for real-time order tracking
+    Rooms:
+    - order_{order_id}: Track specific order (for customer, vendor, admin)
+    - drivers: All available orders for drivers
+    - admin_tracking: Admin tracking all drivers
+    - vendor_{vendor_id}: Vendor's orders
+    """
+    await manager.connect(websocket, room)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                
+                # Handle ping/pong for keep-alive
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                
+                # Handle driver location update via WebSocket
+                elif message.get("type") == "location_update":
+                    driver_id = message.get("driver_id")
+                    location = message.get("location")
+                    if driver_id and location:
+                        manager.update_driver_location(driver_id, location)
+                        # Broadcast to admin
+                        await manager.broadcast_to_room("admin_tracking", {
+                            "type": "driver_location",
+                            "driver_id": driver_id,
+                            "location": location
+                        })
+                
+            except json.JSONDecodeError:
+                pass
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room)
+
+@app.websocket("/ws/driver/{driver_id}")
+async def websocket_driver(websocket: WebSocket, driver_id: str):
+    """WebSocket for driver to receive new orders and updates"""
+    room = f"driver_{driver_id}"
+    await manager.connect(websocket, room)
+    await manager.connect(websocket, "drivers")  # Also join global drivers room
+    
+    try:
+        # Send current available orders
+        available_orders = await db.orders.find(
+            {"status": OrderStatus.PENDING},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(20).to_list(20)
+        
+        await websocket.send_json({
+            "type": "available_orders",
+            "orders": available_orders
+        })
+        
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                
+                elif message.get("type") == "location_update":
+                    location = message.get("location")
+                    if location:
+                        manager.update_driver_location(driver_id, {
+                            **location,
+                            "driver_id": driver_id
+                        })
+                        
+                        # Find active orders and broadcast
+                        active_orders = await db.orders.find({
+                            "driver_id": driver_id,
+                            "status": {"$in": [OrderStatus.ASSIGNED, OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT]}
+                        }, {"_id": 0, "id": 1}).to_list(10)
+                        
+                        for order in active_orders:
+                            await manager.broadcast_to_room(f"order_{order['id']}", {
+                                "type": "driver_location",
+                                "driver_id": driver_id,
+                                "location": location
+                            })
+                        
+                        await manager.broadcast_to_room("admin_tracking", {
+                            "type": "driver_location",
+                            "driver_id": driver_id,
+                            "location": location
+                        })
+                        
+            except json.JSONDecodeError:
+                pass
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room)
+        manager.disconnect(websocket, "drivers")
 
 @app.on_event("shutdown")
 async def shutdown():

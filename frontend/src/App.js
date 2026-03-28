@@ -20,6 +20,8 @@ import CategoryPage from "./pages/CategoryPage";
 import ProductPage from "./pages/ProductPage";
 import ProductsPage from "./pages/ProductsPage";
 import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 import SearchPage from "./pages/SearchPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import AuthPage from "./pages/AuthPage";
@@ -116,6 +118,8 @@ const AppRoutes = () => {
       <Route path="/produit/:id" element={<PublicLayout><ProductPage /></PublicLayout>} />
       <Route path="/produits" element={<PublicLayout><ProductsPage /></PublicLayout>} />
       <Route path="/panier" element={<PublicLayout><CartPage /></PublicLayout>} />
+      <Route path="/checkout" element={<PublicLayout><CheckoutPage /></PublicLayout>} />
+      <Route path="/suivi/:orderId" element={<PublicLayout><OrderTrackingPage /></PublicLayout>} />
       <Route path="/recherche" element={<PublicLayout><SearchPage /></PublicLayout>} />
       <Route path="/favoris" element={<PublicLayout><FavoritesPage /></PublicLayout>} />
       

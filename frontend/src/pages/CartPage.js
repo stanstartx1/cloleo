@@ -34,9 +34,7 @@ const CartPage = () => {
   };
 
   const handleCheckout = () => {
-    toast.info('Paiement en cours de développement', {
-      description: 'Cette fonctionnalité sera bientôt disponible !',
-    });
+    navigate('/checkout');
   };
 
   if (loading && cart.items.length === 0) {

@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
+import AdminLiveTracking from '../components/AdminLiveTracking';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -252,7 +253,7 @@ const AdminDashboard = () => {
       case 'plans':
         return <PlansSection plans={subscriptionPlans} vendors={vendors} />;
       case 'routes':
-        return <RoutesSection drivers={drivers} />;
+        return <AdminLiveTracking token={token} />;
       case 'settings-vendors':
         return <SettingsSection type="vendor" settings={settings.vendor} onUpdate={(k, v) => updateSetting('vendor', k, v)} onSave={() => handleSaveSettings('vendor')} />;
       case 'settings-drivers':
