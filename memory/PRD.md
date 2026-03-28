@@ -43,12 +43,12 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - Menu latéral complet : Tableau de bord, Mes produits, Commandes, Suivi livraisons, Statistiques, Mon abonnement, Paramètres
   - Section Suivi livraisons avec carte Google Maps
   - Vue des commandes avec livreur assigné
-- [x] **Refonte Dashboard Livreur** (28/03/2026)
-  - Menu latéral : Carte & Navigation, Commandes, Historique, Mes gains, Mon profil
-  - Sélecteur de statut (Disponible/Occupé/Hors ligne)
-  - Carte Google Maps avec position livreur et destination client
-  - Boutons d'action : Accepter, Récupérer colis, Démarrer livraison, Confirmer livraison
-  - Lien "Ouvrir dans Google Maps" pour navigation externe
+- [x] **Correction Dashboards Vendeur & Livreur** (28/03/2026)
+  - Suppression de la superposition navbar/sidebar (StandaloneDashboardLayout)
+  - Menu latéral desktop propre
+  - Menu déroulant mobile responsive
+  - Carte Google Maps fonctionnelle avec composant réutilisable
+  - Commande en cours avec boutons d'action (Récupérer colis, Livrer, etc.)
 
 ## Schéma de Base de Données
 
