@@ -82,7 +82,14 @@ const PublicLayout = ({ children }) => (
   </div>
 );
 
-// Dashboard Layout (no Footer for dashboards)
+// Dashboard Layout (no Navbar/Footer - for dashboards with their own sidebar)
+const StandaloneDashboardLayout = ({ children }) => (
+  <div className="min-h-screen">
+    {children}
+  </div>
+);
+
+// Dashboard Layout with Navbar (for legacy dashboards)
 const DashboardLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
@@ -129,22 +136,22 @@ const AppRoutes = () => {
       {/* Vendor Routes */}
       <Route path="/vendeur" element={
         <ProtectedRoute requireVendor>
-          <DashboardLayout><VendorDashboard /></DashboardLayout>
+          <StandaloneDashboardLayout><VendorDashboard /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
       <Route path="/vendeur/produits" element={
         <ProtectedRoute requireVendor>
-          <DashboardLayout><VendorProducts /></DashboardLayout>
+          <StandaloneDashboardLayout><VendorProducts /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
       <Route path="/vendeur/produits/nouveau" element={
         <ProtectedRoute requireVendor>
-          <DashboardLayout><VendorAddProduct /></DashboardLayout>
+          <StandaloneDashboardLayout><VendorAddProduct /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
       <Route path="/vendeur/abonnement" element={
         <ProtectedRoute requireVendor>
-          <DashboardLayout><VendorSubscription /></DashboardLayout>
+          <StandaloneDashboardLayout><VendorSubscription /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
 
