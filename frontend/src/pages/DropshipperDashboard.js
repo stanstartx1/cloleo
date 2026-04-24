@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
-  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag
+  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -14,7 +14,9 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 const API = `${BACKEND_URL}/api`;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const DropshipperDashboard = () => {
   const navigate = useNavigate();
@@ -223,6 +225,7 @@ const DropshipperDashboard = () => {
     { id: 'catalog', label: 'Catalogue produits', icon: Package2 },
     { id: 'products', label: 'Mes produits', icon: Package },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
+    { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
     { id: 'earnings', label: 'Mes gains', icon: DollarSign },
     { id: 'shop', label: 'Ma boutique', icon: Store },
     { id: 'settings', label: 'Paramètres', icon: Settings },
@@ -672,6 +675,11 @@ const DropshipperDashboard = () => {
             </div>
           )}
 
+          {/* Tracking Tab - Live Delivery Tracking */}
+          {activeTab === 'tracking' && (
+            <DropshipperOrderTracking token={token} />
+          )}
+
           {/* Earnings Tab */}
           {activeTab === 'earnings' && (
             <div className="space-y-6">
@@ -855,6 +863,418 @@ const DropshipperDashboard = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+    </div>
+  );
+};
+
+// =============== DROPSHIPPER ORDER TRACKING COMPONENT ===============
+const ORDER_STATUSES = {
+  pending: { label: 'En attente', color: 'amber', bg: 'bg-amber-100', text: 'text-amber-700' },
+  assigned: { label: 'Livreur assigné', color: 'blue', bg: 'bg-blue-100', text: 'text-blue-700' },
+  picked_up: { label: 'Colis récupéré', color: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  in_transit: { label: 'En livraison', color: 'purple', bg: 'bg-purple-100', text: 'text-purple-700' },
+  delivered: { label: 'Livrée', color: 'green', bg: 'bg-green-100', text: 'text-green-700' },
+  cancelled: { label: 'Annulée', color: 'red', bg: 'bg-red-100', text: 'text-red-700' }
+};
+
+const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price || 0);
+
+const DropshipperOrderTracking = ({ token }) => {
+  const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const driverMarker = useRef(null);
+  const customerMarker = useRef(null);
+  const wsRef = useRef(null);
+
+  // Fetch dropshipper orders
+  const fetchOrders = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API}/dropshipper/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setOrders(response.data.orders || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
+
+  // WebSocket for selected order
+  useEffect(() => {
+    if (!selectedOrder) return;
+    
+    const connectWebSocket = () => {
+      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${selectedOrder.id}`);
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'driver_location') {
+            setDriverLocation(data.location);
+            updateDriverMarker(data.location);
+          }
+          
+          if (data.type === 'order_update') {
+            fetchOrders();
+            toast.info(data.message || 'Mise à jour de la commande');
+          }
+        } catch (e) {
+          console.error('WS parse error:', e);
+        }
+      };
+      
+      ws.onclose = () => {
+        setTimeout(connectWebSocket, 3000);
+      };
+      
+      wsRef.current = ws;
+    };
+    
+    connectWebSocket();
+    
+    return () => wsRef.current?.close();
+  }, [selectedOrder, fetchOrders]);
+
+  // Initialize Google Map
+  useEffect(() => {
+    if (!selectedOrder || !mapRef.current) return;
+    
+    const initMap = () => {
+      if (!window.google) {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => createMap();
+        document.head.appendChild(script);
+      } else {
+        createMap();
+      }
+    };
+    
+    initMap();
+  }, [selectedOrder]);
+
+  const createMap = () => {
+    if (!selectedOrder?.delivery_address) return;
+    
+    const customerPos = {
+      lat: selectedOrder.delivery_address.latitude || 5.3600,
+      lng: selectedOrder.delivery_address.longitude || -4.0083
+    };
+    
+    mapInstance.current = new window.google.maps.Map(mapRef.current, {
+      center: customerPos,
+      zoom: 14,
+      styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }]
+    });
+    
+    // Customer marker (red)
+    customerMarker.current = new window.google.maps.Marker({
+      map: mapInstance.current,
+      position: customerPos,
+      icon: {
+        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        scaledSize: new window.google.maps.Size(40, 40)
+      },
+      title: 'Client'
+    });
+    
+    // Driver marker if available
+    if (selectedOrder.driver_live_location || driverLocation) {
+      const loc = driverLocation || selectedOrder.driver_live_location;
+      updateDriverMarker(loc);
+    }
+  };
+
+  const updateDriverMarker = (location) => {
+    if (!mapInstance.current || !window.google || !location) return;
+    
+    const pos = { lat: location.latitude, lng: location.longitude };
+    
+    if (driverMarker.current) {
+      driverMarker.current.setPosition(pos);
+    } else {
+      driverMarker.current = new window.google.maps.Marker({
+        map: mapInstance.current,
+        position: pos,
+        icon: {
+          url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+          scaledSize: new window.google.maps.Size(40, 40)
+        },
+        title: 'Livreur'
+      });
+    }
+    
+    // Pan to driver
+    mapInstance.current.panTo(pos);
+  };
+
+  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+  const completedOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Suivi des livraisons</h1>
+        <p className="text-gray-500">Suivez vos commandes en temps réel</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-white hover:shadow-lg transition-all duration-300">
+          <CardContent className="pt-6">
+            <Package className="w-6 h-6 text-purple-600 mb-2" />
+            <p className="text-2xl font-bold">{orders.length}</p>
+            <p className="text-sm text-gray-500">Total commandes</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-amber-50 border-amber-200 hover:shadow-lg transition-all duration-300">
+          <CardContent className="pt-6">
+            <Clock className="w-6 h-6 text-amber-500 mb-2" />
+            <p className="text-2xl font-bold text-amber-700">{activeOrders.length}</p>
+            <p className="text-sm text-amber-600">En cours</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-50 border-green-200 hover:shadow-lg transition-all duration-300">
+          <CardContent className="pt-6">
+            <CheckCircle className="w-6 h-6 text-green-500 mb-2" />
+            <p className="text-2xl font-bold text-green-700">
+              {orders.filter(o => o.status === 'delivered').length}
+            </p>
+            <p className="text-sm text-green-600">Livrées</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-purple-50 border-purple-200 hover:shadow-lg transition-all duration-300">
+          <CardContent className="pt-6">
+            <Truck className="w-6 h-6 text-purple-500 mb-2 animate-bounce" />
+            <p className="text-2xl font-bold text-purple-700">
+              {orders.filter(o => o.status === 'in_transit').length}
+            </p>
+            <p className="text-sm text-purple-600">En livraison</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Orders List */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b flex flex-row items-center justify-between py-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Package className="w-5 h-5 text-purple-600" />
+              Commandes actives
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={fetchOrders} className="hover:bg-purple-50">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </CardHeader>
+          
+          {activeOrders.length > 0 ? (
+            <div className="divide-y max-h-[400px] overflow-y-auto">
+              {activeOrders.map((order) => (
+                <div 
+                  key={order.id}
+                  className={`p-4 cursor-pointer hover:bg-gray-50 transition-all duration-300 ${
+                    selectedOrder?.id === order.id ? 'bg-purple-50 border-l-4 border-l-purple-500' : ''
+                  }`}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-medium">#{order.order_number?.slice(-8)}</p>
+                      <p className="text-sm text-gray-500">{order.customer_name}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${ORDER_STATUSES[order.status]?.bg} ${ORDER_STATUSES[order.status]?.text}`}>
+                      {ORDER_STATUSES[order.status]?.label}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">
+                      {order.items?.length || 1} article(s)
+                    </span>
+                    <span className="font-medium">{formatPrice(order.total_fcfa)} FCFA</span>
+                  </div>
+                  
+                  {order.driver_name && (
+                    <div className="mt-2 flex items-center gap-2 text-sm text-purple-600">
+                      <Truck className="w-4 h-4 animate-pulse" />
+                      {order.driver_name}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <CardContent className="py-12 text-center">
+              <Package className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">Aucune commande active</p>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Map & Order Details */}
+        <Card className="overflow-hidden">
+          {selectedOrder ? (
+            <>
+              <CardHeader className="border-b py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Suivi en temps réel</CardTitle>
+                    <p className="text-sm text-gray-500">#{selectedOrder.order_number}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${ORDER_STATUSES[selectedOrder.status]?.bg} ${ORDER_STATUSES[selectedOrder.status]?.text}`}>
+                    {ORDER_STATUSES[selectedOrder.status]?.label}
+                  </span>
+                </div>
+              </CardHeader>
+              
+              {/* Map */}
+              <div ref={mapRef} className="w-full h-48 bg-gray-100" data-testid="dropshipper-tracking-map">
+                {!GOOGLE_MAPS_API_KEY && (
+                  <div className="h-full flex items-center justify-center text-gray-500">
+                    <MapPin className="w-8 h-8 mr-2" />
+                    Carte non disponible
+                  </div>
+                )}
+              </div>
+              
+              {/* Order Info */}
+              <CardContent className="p-4 space-y-4">
+                {/* Customer */}
+                <div className="flex items-start gap-3 animate-fade-in">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{selectedOrder.customer_name}</p>
+                    <p className="text-sm text-gray-500">
+                      {selectedOrder.delivery_address?.street || selectedOrder.delivery_address?.city}
+                    </p>
+                    {selectedOrder.delivery_address?.phone && (
+                      <a 
+                        href={`tel:${selectedOrder.delivery_address.phone}`}
+                        className="text-sm text-purple-600 flex items-center gap-1 mt-1 hover:underline"
+                      >
+                        <Phone className="w-3 h-3" />
+                        {selectedOrder.delivery_address.phone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Driver */}
+                {selectedOrder.driver_name && (
+                  <div className="flex items-start gap-3 animate-fade-in stagger-1">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{selectedOrder.driver_name}</p>
+                      <p className="text-sm text-gray-500">Livreur en route</p>
+                      {driverLocation && (
+                        <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                          Position en temps réel
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Margin info */}
+                {selectedOrder.margin_breakdown && (
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Votre gain sur cette commande</span>
+                      <span className="font-bold text-green-600">
+                        +{formatPrice(selectedOrder.margin_breakdown.dropshipper_receives_fcfa)} FCFA
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </>
+          ) : (
+            <CardContent className="h-96 flex items-center justify-center">
+              <div className="text-center">
+                <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">
+                  Sélectionnez une commande pour voir le suivi
+                </p>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      </div>
+
+      {/* Completed Orders Table */}
+      {completedOrders.length > 0 && (
+        <Card>
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              Commandes terminées
+            </CardTitle>
+          </CardHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Commande</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Client</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Total</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Votre gain</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Statut</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {completedOrders.slice(0, 10).map((order) => (
+                  <tr key={order.id} className="border-t hover:bg-gray-50 transition-colors">
+                    <td className="p-3 font-mono text-sm">#{order.order_number?.slice(-8)}</td>
+                    <td className="p-3 text-sm">{order.customer_name}</td>
+                    <td className="p-3 font-medium">{formatPrice(order.total_fcfa)} FCFA</td>
+                    <td className="p-3 font-medium text-green-600">
+                      +{formatPrice(order.margin_breakdown?.dropshipper_receives_fcfa)} FCFA
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${ORDER_STATUSES[order.status]?.bg} ${ORDER_STATUSES[order.status]?.text}`}>
+                        {ORDER_STATUSES[order.status]?.label}
+                      </span>
+                    </td>
+                    <td className="p-3 text-sm text-gray-600">
+                      {new Date(order.created_at).toLocaleDateString('fr-FR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );

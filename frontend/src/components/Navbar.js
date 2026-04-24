@@ -27,7 +27,7 @@ const CATEGORIES = [
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
-  const { user, isAuthenticated, isVendor, isAdmin, isDriver, logout } = useAuth();
+  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,33 +48,41 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border shadow-sm" data-testid="navbar">
+      <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border shadow-sm transition-all duration-300" data-testid="navbar">
         <div className="container mx-auto px-4">
           {/* Top bar */}
           <div className="hidden md:flex items-center justify-between text-xs py-2 border-b border-border">
             <div className="flex items-center gap-4 text-muted-foreground">
+              <span className="animate-pulse">🚚</span>
               <span>Livraison gratuite à partir de 50 000 FCFA</span>
               <span>•</span>
               <span>Service client: +225 07 00 00 00</span>
             </div>
             <div className="flex items-center gap-4">
+              {isDropshipper && (
+                <Link to="/dropshipper" className="hover:text-purple-600 transition-all duration-300 flex items-center gap-1 hover:scale-105">
+                  <Store className="w-3 h-3" /> Espace dropshipper
+                </Link>
+              )}
               {isDriver && (
-                <Link to="/livreur" className="hover:text-primary transition-colors flex items-center gap-1">
+                <Link to="/livreur" className="hover:text-primary transition-all duration-300 flex items-center gap-1 hover:scale-105">
                   <Truck className="w-3 h-3" /> Espace livreur
                 </Link>
               )}
               {isVendor && !isAdmin && (
-                <Link to="/vendeur" className="hover:text-primary transition-colors flex items-center gap-1">
+                <Link to="/vendeur" className="hover:text-primary transition-all duration-300 flex items-center gap-1 hover:scale-105">
                   <Store className="w-3 h-3" /> Espace vendeur
                 </Link>
               )}
               {isAdmin && (
-                <Link to="/admin" className="hover:text-primary transition-colors flex items-center gap-1">
+                <Link to="/admin" className="hover:text-primary transition-all duration-300 flex items-center gap-1 hover:scale-105">
                   <Crown className="w-3 h-3" /> Administration
                 </Link>
               )}
               <span>•</span>
-              <Link to="/favoris" className="hover:text-primary transition-colors">Mes favoris</Link>
+              <Link to="/favoris" className="hover:text-red-500 transition-all duration-300 flex items-center gap-1 hover:scale-105">
+                <Heart className="w-3 h-3" /> Mes favoris
+              </Link>
             </div>
           </div>
 
