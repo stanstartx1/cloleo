@@ -59,6 +59,18 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] WebSocket pour mises à jour temps réel
 - [x] Navbar avec liens Dropshipper
 
+### Phase 6 ✅ (COMPLÉTÉ 24/04/2026)
+- [x] **Système de Chat Client-Vendeur/Dropshipper**
+  - [x] Bouton chat flottant sur pages produits
+  - [x] Distinction automatique vendeur vs dropshipper
+  - [x] Conversations et messages temps réel (WebSocket)
+  - [x] Section "Messages" dans Dashboard Vendeur
+  - [x] Section "Messages" dans Dashboard Dropshipper
+  - [x] Groupement messages par date
+  - [x] Badge messages non lus
+  - [x] Recherche dans les conversations
+  - [x] Miniature produit dans en-tête conversation
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper)
