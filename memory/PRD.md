@@ -47,6 +47,18 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Section Admin Dropshipping (stats, transactions, gestion)
   - [x] Page d'inscription avec 4 rôles (Acheteur, Vendeur, Dropshipper, Livreur)
 
+### Phase 5 ✅ (COMPLÉTÉ 24/04/2026)
+- [x] **99 nouveaux produits variés** ajoutés dans toutes les catégories
+- [x] **Animations CSS avancées** (fadeIn, slideIn, hover-lift, scale, shimmer, float, heartbeat)
+- [x] **ProductCard améliorée** avec animations hover (lift, scale, add-to-cart slide)
+- [x] **Suivi livraisons temps réel pour Dropshipper**
+  - [x] Onglet "Suivi livraisons" dans le dashboard
+  - [x] Stats cards (Total, En cours, Livrées, En livraison)
+  - [x] Liste commandes actives
+  - [x] Carte Google Maps avec position livreur
+  - [x] WebSocket pour mises à jour temps réel
+- [x] Navbar avec liens Dropshipper
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper)
