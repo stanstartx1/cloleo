@@ -15,7 +15,8 @@ const ProductChat = ({
   dropshippedProductId,
   sellerName,
   productName,
-  productImage 
+  productImage,
+  autoOpen = false
 }) => {
   const { user, token, isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -24,6 +25,7 @@ const ProductChat = ({
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
   
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -69,6 +71,15 @@ const ProductChat = ({
       setLoading(false);
     }
   }, [token, isAuthenticated, productId, dropshippedProductId]);
+
+  // Auto-open chat when autoOpen prop is true and user is authenticated
+  useEffect(() => {
+    if (autoOpen && isAuthenticated && !hasAutoOpened) {
+      setIsOpen(true);
+      setHasAutoOpened(true);
+      startConversation();
+    }
+  }, [autoOpen, isAuthenticated, hasAutoOpened, startConversation]);
 
   // Connect WebSocket when conversation is active
   useEffect(() => {

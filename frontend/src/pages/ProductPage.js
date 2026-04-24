@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -24,8 +24,12 @@ const formatPrice = (price, currency = 'FCFA') => {
 
 const ProductPage = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { addToCart, loading: cartLoading } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+  
+  // Ref for chat component to auto-open
+  const chatRef = useRef(null);
 
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
@@ -33,6 +37,7 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [autoOpenChat, setAutoOpenChat] = useState(searchParams.get('chat') === 'open');
 
   const fetchProduct = useCallback(async () => {
     setLoading(true);
@@ -401,6 +406,7 @@ const ProductPage = () => {
           sellerName={product.seller_name}
           productName={product.name}
           productImage={product.images?.[0]}
+          autoOpen={autoOpenChat}
         />
       )}
     </div>

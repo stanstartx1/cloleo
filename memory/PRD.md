@@ -70,6 +70,7 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Badge messages non lus
   - [x] Recherche dans les conversations
   - [x] Miniature produit dans en-tête conversation
+  - [x] **Bouton "Contacter le vendeur" sur ProductCard** (hover) avec redirection + auto-ouverture chat
 
 ## Schéma de Base de Données
 
