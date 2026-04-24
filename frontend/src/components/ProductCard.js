@@ -1,8 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Star, MapPin } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart, MessageCircle, Star, MapPin, Eye } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
+import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -14,26 +14,29 @@ const formatPrice = (price, currency = 'FCFA') => {
   return '$' + price.toFixed(2);
 };
 
-const ProductCard = ({ product, className }) => {
-  const { addToCart, loading } = useCart();
+const ProductCard = ({ product, className, showContactButton = true }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorite = isFavorite(product.id);
+  const [isHovered, setIsHovered] = useState(false);
 
   const hasPromo = product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa;
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
   const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
 
-  const handleAddToCart = async (e) => {
+  const handleContactVendor = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const success = await addToCart(product.id);
-    if (success) {
-      toast.success('Produit ajouté au panier', {
-        description: product.name,
-      });
-    } else {
-      toast.error('Erreur lors de l\'ajout au panier');
+    
+    if (!isAuthenticated) {
+      toast.error('Veuillez vous connecter pour contacter le vendeur');
+      navigate('/connexion');
+      return;
     }
+    
+    // Navigate to product page and open chat
+    navigate(`/produit/${product.id}?chat=open`);
   };
 
   const handleToggleFavorite = async (e) => {
@@ -49,124 +52,206 @@ const ProductCard = ({ product, className }) => {
     <Link 
       to={`/produit/${product.id}`}
       className={cn(
-        "group block bg-card rounded-xl overflow-hidden border border-border",
-        "transition-all duration-500 ease-out",
-        "hover:-translate-y-2 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30",
+        "group block bg-card rounded-2xl overflow-hidden border border-border/50",
+        "transition-all duration-500 ease-out transform-gpu",
+        "hover:-translate-y-3 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40",
+        "relative",
         className
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       data-testid={`product-card-${product.id}`}
     >
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-muted">
+      {/* Glow effect on hover */}
+      <div className={cn(
+        "absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl opacity-0 blur transition-opacity duration-500 -z-10",
+        isHovered && "opacity-30"
+      )} />
+      
+      {/* Image Container */}
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
+        {/* Image with zoom effect */}
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
-          className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
+          className={cn(
+            "w-full h-full object-cover transition-all duration-700 ease-out",
+            isHovered && "scale-110 brightness-105"
+          )}
           loading="lazy"
         />
         
-        {/* Hover overlay with gradient animation */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+        {/* Animated gradient overlay */}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-all duration-500",
+          isHovered ? "opacity-100" : "opacity-0"
+        )} />
         
-        {/* Badges with animation */}
+        {/* Shine effect */}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full transition-transform duration-1000",
+          isHovered && "translate-x-full"
+        )} />
+        
+        {/* Badges with staggered animation */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {hasPromo && (
-            <span className="promo-badge transform transition-all duration-300 group-hover:scale-110 group-hover:-rotate-3">
+            <span className={cn(
+              "bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg",
+              "transform transition-all duration-500",
+              isHovered && "scale-110 -rotate-3 shadow-red-500/50"
+            )}>
               -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
             </span>
           )}
           {product.condition === 'neuf' && (
-            <span className="new-badge transform transition-all duration-300 delay-75 group-hover:scale-110 group-hover:rotate-3">Neuf</span>
+            <span className={cn(
+              "bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg",
+              "transform transition-all duration-500 delay-75",
+              isHovered && "scale-110 rotate-3 shadow-emerald-500/50"
+            )}>
+              Neuf
+            </span>
           )}
           {product.is_featured && (
-            <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+            <span className={cn(
+              "bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg",
+              "transform transition-all duration-500 delay-100",
+              isHovered ? "scale-110 animate-none" : "animate-pulse"
+            )}>
               ⭐ Vedette
             </span>
           )}
         </div>
 
-        {/* Favorite button with bounce animation */}
+        {/* Favorite button with enhanced animation */}
         <button
           onClick={handleToggleFavorite}
           className={cn(
-            "absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center",
-            "transition-all duration-300 transform",
+            "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center",
+            "transition-all duration-300 transform backdrop-blur-sm",
             "hover:scale-110 active:scale-95",
             favorite 
-              ? "bg-red-500 text-white shadow-lg shadow-red-500/30" 
-              : "bg-white/90 text-gray-600 hover:bg-white hover:text-red-500 hover:shadow-lg"
+              ? "bg-red-500 text-white shadow-lg shadow-red-500/40" 
+              : "bg-white/80 text-gray-600 hover:bg-white hover:text-red-500 hover:shadow-lg"
           )}
           data-testid={`favorite-btn-${product.id}`}
         >
           <Heart className={cn(
-            "w-4 h-4 transition-transform duration-300",
-            favorite && "fill-current animate-heartbeat"
+            "w-5 h-5 transition-all duration-300",
+            favorite && "fill-current scale-110"
           )} />
         </button>
 
-        {/* Quick add to cart with slide up animation */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out">
-          <Button
-            onClick={handleAddToCart}
-            disabled={loading}
-            className="w-full bg-white text-gray-900 hover:bg-primary hover:text-white transition-all duration-300 shadow-lg"
-            size="sm"
-            data-testid={`add-to-cart-btn-${product.id}`}
-          >
-            <ShoppingCart className="w-4 h-4 mr-2 group-hover:animate-bounce" />
-            Ajouter au panier
-          </Button>
-        </div>
-      </div>
-
-      {/* Content with staggered animations */}
-      <div className="p-4">
-        {/* Category with reveal animation */}
-        <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide transform transition-all duration-300 group-hover:text-primary/70 group-hover:translate-x-1">
-          {product.category_slug?.replace(/-/g, ' ')}
-        </p>
-
-        {/* Name with color transition */}
-        <h3 className="font-medium text-sm line-clamp-2 mb-2 transition-colors duration-300 group-hover:text-primary">
-          {product.name}
-        </h3>
-
-        {/* Rating & Sales */}
-        <div className="flex items-center gap-2 mb-2">
-          <div className="flex items-center gap-1 transition-transform duration-300 group-hover:scale-105">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            <span className="text-sm font-medium">{product.rating || '4.5'}</span>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            ({product.reviews_count || 0} avis)
-          </span>
-          <span className="text-xs text-muted-foreground">
-            • {product.sales_count || 0} vendus
-          </span>
-        </div>
-
-        {/* Location */}
-        {(product.city || product.location) && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3 transition-all duration-300 group-hover:text-primary/60">
-            <MapPin className="w-3 h-3" />
-            {product.city || 'Abidjan'}, {product.location || 'Côte d\'Ivoire'}
+        {/* Contact Vendor Button - Slide up animation */}
+        {showContactButton && (
+          <div className={cn(
+            "absolute bottom-0 left-0 right-0 p-4 transform transition-all duration-500 ease-out",
+            isHovered ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+          )}>
+            <Button
+              onClick={handleContactVendor}
+              className={cn(
+                "w-full bg-white/95 backdrop-blur-sm text-gray-900 font-semibold",
+                "hover:bg-gradient-to-r hover:from-orange-500 hover:to-amber-500 hover:text-white",
+                "transition-all duration-300 shadow-xl rounded-xl py-5",
+                "border-2 border-white/50"
+              )}
+              size="lg"
+              data-testid={`contact-vendor-btn-${product.id}`}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Contacter le vendeur
+            </Button>
           </div>
         )}
 
-        {/* Price with scale animation */}
-        <div className="flex items-end gap-2 transition-transform duration-300 group-hover:scale-105 origin-left">
-          <span className="text-lg font-bold text-primary">
-            {formatPrice(displayPrice)}
-          </span>
-          {hasPromo && (
-            <span className="price-original line-through text-muted-foreground text-sm">
-              {formatPrice(product.price_fcfa)}
-            </span>
-          )}
+        {/* Quick view icon */}
+        <div className={cn(
+          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500",
+          isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+        )}>
+          <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-xl">
+            <Eye className="w-6 h-6 text-gray-700" />
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5 transition-opacity duration-300 group-hover:opacity-70">
-          ≈ ${displayPriceUsd || (displayPrice * 0.00165).toFixed(2)}
-        </p>
+      </div>
+
+      {/* Content with enhanced animations */}
+      <div className="p-4 relative">
+        {/* Subtle gradient background on hover */}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent transition-opacity duration-500",
+          isHovered ? "opacity-100" : "opacity-0"
+        )} />
+        
+        <div className="relative">
+          {/* Category with slide animation */}
+          <p className={cn(
+            "text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-medium",
+            "transform transition-all duration-300",
+            isHovered && "text-primary/80 translate-x-1"
+          )}>
+            {product.category_slug?.replace(/-/g, ' ')}
+          </p>
+
+          {/* Name with color transition */}
+          <h3 className={cn(
+            "font-semibold text-sm line-clamp-2 mb-2 transition-all duration-300",
+            isHovered && "text-primary"
+          )}>
+            {product.name}
+          </h3>
+
+          {/* Rating & Sales with scale animation */}
+          <div className={cn(
+            "flex items-center gap-2 mb-2 transition-all duration-300",
+            isHovered && "scale-105 origin-left"
+          )}>
+            <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span className="text-sm font-semibold text-amber-700">{product.rating || '4.5'}</span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              ({product.reviews_count || 0} avis)
+            </span>
+            <span className="text-xs text-muted-foreground">
+              • {product.sales_count || 0} vendus
+            </span>
+          </div>
+
+          {/* Location */}
+          {(product.city || product.location || product.seller_name) && (
+            <div className={cn(
+              "flex items-center gap-1 text-xs text-muted-foreground mb-3 transition-all duration-300",
+              isHovered && "text-primary/60"
+            )}>
+              <MapPin className="w-3 h-3" />
+              {product.seller_name || product.city || 'Abidjan'}
+            </div>
+          )}
+
+          {/* Price with bounce animation */}
+          <div className={cn(
+            "flex items-end gap-2 transition-all duration-300",
+            isHovered && "scale-105 origin-left"
+          )}>
+            <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+              {formatPrice(displayPrice)}
+            </span>
+            {hasPromo && (
+              <span className="line-through text-muted-foreground text-sm">
+                {formatPrice(product.price_fcfa)}
+              </span>
+            )}
+          </div>
+          <p className={cn(
+            "text-xs text-muted-foreground mt-0.5 transition-all duration-300",
+            isHovered && "opacity-70"
+          )}>
+            ≈ ${displayPriceUsd || (displayPrice * 0.00165).toFixed(2)}
+          </p>
+        </div>
       </div>
     </Link>
   );
