@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Store, Package, ShoppingCart, ArrowLeft, ArrowRight, Star } from 'lucide-react';
+import { Store, Package, ShoppingCart, ArrowLeft, ArrowRight, Star, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
+import ProductChat from '../components/ProductChat';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -20,6 +21,7 @@ const DropshipperShopPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [orderLoading, setOrderLoading] = useState(false);
+  const [chatProduct, setChatProduct] = useState(null);
 
   useEffect(() => {
     const fetchShop = async () => {
@@ -158,14 +160,25 @@ const DropshipperShopPage = () => {
                       <div>
                         <p className="text-xl font-bold text-purple-600">{product.selling_price_fcfa?.toLocaleString()} FCFA</p>
                       </div>
-                      <Button 
-                        size="sm"
-                        className="bg-purple-600 hover:bg-purple-700"
-                        onClick={() => handleOrder(product)}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-1" />
-                        Commander
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                          onClick={() => setChatProduct(product)}
+                          data-testid={`chat-btn-${product.id}`}
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700"
+                          onClick={() => handleOrder(product)}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Commander
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -213,6 +226,16 @@ const DropshipperShopPage = () => {
           onClose={() => setSelectedProduct(null)}
           onSubmit={submitOrder}
           loading={orderLoading}
+        />
+      )}
+
+      {/* Chat Component */}
+      {chatProduct && (
+        <ProductChat
+          dropshippedProductId={chatProduct.id}
+          sellerName={shop?.name || 'Vendeur'}
+          productName={chatProduct.original_name}
+          productImage={chatProduct.original_images?.[0]}
         />
       )}
     </div>

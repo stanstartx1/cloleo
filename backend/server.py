@@ -236,6 +236,17 @@ class DropshippedProductUpdate(BaseModel):
     selling_price_fcfa: Optional[int] = None
     is_active: Optional[bool] = None
 
+# Chat/Messaging models
+class MessageCreate(BaseModel):
+    conversation_id: Optional[str] = None
+    product_id: Optional[str] = None  # For starting new conversation
+    dropshipped_product_id: Optional[str] = None  # For dropshipped products
+    content: str
+
+class ConversationCreate(BaseModel):
+    product_id: Optional[str] = None
+    dropshipped_product_id: Optional[str] = None
+
 # ============== AUTH ==============
 
 def hash_password(password: str) -> str:
@@ -1437,6 +1448,229 @@ async def admin_order_stats(user: dict = Depends(require_admin)):
         "today_delivered": today_delivered,
         "total_revenue_fcfa": total_revenue
     }
+
+# ============== CHAT / MESSAGING SYSTEM ==============
+
+@api_router.post("/conversations/start")
+async def start_conversation(data: ConversationCreate, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Start a new conversation about a product"""
+    user = None
+    if credentials:
+        try:
+            payload = decode_token(credentials.credentials)
+            user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+        except:
+            pass
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    seller_id = None
+    seller_type = None
+    product_name = None
+    product_image = None
+    
+    # Determine who to chat with based on product type
+    if data.dropshipped_product_id:
+        # Dropshipped product - chat with dropshipper
+        dp = await db.dropshipped_products.find_one({"id": data.dropshipped_product_id}, {"_id": 0})
+        if not dp:
+            raise HTTPException(status_code=404, detail="Produit non trouvé")
+        seller_id = dp["dropshipper_id"]
+        seller_type = "dropshipper"
+        product_name = dp.get("original_name")
+        product_image = dp.get("original_images", [None])[0]
+        product_id = data.dropshipped_product_id
+        
+    elif data.product_id:
+        # Original product - chat with vendor
+        product = await db.products.find_one({"id": data.product_id}, {"_id": 0})
+        if not product:
+            raise HTTPException(status_code=404, detail="Produit non trouvé")
+        seller_id = product["seller_id"]
+        seller_type = "vendor"
+        product_name = product["name"]
+        product_image = product.get("images", [None])[0]
+        product_id = data.product_id
+    else:
+        raise HTTPException(status_code=400, detail="product_id ou dropshipped_product_id requis")
+    
+    # Check if conversation already exists
+    existing = await db.conversations.find_one({
+        "customer_id": user["id"],
+        "seller_id": seller_id,
+        "product_id": product_id
+    }, {"_id": 0})
+    
+    if existing:
+        return existing
+    
+    # Get seller info
+    seller = await db.users.find_one({"id": seller_id}, {"_id": 0, "password": 0})
+    
+    conversation = {
+        "id": str(uuid.uuid4()),
+        "product_id": product_id,
+        "product_name": product_name,
+        "product_image": product_image,
+        "customer_id": user["id"],
+        "customer_name": user.get("name"),
+        "customer_email": user.get("email"),
+        "seller_id": seller_id,
+        "seller_name": seller.get("shop_name") or seller.get("name") if seller else "Vendeur",
+        "seller_type": seller_type,
+        "last_message": None,
+        "last_message_at": None,
+        "unread_customer": 0,
+        "unread_seller": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.conversations.insert_one(conversation)
+    # Remove _id that MongoDB adds
+    conversation.pop("_id", None)
+    return conversation
+
+@api_router.get("/conversations")
+async def get_my_conversations(user: dict = Depends(get_current_user)):
+    """Get all conversations for current user (customer, vendor or dropshipper)"""
+    query = {"$or": [
+        {"customer_id": user["id"]},
+        {"seller_id": user["id"]}
+    ]}
+    
+    conversations = await db.conversations.find(query, {"_id": 0}).sort("updated_at", -1).to_list(100)
+    
+    # Mark which side the user is on
+    for conv in conversations:
+        conv["is_seller"] = conv["seller_id"] == user["id"]
+        conv["other_party_name"] = conv["seller_name"] if conv["customer_id"] == user["id"] else conv["customer_name"]
+        conv["unread_count"] = conv["unread_seller"] if conv["seller_id"] == user["id"] else conv["unread_customer"]
+    
+    return conversations
+
+@api_router.get("/conversations/{conversation_id}")
+async def get_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
+    """Get a specific conversation with messages"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+    
+    # Check access
+    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    # Get messages
+    messages = await db.messages.find(
+        {"conversation_id": conversation_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    
+    # Mark messages as read
+    is_seller = conversation["seller_id"] == user["id"]
+    if is_seller:
+        await db.conversations.update_one({"id": conversation_id}, {"$set": {"unread_seller": 0}})
+        await db.messages.update_many(
+            {"conversation_id": conversation_id, "sender_id": {"$ne": user["id"]}, "is_read": False},
+            {"$set": {"is_read": True}}
+        )
+    else:
+        await db.conversations.update_one({"id": conversation_id}, {"$set": {"unread_customer": 0}})
+        await db.messages.update_many(
+            {"conversation_id": conversation_id, "sender_id": {"$ne": user["id"]}, "is_read": False},
+            {"$set": {"is_read": True}}
+        )
+    
+    return {"conversation": conversation, "messages": messages}
+
+@api_router.post("/conversations/{conversation_id}/messages")
+async def send_message(conversation_id: str, data: MessageCreate, user: dict = Depends(get_current_user)):
+    """Send a message in a conversation"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+    
+    # Check access
+    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    is_seller = conversation["seller_id"] == user["id"]
+    
+    message = {
+        "id": str(uuid.uuid4()),
+        "conversation_id": conversation_id,
+        "sender_id": user["id"],
+        "sender_name": user.get("shop_name") or user.get("name"),
+        "sender_type": "seller" if is_seller else "customer",
+        "content": data.content,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.messages.insert_one(message)
+    
+    # Update conversation
+    update_data = {
+        "last_message": data.content[:100],
+        "last_message_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Increment unread count for the other party
+    if is_seller:
+        await db.conversations.update_one(
+            {"id": conversation_id},
+            {"$set": update_data, "$inc": {"unread_customer": 1}}
+        )
+    else:
+        await db.conversations.update_one(
+            {"id": conversation_id},
+            {"$set": update_data, "$inc": {"unread_seller": 1}}
+        )
+    
+    # Broadcast via WebSocket
+    await manager.broadcast_to_room(f"chat_{conversation_id}", {
+        "type": "new_message",
+        "message": {k: v for k, v in message.items() if k != "_id"}
+    })
+    
+    return {k: v for k, v in message.items() if k != "_id"}
+
+@api_router.get("/vendor/conversations")
+async def vendor_get_conversations(user: dict = Depends(require_vendor)):
+    """Get all conversations for vendor"""
+    conversations = await db.conversations.find(
+        {"seller_id": user["id"], "seller_type": "vendor"}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    for conv in conversations:
+        conv["unread_count"] = conv.get("unread_seller", 0)
+    
+    return conversations
+
+@api_router.get("/dropshipper/conversations")
+async def dropshipper_get_conversations(user: dict = Depends(require_dropshipper)):
+    """Get all conversations for dropshipper"""
+    conversations = await db.conversations.find(
+        {"seller_id": user["id"], "seller_type": "dropshipper"}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    for conv in conversations:
+        conv["unread_count"] = conv.get("unread_seller", 0)
+    
+    return conversations
+
+# WebSocket for chat
+@app.websocket("/ws/chat/{conversation_id}")
+async def chat_websocket(websocket: WebSocket, conversation_id: str):
+    """WebSocket for real-time chat messages"""
+    await manager.connect(websocket, f"chat_{conversation_id}")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Messages are sent via POST API, WebSocket is for receiving only
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket, f"chat_{conversation_id}")
 
 # ============== DROPSHIPPING SYSTEM ==============
 

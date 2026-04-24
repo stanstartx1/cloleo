@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
-  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2
+  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
+import MessagesSection from '../components/MessagesSection';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -225,6 +226,7 @@ const DropshipperDashboard = () => {
     { id: 'catalog', label: 'Catalogue produits', icon: Package2 },
     { id: 'products', label: 'Mes produits', icon: Package },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
+    { id: 'messages', label: 'Messages', icon: MessageCircle },
     { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
     { id: 'earnings', label: 'Mes gains', icon: DollarSign },
     { id: 'shop', label: 'Ma boutique', icon: Store },
@@ -672,6 +674,20 @@ const DropshipperDashboard = () => {
                   </CardContent>
                 </Card>
               )}
+            </div>
+          )}
+
+          {/* Messages Tab */}
+          {activeTab === 'messages' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <MessageCircle className="w-6 h-6 text-purple-600" />
+                  Messages clients
+                </h1>
+                <p className="text-gray-500">Répondez aux questions de vos clients</p>
+              </div>
+              <MessagesSection token={token} userType="dropshipper" />
             </div>
           )}
 

@@ -5,7 +5,7 @@ import {
   Package, ShoppingBag, DollarSign, TrendingUp, Clock, CheckCircle, XCircle,
   Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles, AlertCircle,
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
-  LogOut, Edit, X
+  LogOut, Edit, X, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -13,6 +13,7 @@ import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import GoogleMap from '../components/GoogleMap';
+import MessagesSection from '../components/MessagesSection';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Tableau de bord', icon: Home },
   { id: 'products', label: 'Mes produits', icon: Package },
   { id: 'orders', label: 'Commandes', icon: ShoppingBag, badge: true },
+  { id: 'messages', label: 'Messages', icon: MessageCircle },
   { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
   { id: 'stats', label: 'Statistiques', icon: BarChart3 },
   { id: 'subscription', label: 'Abonnement', icon: Crown },
@@ -437,6 +439,17 @@ const VendorDashboard = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Messages Section */}
+          {activeSection === 'messages' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageCircle className="w-6 h-6 text-purple-400" />
+                Messages clients
+              </h2>
+              <MessagesSection token={token} userType="vendor" />
             </div>
           )}
 

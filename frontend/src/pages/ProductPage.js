@@ -5,6 +5,7 @@ import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, 
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import ProductCard from '../components/ProductCard';
+import ProductChat from '../components/ProductChat';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -392,6 +393,16 @@ const ProductPage = () => {
           </section>
         )}
       </div>
+      
+      {/* Chat Button */}
+      {product && (
+        <ProductChat
+          productId={product.id}
+          sellerName={product.seller_name}
+          productName={product.name}
+          productImage={product.images?.[0]}
+        />
+      )}
     </div>
   );
 };
