@@ -100,6 +100,7 @@ class UserRole:
     VENDOR = "vendor"
     ADMIN = "admin"
     DRIVER = "driver"
+    DROPSHIPPER = "dropshipper"
 
 # Upload directory
 UPLOAD_DIR = ROOT_DIR / "uploads"
@@ -216,6 +217,25 @@ class OrderUpdate(BaseModel):
     status: str
     notes: Optional[str] = None
 
+# Dropshipper models
+class DropshipperRegister(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    phone: Optional[str] = None
+    shop_name: str
+    shop_description: Optional[str] = None
+
+class DropshippedProductCreate(BaseModel):
+    original_product_id: str
+    custom_description: Optional[str] = None
+    selling_price_fcfa: int
+
+class DropshippedProductUpdate(BaseModel):
+    custom_description: Optional[str] = None
+    selling_price_fcfa: Optional[int] = None
+    is_active: Optional[bool] = None
+
 # ============== AUTH ==============
 
 def hash_password(password: str) -> str:
@@ -255,6 +275,11 @@ async def require_admin(user: dict = Depends(get_current_user)):
 async def require_driver(user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.DRIVER:
         raise HTTPException(status_code=403, detail="Accès réservé aux livreurs")
+    return user
+
+async def require_dropshipper(user: dict = Depends(get_current_user)):
+    if user["role"] != UserRole.DROPSHIPPER:
+        raise HTTPException(status_code=403, detail="Accès réservé aux dropshippers")
     return user
 
 def generate_slug(name):
@@ -1214,6 +1239,10 @@ async def deliver_order(order_id: str, user: dict = Depends(require_driver)):
         {"$inc": {"total_deliveries": 1}}
     )
     
+    # Process dropshipping earnings if this is a dropshipped order
+    if order.get("is_dropshipped"):
+        await process_dropshipping_earnings(order_id)
+    
     # Broadcast completion
     await manager.broadcast_to_room(f"order_{order_id}", {
         "type": "order_update",
@@ -1409,6 +1438,519 @@ async def admin_order_stats(user: dict = Depends(require_admin)):
         "total_revenue_fcfa": total_revenue
     }
 
+# ============== DROPSHIPPING SYSTEM ==============
+
+@api_router.post("/auth/register/dropshipper")
+async def register_dropshipper(data: DropshipperRegister):
+    """Register a new dropshipper"""
+    if await db.users.find_one({"email": data.email}):
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    dropshipper = {
+        "id": str(uuid.uuid4()),
+        "email": data.email,
+        "password": hash_password(data.password),
+        "name": data.name,
+        "phone": data.phone,
+        "role": UserRole.DROPSHIPPER,
+        "shop_name": data.shop_name,
+        "shop_slug": generate_slug(data.shop_name),
+        "shop_description": data.shop_description,
+        "is_active": True,
+        "is_verified": True,
+        "total_earnings": 0,
+        "total_sales": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(dropshipper)
+    return {"token": create_token(dropshipper["id"], dropshipper["role"]), "user": {k: v for k, v in dropshipper.items() if k not in ["password", "_id"]}}
+
+@api_router.get("/dropshipper/dashboard")
+async def dropshipper_dashboard(user: dict = Depends(require_dropshipper)):
+    """Get dropshipper dashboard data"""
+    # Get dropshipped products
+    dropshipped_products = await db.dropshipped_products.find(
+        {"dropshipper_id": user["id"]}, {"_id": 0}
+    ).to_list(1000)
+    
+    # Get dropshipper orders
+    orders = await db.orders.find(
+        {"dropshipper_id": user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    # Calculate stats
+    total_orders = await db.orders.count_documents({"dropshipper_id": user["id"]})
+    completed_orders = await db.orders.count_documents({
+        "dropshipper_id": user["id"],
+        "status": OrderStatus.DELIVERED
+    })
+    
+    # Get earnings
+    earnings = await db.dropshipper_earnings.find(
+        {"dropshipper_id": user["id"]}, {"_id": 0}
+    ).to_list(1000)
+    total_earnings = sum(e.get("dropshipper_share", 0) for e in earnings)
+    
+    return {
+        "user": {k: v for k, v in user.items() if k != "password"},
+        "stats": {
+            "total_products": len(dropshipped_products),
+            "active_products": len([p for p in dropshipped_products if p.get("is_active", True)]),
+            "total_orders": total_orders,
+            "completed_orders": completed_orders,
+            "total_earnings_fcfa": total_earnings,
+            "total_earnings_usd": round(total_earnings * FCFA_TO_USD, 2)
+        },
+        "recent_orders": orders,
+        "products": dropshipped_products[:5]
+    }
+
+@api_router.get("/dropshipper/catalog")
+async def dropshipper_catalog(
+    user: dict = Depends(require_dropshipper),
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
+    """Get all available products for dropshipping"""
+    query = {"status": "approved"}
+    if category:
+        query["category_slug"] = category
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
+    
+    skip = (page - 1) * limit
+    total = await db.products.count_documents(query)
+    products = await db.products.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Mark which products are already dropshipped by this user
+    dropshipped_ids = set()
+    dropshipped = await db.dropshipped_products.find(
+        {"dropshipper_id": user["id"]}, {"original_product_id": 1}
+    ).to_list(1000)
+    dropshipped_ids = {d["original_product_id"] for d in dropshipped}
+    
+    for p in products:
+        p["is_dropshipped"] = p["id"] in dropshipped_ids
+    
+    return {"products": products, "total": total, "page": page, "total_pages": (total + limit - 1) // limit}
+
+@api_router.post("/dropshipper/products")
+async def create_dropshipped_product(data: DropshippedProductCreate, user: dict = Depends(require_dropshipper)):
+    """Add a product to dropshipper's catalog with custom price/description"""
+    # Check original product exists
+    original = await db.products.find_one({"id": data.original_product_id, "status": "approved"}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Produit original non trouvé")
+    
+    # Check not already dropshipped
+    existing = await db.dropshipped_products.find_one({
+        "dropshipper_id": user["id"],
+        "original_product_id": data.original_product_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Produit déjà dans votre catalogue")
+    
+    # Selling price must be >= original price
+    if data.selling_price_fcfa < original["price_fcfa"]:
+        raise HTTPException(status_code=400, detail=f"Le prix de vente doit être supérieur ou égal à {original['price_fcfa']} FCFA")
+    
+    # Calculate margin
+    margin = data.selling_price_fcfa - original["price_fcfa"]
+    
+    dropshipped_product = {
+        "id": str(uuid.uuid4()),
+        "dropshipper_id": user["id"],
+        "dropshipper_name": user.get("shop_name") or user["name"],
+        "dropshipper_shop_slug": user.get("shop_slug"),
+        "original_product_id": original["id"],
+        "original_name": original["name"],
+        "original_description": original["description"],
+        "original_price_fcfa": original["price_fcfa"],
+        "original_images": original.get("images", []),
+        "original_category_slug": original.get("category_slug"),
+        "original_vendor_id": original.get("seller_id"),
+        "original_vendor_name": original.get("seller_name"),
+        "custom_description": data.custom_description or original["description"],
+        "selling_price_fcfa": data.selling_price_fcfa,
+        "selling_price_usd": round(data.selling_price_fcfa * FCFA_TO_USD, 2),
+        "margin_fcfa": margin,
+        "dropshipper_share_fcfa": margin // 2,  # 50%
+        "admin_share_fcfa": margin - (margin // 2),  # 50%
+        "is_active": True,
+        "sales_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.dropshipped_products.insert_one(dropshipped_product)
+    return {k: v for k, v in dropshipped_product.items() if k != "_id"}
+
+@api_router.get("/dropshipper/products")
+async def get_dropshipper_products(user: dict = Depends(require_dropshipper), status: Optional[str] = None):
+    """Get dropshipper's product catalog"""
+    query = {"dropshipper_id": user["id"]}
+    if status == "active":
+        query["is_active"] = True
+    elif status == "inactive":
+        query["is_active"] = False
+    
+    products = await db.dropshipped_products.find(query, {"_id": 0}).to_list(1000)
+    return products
+
+@api_router.get("/dropshipper/products/{product_id}")
+async def get_dropshipped_product(product_id: str, user: dict = Depends(require_dropshipper)):
+    """Get specific dropshipped product"""
+    product = await db.dropshipped_products.find_one({
+        "id": product_id,
+        "dropshipper_id": user["id"]
+    }, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    return product
+
+@api_router.put("/dropshipper/products/{product_id}")
+async def update_dropshipped_product(product_id: str, data: DropshippedProductUpdate, user: dict = Depends(require_dropshipper)):
+    """Update dropshipped product (description, price, status)"""
+    product = await db.dropshipped_products.find_one({
+        "id": product_id,
+        "dropshipper_id": user["id"]
+    })
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.custom_description is not None:
+        update_data["custom_description"] = data.custom_description
+    
+    if data.selling_price_fcfa is not None:
+        if data.selling_price_fcfa < product["original_price_fcfa"]:
+            raise HTTPException(status_code=400, detail=f"Le prix doit être >= {product['original_price_fcfa']} FCFA")
+        
+        margin = data.selling_price_fcfa - product["original_price_fcfa"]
+        update_data["selling_price_fcfa"] = data.selling_price_fcfa
+        update_data["selling_price_usd"] = round(data.selling_price_fcfa * FCFA_TO_USD, 2)
+        update_data["margin_fcfa"] = margin
+        update_data["dropshipper_share_fcfa"] = margin // 2
+        update_data["admin_share_fcfa"] = margin - (margin // 2)
+    
+    if data.is_active is not None:
+        update_data["is_active"] = data.is_active
+    
+    await db.dropshipped_products.update_one({"id": product_id}, {"$set": update_data})
+    updated = await db.dropshipped_products.find_one({"id": product_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/dropshipper/products/{product_id}")
+async def delete_dropshipped_product(product_id: str, user: dict = Depends(require_dropshipper)):
+    """Remove product from dropshipper's catalog"""
+    result = await db.dropshipped_products.delete_one({
+        "id": product_id,
+        "dropshipper_id": user["id"]
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    return {"message": "Produit supprimé"}
+
+@api_router.get("/dropshipper/orders")
+async def get_dropshipper_orders(
+    user: dict = Depends(require_dropshipper),
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
+    """Get dropshipper's orders"""
+    query = {"dropshipper_id": user["id"]}
+    if status:
+        query["status"] = status
+    
+    skip = (page - 1) * limit
+    total = await db.orders.count_documents(query)
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {"orders": orders, "total": total, "page": page}
+
+@api_router.get("/dropshipper/earnings")
+async def get_dropshipper_earnings(user: dict = Depends(require_dropshipper), page: int = 1, limit: int = 50):
+    """Get dropshipper's earnings history"""
+    skip = (page - 1) * limit
+    total = await db.dropshipper_earnings.count_documents({"dropshipper_id": user["id"]})
+    earnings = await db.dropshipper_earnings.find(
+        {"dropshipper_id": user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total_earned = sum(e.get("dropshipper_share", 0) for e in earnings)
+    
+    return {"earnings": earnings, "total": total, "total_earned_fcfa": total_earned, "page": page}
+
+# Create order for dropshipped product (with automatic margin split)
+class DropshippedOrderCreate(BaseModel):
+    dropshipped_product_id: str
+    quantity: int = 1
+    delivery_address: OrderAddress
+    payment_method: str = "cash"
+    notes: Optional[str] = None
+
+@api_router.post("/shop/order")
+async def create_dropshipped_order(data: DropshippedOrderCreate, request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Create order for a dropshipped product - handles margin split automatically"""
+    user = None
+    if credentials:
+        try:
+            payload = decode_token(credentials.credentials)
+            user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+        except:
+            pass
+    
+    # Get the dropshipped product
+    dropshipped = await db.dropshipped_products.find_one({
+        "id": data.dropshipped_product_id,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not dropshipped:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    # Calculate totals
+    unit_price = dropshipped["selling_price_fcfa"]
+    subtotal = unit_price * data.quantity
+    margin_total = dropshipped["margin_fcfa"] * data.quantity
+    dropshipper_share = dropshipped["dropshipper_share_fcfa"] * data.quantity
+    admin_share = dropshipped["admin_share_fcfa"] * data.quantity
+    vendor_amount = dropshipped["original_price_fcfa"] * data.quantity
+    
+    # Get delivery fee
+    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0})
+    delivery_fee = delivery_settings.get("base_delivery_fee", 1000) if delivery_settings else 1000
+    
+    order = {
+        "id": str(uuid.uuid4()),
+        "order_number": f"CLO-DS-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
+        "is_dropshipped": True,
+        "dropshipper_id": dropshipped["dropshipper_id"],
+        "dropshipper_name": dropshipped.get("dropshipper_name"),
+        "customer_id": user["id"] if user else None,
+        "customer_name": data.delivery_address.name,
+        "customer_email": user["email"] if user else None,
+        "customer_phone": data.delivery_address.phone,
+        "items": [{
+            "dropshipped_product_id": dropshipped["id"],
+            "original_product_id": dropshipped["original_product_id"],
+            "product_name": dropshipped["original_name"],
+            "product_image": dropshipped["original_images"][0] if dropshipped.get("original_images") else None,
+            "quantity": data.quantity,
+            "unit_price_fcfa": unit_price,
+            "subtotal_fcfa": subtotal,
+            "vendor_id": dropshipped["original_vendor_id"],
+            "vendor_name": dropshipped.get("original_vendor_name", "Vendeur"),
+            "vendor_amount_fcfa": vendor_amount,
+            "margin_fcfa": margin_total,
+            "dropshipper_share_fcfa": dropshipper_share,
+            "admin_share_fcfa": admin_share
+        }],
+        "vendor_ids": [dropshipped["original_vendor_id"]],
+        "delivery_address": data.delivery_address.dict(),
+        "subtotal_fcfa": subtotal,
+        "delivery_fee_fcfa": delivery_fee,
+        "total_fcfa": subtotal + delivery_fee,
+        "total_usd": round((subtotal + delivery_fee) * FCFA_TO_USD, 2),
+        "payment_method": data.payment_method,
+        "payment_status": "pending",
+        "status": OrderStatus.PENDING,
+        "driver_id": None,
+        "driver_name": None,
+        "notes": data.notes,
+        "margin_breakdown": {
+            "total_margin_fcfa": margin_total,
+            "vendor_receives_fcfa": vendor_amount,
+            "dropshipper_receives_fcfa": dropshipper_share,
+            "admin_receives_fcfa": admin_share
+        },
+        "status_history": [
+            {"status": OrderStatus.PENDING, "timestamp": datetime.now(timezone.utc).isoformat(), "note": "Commande dropshipping créée"}
+        ],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.orders.insert_one(order)
+    
+    # Update sales count on dropshipped product
+    await db.dropshipped_products.update_one(
+        {"id": data.dropshipped_product_id},
+        {"$inc": {"sales_count": data.quantity}}
+    )
+    
+    # Broadcast to drivers
+    await manager.broadcast_to_room("drivers", {
+        "type": "new_order",
+        "order": {k: v for k, v in order.items() if k != "_id"}
+    })
+    
+    return {k: v for k, v in order.items() if k != "_id"}
+
+# Process dropshipping earnings when order is delivered
+async def process_dropshipping_earnings(order_id: str):
+    """Called when a dropshipped order is delivered to record earnings"""
+    order = await db.orders.find_one({"id": order_id, "is_dropshipped": True}, {"_id": 0})
+    if not order:
+        return
+    
+    for item in order.get("items", []):
+        earning = {
+            "id": str(uuid.uuid4()),
+            "order_id": order_id,
+            "order_number": order.get("order_number"),
+            "dropshipper_id": order.get("dropshipper_id"),
+            "dropshipper_name": order.get("dropshipper_name"),
+            "vendor_id": item.get("vendor_id"),
+            "product_name": item.get("product_name"),
+            "quantity": item.get("quantity"),
+            "selling_price_fcfa": item.get("unit_price_fcfa"),
+            "total_margin": item.get("margin_fcfa", 0),
+            "dropshipper_share": item.get("dropshipper_share_fcfa", 0),
+            "admin_share": item.get("admin_share_fcfa", 0),
+            "vendor_amount": item.get("vendor_amount_fcfa", 0),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.dropshipper_earnings.insert_one(earning)
+    
+    # Update dropshipper totals
+    await db.users.update_one(
+        {"id": order.get("dropshipper_id")},
+        {"$inc": {
+            "total_earnings": order.get("margin_breakdown", {}).get("dropshipper_receives_fcfa", 0),
+            "total_sales": 1
+        }}
+    )
+
+# Public dropshipper shop
+@api_router.get("/shop/{shop_slug}")
+async def get_dropshipper_shop(shop_slug: str, page: int = 1, limit: int = 20):
+    """Get public dropshipper shop"""
+    # Find dropshipper by shop slug
+    dropshipper = await db.users.find_one({
+        "shop_slug": shop_slug,
+        "role": UserRole.DROPSHIPPER,
+        "is_active": True
+    }, {"_id": 0, "password": 0})
+    
+    if not dropshipper:
+        raise HTTPException(status_code=404, detail="Boutique non trouvée")
+    
+    # Get active dropshipped products
+    skip = (page - 1) * limit
+    query = {"dropshipper_id": dropshipper["id"], "is_active": True}
+    total = await db.dropshipped_products.count_documents(query)
+    products = await db.dropshipped_products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "shop": {
+            "name": dropshipper.get("shop_name"),
+            "description": dropshipper.get("shop_description"),
+            "slug": dropshipper.get("shop_slug")
+        },
+        "products": products,
+        "total": total,
+        "page": page,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/shop/{shop_slug}/product/{product_id}")
+async def get_shop_product(shop_slug: str, product_id: str):
+    """Get single product from dropshipper shop"""
+    dropshipper = await db.users.find_one({
+        "shop_slug": shop_slug,
+        "role": UserRole.DROPSHIPPER,
+        "is_active": True
+    })
+    if not dropshipper:
+        raise HTTPException(status_code=404, detail="Boutique non trouvée")
+    
+    product = await db.dropshipped_products.find_one({
+        "id": product_id,
+        "dropshipper_id": dropshipper["id"],
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    return product
+
+# ============== ADMIN DROPSHIPPING MANAGEMENT ==============
+
+@api_router.get("/admin/dropshippers")
+async def admin_get_dropshippers(user: dict = Depends(require_admin), page: int = 1, limit: int = 50):
+    """Get all dropshippers for admin"""
+    skip = (page - 1) * limit
+    query = {"role": UserRole.DROPSHIPPER}
+    
+    dropshippers = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(limit)
+    
+    # Add stats for each dropshipper
+    for d in dropshippers:
+        d["product_count"] = await db.dropshipped_products.count_documents({"dropshipper_id": d["id"]})
+        d["order_count"] = await db.orders.count_documents({"dropshipper_id": d["id"]})
+        earnings = await db.dropshipper_earnings.find({"dropshipper_id": d["id"]}, {"dropshipper_share": 1}).to_list(1000)
+        d["total_earnings"] = sum(e.get("dropshipper_share", 0) for e in earnings)
+    
+    total = await db.users.count_documents(query)
+    return {"dropshippers": dropshippers, "total": total}
+
+@api_router.put("/admin/dropshippers/{dropshipper_id}/toggle")
+async def admin_toggle_dropshipper(dropshipper_id: str, user: dict = Depends(require_admin)):
+    """Toggle dropshipper active status"""
+    dropshipper = await db.users.find_one({"id": dropshipper_id, "role": UserRole.DROPSHIPPER})
+    if not dropshipper:
+        raise HTTPException(status_code=404, detail="Dropshipper non trouvé")
+    
+    new_status = not dropshipper.get("is_active", True)
+    await db.users.update_one({"id": dropshipper_id}, {"$set": {"is_active": new_status}})
+    return {"is_active": new_status}
+
+@api_router.get("/admin/dropshipping/stats")
+async def admin_dropshipping_stats(user: dict = Depends(require_admin)):
+    """Get dropshipping statistics for admin"""
+    total_dropshippers = await db.users.count_documents({"role": UserRole.DROPSHIPPER})
+    active_dropshippers = await db.users.count_documents({"role": UserRole.DROPSHIPPER, "is_active": True})
+    total_dropshipped_products = await db.dropshipped_products.count_documents({})
+    active_products = await db.dropshipped_products.count_documents({"is_active": True})
+    
+    # Get all earnings
+    all_earnings = await db.dropshipper_earnings.find({}, {"_id": 0}).to_list(10000)
+    total_margins = sum(e.get("total_margin", 0) for e in all_earnings)
+    admin_earnings = sum(e.get("admin_share", 0) for e in all_earnings)
+    dropshipper_payouts = sum(e.get("dropshipper_share", 0) for e in all_earnings)
+    
+    # Get recent transactions
+    recent_earnings = await db.dropshipper_earnings.find({}, {"_id": 0}).sort("created_at", -1).limit(20).to_list(20)
+    
+    return {
+        "stats": {
+            "total_dropshippers": total_dropshippers,
+            "active_dropshippers": active_dropshippers,
+            "total_products": total_dropshipped_products,
+            "active_products": active_products,
+            "total_margins_fcfa": total_margins,
+            "admin_earnings_fcfa": admin_earnings,
+            "dropshipper_payouts_fcfa": dropshipper_payouts
+        },
+        "recent_transactions": recent_earnings
+    }
+
+@api_router.get("/admin/dropshipping/transactions")
+async def admin_dropshipping_transactions(user: dict = Depends(require_admin), page: int = 1, limit: int = 50):
+    """Get all dropshipping transactions"""
+    skip = (page - 1) * limit
+    total = await db.dropshipper_earnings.count_documents({})
+    transactions = await db.dropshipper_earnings.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {"transactions": transactions, "total": total, "page": page}
 # ============== STATIC FILES (UPLOADS) ==============
 
 app.include_router(api_router)
@@ -1530,3 +2072,4 @@ async def websocket_driver(websocket: WebSocket, driver_id: str):
 @app.on_event("shutdown")
 async def shutdown():
     client.close()
+

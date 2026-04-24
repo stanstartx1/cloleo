@@ -39,12 +39,17 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DriverRegisterPage from "./pages/DriverRegisterPage";
 import DriverDashboard from "./pages/DriverDashboard";
 
+// Dropshipper Pages
+import DropshipperRegisterPage from "./pages/DropshipperRegisterPage";
+import DropshipperDashboard from "./pages/DropshipperDashboard";
+import DropshipperShopPage from "./pages/DropshipperShopPage";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false }) => {
-  const { user, loading, isVendor, isAdmin, isDriver } = useAuth();
+const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false, requireDropshipper = false }) => {
+  const { user, loading, isVendor, isAdmin, isDriver, isDropshipper } = useAuth();
 
   if (loading) {
     return (
@@ -67,6 +72,10 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false,
   }
 
   if (requireDriver && !isDriver) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireDropshipper && !isDropshipper) {
     return <Navigate to="/" replace />;
   }
 
@@ -169,6 +178,15 @@ const AppRoutes = () => {
           <DriverDashboard />
         </ProtectedRoute>
       } />
+
+      {/* Dropshipper Routes */}
+      <Route path="/devenir-dropshipper" element={<DropshipperRegisterPage />} />
+      <Route path="/dropshipper" element={
+        <ProtectedRoute requireDropshipper>
+          <DropshipperDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/boutique/:shopSlug" element={<DropshipperShopPage />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

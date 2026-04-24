@@ -22,6 +22,7 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 const SIDEBAR_ITEMS = [
   { id: 'vendors', label: 'Vendeurs', icon: Store, color: 'text-purple-400' },
   { id: 'drivers', label: 'Livreurs', icon: Truck, color: 'text-blue-400' },
+  { id: 'dropshippers', label: 'Dropshippers', icon: Package, color: 'text-indigo-400' },
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
   { id: 'stats', label: 'Stats', icon: BarChart3, color: 'text-amber-400' },
   { id: 'transactions', label: 'Transactions', icon: CreditCard, color: 'text-emerald-400' },
@@ -49,6 +50,9 @@ const AdminDashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [settings, setSettings] = useState({});
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [dropshippers, setDropshippers] = useState([]);
+  const [dropshippingStats, setDropshippingStats] = useState(null);
+  const [dropshippingTransactions, setDropshippingTransactions] = useState([]);
   
   // Filter states
   const [productFilter, setProductFilter] = useState('all');
@@ -67,14 +71,16 @@ const AdminDashboard = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes] = await Promise.all([
+      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, dropshippersRes, dropStatsRes] = await Promise.all([
         axios.get(`${API}/admin/dashboard`, { headers }),
         axios.get(`${API}/admin/vendors`, { headers }),
         axios.get(`${API}/admin/drivers`, { headers }).catch(() => ({ data: { drivers: [] } })),
         axios.get(`${API}/admin/products`, { headers }),
         axios.get(`${API}/admin/products/pending`, { headers }),
         axios.get(`${API}/admin/transactions`, { headers }),
-        axios.get(`${API}/subscriptions/plans`, { headers })
+        axios.get(`${API}/subscriptions/plans`, { headers }),
+        axios.get(`${API}/admin/dropshippers`, { headers }).catch(() => ({ data: { dropshippers: [] } })),
+        axios.get(`${API}/admin/dropshipping/stats`, { headers }).catch(() => ({ data: { stats: {}, recent_transactions: [] } }))
       ]);
       
       setStats(dashRes.data.stats);
@@ -84,8 +90,9 @@ const AdminDashboard = () => {
       setPendingProducts(pendingRes.data.products || []);
       setTransactions(transactionsRes.data.transactions || []);
       setSubscriptionPlans(plansRes.data || []);
-      setPendingProducts(pendingRes.data.products || []);
-      setTransactions(transactionsRes.data.transactions || []);
+      setDropshippers(dropshippersRes.data.dropshippers || []);
+      setDropshippingStats(dropStatsRes.data.stats || {});
+      setDropshippingTransactions(dropStatsRes.data.recent_transactions || []);
       
       // Load settings
       const [vendorSettings, driverSettings, platformSettings] = await Promise.all([
@@ -238,6 +245,8 @@ const AdminDashboard = () => {
         return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} searchTerm={searchTerm} />;
       case 'drivers':
         return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} />;
+      case 'dropshippers':
+        return <DropshippersSection dropshippers={dropshippers} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} />;
       case 'products':
         return <ProductsSection 
           products={products} 
@@ -1082,5 +1091,142 @@ const SettingToggle = ({ label, value, onChange }) => (
     </button>
   </div>
 );
+
+// ============= DROPSHIPPERS SECTION =============
+const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefresh }) => {
+  const [loading, setLoading] = useState(false);
+  
+  const handleToggleDropshipper = async (dropshipperId) => {
+    setLoading(true);
+    try {
+      await axios.put(`${API}/admin/dropshippers/${dropshipperId}/toggle`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Statut mis à jour');
+      onRefresh();
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <Package className="w-6 h-6 text-indigo-400" />
+        Gestion Dropshipping
+      </h2>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+          <p className="text-slate-400 text-sm">Dropshippers actifs</p>
+          <p className="text-2xl font-bold text-indigo-400">{stats?.active_dropshippers || 0}</p>
+        </div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+          <p className="text-slate-400 text-sm">Produits dropshippés</p>
+          <p className="text-2xl font-bold text-purple-400">{stats?.total_products || 0}</p>
+        </div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+          <p className="text-slate-400 text-sm">Revenus Admin</p>
+          <p className="text-2xl font-bold text-green-400">{formatPrice(stats?.admin_earnings_fcfa || 0)} F</p>
+        </div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+          <p className="text-slate-400 text-sm">Marges totales</p>
+          <p className="text-2xl font-bold text-amber-400">{formatPrice(stats?.total_margins_fcfa || 0)} F</p>
+        </div>
+      </div>
+      
+      {/* Dropshippers List */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700">
+        <div className="p-4 border-b border-slate-700">
+          <h3 className="font-semibold">Liste des Dropshippers ({dropshippers.length})</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
+                <th className="p-4">Dropshipper</th>
+                <th className="p-4">Boutique</th>
+                <th className="p-4">Produits</th>
+                <th className="p-4">Commandes</th>
+                <th className="p-4">Gains</th>
+                <th className="p-4">Statut</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dropshippers.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-slate-400">
+                    Aucun dropshipper inscrit
+                  </td>
+                </tr>
+              ) : (
+                dropshippers.map((d) => (
+                  <tr key={d.id} className="border-b border-slate-700 hover:bg-slate-700/50">
+                    <td className="p-4">
+                      <div>
+                        <p className="font-medium">{d.name}</p>
+                        <p className="text-sm text-slate-400">{d.email}</p>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-indigo-400">{d.shop_name}</span>
+                    </td>
+                    <td className="p-4">{d.product_count || 0}</td>
+                    <td className="p-4">{d.order_count || 0}</td>
+                    <td className="p-4 text-green-400">{formatPrice(d.total_earnings || 0)} F</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-xs ${d.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {d.is_active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <Button
+                        size="sm"
+                        variant={d.is_active ? "destructive" : "default"}
+                        onClick={() => handleToggleDropshipper(d.id)}
+                        disabled={loading}
+                      >
+                        {d.is_active ? 'Désactiver' : 'Activer'}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Recent Transactions */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700">
+        <div className="p-4 border-b border-slate-700">
+          <h3 className="font-semibold">Transactions Dropshipping récentes</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          {transactions.length === 0 ? (
+            <p className="text-slate-400 text-center py-4">Aucune transaction</p>
+          ) : (
+            transactions.slice(0, 10).map((t) => (
+              <div key={t.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                <div>
+                  <p className="font-medium">{t.product_name}</p>
+                  <p className="text-sm text-slate-400">{t.dropshipper_name} • {t.order_number}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-400 font-medium">+{formatPrice(t.admin_share || 0)} F</p>
+                  <p className="text-xs text-slate-400">sur {formatPrice(t.total_margin || 0)} F de marge</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default AdminDashboard;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck } from 'lucide-react';
+import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -45,6 +45,8 @@ const AuthPage = () => {
         navigate('/vendeur');
       } else if (result.user.role === 'driver') {
         navigate('/livreur');
+      } else if (result.user.role === 'dropshipper') {
+        navigate('/dropshipper');
       } else {
         navigate(from);
       }
@@ -82,10 +84,12 @@ const AuthPage = () => {
     setLoading(false);
   };
 
-  // If user selects "driver", redirect to the dedicated driver registration page
+  // If user selects "driver" or "dropshipper", redirect to the dedicated registration page
   const handleRoleSelect = (role) => {
     if (role === 'driver') {
       navigate('/devenir-livreur');
+    } else if (role === 'dropshipper') {
+      navigate('/devenir-dropshipper');
     } else {
       setRegisterRole(role);
     }
@@ -179,10 +183,10 @@ const AuthPage = () => {
               {/* Register Tab */}
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  {/* Role Selection - 3 options */}
+                  {/* Role Selection - 4 options */}
                   <div className="mb-6">
                     <Label className="text-sm font-medium mb-3 block">Je suis...</Label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => handleRoleSelect('customer')}
@@ -206,6 +210,14 @@ const AuthPage = () => {
                       >
                         <Store className={`w-6 h-6 mx-auto mb-1 ${registerRole === 'vendor' ? 'text-primary' : 'text-muted-foreground'}`} />
                         <p className="font-medium text-xs">Vendeur</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRoleSelect('dropshipper')}
+                        className="p-3 rounded-xl border-2 border-border hover:border-purple-500/50 hover:bg-purple-50 transition-all"
+                      >
+                        <Package className="w-6 h-6 mx-auto mb-1 text-purple-500" />
+                        <p className="font-medium text-xs text-purple-600">Dropshipper</p>
                       </button>
                       <button
                         type="button"
