@@ -1,7 +1,7 @@
 # Cloléo - Marketplace E-commerce Africaine
 
 ## Description du Projet
-Cloléo est une marketplace e-commerce complète conçue pour le marché africain, avec système de livraison en temps réel.
+Cloléo est une marketplace e-commerce complète conçue pour le marché africain, avec système de livraison en temps réel et module de dropshipping.
 
 ## Architecture Technique
 - **Frontend**: React 18, Tailwind CSS, React Router, Context API
@@ -26,79 +26,117 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
 - [x] Système de validation Admin pour vendeurs et livreurs
 - [x] Système de produits mis en avant (featured)
 
-### Phase 3 ✅ (COMPLÉTÉ 28/03/2026)
+### Phase 3 ✅
 - [x] Upload images produits et permis livreurs (stockage local)
 - [x] Inscription et dashboard Livreur
 - [x] Hero Section moderne avec animations
 - [x] Carousels Spotlight et Featured Products
 - [x] Page Checkout client avec Google Maps
-- [x] **Système de livraison complet avec suivi temps réel**
-  - Création de commandes avec coordonnées GPS
-  - Livreur accepte/récupère/livre la commande
-  - Suivi en direct sur carte (Admin, Vendeur, Client)
-  - Mise à jour position livreur via GPS
-  - Notifications en temps réel (WebSockets)
-  - Historique des statuts de commande
-- [x] **Refonte Dashboard Vendeur** (28/03/2026)
-  - Menu latéral complet : Tableau de bord, Mes produits, Commandes, Suivi livraisons, Statistiques, Mon abonnement, Paramètres
-  - Section Suivi livraisons avec carte Google Maps
-  - Vue des commandes avec livreur assigné
-- [x] **Correction Dashboards Vendeur & Livreur** (28/03/2026)
-  - Suppression de la superposition navbar/sidebar (StandaloneDashboardLayout)
-  - Menu latéral desktop propre
-  - Menu déroulant mobile responsive
-  - Carte Google Maps fonctionnelle avec composant réutilisable
-  - Commande en cours avec boutons d'action (Récupérer colis, Livrer, etc.)
+- [x] Système de livraison complet avec suivi temps réel
+- [x] Refonte Dashboard Vendeur avec sidebar
+
+### Phase 4 ✅ (COMPLÉTÉ 24/04/2026)
+- [x] **Module Dropshipping Complet**
+  - [x] Inscription Dropshipper (/devenir-dropshipper)
+  - [x] Dashboard Dropshipper avec sidebar (/dropshipper)
+  - [x] Catalogue produits avec recherche
+  - [x] Personnalisation produits (description, prix de vente)
+  - [x] Calcul automatique marge 50/50 (dropshipper/admin)
+  - [x] Boutique publique dropshipper (/boutique/{shop_slug})
+  - [x] Commandes via boutique dropshipper
+  - [x] Section Admin Dropshipping (stats, transactions, gestion)
+  - [x] Page d'inscription avec 4 rôles (Acheteur, Vendeur, Dropshipper, Livreur)
 
 ## Schéma de Base de Données
 
-### Collection: orders
+### Collection: users (role: dropshipper)
 ```json
 {
   "id": "uuid",
-  "order_number": "CLO-20260328-XXXXXX",
-  "customer_id": "uuid | null",
-  "customer_name": "string",
-  "customer_phone": "string",
-  "items": [
-    {
-      "product_id": "uuid",
-      "product_name": "string",
-      "quantity": "number",
-      "unit_price_fcfa": "number",
-      "vendor_id": "uuid"
-    }
-  ],
-  "delivery_address": {
-    "name": "string",
-    "phone": "string",
-    "street": "string",
-    "city": "string",
-    "latitude": "number",
-    "longitude": "number"
-  },
-  "status": "pending | assigned | picked_up | in_transit | delivered | cancelled",
-  "driver_id": "uuid | null",
-  "driver_name": "string | null",
-  "total_fcfa": "number"
+  "email": "string",
+  "name": "string",
+  "role": "dropshipper",
+  "shop_name": "string",
+  "shop_slug": "string (auto-generated)",
+  "shop_description": "string",
+  "is_active": true,
+  "is_verified": true,
+  "total_earnings": 0,
+  "total_sales": 0
 }
 ```
 
-## APIs Clés
+### Collection: dropshipped_products
+```json
+{
+  "id": "uuid",
+  "dropshipper_id": "uuid",
+  "original_product_id": "uuid",
+  "original_price_fcfa": "number",
+  "selling_price_fcfa": "number",
+  "custom_description": "string",
+  "margin_fcfa": "number",
+  "dropshipper_share_fcfa": "number (50%)",
+  "admin_share_fcfa": "number (50%)",
+  "is_active": true
+}
+```
 
-### Système de Commandes
-- `POST /api/orders` - Créer une commande
-- `GET /api/orders/track/{order_id}` - Suivi public de commande
-- `PUT /api/orders/{id}/accept` - Livreur accepte
-- `PUT /api/orders/{id}/pickup` - Livreur récupère le colis
-- `PUT /api/orders/{id}/in-transit` - Livreur en route
-- `PUT /api/orders/{id}/deliver` - Livraison terminée
-- `POST /api/driver/location/update` - Mise à jour position GPS
+### Collection: dropshipper_earnings
+```json
+{
+  "id": "uuid",
+  "order_id": "uuid",
+  "dropshipper_id": "uuid",
+  "total_margin": "number",
+  "dropshipper_share": "number",
+  "admin_share": "number",
+  "vendor_amount": "number"
+}
+```
 
-### WebSocket Endpoints
-- `/ws/orders/order_{id}` - Suivi d'une commande spécifique
-- `/ws/driver/{id}` - Nouvelles commandes pour livreur
-- `/ws/orders/admin_tracking` - Suivi admin tous livreurs
+## APIs Clés - Dropshipping
+
+### Authentification
+- `POST /api/auth/register/dropshipper` - Inscription dropshipper
+
+### Dropshipper Dashboard
+- `GET /api/dropshipper/dashboard` - Stats et aperçu
+- `GET /api/dropshipper/catalog` - Catalogue produits disponibles
+- `POST /api/dropshipper/products` - Ajouter produit personnalisé
+- `GET /api/dropshipper/products` - Liste produits
+- `PUT /api/dropshipper/products/{id}` - Modifier produit
+- `DELETE /api/dropshipper/products/{id}` - Supprimer produit
+- `GET /api/dropshipper/orders` - Commandes
+- `GET /api/dropshipper/earnings` - Historique gains
+
+### Boutique publique
+- `GET /api/shop/{shop_slug}` - Boutique dropshipper
+- `POST /api/shop/order` - Commander (calcul automatique marge)
+
+### Admin
+- `GET /api/admin/dropshippers` - Liste dropshippers
+- `PUT /api/admin/dropshippers/{id}/toggle` - Activer/désactiver
+- `GET /api/admin/dropshipping/stats` - Statistiques
+- `GET /api/admin/dropshipping/transactions` - Transactions
+
+## Pages Frontend
+
+### Dropshipper
+- `/devenir-dropshipper` - Inscription
+- `/dropshipper` - Dashboard (protégé)
+- `/boutique/{shop_slug}` - Boutique publique
+
+### Routes App.js
+```javascript
+<Route path="/devenir-dropshipper" element={<DropshipperRegisterPage />} />
+<Route path="/dropshipper" element={
+  <ProtectedRoute requireDropshipper>
+    <DropshipperDashboard />
+  </ProtectedRoute>
+} />
+<Route path="/boutique/:shopSlug" element={<DropshipperShopPage />} />
+```
 
 ## Tâches à Venir
 
@@ -121,6 +159,7 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
 - **Admin**: admin@cloleo.com / admin123
 - **Vendeur**: testvendor@cloleo.com / test123
 - **Livreur**: testdriver@cloleo.com / driver123
+- **Dropshipper**: testdrop3@cloleo.com / drop123
 
 ## Variables d'Environnement
 ```
