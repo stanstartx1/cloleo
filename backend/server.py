@@ -415,6 +415,17 @@ async def delete_product(product_id: str, user: dict = Depends(require_vendor)):
         raise HTTPException(status_code=404, detail="Non trouvé")
     return {"message": "Supprimé"}
 
+# PUBLIC STATS
+@api_router.get("/stats/public")
+async def get_public_stats():
+    """Get public statistics for the homepage"""
+    return {
+        "products": await db.products.count_documents({"status": "approved"}),
+        "vendors": await db.users.count_documents({"role": "vendor", "is_active": True}),
+        "drivers": await db.users.count_documents({"role": "driver", "is_active": True}),
+        "dropshippers": await db.users.count_documents({"role": "dropshipper", "is_active": True})
+    }
+
 # ADMIN
 @api_router.get("/admin/dashboard")
 async def admin_dashboard(user: dict = Depends(require_admin)):

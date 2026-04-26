@@ -56,6 +56,7 @@ const HomePage = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [stats, setStats] = useState({ products: 0, vendors: 0, drivers: 0 });
 
   // Refs for scroll animations
   const [statsRef, statsInView] = useInView();
@@ -66,16 +67,18 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, featuredRes, newRes, trendingRes] = await Promise.all([
+        const [catRes, featuredRes, newRes, trendingRes, statsRes] = await Promise.all([
           axios.get(`${API}/categories`),
           axios.get(`${API}/products?is_featured=true&limit=12`),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=16`),
-          axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`)
+          axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
+          axios.get(`${API}/stats/public`).catch(() => ({ data: { products: 0, vendors: 0, drivers: 0 } }))
         ]);
         setCategories(catRes.data);
         setFeaturedProducts(featuredRes.data.products || []);
         setNewProducts(newRes.data.products || []);
         setTrendingProducts(trendingRes.data.products || []);
+        setStats(statsRes.data || { products: 0, vendors: 0, drivers: 0 });
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -131,9 +134,9 @@ const HomePage = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { icon: Package, value: 600, suffix: '+', label: 'Produits', color: 'from-orange-500 to-amber-500' },
-              { icon: Users, value: 300, suffix: '+', label: 'Vendeurs actifs', color: 'from-purple-500 to-pink-500' },
-              { icon: Truck, value: 50, suffix: '+', label: 'Livreurs', color: 'from-blue-500 to-cyan-500' },
+              { icon: Package, value: stats.products || 0, suffix: '', label: 'Produits', color: 'from-orange-500 to-amber-500' },
+              { icon: Users, value: stats.vendors || 0, suffix: '', label: 'Vendeurs actifs', color: 'from-purple-500 to-pink-500' },
+              { icon: Truck, value: stats.drivers || 0, suffix: '', label: 'Livreurs', color: 'from-blue-500 to-cyan-500' },
               { icon: Shield, value: 99, suffix: '%', label: 'Satisfaction', color: 'from-emerald-500 to-green-500' },
             ].map((stat, index) => (
               <div 
