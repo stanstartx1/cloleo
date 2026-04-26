@@ -11,28 +11,34 @@ const CATEGORIES = [
 
 const Footer = () => {
   return (
-    <footer className="footer-pattern text-white mt-16" data-testid="footer">
-      <div className="container mx-auto px-4 py-12">
+    <footer className="footer-pattern text-white mt-16 relative overflow-hidden" data-testid="footer">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
+      
+      <div className="container mx-auto px-4 py-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl">
+            <div className="flex items-center gap-2 mb-4 group">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 group-hover:shadow-lg group-hover:shadow-orange-500/30">
                 C
               </div>
-              <span className="text-2xl font-bold">Cloléo</span>
+              <span className="text-2xl font-bold transition-transform duration-300 group-hover:scale-105">Cloléo</span>
             </div>
             <p className="text-gray-400 text-sm mb-4">
               La première marketplace africaine pour découvrir et acheter des produits authentiques de qualité.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">
+              <a href="#" className="text-gray-400 hover:text-orange-500 transition-all duration-300 hover:scale-125 hover:-translate-y-1">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">
+              <a href="#" className="text-gray-400 hover:text-pink-500 transition-all duration-300 hover:scale-125 hover:-translate-y-1">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition-colors">
+              <a href="#" className="text-gray-400 hover:text-blue-400 transition-all duration-300 hover:scale-125 hover:-translate-y-1">
                 <Twitter className="w-5 h-5" />
               </a>
             </div>
@@ -42,11 +48,11 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Catégories</h4>
             <ul className="space-y-2">
-              {CATEGORIES.map((cat) => (
-                <li key={cat.slug}>
+              {CATEGORIES.map((cat, index) => (
+                <li key={cat.slug} style={{ animationDelay: `${index * 0.1}s` }}>
                   <Link 
                     to={`/categories/${cat.slug}`}
-                    className="text-gray-400 hover:text-white transition-colors text-sm"
+                    className="text-gray-400 hover:text-white transition-all duration-300 text-sm hover:translate-x-2 inline-block hover-underline"
                   >
                     {cat.name}
                   </Link>
@@ -55,9 +61,10 @@ const Footer = () => {
               <li>
                 <Link 
                   to="/categories"
-                  className="text-orange-500 hover:text-orange-400 transition-colors text-sm font-medium"
+                  className="text-orange-500 hover:text-orange-400 transition-all duration-300 text-sm font-medium hover:translate-x-2 inline-flex items-center gap-1 group"
                 >
-                  Voir toutes →
+                  Voir toutes 
+                  <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
                 </Link>
               </li>
             </ul>

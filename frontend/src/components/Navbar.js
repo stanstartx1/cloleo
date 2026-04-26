@@ -89,11 +89,11 @@ const Navbar = () => {
           {/* Main navbar */}
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2" data-testid="logo">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl">
+            <Link to="/" className="flex items-center gap-2 group" data-testid="logo">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 group-hover:shadow-lg group-hover:shadow-orange-500/30">
                 C
               </div>
-              <span className="text-2xl font-bold tracking-tight">
+              <span className="text-2xl font-bold tracking-tight transition-transform duration-300 group-hover:scale-105">
                 <span className="text-orange-500">Clo</span>
                 <span className="text-amber-600">léo</span>
               </span>
@@ -103,13 +103,13 @@ const Navbar = () => {
             <div className="hidden lg:flex items-center gap-6">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1 font-medium hover:text-primary transition-colors">
-                    Parcourir <ChevronDown className="w-4 h-4" />
+                  <button className="flex items-center gap-1 font-medium hover:text-primary transition-all duration-300 nav-item">
+                    Parcourir <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  {CATEGORIES.map((cat) => (
-                    <DropdownMenuItem key={cat.slug} asChild>
+                <DropdownMenuContent className="w-56 animate-scale-in">
+                  {CATEGORIES.map((cat, index) => (
+                    <DropdownMenuItem key={cat.slug} asChild className="transition-all duration-200 hover:translate-x-1" style={{ animationDelay: `${index * 0.05}s` }}>
                       <Link to={`/categories/${cat.slug}`}>{cat.name}</Link>
                     </DropdownMenuItem>
                   ))}
@@ -119,10 +119,10 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Link to="/produits?featured=true" className="font-medium hover:text-primary transition-colors">
+              <Link to="/produits?featured=true" className="font-medium hover:text-primary transition-all duration-300 nav-item">
                 Tendances
               </Link>
-              <Link to="/produits?sort_by=created_at" className="font-medium hover:text-primary transition-colors">
+              <Link to="/produits?sort_by=created_at" className="font-medium hover:text-primary transition-all duration-300 nav-item">
                 Nouveautés
               </Link>
             </div>
@@ -163,10 +163,10 @@ const Navbar = () => {
               </Button>
 
               <Link to="/panier" data-testid="cart-btn">
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="relative group">
+                  <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pop-in cart-badge-bounce">
                       {cart.item_count}
                     </span>
                   )}

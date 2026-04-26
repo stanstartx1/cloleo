@@ -89,6 +89,36 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Carte vendeur améliorée avec fond dégradé
   - [x] Bouton "Voir la boutique" sur la page produit
 
+### Phase 8 ✅ (COMPLÉTÉ 26/04/2026)
+- [x] **Animations avancées CSS**
+  - [x] Morphing blob animations
+  - [x] Glowing effects
+  - [x] Slide bounce animations
+  - [x] Elastic scale effects
+  - [x] Wave, shake, jelly, swing animations
+  - [x] Particle float animations
+  - [x] Gradient flow animations
+- [x] **Classes d'animation réutilisables**
+  - [x] `.animate-blob`, `.animate-glow`, `.animate-slide-in-bounce`
+  - [x] `.animate-elastic-in`, `.animate-wave`, `.animate-pop-in`
+  - [x] `.animate-marquee`, `.animate-gradient-flow`
+- [x] **Effets hover interactifs**
+  - [x] Bouton magnétique (`.btn-magnetic`)
+  - [x] Underline animé (`.hover-underline`)
+  - [x] Border animation (`.hover-border-animate`)
+  - [x] Shine sweep effect (`.hover-shine`)
+  - [x] 3D tilt effect (`.hover-tilt`)
+- [x] **Scroll reveal animations**
+  - [x] Fade up/down/left/right
+  - [x] Scale et rotate entrances
+- [x] **Améliorations composants**
+  - [x] Navbar: Logo hover rotate, cart badge bounce
+  - [x] HeroSection: Particules flottantes, gradient blobs
+  - [x] HomePage: Bandeau marquee avec avantages défilants
+  - [x] ProductCard: Glow effect, shine sweep, badge bounce
+  - [x] Footer: Icônes sociales animées hover
+  - [x] Boutons: Effet shine, shadow lift, active scale
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper)

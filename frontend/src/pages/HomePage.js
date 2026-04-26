@@ -483,6 +483,34 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Animated Marquee Banner */}
+      <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
+        <div className="relative flex overflow-hidden">
+          <div className="animate-marquee flex items-center whitespace-nowrap">
+            {[...Array(2)].map((_, setIndex) => (
+              <div key={setIndex} className="flex items-center">
+                {[
+                  { text: "Livraison rapide", icon: "🚀" },
+                  { text: "Paiement sécurisé", icon: "🔒" },
+                  { text: "Artisans vérifiés", icon: "✨" },
+                  { text: "Support 24/7", icon: "💬" },
+                  { text: "Retours gratuits", icon: "↩️" },
+                  { text: "Qualité garantie", icon: "⭐" },
+                  { text: "Made in Africa", icon: "🌍" },
+                  { text: "Prix justes", icon: "💰" },
+                ].map((item, index) => (
+                  <span key={index} className="flex items-center gap-2 mx-8 text-white/80 text-sm font-medium">
+                    <span className="text-lg">{item.icon}</span>
+                    <span>{item.text}</span>
+                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full ml-8" />
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Custom CSS for animations */}
       <style>{`
         @keyframes float {
@@ -498,6 +526,13 @@ const HomePage = () => {
         }
         .animate-fade-in {
           animation: fade-in 0.8s ease-out forwards;
+        }
+        @keyframes marquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
         }
       `}</style>
     </div>
