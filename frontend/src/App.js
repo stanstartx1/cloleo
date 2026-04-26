@@ -44,6 +44,9 @@ import DropshipperRegisterPage from "./pages/DropshipperRegisterPage";
 import DropshipperDashboard from "./pages/DropshipperDashboard";
 import DropshipperShopPage from "./pages/DropshipperShopPage";
 
+// Shop Pages
+import VendorShopPage from "./pages/VendorShopPage";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
@@ -187,6 +190,9 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       <Route path="/boutique/:shopSlug" element={<DropshipperShopPage />} />
+
+      {/* Vendor Shop Route (Public) */}
+      <Route path="/vendeur-boutique/:sellerId" element={<PublicLayout><VendorShopPage /></PublicLayout>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

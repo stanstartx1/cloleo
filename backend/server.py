@@ -2116,6 +2116,53 @@ async def get_shop_product(shop_slug: str, product_id: str):
     
     return product
 
+
+# ============== VENDOR SHOP (PUBLIC) ==============
+
+@api_router.get("/vendor-shop/{seller_id}")
+async def get_vendor_shop(seller_id: str, page: int = 1, limit: int = 20):
+    """Get public vendor shop with all their products"""
+    # Find vendor by ID
+    vendor = await db.users.find_one({
+        "id": seller_id,
+        "role": UserRole.VENDOR,
+        "is_active": True
+    }, {"_id": 0, "password": 0})
+    
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendeur non trouvé")
+    
+    # Get approved products from this vendor
+    skip = (page - 1) * limit
+    query = {"seller_id": seller_id, "status": "approved"}
+    total = await db.products.count_documents(query)
+    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    
+    # Compute vendor stats
+    total_products = await db.products.count_documents({"seller_id": seller_id, "status": "approved"})
+    total_sales = sum(p.get("sales_count", 0) for p in products)
+    avg_rating = sum(p.get("rating", 0) for p in products) / max(1, len(products)) if products else 0
+    
+    return {
+        "shop": {
+            "id": vendor.get("id"),
+            "name": vendor.get("shop_name") or vendor.get("name"),
+            "description": vendor.get("shop_description", ""),
+            "location": vendor.get("city", "Abidjan"),
+            "country": vendor.get("location", "Côte d'Ivoire"),
+            "created_at": vendor.get("created_at"),
+            "total_products": total_products,
+            "total_sales": total_sales,
+            "avg_rating": round(avg_rating, 1),
+            "is_verified": vendor.get("is_verified", False)
+        },
+        "products": products,
+        "total": total,
+        "page": page,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+
 # ============== ADMIN DROPSHIPPING MANAGEMENT ==============
 
 @api_router.get("/admin/dropshippers")

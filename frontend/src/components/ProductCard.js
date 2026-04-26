@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Star, MapPin, Eye } from 'lucide-react';
+import { Heart, MessageCircle, Star, MapPin, Eye, Store, BadgeCheck } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -14,7 +14,7 @@ const formatPrice = (price, currency = 'FCFA') => {
   return '$' + price.toFixed(2);
 };
 
-const ProductCard = ({ product, className, showContactButton = true }) => {
+const ProductCard = ({ product, className, showContactButton = true, showSellerInfo = true }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -47,6 +47,18 @@ const ProductCard = ({ product, className, showContactButton = true }) => {
       toast.success(favorite ? 'Retiré des favoris' : 'Ajouté aux favoris');
     }
   };
+
+  const handleVisitShop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (product.seller_id && product.seller_id !== 'system') {
+      navigate(`/vendeur-boutique/${product.seller_id}`);
+    }
+  };
+
+  // Check if it's a real vendor (not system-generated)
+  const isRealVendor = product.seller_id && product.seller_id !== 'system';
 
   return (
     <Link 
@@ -220,14 +232,74 @@ const ProductCard = ({ product, className, showContactButton = true }) => {
             </span>
           </div>
 
-          {/* Location */}
-          {(product.city || product.location || product.seller_name) && (
+          {/* Seller Info Section */}
+          {showSellerInfo && (product.seller_name || product.city) && (
+            <div className={cn(
+              "mb-3 p-2 rounded-lg transition-all duration-300",
+              isHovered ? "bg-orange-50/80" : "bg-gray-50/80"
+            )}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* Seller Avatar */}
+                  <div className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300",
+                    isRealVendor 
+                      ? "bg-gradient-to-br from-orange-500 to-amber-500 text-white" 
+                      : "bg-gray-200 text-gray-500"
+                  )}>
+                    {isRealVendor ? (
+                      <span className="text-xs font-bold">{product.seller_name?.charAt(0)?.toUpperCase() || 'V'}</span>
+                    ) : (
+                      <Store className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+                  
+                  {/* Seller Details */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-medium text-gray-900 truncate">
+                        {product.seller_name || 'Boutique Cloléo'}
+                      </p>
+                      {isRealVendor && (
+                        <BadgeCheck className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <MapPin className="w-2.5 h-2.5" />
+                      <span className="truncate">{product.city || 'Abidjan'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Visit Shop Button */}
+                {isRealVendor && (
+                  <button
+                    onClick={handleVisitShop}
+                    className={cn(
+                      "text-[10px] font-medium px-2 py-1 rounded-full flex-shrink-0 transition-all duration-300",
+                      "bg-gradient-to-r from-orange-500/10 to-amber-500/10 text-orange-600",
+                      "hover:from-orange-500 hover:to-amber-500 hover:text-white hover:shadow-md"
+                    )}
+                    data-testid={`visit-shop-btn-${product.id}`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Store className="w-3 h-3" />
+                      Boutique
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Location (only shown if showSellerInfo is false) */}
+          {!showSellerInfo && (product.city || product.location) && (
             <div className={cn(
               "flex items-center gap-1 text-xs text-muted-foreground mb-3 transition-all duration-300",
               isHovered && "text-primary/60"
             )}>
               <MapPin className="w-3 h-3" />
-              {product.seller_name || product.city || 'Abidjan'}
+              {product.city || 'Abidjan'}
             </div>
           )}
 

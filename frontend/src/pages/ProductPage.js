@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import ProductCard from '../components/ProductCard';
@@ -224,18 +224,41 @@ const ProductPage = () => {
               <p className="text-muted-foreground">≈ ${displayPriceUsd} USD</p>
             </div>
 
-            {/* Seller & Location */}
-            <div className="flex items-center gap-4 mb-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="font-bold text-primary">{product.seller_name?.[0]}</span>
+            {/* Seller Card - Enhanced */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  {/* Seller Avatar */}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-md">
+                    <span className="text-lg font-bold">{product.seller_name?.[0]?.toUpperCase() || 'V'}</span>
+                  </div>
+                  
+                  {/* Seller Info */}
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold text-gray-900">{product.seller_name}</p>
+                      {product.seller_id && product.seller_id !== 'system' && (
+                        <BadgeCheck className="w-4 h-4 text-orange-500" />
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {product.city || 'Abidjan'}, {product.location || "Côte d'Ivoire"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{product.seller_name}</p>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> {product.city}, {product.location}
-                  </p>
-                </div>
+                
+                {/* Visit Shop Button */}
+                {product.seller_id && product.seller_id !== 'system' && (
+                  <Link 
+                    to={`/vendeur-boutique/${product.seller_id}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md hover:shadow-lg"
+                    data-testid="visit-vendor-shop-btn"
+                  >
+                    <Store className="w-4 h-4" />
+                    Voir la boutique
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
             </div>
 

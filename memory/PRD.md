@@ -72,6 +72,23 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Miniature produit dans en-tête conversation
   - [x] **Bouton "Contacter le vendeur" sur ProductCard** (hover) avec redirection + auto-ouverture chat
 
+### Phase 7 ✅ (COMPLÉTÉ 26/04/2026)
+- [x] **Affichage détails vendeur sur ProductCard**
+  - [x] Avatar vendeur avec initiale et gradient orange
+  - [x] Nom du vendeur avec badge de vérification
+  - [x] Localisation (ville)
+  - [x] Bouton "Boutique" pour accéder à la page boutique vendeur
+- [x] **Page boutique vendeur** (`/vendeur-boutique/:sellerId`)
+  - [x] Bannière avec avatar, nom, badge vérification
+  - [x] Date d'adhésion du vendeur
+  - [x] Statistiques (produits, ventes, note moyenne)
+  - [x] Grille de tous les produits du vendeur
+  - [x] Pagination
+  - [x] Endpoint API `/api/vendor-shop/{seller_id}`
+- [x] **Amélioration page produit**
+  - [x] Carte vendeur améliorée avec fond dégradé
+  - [x] Bouton "Voir la boutique" sur la page produit
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper)
