@@ -43,7 +43,8 @@ const DriverDashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [activeOrder, setActiveOrder] = useState(null);
+  const [activeOrders, setActiveOrders] = useState([]); // Multiple active orders
+  const [selectedOrder, setSelectedOrder] = useState(null); // Currently focused order
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('offline');
@@ -77,15 +78,21 @@ const DriverDashboard = () => {
       });
       setOrders(response.data.orders || []);
       
-      const active = response.data.orders?.find(o => 
+      // Get all active orders for this driver
+      const active = (response.data.orders || []).filter(o => 
         o.driver_id === user?.id && 
         ['assigned', 'picked_up', 'in_transit'].includes(o.status)
       );
-      setActiveOrder(active);
+      setActiveOrders(active);
+      
+      // Select the first active order if none selected
+      if (active.length > 0 && !selectedOrder) {
+        setSelectedOrder(active[0]);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
-  }, [token, user?.id]);
+  }, [token, user?.id, selectedOrder]);
 
   useEffect(() => {
     if (!isDriver) {
@@ -281,9 +288,11 @@ const DriverDashboard = () => {
   const availableOrders = orders.filter(o => o.status === 'pending');
   const completedOrders = orders.filter(o => o.driver_id === user?.id && o.status === 'delivered');
 
-  const customerLocation = activeOrder?.delivery_address ? {
-    latitude: activeOrder.delivery_address.latitude,
-    longitude: activeOrder.delivery_address.longitude
+  // Use selected order for map navigation, fallback to first active order
+  const activeOrderForMap = selectedOrder || activeOrders[0];
+  const customerLocation = activeOrderForMap?.delivery_address ? {
+    latitude: activeOrderForMap.delivery_address.latitude,
+    longitude: activeOrderForMap.delivery_address.longitude
   } : null;
 
   return (
@@ -446,76 +455,127 @@ const DriverDashboard = () => {
           {/* Map Section */}
           {activeSection === 'map' && (
             <div className="space-y-4">
-              {/* Active Order Card */}
-              {activeOrder && (
-                <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-                  <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                        <Package className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-white">Commande en cours</h3>
-                        <p className="text-xs text-slate-400">#{activeOrder.order_number?.slice(-8)}</p>
+              {/* Active Orders List (Multiple) */}
+              {activeOrders.length > 0 && (
+                <div className="space-y-4">
+                  {/* Order Selector if multiple */}
+                  {activeOrders.length > 1 && (
+                    <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+                      <p className="text-sm text-slate-400 mb-3">
+                        Vous avez <span className="text-blue-400 font-bold">{activeOrders.length}</span> commandes en cours
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {activeOrders.map((order) => (
+                          <button
+                            key={order.id}
+                            onClick={() => setSelectedOrder(order)}
+                            className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                              selectedOrder?.id === order.id 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            #{order.order_number?.slice(-6)} - {ORDER_STATUSES[order.status]?.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm ${ORDER_STATUSES[activeOrder.status]?.bgColor} ${ORDER_STATUSES[activeOrder.status]?.textColor}`}>
-                      {ORDER_STATUSES[activeOrder.status]?.label}
-                    </span>
-                  </div>
+                  )}
                   
-                  <div className="p-4 bg-slate-700/30">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-red-400 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-white">{activeOrder.delivery_address?.name}</p>
-                          <p className="text-sm text-slate-400">{activeOrder.delivery_address?.street}</p>
-                          <p className="text-sm text-slate-400">{activeOrder.delivery_address?.city}</p>
+                  {/* Selected Active Order Card */}
+                  {activeOrderForMap && (
+                    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                            <Package className="w-5 h-5 text-blue-400" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-white">Commande en cours</h3>
+                            <p className="text-xs text-slate-400">#{activeOrderForMap.order_number?.slice(-8)}</p>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-sm ${ORDER_STATUSES[activeOrderForMap.status]?.bgColor} ${ORDER_STATUSES[activeOrderForMap.status]?.textColor}`}>
+                          {ORDER_STATUSES[activeOrderForMap.status]?.label}
+                        </span>
+                      </div>
+                      
+                      {/* Customer Info */}
+                      <div className="p-4 bg-slate-700/30">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <MapPin className="w-5 h-5 text-red-400 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-white">{activeOrderForMap.delivery_address?.name}</p>
+                              <p className="text-sm text-slate-400">{activeOrderForMap.delivery_address?.street}</p>
+                              <p className="text-sm text-slate-400">{activeOrderForMap.delivery_address?.city}</p>
+                              {activeOrderForMap.delivery_address?.phone && (
+                                <p className="text-sm text-green-400 mt-1">📞 {activeOrderForMap.delivery_address?.phone}</p>
+                              )}
+                            </div>
+                          </div>
+                          <a href={`tel:${activeOrderForMap.delivery_address?.phone}`} className="p-3 bg-green-500/20 rounded-full text-green-400">
+                            <Phone className="w-5 h-5" />
+                          </a>
                         </div>
                       </div>
-                      <a href={`tel:${activeOrder.delivery_address?.phone}`} className="p-3 bg-green-500/20 rounded-full text-green-400">
-                        <Phone className="w-5 h-5" />
-                      </a>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-400">Total</p>
-                      <p className="font-bold text-white text-lg">{formatPrice(activeOrder.total_fcfa)} FCFA</p>
-                    </div>
-                    
-                    {ORDER_STATUSES[activeOrder.status]?.action && (
-                      <Button
-                        onClick={() => handleOrderAction(
-                          activeOrder,
-                          activeOrder.status === 'assigned' ? 'pickup' :
-                          activeOrder.status === 'picked_up' ? 'in-transit' : 'deliver'
+
+                      {/* Vendor Info */}
+                      {activeOrderForMap.items?.length > 0 && (
+                        <div className="p-4 border-t border-slate-700 bg-slate-700/20">
+                          <p className="text-xs text-slate-400 mb-2">Récupérer chez :</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
+                              <span className="text-purple-400 font-bold text-sm">
+                                {activeOrderForMap.items[0]?.seller_name?.[0] || 'V'}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-white text-sm">{activeOrderForMap.items[0]?.seller_name || 'Vendeur'}</p>
+                              <p className="text-xs text-slate-400">{activeOrderForMap.items?.length} article(s)</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-slate-400">Total</p>
+                          <p className="font-bold text-white text-lg">{formatPrice(activeOrderForMap.total_fcfa)} FCFA</p>
+                        </div>
+                        
+                        {ORDER_STATUSES[activeOrderForMap.status]?.action && (
+                          <Button
+                            onClick={() => handleOrderAction(
+                              activeOrderForMap,
+                              activeOrderForMap.status === 'assigned' ? 'pickup' :
+                              activeOrderForMap.status === 'picked_up' ? 'in-transit' : 'deliver'
+                            )}
+                            disabled={updatingStatus}
+                            size="lg"
+                            className={activeOrderForMap.status === 'in_transit' ? 'bg-green-600 hover:bg-green-700' : ''}
+                          >
+                            {updatingStatus ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> :
+                             activeOrderForMap.status === 'assigned' ? <PackageCheck className="w-5 h-5 mr-2" /> :
+                             activeOrderForMap.status === 'picked_up' ? <Play className="w-5 h-5 mr-2" /> :
+                             <Flag className="w-5 h-5 mr-2" />}
+                            {ORDER_STATUSES[activeOrderForMap.status]?.action}
+                          </Button>
                         )}
-                        disabled={updatingStatus}
-                        size="lg"
-                        className={activeOrder.status === 'in_transit' ? 'bg-green-600 hover:bg-green-700' : ''}
-                      >
-                        {updatingStatus ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> :
-                         activeOrder.status === 'assigned' ? <PackageCheck className="w-5 h-5 mr-2" /> :
-                         activeOrder.status === 'picked_up' ? <Play className="w-5 h-5 mr-2" /> :
-                         <Flag className="w-5 h-5 mr-2" />}
-                        {ORDER_STATUSES[activeOrder.status]?.action}
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {activeOrder.delivery_address?.latitude && (
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrder.delivery_address.latitude},${activeOrder.delivery_address.longitude}&travelmode=driving`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block p-3 text-center text-sm text-blue-400 hover:bg-slate-700/50 border-t border-slate-700"
-                    >
-                      <Navigation className="w-4 h-4 inline mr-2" />
-                      Ouvrir dans Google Maps
-                    </a>
+                      </div>
+                      
+                      {activeOrderForMap.delivery_address?.latitude && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}&travelmode=driving`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block p-3 text-center text-sm text-blue-400 hover:bg-slate-700/50 border-t border-slate-700"
+                        >
+                          <Navigation className="w-4 h-4 inline mr-2" />
+                          Ouvrir dans Google Maps
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -525,7 +585,7 @@ const DriverDashboard = () => {
                 <div className="p-4 border-b border-slate-700 flex items-center justify-between">
                   <h3 className="font-bold text-white flex items-center gap-2">
                     <Map className="w-5 h-5 text-blue-400" />
-                    {activeOrder ? 'Navigation' : 'Ma position'}
+                    {activeOrders.length > 0 ? 'Navigation' : 'Ma position'}
                   </h3>
                   <div className="flex items-center gap-2">
                     {trackingEnabled && (
@@ -543,8 +603,9 @@ const DriverDashboard = () => {
                 <GoogleMap 
                   driverLocation={currentLocation}
                   customerLocation={customerLocation}
-                  showRoute={!!activeOrder}
+                  showRoute={activeOrders.length > 0}
                   height="320px"
+                  mapType="satellite"
                 />
                 
                 <div className="p-3 bg-slate-700/50 flex items-center gap-6 text-xs">
@@ -561,7 +622,7 @@ const DriverDashboard = () => {
                 </div>
               </div>
               
-              {!activeOrder && (
+              {activeOrders.length === 0 && (
                 <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center">
                   <Package className="w-16 h-16 text-slate-600 mx-auto mb-3" />
                   <p className="text-slate-400 mb-4">Aucune livraison en cours</p>
@@ -599,7 +660,7 @@ const DriverDashboard = () => {
                         </div>
                         <Button
                           onClick={() => handleOrderAction(order, 'accept')}
-                          disabled={updatingStatus || isPendingVerification || !!activeOrder}
+                          disabled={updatingStatus || isPendingVerification}
                           className="w-full bg-green-600 hover:bg-green-700"
                         >
                           {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}

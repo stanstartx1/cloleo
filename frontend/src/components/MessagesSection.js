@@ -95,8 +95,27 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   useEffect(() => {
     if (!selectedConversation) return;
 
+    let ws = null;
+    let reconnectAttempts = 0;
+    let pingInterval = null;
+    let isMounted = true;
+
     const connectWs = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/chat/${selectedConversation.id}`);
+      if (!isMounted) return;
+      
+      ws = new WebSocket(`${WS_URL}/ws/chat/${selectedConversation.id}`);
+      
+      ws.onopen = () => {
+        console.log('Vendor Chat WebSocket connected');
+        reconnectAttempts = 0;
+        
+        // Start ping/pong to keep connection alive
+        pingInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 25000);
+      };
       
       ws.onmessage = (event) => {
         try {
@@ -107,14 +126,31 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
             const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleUMOOpO5IAVNEW7h1o5wPAdE0+UBC1FiDtDNiXFGDEzO');
             audio.volume = 0.3;
             audio.play().catch(() => {});
+            scrollToBottom();
+            
+            // Update conversation list unread count
+            setConversations(prev => prev.map(c => 
+              c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c
+            ));
           }
         } catch (e) {
           console.error('WS parse error:', e);
         }
       };
 
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
       ws.onclose = () => {
-        if (selectedConversation) setTimeout(connectWs, 3000);
+        console.log('Vendor Chat WebSocket disconnected');
+        if (pingInterval) clearInterval(pingInterval);
+        
+        if (isMounted && selectedConversation && reconnectAttempts < 5) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          reconnectAttempts++;
+          setTimeout(connectWs, delay);
+        }
       };
 
       wsRef.current = ws;
@@ -123,7 +159,11 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     connectWs();
 
     return () => {
-      wsRef.current?.close();
+      isMounted = false;
+      if (pingInterval) clearInterval(pingInterval);
+      if (ws) {
+        ws.close();
+      }
     };
   }, [selectedConversation]);
 

@@ -119,6 +119,45 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Footer: Icônes sociales animées hover
   - [x] Boutons: Effet shine, shadow lift, active scale
 
+
+
+### Phase 9 ✅ (COMPLÉTÉ 29/04/2026)
+- [x] **LOT 1 - Messages Instantanés**
+  - [x] WebSocket chat amélioré avec ping/pong keep-alive
+  - [x] Reconnexion automatique avec backoff exponentiel
+  - [x] Notification sonore pour nouveaux messages
+  - [x] WebSocket vendeur pour notifications commandes temps réel
+  
+- [x] **LOT 2 - Admin & Gestion Utilisateurs**
+  - [x] Section "Utilisateurs" admin (filtres par rôle, recherche)
+  - [x] Suppression utilisateur avec cascade (produits, conversations)
+  - [x] Désactivation utilisateur (produits deviennent invisibles)
+  - [x] CRUD Catégories complet (création, modification, suppression)
+  - [x] Toggle activation/désactivation catégories
+  - [x] Suppression produit par admin
+  
+- [x] **LOT 3 - Système Livreur Optimisé**
+  - [x] Livreur peut accepter PLUSIEURS commandes simultanées
+  - [x] Sélecteur de commande active pour navigation
+  - [x] Infos complètes livreur transmises (nom, téléphone, véhicule)
+  - [x] Infos vendeur affichées au livreur
+  - [x] Infos client (téléphone) visibles dans carte commande
+  - [x] Carte Google Maps en mode satellite par défaut
+  - [x] Contrôles carte améliorés (zoom, type, rotation)
+
+### Phase 10 - EN ATTENTE
+- [ ] **LOT 4 - Expérience Chat**
+  - [ ] Bulles conversations multiples pour clients
+  - [ ] Liens cliquables (image produit → page, nom vendeur → boutique)
+  
+- [ ] **LOT 5 - Fonctionnalités Achat**
+  - [ ] Achat direct sans panier ("Acheter maintenant")
+  
+- [ ] **LOT 6 - Social & Partage**
+  - [ ] Système abonnements vendeurs/dropshippers
+  - [ ] Statistiques abonnements dans dashboards
+  - [ ] Boutons partage/copie lien boutique et produit
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper)

@@ -519,6 +519,253 @@ async def update_settings(setting_type: str, data: SettingsUpdate, user: dict = 
     await db.settings.update_one({"type": setting_type}, {"$set": data.settings}, upsert=True)
     return {"message": "Paramètres mis à jour"}
 
+# ============== ADMIN USER MANAGEMENT ==============
+
+@api_router.get("/admin/users")
+async def admin_get_users(
+    user: dict = Depends(require_admin),
+    role: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+    search: Optional[str] = None
+):
+    """Get all users with filtering"""
+    skip = (page - 1) * limit
+    query = {}
+    
+    if role:
+        query["role"] = role
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}}
+        ]
+    
+    users = await db.users.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.users.count_documents(query)
+    
+    # Add product count for vendors
+    for u in users:
+        if u["role"] in [UserRole.VENDOR, UserRole.DROPSHIPPER]:
+            u["product_count"] = await db.products.count_documents({"seller_id": u["id"]})
+        if u["role"] == UserRole.DRIVER:
+            u["deliveries_count"] = await db.orders.count_documents({"driver_id": u["id"], "status": "delivered"})
+    
+    return {"users": users, "total": total, "page": page, "total_pages": (total + limit - 1) // limit}
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, user: dict = Depends(require_admin)):
+    """Delete a user and all their related data"""
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Prevent deleting admin
+    if target_user.get("role") == UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Impossible de supprimer un administrateur")
+    
+    deleted_data = {"products": 0, "orders": 0, "conversations": 0}
+    
+    # Delete related data based on role
+    if target_user["role"] == UserRole.VENDOR:
+        # Delete all vendor products
+        result = await db.products.delete_many({"seller_id": user_id})
+        deleted_data["products"] = result.deleted_count
+        # Delete vendor conversations
+        result = await db.conversations.delete_many({"seller_id": user_id})
+        deleted_data["conversations"] = result.deleted_count
+        
+    elif target_user["role"] == UserRole.DROPSHIPPER:
+        # Delete dropshipped products
+        result = await db.dropshipped_products.delete_many({"dropshipper_id": user_id})
+        deleted_data["products"] = result.deleted_count
+        # Delete conversations
+        result = await db.conversations.delete_many({"seller_id": user_id})
+        deleted_data["conversations"] = result.deleted_count
+        
+    elif target_user["role"] == UserRole.CUSTOMER:
+        # Delete customer conversations
+        result = await db.conversations.delete_many({"customer_id": user_id})
+        deleted_data["conversations"] = result.deleted_count
+        # Mark customer orders as deleted (keep for records)
+        await db.orders.update_many({"customer_id": user_id}, {"$set": {"customer_deleted": True}})
+        
+    elif target_user["role"] == UserRole.DRIVER:
+        # Unassign any active orders
+        await db.orders.update_many(
+            {"driver_id": user_id, "status": {"$in": ["assigned", "picked_up", "in_transit"]}},
+            {"$set": {"driver_id": None, "driver_name": None, "status": "pending"}}
+        )
+    
+    # Delete messages from user's conversations
+    await db.messages.delete_many({"sender_id": user_id})
+    
+    # Delete the user
+    await db.users.delete_one({"id": user_id})
+    
+    logger.info(f"Admin {user['email']} deleted user {target_user['email']} ({target_user['role']})")
+    
+    return {
+        "message": f"Utilisateur {target_user['name']} supprimé avec succès",
+        "deleted_data": deleted_data
+    }
+
+@api_router.put("/admin/users/{user_id}/toggle-active")
+async def admin_toggle_user_active(user_id: str, user: dict = Depends(require_admin)):
+    """Toggle user active status - when deactivated, vendor products become invisible"""
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    new_status = not target_user.get("is_active", True)
+    
+    await db.users.update_one({"id": user_id}, {"$set": {"is_active": new_status}})
+    
+    # If vendor/dropshipper is deactivated, hide their products
+    if target_user["role"] in [UserRole.VENDOR, UserRole.DROPSHIPPER]:
+        if new_status:
+            # Reactivate: restore products to their previous status
+            await db.products.update_many(
+                {"seller_id": user_id, "_previous_status": {"$exists": True}},
+                [{"$set": {"status": "$_previous_status"}}, {"$unset": "_previous_status"}]
+            )
+        else:
+            # Deactivate: save current status and set to hidden
+            products = await db.products.find({"seller_id": user_id, "status": {"$ne": "hidden"}}, {"_id": 0, "id": 1, "status": 1}).to_list(1000)
+            for p in products:
+                await db.products.update_one(
+                    {"id": p["id"]},
+                    {"$set": {"_previous_status": p["status"], "status": "hidden"}}
+                )
+    
+    status_text = "activé" if new_status else "désactivé"
+    return {"is_active": new_status, "message": f"Utilisateur {status_text}"}
+
+@api_router.delete("/admin/products/{product_id}")
+async def admin_delete_product(product_id: str, user: dict = Depends(require_admin)):
+    """Admin delete any product"""
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    await db.products.delete_one({"id": product_id})
+    
+    logger.info(f"Admin {user['email']} deleted product {product['name']}")
+    return {"message": f"Produit '{product['name']}' supprimé"}
+
+# ============== ADMIN CATEGORY MANAGEMENT ==============
+
+class CategoryCreate(BaseModel):
+    name: str
+    slug: str
+    icon: Optional[str] = "Package"
+    description: Optional[str] = ""
+    parent_slug: Optional[str] = None  # For subcategories
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    icon: Optional[str] = None
+    description: Optional[str] = None
+    parent_slug: Optional[str] = None
+
+@api_router.post("/admin/categories")
+async def admin_create_category(data: CategoryCreate, user: dict = Depends(require_admin)):
+    """Create a new category or subcategory"""
+    # Check if slug already exists
+    existing = await db.categories.find_one({"slug": data.slug})
+    if existing:
+        raise HTTPException(status_code=400, detail="Une catégorie avec ce slug existe déjà")
+    
+    category = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "slug": data.slug,
+        "icon": data.icon or "Package",
+        "description": data.description or "",
+        "parent_slug": data.parent_slug,
+        "product_count": 0,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.categories.insert_one(category)
+    return {k: v for k, v in category.items() if k != "_id"}
+
+@api_router.put("/admin/categories/{category_id}")
+async def admin_update_category(category_id: str, data: CategoryUpdate, user: dict = Depends(require_admin)):
+    """Update a category"""
+    category = await db.categories.find_one({"id": category_id})
+    if not category:
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.slug is not None:
+        # Check if new slug conflicts
+        existing = await db.categories.find_one({"slug": data.slug, "id": {"$ne": category_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Ce slug est déjà utilisé")
+        
+        # Update products with old category slug
+        old_slug = category["slug"]
+        await db.products.update_many({"category_slug": old_slug}, {"$set": {"category_slug": data.slug}})
+        update_data["slug"] = data.slug
+        
+    if data.icon is not None:
+        update_data["icon"] = data.icon
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.parent_slug is not None:
+        update_data["parent_slug"] = data.parent_slug
+    
+    await db.categories.update_one({"id": category_id}, {"$set": update_data})
+    
+    updated = await db.categories.find_one({"id": category_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/admin/categories/{category_id}")
+async def admin_delete_category(category_id: str, user: dict = Depends(require_admin)):
+    """Delete a category"""
+    category = await db.categories.find_one({"id": category_id}, {"_id": 0})
+    if not category:
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
+    
+    # Check if category has products
+    product_count = await db.products.count_documents({"category_slug": category["slug"]})
+    if product_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cette catégorie contient {product_count} produit(s). Déplacez-les d'abord."
+        )
+    
+    # Check for subcategories
+    subcategories = await db.categories.count_documents({"parent_slug": category["slug"]})
+    if subcategories > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cette catégorie a {subcategories} sous-catégorie(s). Supprimez-les d'abord."
+        )
+    
+    await db.categories.delete_one({"id": category_id})
+    return {"message": f"Catégorie '{category['name']}' supprimée"}
+
+@api_router.put("/admin/categories/{category_id}/toggle")
+async def admin_toggle_category(category_id: str, user: dict = Depends(require_admin)):
+    """Toggle category active status"""
+    category = await db.categories.find_one({"id": category_id})
+    if not category:
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
+    
+    new_status = not category.get("is_active", True)
+    await db.categories.update_one({"id": category_id}, {"$set": {"is_active": new_status}})
+    
+    return {"is_active": new_status, "message": f"Catégorie {'activée' if new_status else 'désactivée'}"}
+
 # PUBLIC
 @api_router.get("/categories")
 async def get_categories():
@@ -1023,6 +1270,14 @@ async def create_order(data: CreateOrder, request: Request, credentials: HTTPAut
         "order": {k: v for k, v in order.items() if k != "_id"}
     })
     
+    # Notify vendors about new order
+    for vendor_id in order.get("vendor_ids", []):
+        await manager.broadcast_to_room(f"vendor_{vendor_id}", {
+            "type": "new_order",
+            "order": {k: v for k, v in order.items() if k != "_id"},
+            "message": f"Nouvelle commande #{order.get('order_number')}"
+        })
+    
     return {k: v for k, v in order.items() if k != "_id"}
 
 @api_router.get("/orders")
@@ -1117,10 +1372,25 @@ async def accept_order(order_id: str, user: dict = Depends(require_driver)):
     if order["status"] != OrderStatus.PENDING:
         raise HTTPException(status_code=400, detail="Cette commande n'est plus disponible")
     
+    # Get driver full info for broadcast
+    driver_info = {
+        "id": user["id"],
+        "name": user["name"],
+        "phone": user.get("phone"),
+        "email": user.get("email"),
+        "vehicle_type": user.get("vehicle_type"),
+        "vehicle_number": user.get("vehicle_number"),
+        "profile_image": user.get("profile_image"),
+        "rating": user.get("rating", 4.5),
+        "deliveries_count": user.get("deliveries_count", 0)
+    }
+    
     update_data = {
         "status": OrderStatus.ASSIGNED,
         "driver_id": user["id"],
         "driver_name": user["name"],
+        "driver_phone": user.get("phone"),
+        "driver_info": driver_info,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -1136,15 +1406,24 @@ async def accept_order(order_id: str, user: dict = Depends(require_driver)):
         {"$set": update_data, "$push": {"status_history": status_entry}}
     )
     
-    # Broadcast update
+    # Broadcast update to order tracking room (customer, vendor)
     await manager.broadcast_to_room(f"order_{order_id}", {
         "type": "order_update",
         "order_id": order_id,
         "status": OrderStatus.ASSIGNED,
-        "driver_id": user["id"],
-        "driver_name": user["name"],
+        "driver": driver_info,
         "message": f"Livreur {user['name']} a accepté votre commande"
     })
+    
+    # Notify vendors about the driver assignment
+    for vendor_id in order.get("vendor_ids", []):
+        await manager.broadcast_to_room(f"vendor_{vendor_id}", {
+            "type": "order_driver_assigned",
+            "order_id": order_id,
+            "order_number": order.get("order_number"),
+            "driver": driver_info,
+            "message": f"Livreur {user['name']} récupère la commande {order.get('order_number')}"
+        })
     
     # Notify other drivers that order is taken
     await manager.broadcast_to_room("drivers", {
@@ -1152,7 +1431,7 @@ async def accept_order(order_id: str, user: dict = Depends(require_driver)):
         "order_id": order_id
     })
     
-    return {"message": "Commande acceptée", "status": OrderStatus.ASSIGNED}
+    return {"message": "Commande acceptée", "status": OrderStatus.ASSIGNED, "driver": driver_info}
 
 @api_router.put("/orders/{order_id}/pickup")
 async def pickup_order(order_id: str, user: dict = Depends(require_driver)):
@@ -1675,13 +1954,30 @@ async def dropshipper_get_conversations(user: dict = Depends(require_dropshipper
 @app.websocket("/ws/chat/{conversation_id}")
 async def chat_websocket(websocket: WebSocket, conversation_id: str):
     """WebSocket for real-time chat messages"""
-    await manager.connect(websocket, f"chat_{conversation_id}")
+    room = f"chat_{conversation_id}"
+    await manager.connect(websocket, room)
+    logger.info(f"Chat WebSocket connected: {conversation_id}")
+    
     try:
         while True:
             data = await websocket.receive_text()
-            # Messages are sent via POST API, WebSocket is for receiving only
+            try:
+                msg = json.loads(data)
+                # Handle ping/pong for keep-alive
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()})
+                # Handle typing indicator
+                elif msg.get("type") == "typing":
+                    await manager.broadcast_to_room(room, {
+                        "type": "typing",
+                        "user_id": msg.get("user_id"),
+                        "is_typing": msg.get("is_typing", False)
+                    })
+            except json.JSONDecodeError:
+                pass
     except WebSocketDisconnect:
-        await manager.disconnect(websocket, f"chat_{conversation_id}")
+        manager.disconnect(websocket, room)
+        logger.info(f"Chat WebSocket disconnected: {conversation_id}")
 
 # ============== DROPSHIPPING SYSTEM ==============
 
@@ -2360,6 +2656,36 @@ async def websocket_driver(websocket: WebSocket, driver_id: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket, room)
         manager.disconnect(websocket, "drivers")
+
+@app.websocket("/ws/vendor/{vendor_id}")
+async def websocket_vendor(websocket: WebSocket, vendor_id: str):
+    """WebSocket for vendor to receive order updates and notifications"""
+    room = f"vendor_{vendor_id}"
+    await manager.connect(websocket, room)
+    
+    try:
+        # Send current pending orders for this vendor
+        pending_orders = await db.orders.find(
+            {"vendor_ids": vendor_id, "status": {"$nin": [OrderStatus.DELIVERED, OrderStatus.CANCELLED]}},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(20).to_list(20)
+        
+        await websocket.send_json({
+            "type": "pending_orders",
+            "orders": pending_orders
+        })
+        
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except json.JSONDecodeError:
+                pass
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room)
 
 @app.on_event("shutdown")
 async def shutdown():

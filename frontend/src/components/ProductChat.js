@@ -85,22 +85,60 @@ const ProductChat = ({
   useEffect(() => {
     if (!conversation || !isOpen) return;
 
+    let ws = null;
+    let reconnectAttempts = 0;
+    let pingInterval = null;
+    let isMounted = true;
+
     const connectWs = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/chat/${conversation.id}`);
+      if (!isMounted) return;
+      
+      ws = new WebSocket(`${WS_URL}/ws/chat/${conversation.id}`);
+      
+      ws.onopen = () => {
+        console.log('Chat WebSocket connected');
+        reconnectAttempts = 0;
+        
+        // Start ping/pong to keep connection alive
+        pingInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 25000); // Ping every 25 seconds
+      };
       
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'new_message' && data.message.sender_id !== user?.id) {
             setMessages(prev => [...prev, data.message]);
+            // Play notification sound
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleUMOOpO5IAVNEW7h1o5wPAdE0+UBC1FiDtDNiXFGDEzO');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+            scrollToBottom();
+          } else if (data.type === 'typing') {
+            // Handle typing indicator (optional)
           }
         } catch (e) {
           console.error('WS parse error:', e);
         }
       };
 
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
       ws.onclose = () => {
-        if (isOpen) setTimeout(connectWs, 3000);
+        console.log('Chat WebSocket disconnected');
+        if (pingInterval) clearInterval(pingInterval);
+        
+        // Reconnect with exponential backoff
+        if (isMounted && isOpen && reconnectAttempts < 5) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          reconnectAttempts++;
+          setTimeout(connectWs, delay);
+        }
       };
 
       wsRef.current = ws;
@@ -109,7 +147,11 @@ const ProductChat = ({
     connectWs();
 
     return () => {
-      wsRef.current?.close();
+      isMounted = false;
+      if (pingInterval) clearInterval(pingInterval);
+      if (ws) {
+        ws.close();
+      }
     };
   }, [conversation, isOpen, user?.id]);
 

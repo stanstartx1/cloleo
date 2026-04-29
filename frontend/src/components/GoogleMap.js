@@ -8,7 +8,8 @@ const GoogleMap = ({
   customerLocation, 
   showRoute = false,
   height = "300px",
-  className = ""
+  className = "",
+  mapType = "roadmap" // "roadmap", "satellite", "hybrid", "terrain"
 }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -17,6 +18,7 @@ const GoogleMap = ({
   const directionsRendererRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState(null);
+  const [currentMapType, setCurrentMapType] = useState(mapType);
 
   // Load Google Maps script
   useEffect(() => {
@@ -60,15 +62,23 @@ const GoogleMap = ({
 
       mapInstance.current = new window.google.maps.Map(mapRef.current, {
         center,
-        zoom: 13,
-        styles: [
-          { featureType: "poi", stylers: [{ visibility: "off" }] },
-          { featureType: "transit", stylers: [{ visibility: "off" }] }
-        ],
-        mapTypeControl: false,
+        zoom: 14,
+        mapTypeId: currentMapType,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+          position: window.google.maps.ControlPosition.TOP_RIGHT,
+          mapTypeIds: ['roadmap', 'satellite', 'hybrid', 'terrain']
+        },
         streetViewControl: false,
         fullscreenControl: true,
-        zoomControl: true
+        zoomControl: true,
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_CENTER
+        },
+        scaleControl: true,
+        rotateControl: true,
+        gestureHandling: 'greedy' // Enable all gestures for better control
       });
 
       // Add initial markers

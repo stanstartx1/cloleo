@@ -4,7 +4,8 @@ import axios from 'axios';
 import { 
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
-  BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star
+  BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star,
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -20,11 +21,13 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 // Sidebar Navigation Items
 const SIDEBAR_ITEMS = [
+  { id: 'stats', label: 'Stats', icon: BarChart3, color: 'text-amber-400' },
+  { id: 'users', label: 'Utilisateurs', icon: Users, color: 'text-rose-400' },
   { id: 'vendors', label: 'Vendeurs', icon: Store, color: 'text-purple-400' },
   { id: 'drivers', label: 'Livreurs', icon: Truck, color: 'text-blue-400' },
   { id: 'dropshippers', label: 'Dropshippers', icon: Package, color: 'text-indigo-400' },
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
-  { id: 'stats', label: 'Stats', icon: BarChart3, color: 'text-amber-400' },
+  { id: 'categories', label: 'Catégories', icon: Cog, color: 'text-teal-400' },
   { id: 'transactions', label: 'Transactions', icon: CreditCard, color: 'text-emerald-400' },
   { id: 'plans', label: 'Plans abonnement', icon: Crown, color: 'text-yellow-400' },
   { id: 'routes', label: 'Trajet livreurs', icon: MapPin, color: 'text-cyan-400' },
@@ -54,6 +57,15 @@ const AdminDashboard = () => {
   const [dropshippingStats, setDropshippingStats] = useState(null);
   const [dropshippingTransactions, setDropshippingTransactions] = useState([]);
   
+  // New states for user management and categories
+  const [allUsers, setAllUsers] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [newCategory, setNewCategory] = useState({ name: '', slug: '', icon: 'Package', description: '' });
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  
   // Filter states
   const [productFilter, setProductFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +83,7 @@ const AdminDashboard = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, dropshippersRes, dropStatsRes] = await Promise.all([
+      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, dropshippersRes, dropStatsRes, usersRes, catsRes] = await Promise.all([
         axios.get(`${API}/admin/dashboard`, { headers }),
         axios.get(`${API}/admin/vendors`, { headers }),
         axios.get(`${API}/admin/drivers`, { headers }).catch(() => ({ data: { drivers: [] } })),
@@ -80,7 +92,9 @@ const AdminDashboard = () => {
         axios.get(`${API}/admin/transactions`, { headers }),
         axios.get(`${API}/subscriptions/plans`, { headers }),
         axios.get(`${API}/admin/dropshippers`, { headers }).catch(() => ({ data: { dropshippers: [] } })),
-        axios.get(`${API}/admin/dropshipping/stats`, { headers }).catch(() => ({ data: { stats: {}, recent_transactions: [] } }))
+        axios.get(`${API}/admin/dropshipping/stats`, { headers }).catch(() => ({ data: { stats: {}, recent_transactions: [] } })),
+        axios.get(`${API}/admin/users`, { headers }).catch(() => ({ data: { users: [] } })),
+        axios.get(`${API}/categories`, { headers }).catch(() => ({ data: [] }))
       ]);
       
       setStats(dashRes.data.stats);
@@ -93,6 +107,8 @@ const AdminDashboard = () => {
       setDropshippers(dropshippersRes.data.dropshippers || []);
       setDropshippingStats(dropStatsRes.data.stats || {});
       setDropshippingTransactions(dropStatsRes.data.recent_transactions || []);
+      setAllUsers(usersRes.data.users || []);
+      setCategories(catsRes.data || []);
       
       // Load settings
       const [vendorSettings, driverSettings, platformSettings] = await Promise.all([
@@ -220,6 +236,121 @@ const AdminDashboard = () => {
     }));
   };
 
+  // ========== USER MANAGEMENT FUNCTIONS ==========
+  
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) {
+      return;
+    }
+    
+    try {
+      const response = await axios.delete(`${API}/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleToggleUserActive = async (userId, userName) => {
+    try {
+      const response = await axios.put(`${API}/admin/users/${userId}/toggle-active`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  const handleDeleteProduct = async (productId, productName) => {
+    if (!window.confirm(`Supprimer le produit "${productName}" ?`)) return;
+    
+    try {
+      await axios.delete(`${API}/admin/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Produit supprimé');
+      fetchAllData();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  // ========== CATEGORY MANAGEMENT FUNCTIONS ==========
+  
+  const handleCreateCategory = async () => {
+    if (!newCategory.name || !newCategory.slug) {
+      toast.error('Le nom et le slug sont requis');
+      return;
+    }
+    
+    try {
+      await axios.post(`${API}/admin/categories`, newCategory, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Catégorie créée');
+      setNewCategory({ name: '', slug: '', icon: 'Package', description: '' });
+      setShowNewCategoryForm(false);
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la création');
+    }
+  };
+
+  const handleUpdateCategory = async (categoryId) => {
+    if (!editingCategory) return;
+    
+    try {
+      await axios.put(`${API}/admin/categories/${categoryId}`, editingCategory, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Catégorie mise à jour');
+      setEditingCategory(null);
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la mise à jour');
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId, categoryName) => {
+    if (!window.confirm(`Supprimer la catégorie "${categoryName}" ?`)) return;
+    
+    try {
+      await axios.delete(`${API}/admin/categories/${categoryId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Catégorie supprimée');
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleToggleCategory = async (categoryId) => {
+    try {
+      const response = await axios.put(`${API}/admin/categories/${categoryId}/toggle`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  // Filter users based on role and search
+  const filteredUsers = allUsers.filter(u => {
+    const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter;
+    const matchesSearch = !userSearch || 
+      u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+      u.email?.toLowerCase().includes(userSearch.toLowerCase());
+    return matchesRole && matchesSearch;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex">
@@ -241,6 +372,16 @@ const AdminDashboard = () => {
     switch (activeSection) {
       case 'stats':
         return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
+      case 'users':
+        return <UsersSection 
+          users={filteredUsers} 
+          roleFilter={userRoleFilter}
+          setRoleFilter={setUserRoleFilter}
+          search={userSearch}
+          setSearch={setUserSearch}
+          onDelete={handleDeleteUser}
+          onToggleActive={handleToggleUserActive}
+        />;
       case 'vendors':
         return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} searchTerm={searchTerm} />;
       case 'drivers':
@@ -256,6 +397,21 @@ const AdminDashboard = () => {
           onApprove={handleApproveProduct}
           onReject={handleRejectProduct}
           onToggleFeatured={handleToggleProductFeatured}
+          onDelete={handleDeleteProduct}
+        />;
+      case 'categories':
+        return <CategoriesSection 
+          categories={categories}
+          editingCategory={editingCategory}
+          setEditingCategory={setEditingCategory}
+          newCategory={newCategory}
+          setNewCategory={setNewCategory}
+          showNewForm={showNewCategoryForm}
+          setShowNewForm={setShowNewCategoryForm}
+          onCreate={handleCreateCategory}
+          onUpdate={handleUpdateCategory}
+          onDelete={handleDeleteCategory}
+          onToggle={handleToggleCategory}
         />;
       case 'transactions':
         return <TransactionsSection transactions={transactions} />;
@@ -1223,6 +1379,337 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
               </div>
             ))
           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============== USERS SECTION ==============
+const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onDelete, onToggleActive }) => {
+  const roleLabels = {
+    all: 'Tous',
+    customer: 'Clients',
+    vendor: 'Vendeurs',
+    driver: 'Livreurs',
+    dropshipper: 'Dropshippers'
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'admin': return 'bg-red-500/20 text-red-400';
+      case 'vendor': return 'bg-purple-500/20 text-purple-400';
+      case 'driver': return 'bg-blue-500/20 text-blue-400';
+      case 'dropshipper': return 'bg-indigo-500/20 text-indigo-400';
+      default: return 'bg-slate-500/20 text-slate-400';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <Users className="w-6 h-6 text-rose-400" />
+        Gestion des Utilisateurs ({users.length})
+      </h2>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <div className="flex gap-2">
+          {Object.entries(roleLabels).map(([key, label]) => (
+            <Button
+              key={key}
+              size="sm"
+              variant={roleFilter === key ? 'default' : 'outline'}
+              onClick={() => setRoleFilter(key)}
+              className={roleFilter === key ? 'bg-rose-600 hover:bg-rose-700' : ''}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-slate-800 border-slate-700"
+          />
+        </div>
+      </div>
+
+      {/* Users Table */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
+                <th className="p-4">Utilisateur</th>
+                <th className="p-4">Rôle</th>
+                <th className="p-4">Téléphone</th>
+                <th className="p-4">Produits</th>
+                <th className="p-4">Statut</th>
+                <th className="p-4">Inscrit le</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-slate-400">
+                    Aucun utilisateur trouvé
+                  </td>
+                </tr>
+              ) : (
+                users.map((u) => (
+                  <tr key={u.id} className="border-b border-slate-700 hover:bg-slate-700/50">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                          {u.name?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <p className="font-medium">{u.name}</p>
+                          <p className="text-sm text-slate-400">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-xs ${getRoleColor(u.role)}`}>
+                        {roleLabels[u.role] || u.role}
+                      </span>
+                    </td>
+                    <td className="p-4 text-slate-300">{u.phone || '-'}</td>
+                    <td className="p-4">{u.product_count || 0}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-xs ${u.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {u.is_active ? 'Actif' : 'Désactivé'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-slate-400 text-sm">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '-'}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        {u.role !== 'admin' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onToggleActive(u.id, u.name)}
+                              className="text-xs"
+                            >
+                              {u.is_active ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => onDelete(u.id, u.name)}
+                              className="text-xs"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============== CATEGORIES SECTION ==============
+const CategoriesSection = ({ 
+  categories, 
+  editingCategory, 
+  setEditingCategory, 
+  newCategory, 
+  setNewCategory, 
+  showNewForm, 
+  setShowNewForm,
+  onCreate, 
+  onUpdate, 
+  onDelete, 
+  onToggle 
+}) => {
+  const iconOptions = ['Package', 'Shirt', 'Sparkles', 'Gem', 'Laptop', 'Home', 'Apple', 'Dumbbell', 'Palette', 'Music', 'Book', 'Car'];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Cog className="w-6 h-6 text-teal-400" />
+          Gestion des Catégories ({categories.length})
+        </h2>
+        <Button
+          onClick={() => setShowNewForm(!showNewForm)}
+          className="bg-teal-600 hover:bg-teal-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nouvelle catégorie
+        </Button>
+      </div>
+
+      {/* New Category Form */}
+      {showNewForm && (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <h3 className="font-semibold mb-4">Créer une nouvelle catégorie</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
+              <Input
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                placeholder="Mode & Textile"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Slug *</label>
+              <Input
+                value={newCategory.slug}
+                onChange={(e) => setNewCategory({...newCategory, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
+                placeholder="mode-textile"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Icône</label>
+              <select
+                value={newCategory.icon}
+                onChange={(e) => setNewCategory({...newCategory, icon: e.target.value})}
+                className="w-full p-2 rounded-md bg-slate-700 border border-slate-600 text-white"
+              >
+                {iconOptions.map(icon => (
+                  <option key={icon} value={icon}>{icon}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Description</label>
+              <Input
+                value={newCategory.description}
+                onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                placeholder="Description de la catégorie"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700">
+              <Plus className="w-4 h-4 mr-2" /> Créer
+            </Button>
+            <Button variant="outline" onClick={() => setShowNewForm(false)}>
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Categories List */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
+                <th className="p-4">Catégorie</th>
+                <th className="p-4">Slug</th>
+                <th className="p-4">Icône</th>
+                <th className="p-4">Produits</th>
+                <th className="p-4">Statut</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-slate-400">
+                    Aucune catégorie
+                  </td>
+                </tr>
+              ) : (
+                categories.map((cat) => (
+                  <tr key={cat.id || cat.slug} className="border-b border-slate-700 hover:bg-slate-700/50">
+                    <td className="p-4">
+                      {editingCategory?.id === cat.id ? (
+                        <Input
+                          value={editingCategory.name}
+                          onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})}
+                          className="bg-slate-700 border-slate-600"
+                        />
+                      ) : (
+                        <span className="font-medium">{cat.name}</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-slate-400">
+                      {editingCategory?.id === cat.id ? (
+                        <Input
+                          value={editingCategory.slug}
+                          onChange={(e) => setEditingCategory({...editingCategory, slug: e.target.value})}
+                          className="bg-slate-700 border-slate-600"
+                        />
+                      ) : (
+                        cat.slug
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {editingCategory?.id === cat.id ? (
+                        <select
+                          value={editingCategory.icon}
+                          onChange={(e) => setEditingCategory({...editingCategory, icon: e.target.value})}
+                          className="p-2 rounded-md bg-slate-700 border border-slate-600 text-white"
+                        >
+                          {iconOptions.map(icon => (
+                            <option key={icon} value={icon}>{icon}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-teal-400">{cat.icon || 'Package'}</span>
+                      )}
+                    </td>
+                    <td className="p-4">{cat.product_count || 0}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-xs ${cat.is_active !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {cat.is_active !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        {editingCategory?.id === cat.id ? (
+                          <>
+                            <Button size="sm" onClick={() => onUpdate(cat.id)} className="bg-green-600 hover:bg-green-700">
+                              <Check className="w-3 h-3" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}>
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
+                              {cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
