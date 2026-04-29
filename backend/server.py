@@ -2929,3 +2929,13 @@ async def websocket_vendor(websocket: WebSocket, vendor_id: str):
 async def shutdown():
     client.close()
 
+# ============== INCLUDE MODULAR ROUTES ==============
+# Import and include the reviews router
+try:
+    from routes.reviews import router as reviews_router
+    app.include_router(reviews_router, prefix="/api")
+    logger.info("Reviews router loaded successfully")
+except Exception as e:
+    logger.warning(f"Could not load reviews router: {e}")
+
+

@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import ProductCard from '../components/ProductCard';
 import ProductChat from '../components/ProductChat';
+import ReviewSection from '../components/ReviewSection';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -383,7 +384,7 @@ const ProductPage = () => {
               Détails
             </TabsTrigger>
             <TabsTrigger value="reviews" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-              Avis ({product.reviews_count})
+              Avis ({product.review_count || 0})
             </TabsTrigger>
           </TabsList>
           <TabsContent value="description" className="prose max-w-none">
@@ -416,7 +417,7 @@ const ProductPage = () => {
             </div>
           </TabsContent>
           <TabsContent value="reviews">
-            <p className="text-muted-foreground">Les avis clients seront disponibles prochainement.</p>
+            <ReviewSection productId={product.id} />
           </TabsContent>
         </Tabs>
 
