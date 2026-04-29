@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, X, Send, User, Store, Clock, ChevronDown, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MessageCircle, X, Send, User, Store, Clock, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -13,6 +14,7 @@ const API = `${BACKEND_URL}/api`;
 const ProductChat = ({ 
   productId, 
   dropshippedProductId,
+  sellerId,
   sellerName,
   productName,
   productImage,
@@ -252,11 +254,21 @@ const ProductChat = ({
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                <Link 
+                  to={`/vendeur-boutique/${sellerId}`}
+                  className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                  title="Voir la boutique"
+                >
                   <Store className="w-5 h-5" />
-                </div>
+                </Link>
                 <div>
-                  <h3 className="font-semibold text-sm">{sellerName || 'Vendeur'}</h3>
+                  <Link 
+                    to={`/vendeur-boutique/${sellerId}`}
+                    className="font-semibold text-sm hover:underline"
+                    title="Voir la boutique"
+                  >
+                    {sellerName || 'Vendeur'}
+                  </Link>
                   <p className="text-xs text-purple-200 flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                     En ligne
@@ -271,14 +283,19 @@ const ProductChat = ({
               </button>
             </div>
             
-            {/* Product info */}
+            {/* Product info - Clickable */}
             {productName && (
-              <div className="mt-3 p-2 bg-white/10 rounded-lg flex items-center gap-2">
+              <Link 
+                to={`/produit/${productId}`}
+                className="mt-3 p-2 bg-white/10 rounded-lg flex items-center gap-2 hover:bg-white/20 transition-colors block"
+                title="Voir le produit"
+              >
                 {productImage && (
-                  <img src={productImage} alt="" className="w-10 h-10 rounded object-cover" />
+                  <img src={productImage} alt="" className="w-10 h-10 rounded object-cover border-2 border-white/30" />
                 )}
                 <p className="text-xs truncate flex-1">{productName}</p>
-              </div>
+                <ChevronRight className="w-4 h-4 text-purple-200" />
+              </Link>
             )}
           </div>
 

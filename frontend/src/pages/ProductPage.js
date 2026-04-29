@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import ProductCard from '../components/ProductCard';
@@ -25,6 +25,7 @@ const formatPrice = (price, currency = 'FCFA') => {
 const ProductPage = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { addToCart, loading: cartLoading } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   
@@ -90,6 +91,16 @@ const ProductPage = () => {
     } catch {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Lien copié dans le presse-papier');
+    }
+  };
+
+  const handleBuyNow = async () => {
+    // Add to cart then redirect to checkout
+    const success = await addToCart(product.id, quantity);
+    if (success) {
+      navigate('/checkout');
+    } else {
+      toast.error('Erreur lors de l\'ajout au panier');
     }
   };
 
@@ -295,7 +306,7 @@ const ProductPage = () => {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap gap-3 mb-6">
+            <div className="flex flex-wrap gap-3 mb-4">
               <Button
                 size="lg"
                 className="flex-1 min-w-[200px]"
@@ -319,6 +330,18 @@ const ProductPage = () => {
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
+            
+            {/* Buy Now Button */}
+            <Button
+              size="lg"
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 mb-6"
+              onClick={handleBuyNow}
+              disabled={cartLoading}
+              data-testid="buy-now-btn"
+            >
+              <CreditCard className="w-5 h-5 mr-2" />
+              Acheter maintenant
+            </Button>
 
             {/* Secondary actions */}
             <div className="flex flex-wrap gap-3 mb-6">
@@ -426,6 +449,7 @@ const ProductPage = () => {
       {product && (
         <ProductChat
           productId={product.id}
+          sellerId={product.seller_id}
           sellerName={product.seller_name}
           productName={product.name}
           productImage={product.images?.[0]}

@@ -25,6 +25,7 @@ import OrderTrackingPage from "./pages/OrderTrackingPage";
 import SearchPage from "./pages/SearchPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import AuthPage from "./pages/AuthPage";
+import CustomerChatPage from "./pages/CustomerChatPage";
 
 // Vendor Pages
 import VendorDashboard from "./pages/VendorDashboard";
@@ -193,6 +194,9 @@ const AppRoutes = () => {
 
       {/* Vendor Shop Route (Public) */}
       <Route path="/vendeur-boutique/:sellerId" element={<PublicLayout><VendorShopPage /></PublicLayout>} />
+
+      {/* Customer Chat Route */}
+      <Route path="/mes-messages" element={<PublicLayout><CustomerChatPage /></PublicLayout>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

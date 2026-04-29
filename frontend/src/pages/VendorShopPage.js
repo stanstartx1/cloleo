@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Store, Package, ArrowLeft, ArrowRight, Star, MapPin, ShoppingBag, Calendar, BadgeCheck, MessageCircle } from 'lucide-react';
+import { Store, Package, ArrowLeft, ArrowRight, Star, MapPin, ShoppingBag, Calendar, BadgeCheck, MessageCircle, Share2, Copy, Bell, BellOff, Heart } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
+import { useAuth } from '../context/AuthContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const VendorShopPage = () => {
   const { sellerId } = useParams();
+  const { isAuthenticated, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriberCount, setSubscriberCount] = useState(0);
 
   useEffect(() => {
     const fetchShop = async () => {
@@ -29,6 +33,19 @@ const VendorShopPage = () => {
         setProducts(response.data.products);
         setTotalPages(response.data.total_pages);
         setTotal(response.data.total);
+        setSubscriberCount(response.data.shop?.subscriber_count || 0);
+        
+        // Check if user is subscribed
+        if (isAuthenticated && token) {
+          try {
+            const subRes = await axios.get(`${API}/subscriptions/check/${sellerId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            setIsSubscribed(subRes.data.is_subscribed);
+          } catch (e) {
+            // Subscription check failed, ignore
+          }
+        }
       } catch (error) {
         console.error('Error fetching shop:', error);
         toast.error('Boutique non trouvée');
@@ -40,12 +57,58 @@ const VendorShopPage = () => {
     if (sellerId) {
       fetchShop();
     }
-  }, [sellerId, page]);
+  }, [sellerId, page, isAuthenticated, token]);
 
   // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [page]);
+
+  const handleShare = async () => {
+    const shopUrl = window.location.href;
+    try {
+      await navigator.share({
+        title: `Boutique ${shop?.name}`,
+        text: `Découvrez la boutique ${shop?.name} sur Cloléo`,
+        url: shopUrl,
+      });
+    } catch {
+      navigator.clipboard.writeText(shopUrl);
+      toast.success('Lien de la boutique copié !');
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Lien copié dans le presse-papier');
+  };
+
+  const handleSubscribe = async () => {
+    if (!isAuthenticated) {
+      toast.error('Connectez-vous pour vous abonner');
+      return;
+    }
+    
+    try {
+      if (isSubscribed) {
+        await axios.delete(`${API}/subscriptions/${sellerId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsSubscribed(false);
+        setSubscriberCount(prev => Math.max(0, prev - 1));
+        toast.success('Désabonné avec succès');
+      } else {
+        await axios.post(`${API}/subscriptions/${sellerId}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsSubscribed(true);
+        setSubscriberCount(prev => prev + 1);
+        toast.success('Abonné avec succès ! Vous recevrez des notifications.');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'opération');
+    }
+  };
 
   if (loading) {
     return (
@@ -132,12 +195,55 @@ const VendorShopPage = () => {
                   <Calendar className="w-4 h-4" />
                   <span>Membre depuis {formatDate(shop.created_at)}</span>
                 </div>
+                <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full">
+                  <Heart className="w-4 h-4" />
+                  <span>{subscriberCount} abonné{subscriberCount > 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
+                <Button
+                  onClick={handleSubscribe}
+                  className={`${isSubscribed 
+                    ? 'bg-white/20 hover:bg-white/30 text-white' 
+                    : 'bg-white text-orange-600 hover:bg-white/90'
+                  } transition-all`}
+                >
+                  {isSubscribed ? (
+                    <>
+                      <BellOff className="w-4 h-4 mr-2" />
+                      Se désabonner
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="w-4 h-4 mr-2" />
+                      S'abonner
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="border-white/40 text-white hover:bg-white/20"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Partager
+                </Button>
+                <Button
+                  onClick={handleCopyLink}
+                  variant="outline"
+                  className="border-white/40 text-white hover:bg-white/20"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copier le lien
+                </Button>
               </div>
             </div>
           </div>
           
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-8 max-w-lg mx-auto md:mx-0">
+          <div className="grid grid-cols-4 gap-4 mt-8 max-w-2xl mx-auto md:mx-0">
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <p className="text-3xl font-bold">{shop.total_products}</p>
               <p className="text-white/80 text-sm">Produits</p>
@@ -147,11 +253,15 @@ const VendorShopPage = () => {
               <p className="text-white/80 text-sm">Ventes</p>
             </div>
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
+              <p className="text-3xl font-bold">{subscriberCount}</p>
+              <p className="text-white/80 text-sm">Abonnés</p>
+            </div>
+            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="flex items-center justify-center gap-1">
                 <Star className="w-5 h-5 fill-amber-300 text-amber-300" />
                 <span className="text-3xl font-bold">{shop.avg_rating || '4.5'}</span>
               </div>
-              <p className="text-white/80 text-sm">Note moyenne</p>
+              <p className="text-white/80 text-sm">Note</p>
             </div>
           </div>
         </div>
