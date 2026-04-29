@@ -8,10 +8,12 @@ import axios from "axios";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
+import { ChatProvider } from "./components/FloatingChat";
 
 // Layout
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import FloatingChat from "./components/FloatingChat";
 
 // Public Pages
 import HomePage from "./pages/HomePage";
@@ -212,17 +214,20 @@ function App() {
       <CartProvider>
         <FavoritesProvider>
           <BrowserRouter>
-            <AppRoutes />
-            <Toaster 
-              position="bottom-right" 
-              richColors 
-              closeButton
-              toastOptions={{
-                style: {
-                  fontFamily: 'Work Sans, sans-serif',
-                },
-              }}
-            />
+            <ChatProvider>
+              <AppRoutes />
+              <FloatingChat />
+              <Toaster 
+                position="bottom-right" 
+                richColors 
+                closeButton
+                toastOptions={{
+                  style: {
+                    fontFamily: 'Work Sans, sans-serif',
+                  },
+                }}
+              />
+            </ChatProvider>
           </BrowserRouter>
         </FavoritesProvider>
       </CartProvider>
