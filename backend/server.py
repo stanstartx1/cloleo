@@ -2014,13 +2014,19 @@ async def get_my_conversations(user: dict = Depends(get_current_user)):
     
     conversations = await db.conversations.find(query, {"_id": 0}).sort("updated_at", -1).to_list(100)
     
-    # Mark which side the user is on
+    # Mark which side the user is on and add other_participant info
     for conv in conversations:
         conv["is_seller"] = conv["seller_id"] == user["id"]
         conv["other_party_name"] = conv["seller_name"] if conv["customer_id"] == user["id"] else conv["customer_name"]
         conv["unread_count"] = conv["unread_seller"] if conv["seller_id"] == user["id"] else conv["unread_customer"]
+        # Add other_participant object for chat UI
+        conv["other_participant"] = {
+            "name": conv["other_party_name"],
+            "id": conv["seller_id"] if conv["customer_id"] == user["id"] else conv["customer_id"],
+            "role": conv.get("seller_type", "vendor") if conv["customer_id"] == user["id"] else "customer"
+        }
     
-    return conversations
+    return {"conversations": conversations}
 
 @api_router.get("/conversations/{conversation_id}")
 async def get_conversation(conversation_id: str, user: dict = Depends(get_current_user)):

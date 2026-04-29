@@ -225,8 +225,12 @@ const ChatWindow = ({ conversation, position, onClose, onMinimize, isMinimized }
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'message') {
-          setMessages(prev => [...prev, data.message]);
+        if (data.type === 'message' || data.type === 'new_message') {
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === data.message.id)) return prev;
+            return [...prev, data.message];
+          });
           markAsRead(conversation.id);
         }
       } catch (e) {
@@ -249,8 +253,7 @@ const ChatWindow = ({ conversation, position, onClose, onMinimize, isMinimized }
 
     setSending(true);
     try {
-      const response = await axios.post(`${API}/messages`, {
-        conversation_id: conversation.id,
+      const response = await axios.post(`${API}/conversations/${conversation.id}/messages`, {
         content: newMessage.trim()
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -263,6 +266,7 @@ const ChatWindow = ({ conversation, position, onClose, onMinimize, isMinimized }
       });
       setNewMessage('');
     } catch (error) {
+      console.error('Send error:', error.response?.data || error);
       toast.error('Erreur lors de l\'envoi');
     } finally {
       setSending(false);
