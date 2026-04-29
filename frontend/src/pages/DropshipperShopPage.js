@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Store, Package, ShoppingCart, ArrowLeft, ArrowRight, Star, MessageCircle } from 'lucide-react';
+import { Store, Package, ShoppingCart, ArrowLeft, ArrowRight, Star, MessageCircle, Share2, Copy, Bell, BellOff, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
 import ProductChat from '../components/ProductChat';
+import { useAuth } from '../context/AuthContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const DropshipperShopPage = () => {
   const { shopSlug } = useParams();
+  const { isAuthenticated, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
@@ -22,6 +24,8 @@ const DropshipperShopPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [orderLoading, setOrderLoading] = useState(false);
   const [chatProduct, setChatProduct] = useState(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriberCount, setSubscriberCount] = useState(0);
 
   useEffect(() => {
     const fetchShop = async () => {
@@ -30,6 +34,19 @@ const DropshipperShopPage = () => {
         setShop(response.data.shop);
         setProducts(response.data.products);
         setTotalPages(response.data.total_pages);
+        setSubscriberCount(response.data.shop?.subscriber_count || 0);
+        
+        // Check if user is subscribed
+        if (isAuthenticated && token && response.data.shop?.dropshipper_id) {
+          try {
+            const subRes = await axios.get(`${API}/subscriptions/check/${response.data.shop.dropshipper_id}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            setIsSubscribed(subRes.data.is_subscribed);
+          } catch (e) {
+            // Subscription check failed, ignore
+          }
+        }
       } catch (error) {
         console.error('Error fetching shop:', error);
         toast.error('Boutique non trouvée');
@@ -39,7 +56,58 @@ const DropshipperShopPage = () => {
     };
 
     fetchShop();
-  }, [shopSlug, page]);
+  }, [shopSlug, page, isAuthenticated, token]);
+
+  const handleShare = async () => {
+    const shopUrl = window.location.href;
+    try {
+      await navigator.share({
+        title: `Boutique ${shop?.name}`,
+        text: `Découvrez la boutique ${shop?.name} sur Cloléo`,
+        url: shopUrl,
+      });
+    } catch {
+      navigator.clipboard.writeText(shopUrl);
+      toast.success('Lien de la boutique copié !');
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Lien copié dans le presse-papier');
+  };
+
+  const handleSubscribe = async () => {
+    if (!isAuthenticated) {
+      toast.error('Connectez-vous pour vous abonner');
+      return;
+    }
+    
+    if (!shop?.dropshipper_id) {
+      toast.error('Impossible de s\'abonner pour le moment');
+      return;
+    }
+    
+    try {
+      if (isSubscribed) {
+        await axios.delete(`${API}/subscriptions/${shop.dropshipper_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsSubscribed(false);
+        setSubscriberCount(prev => Math.max(0, prev - 1));
+        toast.success('Désabonné avec succès');
+      } else {
+        await axios.post(`${API}/subscriptions/${shop.dropshipper_id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsSubscribed(true);
+        setSubscriberCount(prev => prev + 1);
+        toast.success('Abonné avec succès ! Vous recevrez des notifications.');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'opération');
+    }
+  };
 
   const handleOrder = async (product) => {
     setSelectedProduct(product);
@@ -128,6 +196,60 @@ const DropshipperShopPage = () => {
           {shop.description && (
             <p className="text-purple-100 max-w-lg mx-auto">{shop.description}</p>
           )}
+          
+          {/* Subscriber count */}
+          <div className="flex items-center justify-center gap-2 mt-3 text-purple-200">
+            <Users className="w-4 h-4" />
+            <span>{subscriberCount} abonné{subscriberCount > 1 ? 's' : ''}</span>
+          </div>
+          
+          {/* Action buttons */}
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              data-testid="dropshipper-share-btn"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Partager
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyLink}
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              data-testid="dropshipper-copy-link-btn"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copier le lien
+            </Button>
+            
+            <Button
+              onClick={handleSubscribe}
+              size="sm"
+              className={isSubscribed 
+                ? "bg-white/20 border-white/30 text-white hover:bg-white/30" 
+                : "bg-white text-purple-700 hover:bg-purple-50"
+              }
+              data-testid="dropshipper-subscribe-btn"
+            >
+              {isSubscribed ? (
+                <>
+                  <BellOff className="w-4 h-4 mr-2" />
+                  Se désabonner
+                </>
+              ) : (
+                <>
+                  <Bell className="w-4 h-4 mr-2" />
+                  S'abonner
+                </>
+              )}
+            </Button>
+          </div>
+          
           <Badge className="mt-4 bg-white/20 hover:bg-white/30">
             Boutique partenaire Cloléo
           </Badge>

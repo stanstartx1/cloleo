@@ -254,14 +254,12 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
 ### P1 - Priorité Haute
 - [ ] Intégration paiement Stripe pour clients
 - [ ] Attribution automatique des commandes aux livreurs
-- [ ] Système de Favoris (Point 10 de la liste utilisateur)
-- [ ] Système d'Abonnements Vendeurs (Point 11 de la liste utilisateur)
 
 ### P2 - Priorité Moyenne
 - [ ] Notifications push mobiles
 - [ ] Système de notation/avis
 - [ ] Historique des commandes client
-- [ ] Refactoring server.py en modules séparés (>2700 lignes)
+- [ ] Refactoring server.py en modules séparés (>2900 lignes)
 
 ### P3 - Backlog
 - [ ] Application mobile (React Native)
@@ -280,6 +278,27 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
 - [x] Bouton suppression dans la section Produits
 - [x] Bouton suppression dans la section Dropshippers
 - [x] Confirmation avant suppression avec message personnalisé
+
+### Système de Favoris Utilisateur ✅
+- [x] `POST /api/user/favorites/{product_id}` - Ajouter aux favoris
+- [x] `DELETE /api/user/favorites/{product_id}` - Retirer des favoris
+- [x] `GET /api/user/favorites` - Lister tous les favoris
+- [x] `GET /api/user/favorites/check/{product_id}` - Vérifier si favori
+- [x] Collection MongoDB `user_favorites` pour utilisateurs connectés
+- [x] Mise à jour FavoritesContext pour utilisateurs authentifiés
+- [x] Cœur rempli/vide sur ProductCard selon état favori
+
+### Système d'Abonnements (Followers) ✅
+- [x] `POST /api/subscriptions/{seller_id}` - S'abonner à un vendeur/dropshipper
+- [x] `DELETE /api/subscriptions/{seller_id}` - Se désabonner
+- [x] `GET /api/subscriptions/check/{seller_id}` - Vérifier abonnement
+- [x] `GET /api/subscriptions/my-subscriptions` - Mes abonnements
+- [x] `GET /api/subscriptions/my-followers` - Mes abonnés (pour vendeurs)
+- [x] Collection MongoDB `subscriptions` pour stocker les abonnements
+- [x] Compteur d'abonnés sur VendorShopPage et DropshipperShopPage
+- [x] Bouton S'abonner/Se désabonner avec notifications temps réel
+- [x] Page `/abonnements` - Liste des abonnements utilisateur
+- [x] Lien "Mes abonnements" dans le menu utilisateur (Navbar)
 
 ## Comptes de Test
 - **Admin**: admin@cloleo.com / admin123

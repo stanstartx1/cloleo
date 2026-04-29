@@ -273,6 +273,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
     return user
 
+async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current user if authenticated, return None otherwise (doesn't raise exception)"""
+    if not credentials:
+        return None
+    try:
+        payload = decode_token(credentials.credentials)
+        user = await db.users.find_one({"id": payload["user_id"]}, {"_id": 0})
+        return user
+    except:
+        return None
+
 async def require_vendor(user: dict = Depends(get_current_user)):
     if user["role"] not in [UserRole.VENDOR, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Accès réservé aux vendeurs")
@@ -930,6 +941,177 @@ async def del_fav(session_id: str, product_id: str):
 async def get_favs(session_id: str):
     favs = await db.favorites.find({"session_id": session_id}, {"_id": 0}).to_list(100)
     return [p for f in favs if (p := await db.products.find_one({"id": f["product_id"], "status": "approved"}, {"_id": 0}))]
+
+# ============== USER FAVORITES SYSTEM ==============
+
+@api_router.post("/user/favorites/{product_id}")
+async def add_user_favorite(product_id: str, user: dict = Depends(get_current_user_optional)):
+    """Add a product to user's favorites (requires authentication)"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour ajouter aux favoris")
+    
+    product = await db.products.find_one({"id": product_id, "status": "approved"})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    # Check if already favorited
+    existing = await db.user_favorites.find_one({"user_id": user["id"], "product_id": product_id})
+    if existing:
+        return {"message": "Déjà dans vos favoris", "is_favorite": True}
+    
+    await db.user_favorites.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "product_id": product_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Ajouté aux favoris", "is_favorite": True}
+
+@api_router.delete("/user/favorites/{product_id}")
+async def remove_user_favorite(product_id: str, user: dict = Depends(get_current_user_optional)):
+    """Remove a product from user's favorites"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour gérer vos favoris")
+    
+    result = await db.user_favorites.delete_one({"user_id": user["id"], "product_id": product_id})
+    if result.deleted_count == 0:
+        return {"message": "Produit non trouvé dans vos favoris", "is_favorite": False}
+    
+    return {"message": "Retiré des favoris", "is_favorite": False}
+
+@api_router.get("/user/favorites")
+async def get_user_favorites(user: dict = Depends(get_current_user_optional)):
+    """Get all user's favorite products with details"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour voir vos favoris")
+    
+    favorites = await db.user_favorites.find({"user_id": user["id"]}, {"_id": 0}).to_list(100)
+    products = []
+    for fav in favorites:
+        product = await db.products.find_one({"id": fav["product_id"], "status": "approved"}, {"_id": 0})
+        if product:
+            # Get seller info
+            seller = await db.users.find_one({"id": product.get("seller_id")}, {"_id": 0, "password": 0})
+            product["seller"] = seller
+            product["favorited_at"] = fav["created_at"]
+            products.append(product)
+    
+    return {"favorites": products, "total": len(products)}
+
+@api_router.get("/user/favorites/check/{product_id}")
+async def check_user_favorite(product_id: str, user: dict = Depends(get_current_user_optional)):
+    """Check if a product is in user's favorites"""
+    if not user:
+        return {"is_favorite": False}
+    
+    existing = await db.user_favorites.find_one({"user_id": user["id"], "product_id": product_id})
+    return {"is_favorite": existing is not None}
+
+# ============== SUBSCRIPTION/FOLLOWER SYSTEM ==============
+
+@api_router.post("/subscriptions/{seller_id}")
+async def subscribe_to_seller(seller_id: str, user: dict = Depends(get_current_user_optional)):
+    """Subscribe to a vendor or dropshipper"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour vous abonner")
+    
+    # Check if seller exists
+    seller = await db.users.find_one({"id": seller_id, "role": {"$in": [UserRole.VENDOR, UserRole.DROPSHIPPER]}})
+    if not seller:
+        raise HTTPException(status_code=404, detail="Vendeur ou dropshipper non trouvé")
+    
+    # Can't subscribe to yourself
+    if user["id"] == seller_id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas vous abonner à vous-même")
+    
+    # Check if already subscribed
+    existing = await db.subscriptions.find_one({"follower_id": user["id"], "seller_id": seller_id})
+    if existing:
+        return {"message": "Déjà abonné", "is_subscribed": True}
+    
+    # Create subscription
+    await db.subscriptions.insert_one({
+        "id": str(uuid.uuid4()),
+        "follower_id": user["id"],
+        "seller_id": seller_id,
+        "seller_role": seller["role"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Update seller's subscriber count
+    await db.users.update_one({"id": seller_id}, {"$inc": {"subscriber_count": 1}})
+    
+    # Send notification to seller via WebSocket
+    await manager.broadcast_to_room(f"vendor_{seller_id}", {
+        "type": "new_subscriber",
+        "subscriber_name": user.get("name", "Un utilisateur"),
+        "subscriber_id": user["id"]
+    })
+    
+    return {"message": f"Abonné à {seller.get('shop_name') or seller.get('name')}", "is_subscribed": True}
+
+@api_router.delete("/subscriptions/{seller_id}")
+async def unsubscribe_from_seller(seller_id: str, user: dict = Depends(get_current_user_optional)):
+    """Unsubscribe from a vendor or dropshipper"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour gérer vos abonnements")
+    
+    result = await db.subscriptions.delete_one({"follower_id": user["id"], "seller_id": seller_id})
+    if result.deleted_count == 0:
+        return {"message": "Abonnement non trouvé", "is_subscribed": False}
+    
+    # Update seller's subscriber count
+    await db.users.update_one({"id": seller_id}, {"$inc": {"subscriber_count": -1}})
+    
+    return {"message": "Désabonné avec succès", "is_subscribed": False}
+
+@api_router.get("/subscriptions/check/{seller_id}")
+async def check_subscription(seller_id: str, user: dict = Depends(get_current_user_optional)):
+    """Check if user is subscribed to a seller"""
+    if not user:
+        return {"is_subscribed": False}
+    
+    existing = await db.subscriptions.find_one({"follower_id": user["id"], "seller_id": seller_id})
+    return {"is_subscribed": existing is not None}
+
+@api_router.get("/subscriptions/my-subscriptions")
+async def get_my_subscriptions(user: dict = Depends(get_current_user_optional)):
+    """Get all sellers the user is subscribed to"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour voir vos abonnements")
+    
+    subscriptions = await db.subscriptions.find({"follower_id": user["id"]}, {"_id": 0}).to_list(100)
+    sellers = []
+    for sub in subscriptions:
+        seller = await db.users.find_one({"id": sub["seller_id"]}, {"_id": 0, "password": 0})
+        if seller:
+            # Count seller's products
+            product_count = await db.products.count_documents({"seller_id": seller["id"], "status": "approved"})
+            seller["product_count"] = product_count
+            seller["subscribed_at"] = sub["created_at"]
+            sellers.append(seller)
+    
+    return {"subscriptions": sellers, "total": len(sellers)}
+
+@api_router.get("/subscriptions/my-followers")
+async def get_my_followers(user: dict = Depends(get_current_user_optional)):
+    """Get all followers of the current vendor/dropshipper"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Connectez-vous pour voir vos abonnés")
+    
+    if user["role"] not in [UserRole.VENDOR, UserRole.DROPSHIPPER]:
+        raise HTTPException(status_code=403, detail="Seuls les vendeurs et dropshippers peuvent avoir des abonnés")
+    
+    subscriptions = await db.subscriptions.find({"seller_id": user["id"]}, {"_id": 0}).to_list(1000)
+    followers = []
+    for sub in subscriptions:
+        follower = await db.users.find_one({"id": sub["follower_id"]}, {"_id": 0, "password": 0})
+        if follower:
+            follower["followed_at"] = sub["created_at"]
+            followers.append(follower)
+    
+    return {"followers": followers, "total": len(followers)}
 
 # SEED
 @api_router.post("/seed")
@@ -2389,11 +2571,18 @@ async def get_dropshipper_shop(shop_slug: str, page: int = 1, limit: int = 20):
     total = await db.dropshipped_products.count_documents(query)
     products = await db.dropshipped_products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
     
+    # Get subscriber count
+    subscriber_count = dropshipper.get("subscriber_count", 0)
+    if subscriber_count == 0:
+        subscriber_count = await db.subscriptions.count_documents({"seller_id": dropshipper["id"]})
+    
     return {
         "shop": {
             "name": dropshipper.get("shop_name"),
             "description": dropshipper.get("shop_description"),
-            "slug": dropshipper.get("shop_slug")
+            "slug": dropshipper.get("shop_slug"),
+            "dropshipper_id": dropshipper.get("id"),
+            "subscriber_count": subscriber_count
         },
         "products": products,
         "total": total,
@@ -2450,6 +2639,12 @@ async def get_vendor_shop(seller_id: str, page: int = 1, limit: int = 20):
     total_sales = sum(p.get("sales_count", 0) for p in products)
     avg_rating = sum(p.get("rating", 0) for p in products) / max(1, len(products)) if products else 0
     
+    # Get subscriber count
+    subscriber_count = vendor.get("subscriber_count", 0)
+    if subscriber_count == 0:
+        # Fallback: count from subscriptions collection
+        subscriber_count = await db.subscriptions.count_documents({"seller_id": seller_id})
+    
     return {
         "shop": {
             "id": vendor.get("id"),
@@ -2461,7 +2656,8 @@ async def get_vendor_shop(seller_id: str, page: int = 1, limit: int = 20):
             "total_products": total_products,
             "total_sales": total_sales,
             "avg_rating": round(avg_rating, 1),
-            "is_verified": vendor.get("is_verified", False)
+            "is_verified": vendor.get("is_verified", False),
+            "subscriber_count": subscriber_count
         },
         "products": products,
         "total": total,

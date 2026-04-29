@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -213,6 +213,11 @@ const Navbar = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/favoris" className="flex items-center gap-2">
                         <Heart className="w-4 h-4" /> Mes favoris
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/abonnements" className="flex items-center gap-2">
+                        <Bell className="w-4 h-4" /> Mes abonnements
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
