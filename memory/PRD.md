@@ -147,16 +147,42 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
 
 ### Phase 10 - EN ATTENTE
 - [ ] **LOT 4 - Expérience Chat**
-  - [ ] Bulles conversations multiples pour clients
+  - [x] Chat flottant global (style Facebook) ✅
+  - [x] Bouton "Contacter le vendeur" fonctionnel ✅
   - [ ] Liens cliquables (image produit → page, nom vendeur → boutique)
   
 - [ ] **LOT 5 - Fonctionnalités Achat**
+  - [x] Système d'offres de prix ("Faire une offre") ✅
   - [ ] Achat direct sans panier ("Acheter maintenant")
   
 - [ ] **LOT 6 - Social & Partage**
-  - [ ] Système abonnements vendeurs/dropshippers
+  - [x] Système abonnements vendeurs/dropshippers ✅
   - [ ] Statistiques abonnements dans dashboards
   - [ ] Boutons partage/copie lien boutique et produit
+
+### Phase 12 ✅ (COMPLÉTÉ 29/04/2026)
+- [x] **Corrections Bug Chat**
+  - [x] Endpoint chat corrigé: `/api/conversations/{id}/messages`
+  - [x] WebSocket accepte `message` et `new_message`
+  - [x] Messages s'envoient et s'affichent correctement
+  
+- [x] **Système d'Offres de Prix**
+  - [x] Modal "Faire une offre" dans ProductPage
+  - [x] Prix pré-rempli (90% du prix actuel)
+  - [x] Conversion FCFA → USD en temps réel
+  - [x] Suggestions rapides (90%, 85%, 80%, 75%)
+  - [x] Message personnalisé optionnel
+  - [x] Envoi via chat avec emoji 💰
+  - [x] Ouverture automatique du chat après soumission
+  
+- [x] **Bouton "Contacter le vendeur"**
+  - [x] Intégration avec FloatingChat (startConversation)
+  - [x] Toast de confirmation "Conversation ouverte !"
+  - [x] Auto-ouverture du chat avec `?chat=open` dans URL
+  
+- [x] **Vérification "Voir la boutique"**
+  - [x] Fonctionne correctement (navigue vers /vendeur-boutique/{id})
+  - [x] Affiche infos vendeur, produits, statistiques
 
 ## Schéma de Base de Données
 
