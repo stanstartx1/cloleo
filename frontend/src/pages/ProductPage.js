@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { useAuth } from '../context/AuthContext';
+import { useChat } from '../components/FloatingChat';
 import ProductCard from '../components/ProductCard';
-import ProductChat from '../components/ProductChat';
 import ReviewSection from '../components/ReviewSection';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
@@ -29,6 +31,8 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const { addToCart, loading: cartLoading } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isAuthenticated, token } = useAuth();
+  const { startConversation } = useChat();
   
   // Ref for chat component to auto-open
   const chatRef = useRef(null);
@@ -40,6 +44,12 @@ const ProductPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [autoOpenChat, setAutoOpenChat] = useState(searchParams.get('chat') === 'open');
+  
+  // Offer modal state
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerPrice, setOfferPrice] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
+  const [sendingOffer, setSendingOffer] = useState(false);
 
   const fetchProduct = useCallback(async () => {
     setLoading(true);
@@ -63,6 +73,14 @@ const ProductPage = () => {
     fetchProduct();
     window.scrollTo(0, 0);
   }, [fetchProduct]);
+
+  // Auto-open chat if ?chat=open is in URL
+  useEffect(() => {
+    if (autoOpenChat && product && isAuthenticated) {
+      handleContactSeller();
+      setAutoOpenChat(false); // Reset to prevent re-opening
+    }
+  }, [autoOpenChat, product, isAuthenticated]);
 
   const handleAddToCart = async () => {
     const success = await addToCart(product.id, quantity);
@@ -92,6 +110,87 @@ const ProductPage = () => {
     } catch {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Lien copié dans le presse-papier');
+    }
+  };
+
+  // Contact seller - opens floating chat
+  const handleContactSeller = async () => {
+    if (!isAuthenticated) {
+      toast.error('Connectez-vous pour contacter le vendeur');
+      navigate('/connexion');
+      return;
+    }
+    
+    try {
+      await startConversation(product.id, null, {
+        seller_name: product.seller_name,
+        seller_id: product.seller_id,
+        product_name: product.name,
+        product_image: product.images?.[0]
+      });
+      toast.success('Conversation ouverte !');
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast.error('Erreur lors de l\'ouverture du chat');
+    }
+  };
+
+  // Make an offer
+  const handleMakeOffer = async () => {
+    if (!isAuthenticated) {
+      toast.error('Connectez-vous pour faire une offre');
+      navigate('/connexion');
+      return;
+    }
+    setShowOfferModal(true);
+    // Pre-fill with a suggested offer (90% of current price)
+    const currentPrice = product.promo_price_fcfa || product.price_fcfa;
+    setOfferPrice(Math.floor(currentPrice * 0.9).toString());
+    setOfferMessage('');
+  };
+
+  const handleSubmitOffer = async () => {
+    if (!offerPrice || parseInt(offerPrice) <= 0) {
+      toast.error('Veuillez entrer un prix valide');
+      return;
+    }
+
+    setSendingOffer(true);
+    try {
+      // Start a conversation with the offer message
+      const offerText = `💰 Offre de prix: ${parseInt(offerPrice).toLocaleString('fr-FR')} FCFA\n\n${offerMessage || 'Je souhaite faire une offre pour ce produit.'}`;
+      
+      // Create conversation first
+      const convResponse = await axios.post(`${API}/conversations/start`, {
+        product_id: product.id
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Send the offer message
+      await axios.post(`${API}/conversations/${convResponse.data.id}/messages`, {
+        content: offerText
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success('Offre envoyée au vendeur !');
+      setShowOfferModal(false);
+      setOfferPrice('');
+      setOfferMessage('');
+      
+      // Open the chat to show the conversation
+      startConversation(product.id, null, {
+        seller_name: product.seller_name,
+        seller_id: product.seller_id,
+        product_name: product.name,
+        product_image: product.images?.[0]
+      });
+    } catch (error) {
+      console.error('Error sending offer:', error);
+      toast.error('Erreur lors de l\'envoi de l\'offre');
+    } finally {
+      setSendingOffer(false);
     }
   };
 
@@ -346,10 +445,21 @@ const ProductPage = () => {
 
             {/* Secondary actions */}
             <div className="flex flex-wrap gap-3 mb-6">
-              <Button variant="secondary" className="flex-1">
-                <MessageCircle className="w-4 h-4 mr-2" /> Faire une offre
+              <Button 
+                variant="secondary" 
+                className="flex-1 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                onClick={handleMakeOffer}
+                data-testid="make-offer-btn"
+              >
+                <Tag className="w-4 h-4 mr-2" /> Faire une offre
               </Button>
-              <Button variant="secondary" className="flex-1">
+              <Button 
+                variant="secondary" 
+                className="flex-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                onClick={handleContactSeller}
+                data-testid="contact-seller-btn"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
                 Contacter le vendeur
               </Button>
             </div>
@@ -445,17 +555,126 @@ const ProductPage = () => {
           </section>
         )}
       </div>
-      
-      {/* Chat Button */}
-      {product && (
-        <ProductChat
-          productId={product.id}
-          sellerId={product.seller_id}
-          sellerName={product.seller_name}
-          productName={product.name}
-          productImage={product.images?.[0]}
-          autoOpen={autoOpenChat}
-        />
+
+      {/* Offer Modal */}
+      {showOfferModal && product && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" data-testid="offer-modal">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Faire une offre</h3>
+                  <p className="text-sm text-muted-foreground">Proposez votre prix au vendeur</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowOfferModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Product Info */}
+            <div className="p-4 bg-gray-50 flex items-center gap-3">
+              {product.images?.[0] && (
+                <img 
+                  src={product.images[0]} 
+                  alt={product.name}
+                  className="w-16 h-16 rounded-lg object-cover"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{product.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  Prix actuel: <span className="font-semibold text-orange-600">{formatPrice(product.promo_price_fcfa || product.price_fcfa)}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Offer Form */}
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Votre offre (FCFA)</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={offerPrice}
+                    onChange={(e) => setOfferPrice(e.target.value)}
+                    placeholder="Ex: 8000"
+                    className="text-lg font-semibold pr-16"
+                    data-testid="offer-price-input"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">FCFA</span>
+                </div>
+                {offerPrice && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ≈ ${(parseInt(offerPrice) * 0.0016).toFixed(2)} USD
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Message (optionnel)</label>
+                <textarea
+                  value={offerMessage}
+                  onChange={(e) => setOfferMessage(e.target.value)}
+                  placeholder="Expliquez pourquoi vous proposez ce prix..."
+                  className="w-full p-3 border rounded-lg resize-none h-24 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  data-testid="offer-message-input"
+                />
+              </div>
+
+              {/* Quick suggestions */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Suggestions rapides:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[90, 85, 80, 75].map(percent => {
+                    const currentPrice = product.promo_price_fcfa || product.price_fcfa;
+                    const suggestedPrice = Math.floor(currentPrice * percent / 100);
+                    return (
+                      <button
+                        key={percent}
+                        onClick={() => setOfferPrice(suggestedPrice.toString())}
+                        className="px-3 py-1.5 text-sm bg-orange-50 text-orange-700 rounded-full hover:bg-orange-100 transition-colors"
+                      >
+                        {percent}% ({suggestedPrice.toLocaleString('fr-FR')})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowOfferModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                onClick={handleSubmitOffer}
+                disabled={sendingOffer || !offerPrice}
+                data-testid="submit-offer-btn"
+              >
+                {sendingOffer ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 mr-2" />
+                )}
+                Envoyer l'offre
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
