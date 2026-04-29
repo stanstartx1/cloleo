@@ -262,7 +262,7 @@ const Navbar = () => {
               <X className="w-6 h-6" />
             </Button>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-80px)]">
             {isAuthenticated ? (
               <div className="p-4 bg-muted/50 rounded-lg mb-4">
                 <p className="font-medium">{user?.name}</p>
@@ -323,6 +323,15 @@ const Navbar = () => {
               >
                 <Heart className="w-5 h-5" /> Mes favoris
               </Link>
+              {isAuthenticated && (
+                <Link 
+                  to="/abonnements" 
+                  className="flex items-center gap-2 py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Bell className="w-5 h-5" /> Mes abonnements
+                </Link>
+              )}
               <Link 
                 to="/panier" 
                 className="flex items-center gap-2 py-2"
@@ -336,7 +345,8 @@ const Navbar = () => {
               <div className="pt-4 border-t">
                 <button 
                   onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-2 py-2 text-destructive"
+                  className="flex items-center gap-2 py-2 text-destructive w-full"
+                  data-testid="mobile-logout-btn"
                 >
                   <LogOut className="w-5 h-5" /> Déconnexion
                 </button>

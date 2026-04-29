@@ -242,16 +242,8 @@ const VendorShopPage = () => {
             </div>
           </div>
           
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-4 mt-8 max-w-2xl mx-auto md:mx-0">
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{shop.total_products}</p>
-              <p className="text-white/80 text-sm">Produits</p>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <p className="text-3xl font-bold">{shop.total_sales}</p>
-              <p className="text-white/80 text-sm">Ventes</p>
-            </div>
+          {/* Stats - Only subscriber count and rating visible to customers */}
+          <div className="grid grid-cols-2 gap-4 mt-8 max-w-md mx-auto md:mx-0">
             <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <p className="text-3xl font-bold">{subscriberCount}</p>
               <p className="text-white/80 text-sm">Abonnés</p>
@@ -272,7 +264,6 @@ const VendorShopPage = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Tous les produits</h2>
-            <p className="text-gray-500">{total} produit{total > 1 ? 's' : ''} disponible{total > 1 ? 's' : ''}</p>
           </div>
           <Link to="/">
             <Button variant="outline" className="hidden md:flex">

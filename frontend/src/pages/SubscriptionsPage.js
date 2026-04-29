@@ -155,7 +155,6 @@ const SubscriptionsPage = () => {
                     }`}>
                       {seller.role === 'vendor' ? 'Vendeur' : 'Dropshipper'}
                     </span>
-                    <span>{seller.product_count || 0} produits</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
