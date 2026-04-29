@@ -82,15 +82,18 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
-        {/* Image with zoom effect */}
+        {/* Image with zoom effect - optimized for mobile */}
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
           className={cn(
             "w-full h-full object-cover transition-all duration-700 ease-out",
+            "md:group-hover:scale-110 md:group-hover:brightness-105",
             isHovered && "scale-110 brightness-105"
           )}
           loading="lazy"
+          decoding="async"
+          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 25vw"
         />
         
         {/* Animated gradient overlay */}

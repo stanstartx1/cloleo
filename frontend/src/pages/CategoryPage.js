@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Filter, ChevronDown, Grid3X3, List, SlidersHorizontal, X } from 'lucide-react';
+import { Filter, ChevronDown, Grid3X3, List, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../components/ui/checkbox';
 import { Slider } from '../components/ui/slider';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
+import { useInfiniteScroll } from '../components/InfiniteScroll';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -45,6 +46,8 @@ const CategoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   
   // Filters
   const [conditions, setConditions] = useState([]);
@@ -92,6 +95,7 @@ const CategoryPage = () => {
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
       setTotalPages(response.data.total_pages || 1);
+      setHasMore(page < (response.data.total_pages || 1));
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -99,13 +103,51 @@ const CategoryPage = () => {
     }
   }, [slug, sortBy, page, conditions, locations, priceRange]);
 
+  // Load more products for infinite scroll
+  const loadMoreProducts = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const [sortField, sortOrder] = sortBy.split('-');
+      const params = new URLSearchParams({
+        category: slug || '',
+        page: page + 1,
+        limit: 12,
+        sort_by: sortField,
+        sort_order: sortOrder,
+      });
+      
+      if (conditions.length > 0) params.append('condition', conditions.join(','));
+      if (locations.length > 0) params.append('location', locations.join(','));
+      if (priceRange[0] > 0) params.append('min_price', priceRange[0]);
+      if (priceRange[1] < 200000) params.append('max_price', priceRange[1]);
+      
+      const response = await axios.get(`${API}/products?${params}`);
+      const newProducts = response.data.products || [];
+      
+      setProducts(prev => [...prev, ...newProducts]);
+      setPage(prev => prev + 1);
+      setHasMore(page + 1 < (response.data.total_pages || 1));
+    } catch (error) {
+      console.error('Error loading more products:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [slug, sortBy, page, conditions, locations, priceRange, loadingMore, hasMore]);
+
+  // Infinite scroll ref
+  const loadMoreRef = useInfiniteScroll(loadMoreProducts, hasMore, loadingMore);
+
   useEffect(() => {
     fetchCategory();
   }, [fetchCategory]);
 
   useEffect(() => {
+    setPage(1);
+    setHasMore(true);
     fetchProducts();
-  }, [fetchProducts]);
+  }, [slug, sortBy, conditions, locations, priceRange]);
 
   const toggleCondition = (value) => {
     setConditions((prev) =>
@@ -335,45 +377,39 @@ const CategoryPage = () => {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <div className={`grid gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}>
-                {products.map((product, index) => (
-                  <div
-                    key={product.id}
-                    className="opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <ProductCard product={product} />
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className={`grid gap-3 sm:gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3' : 'grid-cols-1'} stagger-animation`}>
+                  {products.map((product, index) => (
+                    <div
+                      key={product.id}
+                      className="opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
+                      style={{ animationDelay: `${Math.min(index, 11) * 50}ms` }}
+                    >
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Infinite Scroll Trigger */}
+                <div ref={loadMoreRef} className="w-full py-8 flex justify-center">
+                  {loadingMore && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Chargement de plus de produits...</span>
+                    </div>
+                  )}
+                  {!hasMore && products.length > 0 && (
+                    <p className="text-muted-foreground text-sm">
+                      Vous avez vu tous les {totalProducts} produits
+                    </p>
+                  )}
+                </div>
+              </>
             ) : (
               <div className="text-center py-16">
                 <p className="text-muted-foreground mb-4">Aucun produit trouvé</p>
                 <Button variant="outline" onClick={clearFilters}>
                   Effacer les filtres
-                </Button>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
-                <Button
-                  variant="outline"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  Précédent
-                </Button>
-                <span className="px-4 text-sm text-muted-foreground">
-                  Page {page} sur {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Suivant
                 </Button>
               </div>
             )}

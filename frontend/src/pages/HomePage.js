@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight, Package, Users, Truck, Shield } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight, Package, Users, Truck, Shield, Heart, Clock, Gift, Award, BadgeCheck } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
+import { ScrollProgress } from '../components/InfiniteScroll';
+import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -107,8 +109,25 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen overflow-hidden" data-testid="home-page">
+      {/* Scroll Progress Indicator */}
+      <ScrollProgress />
+      
+      {/* Floating Action Badges */}
+      <FloatingBadges />
+      
+      {/* Promo Banner - Scrolling */}
+      <PromoBanner />
+      
       {/* Animated Hero Section */}
       <HeroSection />
+      
+      {/* Live Activity Feed */}
+      <NotificationFeed notifications={[
+        { user: 'Marie D.', action: 'vient d\'acheter', product: 'Robe Africaine', time: 'il y a 2 min' },
+        { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
+        { user: 'Awa S.', action: 'vient de commander', product: 'iPhone 14', time: 'il y a 8 min' },
+        { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
+      ]} />
 
       {/* Stats Bar with Animated Counters */}
       <section 
@@ -513,6 +532,24 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+      
+      {/* Testimonials Section */}
+      <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
+        <div className="container mx-auto px-4 mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Ce que disent nos clients</h2>
+          <p className="text-muted-foreground text-center">Des milliers de clients satisfaits chaque jour</p>
+        </div>
+        <TestimonialsBanner testimonials={[
+          { name: 'Marie Dupont', location: 'Abidjan', rating: 5, comment: 'Service excellent ! Ma commande est arrivée en 2 jours. Produit conforme à la description.' },
+          { name: 'Kofi Mensah', location: 'Dakar', rating: 5, comment: 'Je recommande vivement ! Les vendeurs sont très professionnels et les prix sont imbattables.' },
+          { name: 'Awa Diallo', location: 'Bamako', rating: 4, comment: 'Très satisfaite de mon achat. Le suivi de commande en temps réel est vraiment pratique.' },
+          { name: 'Jean-Pierre K.', location: 'Douala', rating: 5, comment: 'Cloléo a changé ma façon de faire du shopping. Qualité au rendez-vous !' },
+          { name: 'Fatou Ndiaye', location: 'Conakry', rating: 5, comment: 'Les produits artisanaux sont magnifiques. Je suis devenue une cliente fidèle.' },
+        ]} />
+      </section>
+      
+      {/* Trust Banner at bottom */}
+      <TrustBanner />
 
       {/* Custom CSS for animations */}
       <style>{`
