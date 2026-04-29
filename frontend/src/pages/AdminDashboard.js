@@ -280,6 +280,48 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteVendor = async (vendorId, vendorName) => {
+    if (!window.confirm(`Supprimer le vendeur "${vendorName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
+    
+    try {
+      const response = await axios.delete(`${API}/admin/vendors/${vendorId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleDeleteDriver = async (driverId, driverName) => {
+    if (!window.confirm(`Supprimer le livreur "${driverName}" ?\n\nToutes ses données seront supprimées définitivement.`)) return;
+    
+    try {
+      await axios.delete(`${API}/admin/drivers/${driverId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Livreur supprimé');
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleDeleteDropshipper = async (dropshipperId, dropshipperName) => {
+    if (!window.confirm(`Supprimer le dropshipper "${dropshipperName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
+    
+    try {
+      const response = await axios.delete(`${API}/admin/dropshippers/${dropshipperId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(response.data.message);
+      fetchAllData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
   // ========== CATEGORY MANAGEMENT FUNCTIONS ==========
   
   const handleCreateCategory = async () => {
@@ -383,11 +425,11 @@ const AdminDashboard = () => {
           onToggleActive={handleToggleUserActive}
         />;
       case 'vendors':
-        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} searchTerm={searchTerm} />;
+        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} searchTerm={searchTerm} />;
       case 'drivers':
-        return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} />;
+        return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} />;
       case 'dropshippers':
-        return <DropshippersSection dropshippers={dropshippers} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} />;
+        return <DropshippersSection dropshippers={dropshippers} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteDropshipper} />;
       case 'products':
         return <ProductsSection 
           products={products} 
@@ -615,7 +657,7 @@ const StatCard = ({ icon: Icon, color, value, label }) => (
   </div>
 );
 
-const VendorsSection = ({ vendors, onToggle, onVerify, searchTerm }) => {
+const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm }) => {
   const filteredVendors = vendors.filter(v => 
     v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -711,8 +753,19 @@ const VendorsSection = ({ vendors, onToggle, onVerify, searchTerm }) => {
                         variant="ghost"
                         onClick={() => onToggle(vendor.id)}
                         className="text-slate-400 hover:text-white"
+                        title={vendor.is_active ? 'Désactiver' : 'Activer'}
                       >
                         {vendor.is_active ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onDelete(vendor.id, vendor.shop_name || vendor.name)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        title="Supprimer le vendeur"
+                        data-testid={`delete-vendor-${vendor.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </td>
@@ -731,7 +784,7 @@ const VendorsSection = ({ vendors, onToggle, onVerify, searchTerm }) => {
   );
 };
 
-const DriversSection = ({ drivers, onVerify, onToggle }) => (
+const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
   <div className="space-y-4">
     {drivers.length === 0 ? (
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center">
@@ -798,8 +851,18 @@ const DriversSection = ({ drivers, onVerify, onToggle }) => (
                         <Check className="w-4 h-4" />
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => onToggle(driver.id)} className="text-slate-400">
+                    <Button size="sm" variant="ghost" onClick={() => onToggle(driver.id)} className="text-slate-400" title={driver.is_active ? 'Désactiver' : 'Activer'}>
                       {driver.is_active ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => onDelete(driver.id, driver.name)} 
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      title="Supprimer le livreur"
+                      data-testid={`delete-driver-${driver.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </td>
@@ -812,7 +875,7 @@ const DriversSection = ({ drivers, onVerify, onToggle }) => (
   </div>
 );
 
-const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured }) => {
+const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured, onDelete }) => {
   const displayProducts = filter === 'pending' ? pendingProducts : 
                           filter === 'all' ? products :
                           filter === 'featured' ? products.filter(p => p.is_featured) :
@@ -913,6 +976,18 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                       </Button>
                     </>
                   )}
+                  
+                  {/* Delete button - always visible */}
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => onDelete(product.id, product.name)} 
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    title="Supprimer le produit"
+                    data-testid={`delete-product-${product.id}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -1249,7 +1324,7 @@ const SettingToggle = ({ label, value, onChange }) => (
 );
 
 // ============= DROPSHIPPERS SECTION =============
-const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefresh }) => {
+const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefresh, onDelete }) => {
   const [loading, setLoading] = useState(false);
   
   const handleToggleDropshipper = async (dropshipperId) => {
@@ -1340,14 +1415,26 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
                       </span>
                     </td>
                     <td className="p-4">
-                      <Button
-                        size="sm"
-                        variant={d.is_active ? "destructive" : "default"}
-                        onClick={() => handleToggleDropshipper(d.id)}
-                        disabled={loading}
-                      >
-                        {d.is_active ? 'Désactiver' : 'Activer'}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={d.is_active ? "destructive" : "default"}
+                          onClick={() => handleToggleDropshipper(d.id)}
+                          disabled={loading}
+                        >
+                          {d.is_active ? 'Désactiver' : 'Activer'}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => onDelete(d.id, d.shop_name || d.name)} 
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          title="Supprimer le dropshipper"
+                          data-testid={`delete-dropshipper-${d.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -254,17 +254,32 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
 ### P1 - Priorité Haute
 - [ ] Intégration paiement Stripe pour clients
 - [ ] Attribution automatique des commandes aux livreurs
-- [ ] Notifications push mobiles
+- [ ] Système de Favoris (Point 10 de la liste utilisateur)
+- [ ] Système d'Abonnements Vendeurs (Point 11 de la liste utilisateur)
 
 ### P2 - Priorité Moyenne
-- [ ] Chat en temps réel vendeur/client
+- [ ] Notifications push mobiles
 - [ ] Système de notation/avis
 - [ ] Historique des commandes client
+- [ ] Refactoring server.py en modules séparés (>2700 lignes)
 
 ### P3 - Backlog
 - [ ] Application mobile (React Native)
 - [ ] Multi-langues (EN, Wolof, etc.)
 - [ ] Analytics avancées
+
+## Mise à Jour 29/04/2026
+
+### Suppression Admin Dashboard ✅
+- [x] Endpoint DELETE `/api/admin/vendors/{vendor_id}` - Suppression cascade vendeur + produits + conversations
+- [x] Endpoint DELETE `/api/admin/dropshippers/{dropshipper_id}` - Suppression cascade dropshipper + produits + gains
+- [x] Endpoint DELETE `/api/admin/products/{product_id}` (existant)
+- [x] Endpoint DELETE `/api/admin/drivers/{driver_id}` (existant)
+- [x] Bouton suppression (icône corbeille rouge) dans la section Vendeurs
+- [x] Bouton suppression dans la section Livreurs
+- [x] Bouton suppression dans la section Produits
+- [x] Bouton suppression dans la section Dropshippers
+- [x] Confirmation avant suppression avec message personnalisé
 
 ## Comptes de Test
 - **Admin**: admin@cloleo.com / admin123

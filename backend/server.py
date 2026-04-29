@@ -2501,6 +2501,48 @@ async def admin_toggle_dropshipper(dropshipper_id: str, user: dict = Depends(req
     await db.users.update_one({"id": dropshipper_id}, {"$set": {"is_active": new_status}})
     return {"is_active": new_status}
 
+@api_router.delete("/admin/dropshippers/{dropshipper_id}")
+async def admin_delete_dropshipper(dropshipper_id: str, user: dict = Depends(require_admin)):
+    """Admin delete dropshipper and all associated data"""
+    dropshipper = await db.users.find_one({"id": dropshipper_id, "role": UserRole.DROPSHIPPER})
+    if not dropshipper:
+        raise HTTPException(status_code=404, detail="Dropshipper non trouvé")
+    
+    # Delete dropshipped products
+    products_deleted = await db.dropshipped_products.delete_many({"dropshipper_id": dropshipper_id})
+    # Delete earnings records
+    await db.dropshipper_earnings.delete_many({"dropshipper_id": dropshipper_id})
+    # Delete conversations
+    await db.conversations.delete_many({"seller_id": dropshipper_id})
+    # Delete messages
+    await db.messages.delete_many({"sender_id": dropshipper_id})
+    # Delete user
+    await db.users.delete_one({"id": dropshipper_id})
+    
+    logger.info(f"Admin {user['email']} deleted dropshipper {dropshipper['email']}")
+    return {"message": f"Dropshipper '{dropshipper['name']}' supprimé", "products_deleted": products_deleted.deleted_count}
+
+@api_router.delete("/admin/vendors/{vendor_id}")
+async def admin_delete_vendor(vendor_id: str, user: dict = Depends(require_admin)):
+    """Admin delete vendor and all associated data (products, conversations, etc.)"""
+    vendor = await db.users.find_one({"id": vendor_id, "role": UserRole.VENDOR})
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendeur non trouvé")
+    
+    # Delete all vendor products
+    products_deleted = await db.products.delete_many({"seller_id": vendor_id})
+    # Delete vendor conversations
+    await db.conversations.delete_many({"seller_id": vendor_id})
+    # Delete messages sent by vendor
+    await db.messages.delete_many({"sender_id": vendor_id})
+    # Delete subscription transactions
+    await db.subscription_transactions.delete_many({"user_id": vendor_id})
+    # Delete the vendor user
+    await db.users.delete_one({"id": vendor_id})
+    
+    logger.info(f"Admin {user['email']} deleted vendor {vendor['email']}")
+    return {"message": f"Vendeur '{vendor['name']}' et {products_deleted.deleted_count} produit(s) supprimés"}
+
 @api_router.get("/admin/dropshipping/stats")
 async def admin_dropshipping_stats(user: dict = Depends(require_admin)):
     """Get dropshipping statistics for admin"""
