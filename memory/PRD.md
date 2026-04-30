@@ -179,10 +179,23 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Intégration avec FloatingChat (startConversation)
   - [x] Toast de confirmation "Conversation ouverte !"
   - [x] Auto-ouverture du chat avec `?chat=open` dans URL
+  - [x] **Sur Homepage : ouvre le chat SANS changer de page** ✅
   
 - [x] **Vérification "Voir la boutique"**
   - [x] Fonctionne correctement (navigue vers /vendeur-boutique/{id})
   - [x] Affiche infos vendeur, produits, statistiques
+
+### Phase 13 ✅ (COMPLÉTÉ 30/04/2026)
+- [x] **Affichage Prix Promotionnels (Dropshipper/Admin)**
+  - [x] Dashboard Dropshipper Catalogue : Prix original barré + Prix promo vert + Badge réduction
+  - [x] Dashboard Dropshipper "Mes produits" : Affichage des deux prix
+  - [x] Modal personnalisation Dropshipper : Prix normal, Prix promo, % réduction
+  - [x] Dashboard Admin Produits : Prix original barré + Prix promo vert + Badge réduction
+  
+- [x] **Chat Flottant sans Navigation (Homepage)**
+  - [x] Bouton "Contacter le vendeur" sur ProductCard
+  - [x] Utilise useChat().startConversation() au lieu de navigate()
+  - [x] Page reste sur l'accueil pendant l'ouverture du chat
 
 ## Schéma de Base de Données
 
