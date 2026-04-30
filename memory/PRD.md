@@ -197,9 +197,25 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Utilise useChat().startConversation() au lieu de navigate()
   - [x] Page reste sur l'accueil pendant l'ouverture du chat
 
+### Phase 14 ✅ (COMPLÉTÉ 30/04/2026)
+- [x] **Renommage Dropshipper → Revendeur**
+  - [x] Fichiers frontend renommés : DropshipperDashboard → RevendeurDashboard, etc.
+  - [x] Routes frontend : /dropshipper → /revendeur, /devenir-dropshipper → /devenir-revendeur
+  - [x] Routes backend aliases : /api/revendeur/* (pointent vers /api/dropshipper/*)
+  - [x] Admin dashboard : "Dropshippers" → "Revendeurs"
+  - [x] Navbar : "Espace dropshipper" → "Espace revendeur"
+  - [x] Page d'inscription : Option "Dropshipper" → "Revendeur"
+  - [x] Textes UI : "dropshipping" → "revente"
+  - [x] Catalogue produits visible avec prix normaux + promos
+  
+- [x] **Compatibilité Backend**
+  - [x] Role DB reste `dropshipper` pour compatibilité
+  - [x] Nouveau router `revendeur_router` avec aliases
+  - [x] Admin endpoint `/api/admin/revendeurs` retourne `revendeurs` key
+
 ## Schéma de Base de Données
 
-### Collection: users (role: dropshipper)
+### Collection: users (role: dropshipper/revendeur)
 ```json
 {
   "id": "uuid",
