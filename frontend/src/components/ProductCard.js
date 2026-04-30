@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Star, MapPin, Eye, Store, BadgeCheck } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from './FloatingChat';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -18,6 +19,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { startConversation } = useChat();
   const favorite = isFavorite(product.id);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -25,7 +27,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
   const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
 
-  const handleContactVendor = (e) => {
+  const handleContactVendor = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -35,8 +37,19 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       return;
     }
     
-    // Navigate to product page and open chat
-    navigate(`/produit/${product.id}?chat=open`);
+    // Open floating chat directly without page navigation
+    try {
+      await startConversation(product.id, null, {
+        seller_id: product.seller_id,
+        seller_name: product.seller_name || product.seller?.shop_name || product.seller?.name,
+        product_name: product.name,
+        product_image: product.images?.[0]
+      });
+      toast.success('Conversation ouverte !');
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast.error('Erreur lors de l\'ouverture du chat');
+    }
   };
 
   const handleToggleFavorite = async (e) => {

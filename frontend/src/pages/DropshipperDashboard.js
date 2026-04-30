@@ -495,7 +495,17 @@ const DropshipperDashboard = () => {
                       </div>
                       <CardContent className="p-4">
                         <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
-                        <p className="text-lg font-bold text-purple-600">{product.price_fcfa?.toLocaleString()} FCFA</p>
+                        {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-400 line-through">{product.price_fcfa?.toLocaleString()} FCFA</p>
+                            <p className="text-lg font-bold text-green-600">{product.promo_price_fcfa?.toLocaleString()} FCFA</p>
+                            <Badge className="bg-green-100 text-green-700 text-xs">
+                              -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
+                            </Badge>
+                          </div>
+                        ) : (
+                          <p className="text-lg font-bold text-purple-600">{product.price_fcfa?.toLocaleString()} FCFA</p>
+                        )}
                         <p className="text-xs text-gray-500 mb-3">Prix d'achat minimum</p>
                         {product.is_dropshipped ? (
                           <Button variant="outline" className="w-full" disabled>
@@ -564,7 +574,14 @@ const DropshipperDashboard = () => {
                               </div>
                               <div className="text-right">
                                 <p className="text-sm text-gray-500">Prix d'achat</p>
-                                <p className="font-medium">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
+                                {product.original_promo_price_fcfa && product.original_promo_price_fcfa < product.original_price_fcfa ? (
+                                  <div>
+                                    <p className="text-xs text-gray-400 line-through">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
+                                    <p className="font-medium text-green-600">{product.original_promo_price_fcfa?.toLocaleString()} FCFA</p>
+                                  </div>
+                                ) : (
+                                  <p className="font-medium">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
+                                )}
                               </div>
                             </div>
                             <div className="mt-3 flex items-center gap-4">
@@ -838,7 +855,19 @@ const DropshipperDashboard = () => {
                 />
                 <div>
                   <h3 className="font-medium">{selectedProduct.name}</h3>
-                  <p className="text-sm text-gray-500">Prix d'achat: {selectedProduct.price_fcfa?.toLocaleString()} FCFA</p>
+                  <div className="mt-1">
+                    {selectedProduct.promo_price_fcfa && selectedProduct.promo_price_fcfa < selectedProduct.price_fcfa ? (
+                      <div>
+                        <p className="text-xs text-gray-400 line-through">Prix normal: {selectedProduct.price_fcfa?.toLocaleString()} FCFA</p>
+                        <p className="text-sm text-green-600 font-medium">Prix promo: {selectedProduct.promo_price_fcfa?.toLocaleString()} FCFA</p>
+                        <Badge className="bg-green-100 text-green-700 text-xs mt-1">
+                          -{Math.round((1 - selectedProduct.promo_price_fcfa / selectedProduct.price_fcfa) * 100)}% de réduction
+                        </Badge>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Prix d'achat: {selectedProduct.price_fcfa?.toLocaleString()} FCFA</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -848,11 +877,11 @@ const DropshipperDashboard = () => {
                   type="number"
                   value={customPrice}
                   onChange={(e) => setCustomPrice(e.target.value)}
-                  min={selectedProduct.price_fcfa}
+                  min={selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa}
                 />
-                {parseInt(customPrice) > selectedProduct.price_fcfa && (
+                {parseInt(customPrice) > (selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa) && (
                   <p className="text-sm text-green-600">
-                    Votre marge: +{((parseInt(customPrice) - selectedProduct.price_fcfa) / 2).toLocaleString()} FCFA (50%)
+                    Votre marge: +{((parseInt(customPrice) - (selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa)) / 2).toLocaleString()} FCFA (50%)
                   </p>
                 )}
               </div>

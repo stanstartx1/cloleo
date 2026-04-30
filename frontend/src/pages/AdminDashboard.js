@@ -939,7 +939,17 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                   </div>
                   <p className="text-sm text-slate-400 truncate">{product.description}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                    <span className="text-amber-400 font-bold">{formatPrice(product.price_fcfa)} FCFA</span>
+                    {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
+                      <>
+                        <span className="text-slate-500 line-through">{formatPrice(product.price_fcfa)} FCFA</span>
+                        <span className="text-green-400 font-bold">{formatPrice(product.promo_price_fcfa)} FCFA</span>
+                        <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">
+                          -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-amber-400 font-bold">{formatPrice(product.price_fcfa)} FCFA</span>
+                    )}
                     <span>{product.category_slug}</span>
                     {product.seller && <span>Par: {product.seller.name}</span>}
                   </div>
