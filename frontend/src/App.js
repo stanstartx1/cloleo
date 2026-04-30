@@ -43,10 +43,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DriverRegisterPage from "./pages/DriverRegisterPage";
 import DriverDashboard from "./pages/DriverDashboard";
 
-// Dropshipper Pages
-import DropshipperRegisterPage from "./pages/DropshipperRegisterPage";
-import DropshipperDashboard from "./pages/DropshipperDashboard";
-import DropshipperShopPage from "./pages/DropshipperShopPage";
+// Revendeur Pages
+import RevendeurRegisterPage from "./pages/RevendeurRegisterPage";
+import RevendeurDashboard from "./pages/RevendeurDashboard";
+import RevendeurShopPage from "./pages/RevendeurShopPage";
 
 // Shop Pages
 import VendorShopPage from "./pages/VendorShopPage";
@@ -187,14 +187,14 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
 
-      {/* Dropshipper Routes */}
-      <Route path="/devenir-dropshipper" element={<DropshipperRegisterPage />} />
-      <Route path="/dropshipper" element={
+      {/* Revendeur Routes */}
+      <Route path="/devenir-revendeur" element={<RevendeurRegisterPage />} />
+      <Route path="/revendeur" element={
         <ProtectedRoute requireDropshipper>
-          <DropshipperDashboard />
+          <RevendeurDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/boutique/:shopSlug" element={<DropshipperShopPage />} />
+      <Route path="/boutique/:shopSlug" element={<RevendeurShopPage />} />
 
       {/* Vendor Shop Route (Public) */}
       <Route path="/vendeur-boutique/:sellerId" element={<PublicLayout><VendorShopPage /></PublicLayout>} />

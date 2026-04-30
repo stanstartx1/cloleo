@@ -59,7 +59,7 @@ const SubscriptionsPage = () => {
           </div>
           <h2 className="text-2xl font-bold mb-2">Connectez-vous</h2>
           <p className="text-muted-foreground mb-8">
-            Connectez-vous pour voir vos abonnements aux vendeurs et dropshippers
+            Connectez-vous pour voir vos abonnements aux vendeurs et revendeurs
           </p>
           <Button asChild size="lg">
             <Link to="/connexion">Se connecter</Link>
@@ -113,7 +113,7 @@ const SubscriptionsPage = () => {
             </div>
             <h2 className="text-2xl font-bold mb-2">Aucun abonnement</h2>
             <p className="text-muted-foreground mb-8">
-              Abonnez-vous à des vendeurs et dropshippers pour recevoir des notifications sur leurs nouveaux produits
+              Abonnez-vous à des vendeurs et revendeurs pour recevoir des notifications sur leurs nouveaux produits
             </p>
             <Button asChild size="lg">
               <Link to="/categories">
@@ -153,7 +153,7 @@ const SubscriptionsPage = () => {
                         ? 'bg-orange-100 text-orange-700' 
                         : 'bg-purple-100 text-purple-700'
                     }`}>
-                      {seller.role === 'vendor' ? 'Vendeur' : 'Dropshipper'}
+                      {seller.role === 'vendor' ? 'Vendeur' : 'Revendeur'}
                     </span>
                   </div>
                   

@@ -12,7 +12,7 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const DropshipperRegisterPage = () => {
+const RevendeurRegisterPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   
@@ -37,14 +37,14 @@ const DropshipperRegisterPage = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post(`${API}/auth/register/dropshipper`, formData);
+      const response = await axios.post(`${API}/auth/register/revendeur`, formData);
       const { token, user } = response.data;
       
       // Login with the received token
       login(token);
       
-      toast.success('Compte dropshipper créé avec succès !');
-      navigate('/dropshipper');
+      toast.success('Compte revendeur créé avec succès !');
+      navigate('/revendeur');
     } catch (error) {
       console.error('Registration error:', error);
       toast.error(error.response?.data?.detail || 'Erreur lors de l\'inscription');
@@ -54,7 +54,7 @@ const DropshipperRegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen py-12 bg-gradient-to-br from-purple-50 via-white to-indigo-50" data-testid="dropshipper-register-page">
+    <div className="min-h-screen py-12 bg-gradient-to-br from-purple-50 via-white to-indigo-50" data-testid="revendeur-register-page">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Logo */}
@@ -73,7 +73,7 @@ const DropshipperRegisterPage = () => {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Benefits Section */}
             <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-8 text-white">
-              <h2 className="text-2xl font-bold mb-6">Devenir Dropshipper</h2>
+              <h2 className="text-2xl font-bold mb-6">Devenir Revendeur</h2>
               <p className="text-purple-100 mb-8">
                 Lancez votre business en ligne sans stock. Vendez les produits de notre catalogue avec votre propre marge.
               </p>
@@ -136,7 +136,7 @@ const DropshipperRegisterPage = () => {
                       onChange={handleChange}
                       className="pl-10"
                       required
-                      data-testid="dropshipper-name"
+                      data-testid="revendeur-name"
                     />
                   </div>
                 </div>
@@ -154,7 +154,7 @@ const DropshipperRegisterPage = () => {
                       onChange={handleChange}
                       className="pl-10"
                       required
-                      data-testid="dropshipper-email"
+                      data-testid="revendeur-email"
                     />
                   </div>
                 </div>
@@ -171,7 +171,7 @@ const DropshipperRegisterPage = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       className="pl-10"
-                      data-testid="dropshipper-phone"
+                      data-testid="revendeur-phone"
                     />
                   </div>
                 </div>
@@ -189,7 +189,7 @@ const DropshipperRegisterPage = () => {
                       onChange={handleChange}
                       className="pl-10"
                       required
-                      data-testid="dropshipper-shop-name"
+                      data-testid="revendeur-shop-name"
                     />
                   </div>
                 </div>
@@ -203,7 +203,7 @@ const DropshipperRegisterPage = () => {
                     value={formData.shop_description}
                     onChange={handleChange}
                     rows={3}
-                    data-testid="dropshipper-shop-description"
+                    data-testid="revendeur-shop-description"
                   />
                 </div>
 
@@ -221,7 +221,7 @@ const DropshipperRegisterPage = () => {
                       className="pl-10 pr-10"
                       required
                       minLength={6}
-                      data-testid="dropshipper-password"
+                      data-testid="revendeur-password"
                     />
                     <button
                       type="button"
@@ -237,9 +237,9 @@ const DropshipperRegisterPage = () => {
                   type="submit" 
                   className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700" 
                   disabled={loading}
-                  data-testid="dropshipper-register-btn"
+                  data-testid="revendeur-register-btn"
                 >
-                  {loading ? 'Création en cours...' : 'Créer mon compte dropshipper'}
+                  {loading ? 'Création en cours...' : 'Créer mon compte revendeur'}
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </form>
@@ -258,4 +258,4 @@ const DropshipperRegisterPage = () => {
   );
 };
 
-export default DropshipperRegisterPage;
+export default RevendeurRegisterPage;

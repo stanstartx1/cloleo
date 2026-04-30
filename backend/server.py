@@ -2944,4 +2944,156 @@ try:
 except Exception as e:
     logger.warning(f"Could not load reviews router: {e}")
 
+# ============== REVENDEUR ROUTE ALIASES ==============
+# Create aliases for /revendeur/* routes that point to /dropshipper/* endpoints
+# This allows the French naming while keeping backend compatibility
+
+@api_router.get("/revendeur/dashboard")
+async def revendeur_dashboard(user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper dashboard"""
+    return await dropshipper_dashboard(user)
+
+@api_router.get("/revendeur/catalog")
+async def revendeur_catalog(
+    user: dict = Depends(require_dropshipper),
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1, 
+    limit: int = 20
+):
+    """Alias for dropshipper catalog"""
+    return await dropshipper_catalog(user, category, search, page, limit)
+
+@api_router.post("/revendeur/products")
+async def revendeur_add_product(data: DropshippedProductCreate, user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper add product"""
+    return await create_dropshipped_product(data, user)
+
+@api_router.get("/revendeur/products")
+async def revendeur_get_products(user: dict = Depends(require_dropshipper), status: Optional[str] = None):
+    """Alias for dropshipper products"""
+    return await get_dropshipper_products(user, status)
+
+@api_router.get("/revendeur/products/{product_id}")
+async def revendeur_get_product(product_id: str, user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper product details"""
+    return await get_dropshipped_product(product_id, user)
+
+@api_router.put("/revendeur/products/{product_id}")
+async def revendeur_update_product(product_id: str, data: DropshippedProductUpdate, user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper update product"""
+    return await update_dropshipped_product(product_id, data, user)
+
+@api_router.delete("/revendeur/products/{product_id}")
+async def revendeur_delete_product(product_id: str, user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper delete product"""
+    return await delete_dropshipped_product(product_id, user)
+
+@api_router.get("/revendeur/orders")
+async def revendeur_orders(user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper orders"""
+    return await get_dropshipper_orders(user)
+
+@api_router.get("/revendeur/earnings")
+async def revendeur_earnings(user: dict = Depends(require_dropshipper), page: int = 1, limit: int = 50):
+    """Alias for dropshipper earnings"""
+    return await get_dropshipper_earnings(user, page, limit)
+
+@api_router.get("/revendeur/conversations")
+async def revendeur_conversations(user: dict = Depends(require_dropshipper)):
+    """Alias for dropshipper conversations"""
+    return await dropshipper_get_conversations(user)
+
+@api_router.post("/auth/register/revendeur")
+async def register_revendeur(data: DropshipperRegister):
+    """Alias for dropshipper registration"""
+    return await register_dropshipper(data)
+
+# Admin aliases for revendeurs
+@api_router.get("/admin/revendeurs")
+async def admin_get_revendeurs(user: dict = Depends(require_admin)):
+    """Alias for admin get dropshippers - returns revendeurs key for frontend compatibility"""
+    result = await admin_get_dropshippers(user)
+    # Rename key from dropshippers to revendeurs for frontend compatibility
+    return {"revendeurs": result.get("dropshippers", []), "total": result.get("total", 0)}
+
+@api_router.put("/admin/revendeurs/{revendeur_id}/toggle")
+async def admin_toggle_revendeur(revendeur_id: str, user: dict = Depends(require_admin)):
+    """Alias for admin toggle dropshipper"""
+    return await admin_toggle_dropshipper(revendeur_id, user)
+
+@api_router.delete("/admin/revendeurs/{revendeur_id}")
+async def admin_delete_revendeur(revendeur_id: str, user: dict = Depends(require_admin)):
+    """Alias for admin delete dropshipper"""
+    return await admin_delete_dropshipper(revendeur_id, user)
+
+# Create a separate router for revendeur aliases and include it
+revendeur_router = APIRouter()
+
+@revendeur_router.get("/revendeur/dashboard")
+async def api_revendeur_dashboard(user: dict = Depends(require_dropshipper)):
+    return await dropshipper_dashboard(user)
+
+@revendeur_router.get("/revendeur/catalog")
+async def api_revendeur_catalog(
+    user: dict = Depends(require_dropshipper),
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1, 
+    limit: int = 20
+):
+    return await dropshipper_catalog(user, category, search, page, limit)
+
+@revendeur_router.post("/revendeur/products")
+async def api_revendeur_add_product(data: DropshippedProductCreate, user: dict = Depends(require_dropshipper)):
+    return await create_dropshipped_product(data, user)
+
+@revendeur_router.get("/revendeur/products")
+async def api_revendeur_get_products(user: dict = Depends(require_dropshipper), status: Optional[str] = None):
+    return await get_dropshipper_products(user, status)
+
+@revendeur_router.get("/revendeur/products/{product_id}")
+async def api_revendeur_get_product(product_id: str, user: dict = Depends(require_dropshipper)):
+    return await get_dropshipped_product(product_id, user)
+
+@revendeur_router.put("/revendeur/products/{product_id}")
+async def api_revendeur_update_product(product_id: str, data: DropshippedProductUpdate, user: dict = Depends(require_dropshipper)):
+    return await update_dropshipped_product(product_id, data, user)
+
+@revendeur_router.delete("/revendeur/products/{product_id}")
+async def api_revendeur_delete_product(product_id: str, user: dict = Depends(require_dropshipper)):
+    return await delete_dropshipped_product(product_id, user)
+
+@revendeur_router.get("/revendeur/orders")
+async def api_revendeur_orders(user: dict = Depends(require_dropshipper)):
+    return await get_dropshipper_orders(user)
+
+@revendeur_router.get("/revendeur/earnings")
+async def api_revendeur_earnings(user: dict = Depends(require_dropshipper), page: int = 1, limit: int = 50):
+    return await get_dropshipper_earnings(user, page, limit)
+
+@revendeur_router.get("/revendeur/conversations")
+async def api_revendeur_conversations(user: dict = Depends(require_dropshipper)):
+    return await dropshipper_get_conversations(user)
+
+@revendeur_router.post("/auth/register/revendeur")
+async def api_register_revendeur(data: DropshipperRegister):
+    return await register_dropshipper(data)
+
+@revendeur_router.get("/admin/revendeurs")
+async def api_admin_get_revendeurs(user: dict = Depends(require_admin)):
+    result = await admin_get_dropshippers(user)
+    return {"revendeurs": result.get("dropshippers", []), "total": result.get("total", 0)}
+
+@revendeur_router.put("/admin/revendeurs/{revendeur_id}/toggle")
+async def api_admin_toggle_revendeur(revendeur_id: str, user: dict = Depends(require_admin)):
+    return await admin_toggle_dropshipper(revendeur_id, user)
+
+@revendeur_router.delete("/admin/revendeurs/{revendeur_id}")
+async def api_admin_delete_revendeur(revendeur_id: str, user: dict = Depends(require_admin)):
+    return await admin_delete_dropshipper(revendeur_id, user)
+
+# Include revendeur router
+app.include_router(revendeur_router, prefix="/api")
+
 

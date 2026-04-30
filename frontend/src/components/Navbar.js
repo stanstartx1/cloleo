@@ -27,7 +27,7 @@ const CATEGORIES = [
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
-  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper, logout } = useAuth();
+  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,9 +59,9 @@ const Navbar = () => {
               <span>Service client: +225 07 00 00 00</span>
             </div>
             <div className="flex items-center gap-4">
-              {isDropshipper && (
-                <Link to="/dropshipper" className="hover:text-purple-600 transition-all duration-300 flex items-center gap-1 hover:scale-105">
-                  <Store className="w-3 h-3" /> Espace dropshipper
+              {isRevendeur && (
+                <Link to="/revendeur" className="hover:text-purple-600 transition-all duration-300 flex items-center gap-1 hover:scale-105">
+                  <Store className="w-3 h-3" /> Espace revendeur
                 </Link>
               )}
               {isDriver && (

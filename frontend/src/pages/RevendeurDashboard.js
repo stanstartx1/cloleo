@@ -19,7 +19,7 @@ const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws:
 const API = `${BACKEND_URL}/api`;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
-const DropshipperDashboard = () => {
+const RevendeurDashboard = () => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
   
@@ -57,7 +57,7 @@ const DropshipperDashboard = () => {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const response = await axios.get(`${API}/dropshipper/dashboard`, {
+        const response = await axios.get(`${API}/revendeur/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setDashboardData(response.data);
@@ -79,7 +79,7 @@ const DropshipperDashboard = () => {
       const params = new URLSearchParams({ page, limit: 12 });
       if (search) params.append('search', search);
       
-      const response = await axios.get(`${API}/dropshipper/catalog?${params}`, {
+      const response = await axios.get(`${API}/revendeur/catalog?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCatalogProducts(response.data.products);
@@ -95,7 +95,7 @@ const DropshipperDashboard = () => {
   const fetchMyProducts = async () => {
     setMyProductsLoading(true);
     try {
-      const response = await axios.get(`${API}/dropshipper/products`, {
+      const response = await axios.get(`${API}/revendeur/products`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMyProducts(response.data);
@@ -110,7 +110,7 @@ const DropshipperDashboard = () => {
   const fetchOrders = async () => {
     setOrdersLoading(true);
     try {
-      const response = await axios.get(`${API}/dropshipper/orders`, {
+      const response = await axios.get(`${API}/revendeur/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOrders(response.data.orders);
@@ -125,7 +125,7 @@ const DropshipperDashboard = () => {
   const fetchEarnings = async () => {
     setEarningsLoading(true);
     try {
-      const response = await axios.get(`${API}/dropshipper/earnings`, {
+      const response = await axios.get(`${API}/revendeur/earnings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEarnings(response.data.earnings);
@@ -161,7 +161,7 @@ const DropshipperDashboard = () => {
     }
     
     try {
-      await axios.post(`${API}/dropshipper/products`, {
+      await axios.post(`${API}/revendeur/products`, {
         original_product_id: selectedProduct.id,
         selling_price_fcfa: sellingPrice,
         custom_description: customDescription !== selectedProduct.description ? customDescription : null
@@ -177,7 +177,7 @@ const DropshipperDashboard = () => {
       fetchCatalog(catalogPage, catalogSearch);
       
       // Update dashboard stats
-      const dashResponse = await axios.get(`${API}/dropshipper/dashboard`, {
+      const dashResponse = await axios.get(`${API}/revendeur/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDashboardData(dashResponse.data);
@@ -189,7 +189,7 @@ const DropshipperDashboard = () => {
   // Toggle product status
   const toggleProductStatus = async (productId, currentStatus) => {
     try {
-      await axios.put(`${API}/dropshipper/products/${productId}`, {
+      await axios.put(`${API}/revendeur/products/${productId}`, {
         is_active: !currentStatus
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -206,7 +206,7 @@ const DropshipperDashboard = () => {
     if (!window.confirm('Supprimer ce produit de votre catalogue ?')) return;
     
     try {
-      await axios.delete(`${API}/dropshipper/products/${productId}`, {
+      await axios.delete(`${API}/revendeur/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Produit supprimé');
@@ -242,7 +242,7 @@ const DropshipperDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="dropshipper-dashboard">
+    <div className="min-h-screen bg-gray-50" data-testid="revendeur-dashboard">
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -265,7 +265,7 @@ const DropshipperDashboard = () => {
                 C
               </div>
               <div>
-                <span className="text-xl font-bold text-purple-600">Dropshipper</span>
+                <span className="text-xl font-bold text-purple-600">Revendeur</span>
                 <p className="text-xs text-gray-500">Espace partenaire</p>
               </div>
             </Link>
@@ -327,7 +327,7 @@ const DropshipperDashboard = () => {
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Bonjour, {user?.name} !</h1>
-                <p className="text-gray-500">Voici un aperçu de votre activité dropshipping</p>
+                <p className="text-gray-500">Voici un aperçu de votre activité revente</p>
               </div>
 
               {/* Stats Cards */}
@@ -591,7 +591,7 @@ const DropshipperDashboard = () => {
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm text-gray-500">Votre marge</p>
-                                <p className="text-lg font-bold text-green-600">+{product.dropshipper_share_fcfa?.toLocaleString()} FCFA</p>
+                                <p className="text-lg font-bold text-green-600">+{product.revendeur_share_fcfa?.toLocaleString()} FCFA</p>
                               </div>
                               <div className="flex gap-2">
                                 <Button 
@@ -672,7 +672,7 @@ const DropshipperDashboard = () => {
                           </div>
                           <div>
                             <p className="text-gray-500">Votre gain</p>
-                            <p className="font-medium text-green-600">+{order.margin_breakdown?.dropshipper_receives_fcfa?.toLocaleString()} FCFA</p>
+                            <p className="font-medium text-green-600">+{order.margin_breakdown?.revendeur_receives_fcfa?.toLocaleString()} FCFA</p>
                           </div>
                           <div>
                             <p className="text-gray-500">Adresse</p>
@@ -704,13 +704,13 @@ const DropshipperDashboard = () => {
                 </h1>
                 <p className="text-gray-500">Répondez aux questions de vos clients</p>
               </div>
-              <MessagesSection token={token} userType="dropshipper" />
+              <MessagesSection token={token} userType="revendeur" />
             </div>
           )}
 
           {/* Tracking Tab - Live Delivery Tracking */}
           {activeTab === 'tracking' && (
-            <DropshipperOrderTracking token={token} />
+            <RevendeurOrderTracking token={token} />
           )}
 
           {/* Earnings Tab */}
@@ -737,7 +737,7 @@ const DropshipperDashboard = () => {
                             <p className="text-xs text-gray-400">{new Date(earning.created_at).toLocaleDateString('fr-FR')}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-lg font-bold text-green-600">+{earning.dropshipper_share?.toLocaleString()} FCFA</p>
+                            <p className="text-lg font-bold text-green-600">+{earning.revendeur_share?.toLocaleString()} FCFA</p>
                             <p className="text-xs text-gray-500">sur {earning.total_margin?.toLocaleString()} FCFA de marge</p>
                           </div>
                         </div>
@@ -913,7 +913,7 @@ const DropshipperDashboard = () => {
   );
 };
 
-// =============== DROPSHIPPER ORDER TRACKING COMPONENT ===============
+// =============== REVENDEUR ORDER TRACKING COMPONENT ===============
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber', bg: 'bg-amber-100', text: 'text-amber-700' },
   assigned: { label: 'Livreur assigné', color: 'blue', bg: 'bg-blue-100', text: 'text-blue-700' },
@@ -925,7 +925,7 @@ const ORDER_STATUSES = {
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price || 0);
 
-const DropshipperOrderTracking = ({ token }) => {
+const RevendeurOrderTracking = ({ token }) => {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -937,10 +937,10 @@ const DropshipperOrderTracking = ({ token }) => {
   const customerMarker = useRef(null);
   const wsRef = useRef(null);
 
-  // Fetch dropshipper orders
+  // Fetch revendeur orders
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await axios.get(`${API}/dropshipper/orders`, {
+      const response = await axios.get(`${API}/revendeur/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOrders(response.data.orders || []);
@@ -1198,7 +1198,7 @@ const DropshipperOrderTracking = ({ token }) => {
               </CardHeader>
               
               {/* Map */}
-              <div ref={mapRef} className="w-full h-48 bg-gray-100" data-testid="dropshipper-tracking-map">
+              <div ref={mapRef} className="w-full h-48 bg-gray-100" data-testid="revendeur-tracking-map">
                 {!GOOGLE_MAPS_API_KEY && (
                   <div className="h-full flex items-center justify-center text-gray-500">
                     <MapPin className="w-8 h-8 mr-2" />
@@ -1256,7 +1256,7 @@ const DropshipperOrderTracking = ({ token }) => {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Votre gain sur cette commande</span>
                       <span className="font-bold text-green-600">
-                        +{formatPrice(selectedOrder.margin_breakdown.dropshipper_receives_fcfa)} FCFA
+                        +{formatPrice(selectedOrder.margin_breakdown.revendeur_receives_fcfa)} FCFA
                       </span>
                     </div>
                   </div>
@@ -1304,7 +1304,7 @@ const DropshipperOrderTracking = ({ token }) => {
                     <td className="p-3 text-sm">{order.customer_name}</td>
                     <td className="p-3 font-medium">{formatPrice(order.total_fcfa)} FCFA</td>
                     <td className="p-3 font-medium text-green-600">
-                      +{formatPrice(order.margin_breakdown?.dropshipper_receives_fcfa)} FCFA
+                      +{formatPrice(order.margin_breakdown?.revendeur_receives_fcfa)} FCFA
                     </td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${ORDER_STATUSES[order.status]?.bg} ${ORDER_STATUSES[order.status]?.text}`}>
@@ -1325,4 +1325,4 @@ const DropshipperOrderTracking = ({ token }) => {
   );
 };
 
-export default DropshipperDashboard;
+export default RevendeurDashboard;

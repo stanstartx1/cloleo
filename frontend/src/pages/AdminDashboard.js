@@ -25,7 +25,7 @@ const SIDEBAR_ITEMS = [
   { id: 'users', label: 'Utilisateurs', icon: Users, color: 'text-rose-400' },
   { id: 'vendors', label: 'Vendeurs', icon: Store, color: 'text-purple-400' },
   { id: 'drivers', label: 'Livreurs', icon: Truck, color: 'text-blue-400' },
-  { id: 'dropshippers', label: 'Dropshippers', icon: Package, color: 'text-indigo-400' },
+  { id: 'revendeurs', label: 'Revendeurs', icon: Package, color: 'text-indigo-400' },
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
   { id: 'categories', label: 'Catégories', icon: Cog, color: 'text-teal-400' },
   { id: 'transactions', label: 'Transactions', icon: CreditCard, color: 'text-emerald-400' },
@@ -53,7 +53,7 @@ const AdminDashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [settings, setSettings] = useState({});
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
-  const [dropshippers, setDropshippers] = useState([]);
+  const [revendeurs, setRevendeurs] = useState([]);
   const [dropshippingStats, setDropshippingStats] = useState(null);
   const [dropshippingTransactions, setDropshippingTransactions] = useState([]);
   
@@ -83,7 +83,7 @@ const AdminDashboard = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, dropshippersRes, dropStatsRes, usersRes, catsRes] = await Promise.all([
+      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, revendeursRes, dropStatsRes, usersRes, catsRes] = await Promise.all([
         axios.get(`${API}/admin/dashboard`, { headers }),
         axios.get(`${API}/admin/vendors`, { headers }),
         axios.get(`${API}/admin/drivers`, { headers }).catch(() => ({ data: { drivers: [] } })),
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
         axios.get(`${API}/admin/products/pending`, { headers }),
         axios.get(`${API}/admin/transactions`, { headers }),
         axios.get(`${API}/subscriptions/plans`, { headers }),
-        axios.get(`${API}/admin/dropshippers`, { headers }).catch(() => ({ data: { dropshippers: [] } })),
+        axios.get(`${API}/admin/revendeurs`, { headers }).catch(() => ({ data: { revendeurs: [] } })),
         axios.get(`${API}/admin/dropshipping/stats`, { headers }).catch(() => ({ data: { stats: {}, recent_transactions: [] } })),
         axios.get(`${API}/admin/users`, { headers }).catch(() => ({ data: { users: [] } })),
         axios.get(`${API}/categories`, { headers }).catch(() => ({ data: [] }))
@@ -104,7 +104,7 @@ const AdminDashboard = () => {
       setPendingProducts(pendingRes.data.products || []);
       setTransactions(transactionsRes.data.transactions || []);
       setSubscriptionPlans(plansRes.data || []);
-      setDropshippers(dropshippersRes.data.dropshippers || []);
+      setRevendeurs(revendeursRes.data.revendeurs || []);
       setDropshippingStats(dropStatsRes.data.stats || {});
       setDropshippingTransactions(dropStatsRes.data.recent_transactions || []);
       setAllUsers(usersRes.data.users || []);
@@ -308,11 +308,11 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteDropshipper = async (dropshipperId, dropshipperName) => {
-    if (!window.confirm(`Supprimer le dropshipper "${dropshipperName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
+  const handleDeleteRevendeur = async (revendeurId, revendeurName) => {
+    if (!window.confirm(`Supprimer le revendeur "${revendeurName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
     
     try {
-      const response = await axios.delete(`${API}/admin/dropshippers/${dropshipperId}`, {
+      const response = await axios.delete(`${API}/admin/revendeurs/${revendeurId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(response.data.message);
@@ -428,8 +428,8 @@ const AdminDashboard = () => {
         return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} searchTerm={searchTerm} />;
       case 'drivers':
         return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} />;
-      case 'dropshippers':
-        return <DropshippersSection dropshippers={dropshippers} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteDropshipper} />;
+      case 'revendeurs':
+        return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} />;
       case 'products':
         return <ProductsSection 
           products={products} 
@@ -1334,13 +1334,13 @@ const SettingToggle = ({ label, value, onChange }) => (
 );
 
 // ============= DROPSHIPPERS SECTION =============
-const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefresh, onDelete }) => {
+const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, onDelete }) => {
   const [loading, setLoading] = useState(false);
   
-  const handleToggleDropshipper = async (dropshipperId) => {
+  const handleToggleRevendeur = async (revendeurId) => {
     setLoading(true);
     try {
-      await axios.put(`${API}/admin/dropshippers/${dropshipperId}/toggle`, {}, {
+      await axios.put(`${API}/admin/revendeurs/${revendeurId}/toggle`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Statut mis à jour');
@@ -1356,14 +1356,14 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
     <div className="space-y-6">
       <h2 className="text-xl font-bold flex items-center gap-2">
         <Package className="w-6 h-6 text-indigo-400" />
-        Gestion Dropshipping
+        Gestion Revente
       </h2>
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-slate-400 text-sm">Dropshippers actifs</p>
-          <p className="text-2xl font-bold text-indigo-400">{stats?.active_dropshippers || 0}</p>
+          <p className="text-slate-400 text-sm">Revendeurs actifs</p>
+          <p className="text-2xl font-bold text-indigo-400">{stats?.active_revendeurs || 0}</p>
         </div>
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
           <p className="text-slate-400 text-sm">Produits dropshippés</p>
@@ -1379,16 +1379,16 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
         </div>
       </div>
       
-      {/* Dropshippers List */}
+      {/* Revendeurs List */}
       <div className="bg-slate-800 rounded-xl border border-slate-700">
         <div className="p-4 border-b border-slate-700">
-          <h3 className="font-semibold">Liste des Dropshippers ({dropshippers.length})</h3>
+          <h3 className="font-semibold">Liste des Revendeurs ({revendeurs.length})</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
-                <th className="p-4">Dropshipper</th>
+                <th className="p-4">Revendeur</th>
                 <th className="p-4">Boutique</th>
                 <th className="p-4">Produits</th>
                 <th className="p-4">Commandes</th>
@@ -1398,14 +1398,14 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
               </tr>
             </thead>
             <tbody>
-              {dropshippers.length === 0 ? (
+              {revendeurs.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="p-8 text-center text-slate-400">
-                    Aucun dropshipper inscrit
+                    Aucun revendeur inscrit
                   </td>
                 </tr>
               ) : (
-                dropshippers.map((d) => (
+                revendeurs.map((d) => (
                   <tr key={d.id} className="border-b border-slate-700 hover:bg-slate-700/50">
                     <td className="p-4">
                       <div>
@@ -1429,7 +1429,7 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
                         <Button
                           size="sm"
                           variant={d.is_active ? "destructive" : "default"}
-                          onClick={() => handleToggleDropshipper(d.id)}
+                          onClick={() => handleToggleRevendeur(d.id)}
                           disabled={loading}
                         >
                           {d.is_active ? 'Désactiver' : 'Activer'}
@@ -1439,8 +1439,8 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
                           variant="ghost" 
                           onClick={() => onDelete(d.id, d.shop_name || d.name)} 
                           className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          title="Supprimer le dropshipper"
-                          data-testid={`delete-dropshipper-${d.id}`}
+                          title="Supprimer le revendeur"
+                          data-testid={`delete-revendeur-${d.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1457,7 +1457,7 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
       {/* Recent Transactions */}
       <div className="bg-slate-800 rounded-xl border border-slate-700">
         <div className="p-4 border-b border-slate-700">
-          <h3 className="font-semibold">Transactions Dropshipping récentes</h3>
+          <h3 className="font-semibold">Transactions Revente récentes</h3>
         </div>
         <div className="p-4 space-y-3">
           {transactions.length === 0 ? (
@@ -1467,7 +1467,7 @@ const DropshippersSection = ({ dropshippers, stats, transactions, token, onRefre
               <div key={t.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                 <div>
                   <p className="font-medium">{t.product_name}</p>
-                  <p className="text-sm text-slate-400">{t.dropshipper_name} • {t.order_number}</p>
+                  <p className="text-sm text-slate-400">{t.revendeur_name} • {t.order_number}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-green-400 font-medium">+{formatPrice(t.admin_share || 0)} F</p>
@@ -1489,7 +1489,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
     customer: 'Clients',
     vendor: 'Vendeurs',
     driver: 'Livreurs',
-    dropshipper: 'Dropshippers'
+    revendeur: 'Revendeurs'
   };
 
   const getRoleColor = (role) => {
@@ -1497,7 +1497,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
       case 'admin': return 'bg-red-500/20 text-red-400';
       case 'vendor': return 'bg-purple-500/20 text-purple-400';
       case 'driver': return 'bg-blue-500/20 text-blue-400';
-      case 'dropshipper': return 'bg-indigo-500/20 text-indigo-400';
+      case 'revendeur': return 'bg-indigo-500/20 text-indigo-400';
       default: return 'bg-slate-500/20 text-slate-400';
     }
   };

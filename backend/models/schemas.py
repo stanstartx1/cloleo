@@ -8,7 +8,8 @@ class UserRole:
     VENDOR = "vendor"
     ADMIN = "admin"
     DRIVER = "driver"
-    DROPSHIPPER = "dropshipper"
+    DROPSHIPPER = "dropshipper"  # Keep for DB compatibility
+    REVENDEUR = "dropshipper"    # Alias en français
 
 
 class OrderStatus:

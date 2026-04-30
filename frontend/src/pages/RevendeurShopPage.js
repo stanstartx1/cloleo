@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const DropshipperShopPage = () => {
+const RevendeurShopPage = () => {
   const { shopSlug } = useParams();
   const { isAuthenticated, token } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -37,9 +37,9 @@ const DropshipperShopPage = () => {
         setSubscriberCount(response.data.shop?.subscriber_count || 0);
         
         // Check if user is subscribed
-        if (isAuthenticated && token && response.data.shop?.dropshipper_id) {
+        if (isAuthenticated && token && response.data.shop?.revendeur_id) {
           try {
-            const subRes = await axios.get(`${API}/subscriptions/check/${response.data.shop.dropshipper_id}`, {
+            const subRes = await axios.get(`${API}/subscriptions/check/${response.data.shop.revendeur_id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
             setIsSubscribed(subRes.data.is_subscribed);
@@ -83,21 +83,21 @@ const DropshipperShopPage = () => {
       return;
     }
     
-    if (!shop?.dropshipper_id) {
+    if (!shop?.revendeur_id) {
       toast.error('Impossible de s\'abonner pour le moment');
       return;
     }
     
     try {
       if (isSubscribed) {
-        await axios.delete(`${API}/subscriptions/${shop.dropshipper_id}`, {
+        await axios.delete(`${API}/subscriptions/${shop.revendeur_id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsSubscribed(false);
         setSubscriberCount(prev => Math.max(0, prev - 1));
         toast.success('Désabonné avec succès');
       } else {
-        await axios.post(`${API}/subscriptions/${shop.dropshipper_id}`, {}, {
+        await axios.post(`${API}/subscriptions/${shop.revendeur_id}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsSubscribed(true);
@@ -163,7 +163,7 @@ const DropshipperShopPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="dropshipper-shop-page">
+    <div className="min-h-screen bg-gray-50" data-testid="revendeur-shop-page">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
@@ -210,7 +210,7 @@ const DropshipperShopPage = () => {
               size="sm"
               onClick={handleShare}
               className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-              data-testid="dropshipper-share-btn"
+              data-testid="revendeur-share-btn"
             >
               <Share2 className="w-4 h-4 mr-2" />
               Partager
@@ -221,7 +221,7 @@ const DropshipperShopPage = () => {
               size="sm"
               onClick={handleCopyLink}
               className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-              data-testid="dropshipper-copy-link-btn"
+              data-testid="revendeur-copy-link-btn"
             >
               <Copy className="w-4 h-4 mr-2" />
               Copier le lien
@@ -234,7 +234,7 @@ const DropshipperShopPage = () => {
                 ? "bg-white/20 border-white/30 text-white hover:bg-white/30" 
                 : "bg-white text-purple-700 hover:bg-purple-50"
               }
-              data-testid="dropshipper-subscribe-btn"
+              data-testid="revendeur-subscribe-btn"
             >
               {isSubscribed ? (
                 <>
@@ -509,4 +509,4 @@ const OrderModal = ({ product, quantity, setQuantity, onClose, onSubmit, loading
   );
 };
 
-export default DropshipperShopPage;
+export default RevendeurShopPage;

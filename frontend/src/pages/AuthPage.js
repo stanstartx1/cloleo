@@ -46,7 +46,7 @@ const AuthPage = () => {
       } else if (result.user.role === 'driver') {
         navigate('/livreur');
       } else if (result.user.role === 'dropshipper') {
-        navigate('/dropshipper');
+        navigate('/revendeur');
       } else {
         navigate(from);
       }
@@ -89,7 +89,7 @@ const AuthPage = () => {
     if (role === 'driver') {
       navigate('/devenir-livreur');
     } else if (role === 'dropshipper') {
-      navigate('/devenir-dropshipper');
+      navigate('/devenir-revendeur');
     } else {
       setRegisterRole(role);
     }
@@ -217,7 +217,7 @@ const AuthPage = () => {
                         className="p-3 rounded-xl border-2 border-border hover:border-purple-500/50 hover:bg-purple-50 transition-all"
                       >
                         <Package className="w-6 h-6 mx-auto mb-1 text-purple-500" />
-                        <p className="font-medium text-xs text-purple-600">Dropshipper</p>
+                        <p className="font-medium text-xs text-purple-600">Revendeur</p>
                       </button>
                       <button
                         type="button"

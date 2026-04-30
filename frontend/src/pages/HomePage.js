@@ -497,8 +497,8 @@ const HomePage = () => {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 rounded-full px-10 py-6 text-lg font-semibold transition-all duration-300 hover:-translate-y-1">
-              <Link to="/devenir-dropshipper">
-                Devenir Dropshipper
+              <Link to="/devenir-revendeur">
+                Devenir Revendeur
               </Link>
             </Button>
           </div>
