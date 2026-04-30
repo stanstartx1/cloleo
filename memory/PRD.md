@@ -153,10 +153,10 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   
 - [ ] **LOT 5 - Fonctionnalités Achat**
   - [x] Système d'offres de prix ("Faire une offre") ✅
-  - [ ] Achat direct sans panier ("Acheter maintenant")
+  - [x] Achat direct sans panier ("Acheter maintenant") ✅
   
 - [ ] **LOT 6 - Social & Partage**
-  - [x] Système abonnements vendeurs/dropshippers ✅
+  - [x] Système abonnements vendeurs/revendeurs ✅
   - [ ] Statistiques abonnements dans dashboards
   - [ ] Boutons partage/copie lien boutique et produit
 
@@ -212,6 +212,27 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Role DB reste `dropshipper` pour compatibilité
   - [x] Nouveau router `revendeur_router` avec aliases
   - [x] Admin endpoint `/api/admin/revendeurs` retourne `revendeurs` key
+
+### Phase 15 ✅ (COMPLÉTÉ 30/04/2026)
+- [x] **Système Achat Direct**
+  - [x] Composant `QuickCheckoutModal.js` créé
+  - [x] **Étape 1 - Confirmation produit** :
+    - Image, nom, description du produit
+    - Prix promo avec prix original barré + badge réduction
+    - Sélecteur de quantité (+/-)
+    - Sous-total + Frais livraison (1,500 FCFA) + Total
+  - [x] **Étape 2 - Adresse de livraison** :
+    - Carte Google Maps interactive avec marqueur déplaçable
+    - Bouton géolocalisation "Ma position"
+    - Formulaire : Nom, Téléphone, Adresse, Notes
+    - Mode de paiement : Espèces / Mobile Money
+    - Résumé mini de la commande
+  - [x] **Étape 3 - Confirmation** :
+    - Animation de succès
+    - ID de commande
+    - Boutons "Continuer mes achats" / "Suivre ma commande"
+  - [x] Bouton orange "⚡ Achat Direct" dans ProductPage
+  - [x] Backend supporte `is_direct_purchase: true` dans /api/orders
 
 ## Schéma de Base de Données
 
