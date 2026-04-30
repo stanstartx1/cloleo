@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2 } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../components/FloatingChat';
 import ProductCard from '../components/ProductCard';
 import ReviewSection from '../components/ReviewSection';
+import QuickCheckoutModal from '../components/QuickCheckoutModal';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -50,6 +51,9 @@ const ProductPage = () => {
   const [offerPrice, setOfferPrice] = useState('');
   const [offerMessage, setOfferMessage] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
+  
+  // Quick checkout modal state
+  const [showQuickCheckout, setShowQuickCheckout] = useState(false);
 
   const fetchProduct = useCallback(async () => {
     setLoading(true);
@@ -195,13 +199,13 @@ const ProductPage = () => {
   };
 
   const handleBuyNow = async () => {
-    // Add to cart then redirect to checkout
-    const success = await addToCart(product.id, quantity);
-    if (success) {
-      navigate('/checkout');
-    } else {
-      toast.error('Erreur lors de l\'ajout au panier');
+    // Open direct checkout modal
+    if (!isAuthenticated) {
+      toast.error('Veuillez vous connecter pour acheter');
+      navigate('/connexion');
+      return;
     }
+    setShowQuickCheckout(true);
   };
 
   if (loading) {
@@ -431,17 +435,21 @@ const ProductPage = () => {
               </Button>
             </div>
             
-            {/* Buy Now Button */}
+            {/* Buy Now Button - Direct Purchase */}
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 mb-6"
+              className="w-full h-14 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 mb-4 text-lg font-semibold shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all duration-300 hover:-translate-y-0.5"
               onClick={handleBuyNow}
               disabled={cartLoading}
               data-testid="buy-now-btn"
             >
-              <CreditCard className="w-5 h-5 mr-2" />
-              Acheter maintenant
+              <Zap className="w-5 h-5 mr-2" />
+              Achat Direct
             </Button>
+            
+            <p className="text-center text-sm text-gray-500 mb-6">
+              Achetez immédiatement sans passer par le panier
+            </p>
 
             {/* Secondary actions */}
             <div className="flex flex-wrap gap-3 mb-6">
@@ -675,6 +683,18 @@ const ProductPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Quick Checkout Modal */}
+      {showQuickCheckout && product && (
+        <QuickCheckoutModal
+          product={product}
+          quantity={quantity}
+          onClose={() => setShowQuickCheckout(false)}
+          onSuccess={(order) => {
+            console.log('Direct purchase order:', order);
+          }}
+        />
       )}
     </div>
   );
