@@ -164,14 +164,14 @@ const VendorAddProduct = () => {
               <div className="space-y-2">
                 <Label htmlFor="category_slug">Catégorie *</Label>
                 <Select
-                  value={formData.category_slug}
+                  value={formData.category_slug || undefined}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, category_slug: value }))}
                 >
                   <SelectTrigger data-testid="product-category">
-                    <SelectValue placeholder="Sélectionner..." />
+                    <SelectValue placeholder="Sélectionner une catégorie..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
+                    {categories.filter(cat => cat.slug).map((cat) => (
                       <SelectItem key={cat.slug} value={cat.slug}>
                         {cat.name}
                       </SelectItem>
@@ -183,11 +183,11 @@ const VendorAddProduct = () => {
               <div className="space-y-2">
                 <Label htmlFor="condition">État *</Label>
                 <Select
-                  value={formData.condition}
+                  value={formData.condition || 'neuf'}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
                 >
                   <SelectTrigger data-testid="product-condition">
-                    <SelectValue />
+                    <SelectValue placeholder="Sélectionner l'état..." />
                   </SelectTrigger>
                   <SelectContent>
                     {CONDITIONS.map((cond) => (
