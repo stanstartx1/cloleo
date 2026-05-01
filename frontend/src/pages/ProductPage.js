@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
@@ -54,6 +55,11 @@ const ProductPage = () => {
   
   // Quick checkout modal state
   const [showQuickCheckout, setShowQuickCheckout] = useState(false);
+  
+  // Animation states for buttons
+  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
+  const [buyNowSuccess, setBuyNowSuccess] = useState(false);
+  const [confettiParticles, setConfettiParticles] = useState([]);
 
   const fetchProduct = useCallback(async () => {
     setLoading(true);
@@ -86,12 +92,28 @@ const ProductPage = () => {
     }
   }, [autoOpenChat, product, isAuthenticated]);
 
+  // Trigger confetti particles
+  const triggerConfetti = () => {
+    const particles = Array.from({ length: 15 }, (_, i) => ({
+      id: Date.now() + i,
+      x: Math.random() * 120 - 60,
+      y: Math.random() * -100 - 30,
+      rotation: Math.random() * 360,
+      scale: Math.random() * 0.5 + 0.5,
+      color: ['#f97316', '#22c55e', '#3b82f6', '#eab308', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 6)]
+    }));
+    setConfettiParticles(particles);
+    setTimeout(() => setConfettiParticles([]), 1000);
+  };
+
   const handleAddToCart = async () => {
     const success = await addToCart(product.id, quantity);
     if (success) {
+      setAddToCartSuccess(true);
       toast.success('Produit ajouté au panier', {
         description: `${quantity}x ${product.name}`,
       });
+      setTimeout(() => setAddToCartSuccess(false), 2000);
     } else {
       toast.error('Erreur lors de l\'ajout au panier');
     }
@@ -433,43 +455,201 @@ const ProductPage = () => {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-3 mb-4">
-              <Button
-                size="lg"
-                className="flex-1 min-w-[200px]"
+              {/* Add to Cart Button with Animation */}
+              <motion.button
+                className={cn(
+                  "flex-1 min-w-[200px] h-11 px-6 rounded-md font-medium flex items-center justify-center gap-2 relative overflow-hidden",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "transition-colors duration-200"
+                )}
                 onClick={handleAddToCart}
-                disabled={cartLoading}
+                disabled={cartLoading || addToCartSuccess}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 data-testid="add-to-cart-btn"
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Ajouter au panier
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
+                <AnimatePresence mode="wait">
+                  {cartLoading ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-2"
+                    >
+                      <motion.div
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                      />
+                      Ajout...
+                    </motion.div>
+                  ) : addToCartSuccess ? (
+                    <motion.div
+                      key="success"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      className="flex items-center gap-2 text-white"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: [0, 1.2, 1] }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Check className="w-5 h-5" />
+                      </motion.div>
+                      Ajouté !
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="default"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-2"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      Ajouter au panier
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Success ripple effect */}
+                {addToCartSuccess && (
+                  <motion.div
+                    className="absolute inset-0 bg-green-500"
+                    initial={{ scale: 0, opacity: 0.3 }}
+                    animate={{ scale: 2.5, opacity: 0 }}
+                    transition={{ duration: 0.6 }}
+                    style={{ borderRadius: '50%', transformOrigin: 'center' }}
+                  />
+                )}
+              </motion.button>
+
+              {/* Favorite Button with Animation */}
+              <motion.button
+                className={cn(
+                  "h-11 w-11 rounded-md border flex items-center justify-center",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  favorite && "text-red-500 border-red-500 bg-red-50"
+                )}
                 onClick={handleToggleFavorite}
-                className={cn(favorite && "text-red-500 border-red-500")}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 data-testid="favorite-btn"
               >
-                <Heart className={cn("w-5 h-5", favorite && "fill-current")} />
-              </Button>
-              <Button size="lg" variant="outline" onClick={handleShare}>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={favorite ? 'filled' : 'empty'}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Heart className={cn("w-5 h-5", favorite && "fill-current")} />
+                  </motion.div>
+                </AnimatePresence>
+              </motion.button>
+              
+              <motion.button
+                className="h-11 w-11 rounded-md border flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
+                onClick={handleShare}
+                whileHover={{ scale: 1.1, rotate: 15 }}
+                whileTap={{ scale: 0.9 }}
+              >
                 <Share2 className="w-5 h-5" />
-              </Button>
+              </motion.button>
             </div>
             
-            {/* Buy Now Button - Direct Purchase */}
-            <Button
-              size="lg"
-              className="w-full h-14 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 mb-4 text-lg font-semibold shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all duration-300 hover:-translate-y-0.5"
-              onClick={handleBuyNow}
-              disabled={cartLoading}
-              data-testid="buy-now-btn"
-            >
-              <Zap className="w-5 h-5 mr-2" />
-              Achat Direct
-            </Button>
+            {/* Buy Now Button - Direct Purchase with Confetti */}
+            <div className="relative">
+              {/* Confetti Particles */}
+              <AnimatePresence>
+                {confettiParticles.map((particle) => (
+                  <motion.div
+                    key={particle.id}
+                    className="absolute pointer-events-none z-10"
+                    style={{
+                      left: '50%',
+                      top: '50%',
+                      width: 10,
+                      height: 10,
+                      borderRadius: '2px',
+                      backgroundColor: particle.color,
+                    }}
+                    initial={{ x: 0, y: 0, scale: 0, rotate: 0, opacity: 1 }}
+                    animate={{ 
+                      x: particle.x, 
+                      y: particle.y, 
+                      scale: particle.scale,
+                      rotate: particle.rotation,
+                      opacity: 0 
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                ))}
+              </AnimatePresence>
+              
+              <motion.button
+                className={cn(
+                  "w-full h-14 rounded-md text-lg font-semibold flex items-center justify-center gap-2 relative overflow-hidden",
+                  "bg-gradient-to-r from-orange-500 to-amber-500 text-white",
+                  "shadow-lg shadow-orange-200 hover:shadow-orange-300",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+                onClick={() => {
+                  triggerConfetti();
+                  handleBuyNow();
+                }}
+                disabled={cartLoading}
+                whileHover={{ scale: 1.02, y: -3, boxShadow: "0 20px 40px -10px rgba(249, 115, 22, 0.4)" }}
+                whileTap={{ scale: 0.98 }}
+                data-testid="buy-now-btn"
+              >
+                <AnimatePresence mode="wait">
+                  {buyNowSuccess ? (
+                    <motion.div
+                      key="success"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center gap-2"
+                    >
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: [0, 1.3, 1] }}
+                        transition={{ duration: 0.4 }}
+                      >
+                        🎉
+                      </motion.span>
+                      Commandé !
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="default"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center gap-2"
+                    >
+                      <Zap className="w-5 h-5" />
+                      Achat Direct
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Shimmer effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                />
+              </motion.button>
+            </div>
             
-            <p className="text-center text-sm text-gray-500 mb-6">
+            <p className="text-center text-sm text-gray-500 mb-6 mt-4">
               Achetez immédiatement sans passer par le panier
             </p>
 

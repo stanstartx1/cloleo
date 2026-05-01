@@ -267,6 +267,30 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Marge calculée et affichée (50/50)
   - [x] Boutons Partager/Copier fonctionnels sur boutique
 
+### Phase 17 ✅ (COMPLÉTÉ 01/05/2026)
+- [x] **Micro-animations de Feedback**
+  - [x] Bouton "Ajouter au panier" animé :
+    - État loading avec spinner
+    - État succès avec checkmark animé + texte "Ajouté !"
+    - Effet ripple au succès
+    - Hover avec lift + scale
+  - [x] Bouton "Achat Direct" animé :
+    - Effet shimmer permanent
+    - Confetti particles au clic (15 particules colorées)
+    - Hover avec shadow glow orange
+    - État succès avec emoji 🎉
+  - [x] Bouton Favoris animé :
+    - Transition coeur vide → rempli
+    - Animation scale au hover/tap
+  - [x] Bouton Partager :
+    - Rotation au hover
+  - [x] Composants réutilisables créés :
+    - `AddToCartButton` : Bouton panier avec états loading/success
+    - `OrderButton` : Bouton commande avec confetti
+    - `CartBadge` : Badge panier avec bounce animation
+    - `FavoriteButton` : Coeur avec particules burst
+    - `AnimatedToast` : Toast avec slide + fade
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper/revendeur)
