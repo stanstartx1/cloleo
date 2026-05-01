@@ -428,6 +428,56 @@ async def delete_product(product_id: str, user: dict = Depends(require_vendor)):
         raise HTTPException(status_code=404, detail="Non trouvé")
     return {"message": "Supprimé"}
 
+class VendorProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price_fcfa: Optional[int] = None
+    promo_price_fcfa: Optional[int] = None
+    stock: Optional[int] = None
+    condition: Optional[str] = None
+    category_slug: Optional[str] = None
+    images: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+
+@api_router.put("/vendor/products/{product_id}")
+async def update_vendor_product(product_id: str, data: VendorProductUpdate, user: dict = Depends(require_vendor)):
+    """Update a vendor's product"""
+    product = await db.products.find_one({"id": product_id, "seller_id": user["id"]})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.name is not None:
+        update_data["name"] = data.name
+        update_data["slug"] = generate_slug(data.name)
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.price_fcfa is not None:
+        update_data["price_fcfa"] = data.price_fcfa
+        update_data["price_usd"] = round(data.price_fcfa * FCFA_TO_USD, 2)
+    if data.promo_price_fcfa is not None:
+        update_data["promo_price_fcfa"] = data.promo_price_fcfa
+        update_data["promo_price_usd"] = round(data.promo_price_fcfa * FCFA_TO_USD, 2) if data.promo_price_fcfa else None
+    if data.stock is not None:
+        update_data["stock"] = data.stock
+    if data.condition is not None:
+        update_data["condition"] = data.condition
+    if data.category_slug is not None:
+        update_data["category_slug"] = data.category_slug
+    if data.images is not None:
+        update_data["images"] = data.images
+    if data.tags is not None:
+        update_data["tags"] = data.tags
+    
+    # If significant changes, reset status to pending for admin review
+    if any(k in update_data for k in ["name", "description", "price_fcfa", "images"]):
+        update_data["status"] = "pending"
+    
+    await db.products.update_one({"id": product_id}, {"$set": update_data})
+    updated = await db.products.find_one({"id": product_id}, {"_id": 0})
+    return updated
+
 # PUBLIC STATS
 @api_router.get("/stats/public")
 async def get_public_stats():

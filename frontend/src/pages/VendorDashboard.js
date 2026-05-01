@@ -62,6 +62,19 @@ const VendorDashboard = () => {
   const [driverLocation, setDriverLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // Edit product modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    price_fcfa: '',
+    promo_price_fcfa: '',
+    stock: '',
+    condition: 'new'
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+  
   const wsRef = React.useRef(null);
 
   useEffect(() => {
@@ -110,6 +123,49 @@ const VendorDashboard = () => {
       console.error('Error:', error);
     }
   }, [token]);
+
+  // Open edit modal for vendor product
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditForm({
+      name: product.name || '',
+      description: product.description || '',
+      price_fcfa: product.price_fcfa?.toString() || '',
+      promo_price_fcfa: product.promo_price_fcfa?.toString() || '',
+      stock: product.stock?.toString() || '',
+      condition: product.condition || 'new'
+    });
+    setShowEditModal(true);
+  };
+
+  // Save edited product
+  const saveEditedProduct = async () => {
+    if (!editingProduct) return;
+    
+    setSavingEdit(true);
+    try {
+      const updateData = {};
+      if (editForm.name) updateData.name = editForm.name;
+      if (editForm.description) updateData.description = editForm.description;
+      if (editForm.price_fcfa) updateData.price_fcfa = parseInt(editForm.price_fcfa);
+      if (editForm.promo_price_fcfa) updateData.promo_price_fcfa = parseInt(editForm.promo_price_fcfa);
+      if (editForm.stock) updateData.stock = parseInt(editForm.stock);
+      if (editForm.condition) updateData.condition = editForm.condition;
+
+      await axios.put(`${API}/vendor/products/${editingProduct.id}`, updateData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success('Produit modifié ! En attente de validation admin.');
+      setShowEditModal(false);
+      setEditingProduct(null);
+      fetchProducts();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la modification');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   useEffect(() => {
     if (activeSection === 'orders' || activeSection === 'tracking') fetchOrders();
@@ -447,6 +503,17 @@ const VendorDashboard = () => {
                         >
                           {product.status === 'approved' ? 'Approuvé' : product.status === 'pending' ? 'En attente' : 'Rejeté'}
                         </motion.span>
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openEditModal(product)}
+                            className="border-slate-600 text-slate-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Modifier
+                          </Button>
+                        </motion.div>
                       </motion.div>
                     ))}
                   </div>
@@ -955,6 +1022,157 @@ const VendorDashboard = () => {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Edit Product Modal */}
+      {showEditModal && editingProduct && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="w-full max-w-lg"
+          >
+            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-2xl">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Edit className="w-5 h-5" />
+                  Modifier le produit
+                </h2>
+              </div>
+              
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* Product Preview */}
+                <div className="flex gap-4 p-3 bg-slate-700/50 rounded-xl">
+                  <img
+                    src={editingProduct.images?.[0] || 'https://via.placeholder.com/80'}
+                    alt={editingProduct.name}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{editingProduct.name}</p>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      editingProduct.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                      editingProduct.status === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {editingProduct.status === 'approved' ? 'Approuvé' : editingProduct.status === 'pending' ? 'En attente' : 'Rejeté'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Edit Form */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Nom du produit</label>
+                    <Input 
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Nom du produit"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Description</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                      className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white resize-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                      placeholder="Description du produit..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1">Prix (FCFA)</label>
+                      <Input 
+                        type="number"
+                        value={editForm.price_fcfa}
+                        onChange={(e) => setEditForm({...editForm, price_fcfa: e.target.value})}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="10000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1">Prix promo (FCFA)</label>
+                      <Input 
+                        type="number"
+                        value={editForm.promo_price_fcfa}
+                        onChange={(e) => setEditForm({...editForm, promo_price_fcfa: e.target.value})}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="Optionnel"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1">Stock</label>
+                      <Input 
+                        type="number"
+                        value={editForm.stock}
+                        onChange={(e) => setEditForm({...editForm, stock: e.target.value})}
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1">État</label>
+                      <select
+                        value={editForm.condition}
+                        onChange={(e) => setEditForm({...editForm, condition: e.target.value})}
+                        className="w-full p-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                      >
+                        <option value="new">Neuf</option>
+                        <option value="like_new">Comme neuf</option>
+                        <option value="good">Bon état</option>
+                        <option value="fair">État correct</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-amber-500/20 rounded-lg">
+                    <p className="text-amber-400 text-sm">
+                      ⚠️ Les modifications importantes (nom, description, prix) nécessitent une nouvelle validation admin.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingProduct(null);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button 
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    onClick={saveEditedProduct}
+                    disabled={savingEdit}
+                  >
+                    {savingEdit ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sauvegarde...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Sauvegarder
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

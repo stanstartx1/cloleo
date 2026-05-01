@@ -291,6 +291,27 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
     - `FavoriteButton` : Coeur avec particules burst
     - `AnimatedToast` : Toast avec slide + fade
 
+### Phase 18 ✅ (COMPLÉTÉ 01/05/2026)
+- [x] **Modification Produits Vendeur/Revendeur**
+  - [x] **Endpoint API** `PUT /api/vendor/products/{id}` :
+    - Modifie nom, description, prix, prix promo, stock, état
+    - Remet le produit "en attente" pour validation admin si changements majeurs
+  - [x] **Dashboard Vendeur** :
+    - Bouton "Modifier" ajouté sur chaque produit
+    - Modal d'édition complet avec :
+      - Aperçu du produit avec status actuel
+      - Champs : Nom, Description, Prix, Prix promo, Stock, État
+      - Avertissement validation admin nécessaire
+      - Boutons Annuler/Sauvegarder animés
+  - [x] **Dashboard Revendeur** :
+    - Bouton "Modifier" ajouté sur chaque produit
+    - Modal d'édition avec :
+      - Image modifiable (upload)
+      - Prix de vente avec prix minimum affiché
+      - Calcul automatique nouvelle marge (50%)
+      - Description personnalisée
+      - Boutons Annuler/Sauvegarder animés
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper/revendeur)

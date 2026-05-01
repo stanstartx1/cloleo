@@ -67,6 +67,15 @@ const RevendeurDashboard = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const imageInputRef = useRef(null);
   const [copied, setCopied] = useState(null);
+  
+  // Edit product modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editImages, setEditImages] = useState([]);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const editImageInputRef = useRef(null);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -165,6 +174,76 @@ const RevendeurDashboard = () => {
     setCustomDescription(product.description);
     setCustomImages(product.images || []);
     setShowCustomizeModal(true);
+  };
+
+  // Open edit modal for existing product
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditPrice(product.selling_price_fcfa?.toString() || '');
+    setEditDescription(product.custom_description || '');
+    setEditImages(product.custom_image_url ? [product.custom_image_url] : (product.original_images || []));
+    setShowEditModal(true);
+  };
+
+  // Save edited product
+  const saveEditedProduct = async () => {
+    if (!editingProduct) return;
+    
+    const price = parseInt(editPrice);
+    const originalPrice = editingProduct.original_promo_price_fcfa || editingProduct.original_price_fcfa;
+    
+    if (price < originalPrice) {
+      toast.error(`Le prix doit être supérieur ou égal à ${originalPrice.toLocaleString()} FCFA`);
+      return;
+    }
+    
+    setSavingEdit(true);
+    try {
+      await axios.put(`${API}/revendeur/products/${editingProduct.id}`, {
+        selling_price_fcfa: price,
+        custom_description: editDescription,
+        custom_image_url: editImages[0] || null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success('Produit modifié avec succès !');
+      setShowEditModal(false);
+      setEditingProduct(null);
+      fetchMyProducts();
+    } catch (error) {
+      toast.error('Erreur lors de la modification');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Handle edit image upload
+  const handleEditImageUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const formData = new FormData();
+    formData.append('files', files[0]);
+
+    try {
+      const response = await axios.post(`${API}/upload/multiple`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      const newUrl = response.data.urls[0];
+      const fullUrl = newUrl.startsWith('http') ? newUrl : `${BACKEND_URL}${newUrl}`;
+      setEditImages([fullUrl]);
+      toast.success('Image mise à jour !');
+    } catch (error) {
+      toast.error('Erreur lors du téléchargement');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   // Handle image upload for customization
@@ -847,6 +926,17 @@ const RevendeurDashboard = () => {
                                     <Button 
                                       variant="outline" 
                                       size="sm"
+                                      onClick={() => openEditModal(product)}
+                                      className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                                    >
+                                      <Edit2 className="w-4 h-4 mr-1" />
+                                      Modifier
+                                    </Button>
+                                  </motion.div>
+                                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
                                       onClick={() => toggleProductStatus(product.id, product.is_active)}
                                       className="hover:bg-purple-50"
                                     >
@@ -1277,6 +1367,161 @@ const RevendeurDashboard = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Edit Product Modal */}
+      {showEditModal && editingProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            <Card className="w-full max-w-lg max-h-[90vh] overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+                <CardTitle className="flex items-center gap-2">
+                  <Edit2 className="w-5 h-5" />
+                  Modifier le produit
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                {/* Product Info */}
+                <div className="flex gap-4 p-3 bg-gray-50 rounded-xl">
+                  <img
+                    src={editImages?.[0] || editingProduct.original_images?.[0] || '/placeholder.jpg'}
+                    alt={editingProduct.original_name}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-medium">{editingProduct.original_name}</h3>
+                    <p className="text-sm text-gray-500">
+                      Prix d'achat: {(editingProduct.original_promo_price_fcfa || editingProduct.original_price_fcfa)?.toLocaleString()} FCFA
+                    </p>
+                    <Badge className={editingProduct.is_active ? 'bg-green-500 mt-1' : 'bg-gray-400 mt-1'}>
+                      {editingProduct.is_active ? 'Actif' : 'Inactif'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Edit Image */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Image className="w-4 h-4 text-blue-500" />
+                    Image du produit
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={editImages?.[0] || editingProduct.original_images?.[0] || '/placeholder.jpg'}
+                      alt="Product"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <div className="flex-1">
+                      <input
+                        ref={editImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => editImageInputRef.current?.click()}
+                        disabled={uploadingImages}
+                        className="w-full"
+                      >
+                        {uploadingImages ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Envoi...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Changer l'image
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Format: JPG, PNG. Max 5 Mo
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Edit Price */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-green-500" />
+                    Votre prix de vente (FCFA)
+                  </label>
+                  <Input
+                    type="number"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    placeholder="Ex: 15000"
+                    className="text-lg font-semibold"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Prix minimum: {(editingProduct.original_promo_price_fcfa || editingProduct.original_price_fcfa)?.toLocaleString()} FCFA
+                  </p>
+                  {editPrice && parseInt(editPrice) > (editingProduct.original_promo_price_fcfa || editingProduct.original_price_fcfa) && (
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-sm text-green-700 font-medium">
+                        💰 Nouvelle marge: +{((parseInt(editPrice) - (editingProduct.original_promo_price_fcfa || editingProduct.original_price_fcfa)) / 2).toLocaleString()} FCFA (50%)
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Edit Description */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Edit2 className="w-4 h-4 text-blue-500" />
+                    Description personnalisée
+                  </label>
+                  <textarea
+                    className="w-full p-3 border rounded-xl text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={3}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Modifiez la description..."
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1" 
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingProduct(null);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button 
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600" 
+                    onClick={saveEditedProduct}
+                    disabled={savingEdit}
+                  >
+                    {savingEdit ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sauvegarde...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Sauvegarder
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
 
       {/* Customize Product Modal */}
       {showCustomizeModal && selectedProduct && (
