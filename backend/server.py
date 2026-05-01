@@ -230,11 +230,13 @@ class DropshippedProductCreate(BaseModel):
     original_product_id: str
     custom_description: Optional[str] = None
     selling_price_fcfa: int
+    custom_images: Optional[List[str]] = None
 
 class DropshippedProductUpdate(BaseModel):
     custom_description: Optional[str] = None
     selling_price_fcfa: Optional[int] = None
     is_active: Optional[bool] = None
+    custom_images: Optional[List[str]] = None
 
 # Chat/Messaging models
 class MessageCreate(BaseModel):
@@ -1175,6 +1177,93 @@ async def upload_multiple_files(files: List[UploadFile] = File(...), user: dict 
         urls.append(f"/api/uploads/{filename}")
     
     return {"urls": urls}
+
+# ============== USER PROFILE MANAGEMENT ==============
+
+@api_router.get("/users/me")
+async def get_current_user_profile(user: dict = Depends(get_current_user)):
+    """Get current user's profile"""
+    return {k: v for k, v in user.items() if k != "password"}
+
+@api_router.put("/users/profile")
+async def update_user_profile(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Update user profile information"""
+    allowed_fields = ["name", "phone", "city", "location", "shop_name", "shop_description"]
+    update_data = {k: v for k, v in data.items() if k in allowed_fields and v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Aucune donnée à mettre à jour")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+    
+    updated_user = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
+    return updated_user
+
+@api_router.put("/users/password")
+async def change_user_password(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Change user password"""
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+    
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Mot de passe actuel et nouveau requis")
+    
+    # Verify current password
+    user_with_password = await db.users.find_one({"id": user["id"]})
+    if not user_with_password or hash_password(current_password) != user_with_password.get("password"):
+        raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit contenir au moins 6 caractères")
+    
+    # Update password
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password": hash_password(new_password), "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Mot de passe modifié avec succès"}
+
+@api_router.post("/users/profile/photo")
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Upload profile photo"""
+    allowed_types = ["image/jpeg", "image/png", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé. Utilisez JPG, PNG ou WebP")
+    
+    # Limit file size to 5MB
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="L'image ne doit pas dépasser 5 Mo")
+    
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"profile_{user['id']}_{uuid.uuid4()}.{ext}"
+    filepath = UPLOAD_DIR / filename
+    
+    # Save file
+    async with aiofiles.open(filepath, 'wb') as out_file:
+        await out_file.write(content)
+    
+    # Update user profile
+    photo_url = f"/api/uploads/{filename}"
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"profile_photo": photo_url, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"url": photo_url, "message": "Photo de profil mise à jour"}
 
 # ============== ADMIN PRODUCTS PENDING (MISSING ENDPOINT) ==============
 
@@ -2300,11 +2389,13 @@ async def create_dropshipped_product(data: DropshippedProductCreate, user: dict 
         "original_name": original["name"],
         "original_description": original["description"],
         "original_price_fcfa": original["price_fcfa"],
+        "original_promo_price_fcfa": original.get("promo_price_fcfa"),
         "original_images": original.get("images", []),
         "original_category_slug": original.get("category_slug"),
         "original_vendor_id": original.get("seller_id"),
         "original_vendor_name": original.get("seller_name"),
         "custom_description": data.custom_description or original["description"],
+        "custom_images": data.custom_images if data.custom_images else original.get("images", []),
         "selling_price_fcfa": data.selling_price_fcfa,
         "selling_price_usd": round(data.selling_price_fcfa * FCFA_TO_USD, 2),
         "margin_fcfa": margin,
@@ -2369,6 +2460,9 @@ async def update_dropshipped_product(product_id: str, data: DropshippedProductUp
     
     if data.is_active is not None:
         update_data["is_active"] = data.is_active
+    
+    if data.custom_images is not None:
+        update_data["custom_images"] = data.custom_images
     
     await db.dropshipped_products.update_one({"id": product_id}, {"$set": update_data})
     updated = await db.dropshipped_products.find_one({"id": product_id}, {"_id": 0})

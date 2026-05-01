@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
-  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle
+  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle,
+  Image, Upload, Trash2, Edit2, Share2, Copy, Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -13,6 +14,7 @@ import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
 import MessagesSection from '../components/MessagesSection';
+import ShareButtons from '../components/ShareButtons';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -52,6 +54,10 @@ const RevendeurDashboard = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [customPrice, setCustomPrice] = useState('');
   const [customDescription, setCustomDescription] = useState('');
+  const [customImages, setCustomImages] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const imageInputRef = useRef(null);
+  const [copied, setCopied] = useState(null);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -146,17 +152,70 @@ const RevendeurDashboard = () => {
   // Add product to my catalog
   const handleAddProduct = (product) => {
     setSelectedProduct(product);
-    setCustomPrice(product.price_fcfa.toString());
+    setCustomPrice((product.promo_price_fcfa || product.price_fcfa).toString());
     setCustomDescription(product.description);
+    setCustomImages(product.images || []);
     setShowCustomizeModal(true);
+  };
+
+  // Handle image upload for customization
+  const handleImageUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const formData = new FormData();
+    
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+
+    try {
+      const response = await axios.post(`${API}/upload/multiple`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      const newUrls = response.data.urls.map(url => 
+        url.startsWith('http') ? url : `${BACKEND_URL}${url}`
+      );
+      
+      setCustomImages(prev => [...prev, ...newUrls]);
+      toast.success(`${newUrls.length} image(s) ajoutée(s) !`);
+    } catch (error) {
+      toast.error('Erreur lors du téléchargement des images');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  // Remove image from custom images
+  const removeImage = (index) => {
+    setCustomImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Copy product link
+  const handleCopyLink = async (productId) => {
+    const url = `${window.location.origin}/produit/${productId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(productId);
+      toast.success('Lien copié !');
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      toast.error('Erreur lors de la copie');
+    }
   };
 
   const submitCustomizedProduct = async () => {
     if (!selectedProduct) return;
     
+    const basePrice = selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa;
     const sellingPrice = parseInt(customPrice);
-    if (sellingPrice < selectedProduct.price_fcfa) {
-      toast.error(`Le prix doit être supérieur ou égal à ${selectedProduct.price_fcfa} FCFA`);
+    if (sellingPrice < basePrice) {
+      toast.error(`Le prix doit être supérieur ou égal à ${basePrice} FCFA`);
       return;
     }
     
@@ -164,7 +223,8 @@ const RevendeurDashboard = () => {
       await axios.post(`${API}/revendeur/products`, {
         original_product_id: selectedProduct.id,
         selling_price_fcfa: sellingPrice,
-        custom_description: customDescription !== selectedProduct.description ? customDescription : null
+        custom_description: customDescription !== selectedProduct.description ? customDescription : null,
+        custom_images: customImages.length > 0 && JSON.stringify(customImages) !== JSON.stringify(selectedProduct.images) ? customImages : null
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -172,8 +232,9 @@ const RevendeurDashboard = () => {
       toast.success('Produit ajouté à votre catalogue !');
       setShowCustomizeModal(false);
       setSelectedProduct(null);
+      setCustomImages([]);
       
-      // Refresh catalog to update "is_dropshipped" status
+      // Refresh catalog to update "is_revendeur" status
       fetchCatalog(catalogPage, catalogSearch);
       
       // Update dashboard stats
@@ -842,18 +903,22 @@ const RevendeurDashboard = () => {
       {/* Customize Product Modal */}
       {showCustomizeModal && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg">
-            <CardHeader>
-              <CardTitle>Personnaliser le produit</CardTitle>
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Personnaliser le produit
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-4">
+            <CardContent className="space-y-4 p-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+              {/* Product Info */}
+              <div className="flex gap-4 p-3 bg-gray-50 rounded-xl">
                 <img
-                  src={selectedProduct.images?.[0] || '/placeholder.jpg'}
+                  src={customImages?.[0] || selectedProduct.images?.[0] || '/placeholder.jpg'}
                   alt={selectedProduct.name}
-                  className="w-24 h-24 object-cover rounded-lg"
+                  className="w-20 h-20 object-cover rounded-lg"
                 />
-                <div>
+                <div className="flex-1">
                   <h3 className="font-medium">{selectedProduct.name}</h3>
                   <div className="mt-1">
                     {selectedProduct.promo_price_fcfa && selectedProduct.promo_price_fcfa < selectedProduct.price_fcfa ? (
@@ -861,7 +926,7 @@ const RevendeurDashboard = () => {
                         <p className="text-xs text-gray-400 line-through">Prix normal: {selectedProduct.price_fcfa?.toLocaleString()} FCFA</p>
                         <p className="text-sm text-green-600 font-medium">Prix promo: {selectedProduct.promo_price_fcfa?.toLocaleString()} FCFA</p>
                         <Badge className="bg-green-100 text-green-700 text-xs mt-1">
-                          -{Math.round((1 - selectedProduct.promo_price_fcfa / selectedProduct.price_fcfa) * 100)}% de réduction
+                          -{Math.round((1 - selectedProduct.promo_price_fcfa / selectedProduct.price_fcfa) * 100)}%
                         </Badge>
                       </div>
                     ) : (
@@ -871,37 +936,108 @@ const RevendeurDashboard = () => {
                 </div>
               </div>
 
+              {/* Custom Images */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Votre prix de vente (FCFA)</label>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Image className="w-4 h-4 text-purple-500" />
+                  Images du produit
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {customImages.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={img}
+                        alt={`Image ${idx + 1}`}
+                        className="w-full h-20 object-cover rounded-lg border"
+                      />
+                      <button
+                        onClick={() => removeImage(idx)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={uploadingImages}
+                    className="w-full h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-1 hover:border-purple-400 hover:bg-purple-50 transition-colors"
+                  >
+                    {uploadingImages ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-gray-400" />
+                        <span className="text-xs text-gray-500">Ajouter</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <p className="text-xs text-gray-500">Vous pouvez remplacer les images par les vôtres</p>
+              </div>
+
+              {/* Price */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-green-500" />
+                  Votre prix de vente (FCFA)
+                </label>
                 <Input
                   type="number"
                   value={customPrice}
                   onChange={(e) => setCustomPrice(e.target.value)}
                   min={selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa}
+                  className="text-lg font-semibold"
                 />
                 {parseInt(customPrice) > (selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa) && (
-                  <p className="text-sm text-green-600">
-                    Votre marge: +{((parseInt(customPrice) - (selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa)) / 2).toLocaleString()} FCFA (50%)
-                  </p>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-700 font-medium">
+                      💰 Votre marge: +{((parseInt(customPrice) - (selectedProduct.promo_price_fcfa || selectedProduct.price_fcfa)) / 2).toLocaleString()} FCFA (50%)
+                    </p>
+                  </div>
                 )}
               </div>
 
+              {/* Description */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Description personnalisée (optionnel)</label>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Edit2 className="w-4 h-4 text-blue-500" />
+                  Description personnalisée
+                </label>
                 <textarea
-                  className="w-full p-3 border rounded-lg text-sm"
-                  rows={4}
+                  className="w-full p-3 border rounded-xl text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  rows={3}
                   value={customDescription}
                   onChange={(e) => setCustomDescription(e.target.value)}
                   placeholder="Modifiez la description si nécessaire..."
                 />
               </div>
 
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setShowCustomizeModal(false)}>
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => {
+                    setShowCustomizeModal(false);
+                    setCustomImages([]);
+                  }}
+                >
                   Annuler
                 </Button>
-                <Button className="flex-1 bg-purple-600 hover:bg-purple-700" onClick={submitCustomizedProduct}>
+                <Button 
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600" 
+                  onClick={submitCustomizedProduct}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
                   Ajouter à ma boutique
                 </Button>
               </div>

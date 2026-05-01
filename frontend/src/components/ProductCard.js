@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Star, MapPin, Eye, Store, BadgeCheck } from 'lucide-react';
+import { Heart, MessageCircle, Star, MapPin, Eye, Store, BadgeCheck, Share2, Copy, Check } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from './FloatingChat';
@@ -22,10 +22,48 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const { startConversation } = useChat();
   const favorite = isFavorite(product.id);
   const [isHovered, setIsHovered] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const hasPromo = product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa;
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
   const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
+
+  const productUrl = `${window.location.origin}/produit/${product.id}`;
+
+  const handleShare = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Découvrez ${product.name} sur Cloléo - ${formatPrice(displayPrice)}`,
+          url: productUrl
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          handleCopyLink(e);
+        }
+      }
+    } else {
+      handleCopyLink(e);
+    }
+  };
+
+  const handleCopyLink = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      await navigator.clipboard.writeText(productUrl);
+      setCopied(true);
+      toast.success('Lien copié !');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Impossible de copier le lien');
+    }
+  };
 
   const handleContactVendor = async (e) => {
     e.preventDefault();
@@ -170,6 +208,32 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             favorite && "fill-current scale-110"
           )} />
         </button>
+
+        {/* Share buttons - appear on hover */}
+        <div className={cn(
+          "absolute top-3 right-14 flex gap-1.5 transform transition-all duration-300",
+          isHovered ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0"
+        )}>
+          <button
+            onClick={handleShare}
+            className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center hover:bg-white hover:text-orange-500 hover:shadow-lg transition-all duration-200 hover:scale-110"
+            title="Partager"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleCopyLink}
+            className={cn(
+              "w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110",
+              copied 
+                ? "bg-green-500 text-white" 
+                : "bg-white/80 text-gray-600 hover:bg-white hover:text-orange-500 hover:shadow-lg"
+            )}
+            title="Copier le lien"
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* Contact Vendor Button - Slide up animation */}
         {showContactButton && (

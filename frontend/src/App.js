@@ -51,6 +51,9 @@ import RevendeurShopPage from "./pages/RevendeurShopPage";
 // Shop Pages
 import VendorShopPage from "./pages/VendorShopPage";
 
+// Settings
+import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
@@ -201,6 +204,13 @@ const AppRoutes = () => {
 
       {/* Customer Chat Route */}
       <Route path="/mes-messages" element={<PublicLayout><CustomerChatPage /></PublicLayout>} />
+
+      {/* Profile Settings Route */}
+      <Route path="/parametres" element={
+        <ProtectedRoute>
+          <PublicLayout><ProfileSettingsPage /></PublicLayout>
+        </ProtectedRoute>
+      } />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

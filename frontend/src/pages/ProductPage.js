@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
@@ -375,6 +375,28 @@ const ProductPage = () => {
                   </Link>
                 )}
               </div>
+            </div>
+
+            {/* Share Buttons */}
+            <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-xl">
+              <span className="text-sm text-gray-600 font-medium">Partager :</span>
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors shadow-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="text-sm">Partager</span>
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success('Lien copié !');
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors shadow-sm"
+              >
+                <Copy className="w-4 h-4" />
+                <span className="text-sm">Copier le lien</span>
+              </button>
             </div>
 
             {/* Quantity */}
