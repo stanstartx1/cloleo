@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, ShoppingBag, DollarSign, TrendingUp, Clock, CheckCircle, XCircle,
   Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles, AlertCircle,
@@ -14,6 +15,12 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import GoogleMap from '../components/GoogleMap';
 import MessagesSection from '../components/MessagesSection';
+import { 
+  AnimatedNumber, 
+  staggerContainer, 
+  statCardVariant,
+  tabContentVariant
+} from '../components/AnimatedComponents';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -275,107 +282,228 @@ const VendorDashboard = () => {
           )}
 
           {/* Dashboard Section */}
+          <AnimatePresence mode="wait">
           {activeSection === 'dashboard' && (
-            <div className="space-y-6">
+            <motion.div 
+              key="dashboard"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
               {plan && (
-                <div className={`p-6 rounded-2xl border ${
-                  plan.id === 'free' ? 'bg-slate-700/50 border-slate-600' : 'bg-indigo-900/30 border-indigo-500/50'
-                }`}>
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-6 rounded-2xl border ${
+                    plan.id === 'free' ? 'bg-slate-700/50 border-slate-600' : 'bg-indigo-900/30 border-indigo-500/50'
+                  }`}
+                >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="text-4xl">{plan.emoji}</div>
+                      <motion.div 
+                        className="text-4xl"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        {plan.emoji}
+                      </motion.div>
                       <div>
                         <h3 className="font-bold text-xl text-white">{plan.name}</h3>
                         <p className="text-sm text-slate-400">Commission: {plan.commission_percent}%</p>
                       </div>
                     </div>
-                    <Button onClick={() => setActiveSection('subscription')} variant={plan.id === 'free' ? 'default' : 'outline'}>
-                      <Crown className="w-4 h-4 mr-2" /> {plan.id === 'free' ? 'Passer au plan payant' : 'Gérer'}
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button onClick={() => setActiveSection('subscription')} variant={plan.id === 'free' ? 'default' : 'outline'}>
+                        <Crown className="w-4 h-4 mr-2" /> {plan.id === 'free' ? 'Passer au plan payant' : 'Gérer'}
+                      </Button>
+                    </motion.div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                  <Package className="w-7 h-7 text-blue-400 mb-3" />
-                  <p className="text-3xl font-bold text-white">{stats?.total_products || 0}</p>
+              <motion.div 
+                className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
+                <motion.div 
+                  variants={statCardVariant} 
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg hover:shadow-xl transition-shadow"
+                >
+                  <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
+                    <Package className="w-7 h-7 text-blue-400 mb-3" />
+                  </motion.div>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={stats?.total_products || 0} /></p>
                   <p className="text-sm text-slate-400">Produits</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                  <Clock className="w-7 h-7 text-amber-400 mb-3" />
-                  <p className="text-3xl font-bold text-white">{stats?.pending_products || 0}</p>
+                </motion.div>
+                <motion.div 
+                  variants={statCardVariant} 
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg hover:shadow-xl transition-shadow"
+                >
+                  <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
+                    <Clock className="w-7 h-7 text-amber-400 mb-3" />
+                  </motion.div>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={stats?.pending_products || 0} /></p>
                   <p className="text-sm text-slate-400">En attente</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                  <ShoppingBag className="w-7 h-7 text-green-400 mb-3" />
-                  <p className="text-3xl font-bold text-white">{stats?.total_sales || 0}</p>
+                </motion.div>
+                <motion.div 
+                  variants={statCardVariant} 
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg hover:shadow-xl transition-shadow"
+                >
+                  <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
+                    <ShoppingBag className="w-7 h-7 text-green-400 mb-3" />
+                  </motion.div>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={stats?.total_sales || 0} /></p>
                   <p className="text-sm text-slate-400">Ventes</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                  <DollarSign className="w-7 h-7 text-emerald-400 mb-3" />
-                  <p className="text-2xl font-bold text-white">{formatPrice(stats?.total_revenue_fcfa || 0)}</p>
+                </motion.div>
+                <motion.div 
+                  variants={statCardVariant} 
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg hover:shadow-xl transition-shadow"
+                >
+                  <motion.div 
+                    whileHover={{ rotate: 10, scale: 1.1 }}
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <DollarSign className="w-7 h-7 text-emerald-400 mb-3" />
+                  </motion.div>
+                  <p className="text-2xl font-bold text-white"><AnimatedNumber value={stats?.total_revenue_fcfa || 0} /></p>
                   <p className="text-sm text-slate-400">Revenus FCFA</p>
-                </div>
-              </div>
-            </div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
           )}
 
           {/* Products Section */}
           {activeSection === 'products' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Mes produits</h2>
-                <Button asChild>
-                  <Link to="/vendeur/produits/nouveau">
-                    <Plus className="w-4 h-4 mr-2" /> Ajouter
-                  </Link>
-                </Button>
-              </div>
+            <motion.div 
+              key="products"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div 
+                className="flex items-center justify-between"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Package className="w-6 h-6 text-blue-400" />
+                  Mes produits
+                </h2>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button asChild className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
+                    <Link to="/vendeur/produits/nouveau">
+                      <Plus className="w-4 h-4 mr-2" /> Ajouter
+                    </Link>
+                  </Button>
+                </motion.div>
+              </motion.div>
               
-              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              <motion.div 
+                className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 {products.length > 0 ? (
                   <div className="divide-y divide-slate-700">
-                    {products.map(product => (
-                      <div key={product.id} className="p-4 flex items-center gap-4">
-                        <img src={product.images?.[0] || 'https://via.placeholder.com/60'} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
+                    {products.map((product, index) => (
+                      <motion.div 
+                        key={product.id} 
+                        className="p-4 flex items-center gap-4 hover:bg-slate-700/30 transition-colors"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ x: 5 }}
+                      >
+                        <motion.img 
+                          src={product.images?.[0] || 'https://via.placeholder.com/60'} 
+                          alt={product.name} 
+                          className="w-14 h-14 rounded-lg object-cover shadow-md" 
+                          whileHover={{ scale: 1.1 }}
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-white truncate">{product.name}</p>
                           <p className="text-sm text-slate-400">{formatPrice(product.price_fcfa)} FCFA</p>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          product.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                          product.status === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
-                        }`}>
+                        <motion.span 
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            product.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                            product.status === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+                          }`}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                        >
                           {product.status === 'approved' ? 'Approuvé' : product.status === 'pending' ? 'En attente' : 'Rejeté'}
-                        </span>
-                      </div>
+                        </motion.span>
+                      </motion.div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-12 text-center">
-                    <Package className="w-16 h-16 text-slate-600 mx-auto mb-3" />
+                  <motion.div 
+                    className="p-12 text-center"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Package className="w-16 h-16 text-slate-600 mx-auto mb-3" />
+                    </motion.div>
                     <p className="text-slate-400">Aucun produit</p>
                     <Button className="mt-4" asChild>
                       <Link to="/vendeur/produits/nouveau"><Plus className="w-4 h-4 mr-2" /> Ajouter</Link>
                     </Button>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
 
           {/* Orders Section */}
           {activeSection === 'orders' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Commandes</h2>
-                <Button size="sm" variant="outline" onClick={fetchOrders} className="border-slate-600 text-slate-300">
-                  <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
-                </Button>
-              </div>
+            <motion.div 
+              key="orders"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div 
+                className="flex items-center justify-between"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-green-400" />
+                  Commandes
+                </h2>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button size="sm" variant="outline" onClick={fetchOrders} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                    <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
+                  </Button>
+                </motion.div>
+              </motion.div>
 
-              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              <motion.div 
+                className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 {orders.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -390,7 +518,7 @@ const VendorDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {orders.map(order => (
+                        {orders.map((order, index) => (
                           <tr key={order.id} className="border-t border-slate-700">
                             <td className="p-4">
                               <p className="font-mono text-sm text-white">#{order.order_number?.slice(-8)}</p>
@@ -414,17 +542,19 @@ const VendorDashboard = () => {
                             </td>
                             <td className="p-4">
                               {['assigned', 'picked_up', 'in_transit'].includes(order.status) && (
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setActiveSection('tracking');
-                                  }}
-                                  className="text-blue-400"
-                                >
-                                  <MapPin className="w-4 h-4 mr-1" /> Suivre
-                                </Button>
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setActiveSection('tracking');
+                                    }}
+                                    className="text-blue-400 hover:bg-blue-500/20"
+                                  >
+                                    <MapPin className="w-4 h-4 mr-1" /> Suivre
+                                  </Button>
+                                </motion.div>
                               )}
                             </td>
                           </tr>
@@ -433,40 +563,81 @@ const VendorDashboard = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="p-12 text-center">
-                    <ShoppingBag className="w-16 h-16 text-slate-600 mx-auto mb-3" />
+                  <motion.div 
+                    className="p-12 text-center"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <ShoppingBag className="w-16 h-16 text-slate-600 mx-auto mb-3" />
+                    </motion.div>
                     <p className="text-slate-400">Aucune commande</p>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
 
           {/* Messages Section */}
           {activeSection === 'messages' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <motion.div 
+              key="messages"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.h2 
+                className="text-xl font-bold text-white flex items-center gap-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <MessageCircle className="w-6 h-6 text-purple-400" />
                 Messages clients
-              </h2>
+              </motion.h2>
               <MessagesSection token={token} userType="vendor" />
-            </div>
+            </motion.div>
           )}
 
           {/* Tracking Section */}
           {activeSection === 'tracking' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Suivi des livraisons</h2>
-                <Button size="sm" variant="outline" onClick={fetchOrders} className="border-slate-600 text-slate-300">
-                  <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
-                </Button>
-              </div>
+            <motion.div 
+              key="tracking"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div 
+                className="flex items-center justify-between"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Truck className="w-6 h-6 text-blue-400" />
+                  Suivi des livraisons
+                </h2>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button size="sm" variant="outline" onClick={fetchOrders} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                    <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
+                  </Button>
+                </motion.div>
+              </motion.div>
 
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Orders List */}
-                <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-                  <div className="p-4 border-b border-slate-700">
+                <motion.div 
+                  className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
                     <h3 className="font-bold text-white flex items-center gap-2">
                       <Truck className="w-5 h-5 text-blue-400" />
                       En cours ({activeOrders.length})
@@ -475,11 +646,15 @@ const VendorDashboard = () => {
                   
                   {activeOrders.length > 0 ? (
                     <div className="divide-y divide-slate-700 max-h-96 overflow-y-auto">
-                      {activeOrders.map(order => (
-                        <div 
+                      {activeOrders.map((order, index) => (
+                        <motion.div 
                           key={order.id}
-                          className={`p-4 cursor-pointer hover:bg-slate-700/50 ${selectedOrder?.id === order.id ? 'bg-slate-700/70 border-l-4 border-l-blue-500' : ''}`}
+                          className={`p-4 cursor-pointer hover:bg-slate-700/50 transition-colors ${selectedOrder?.id === order.id ? 'bg-slate-700/70 border-l-4 border-l-blue-500' : ''}`}
                           onClick={() => setSelectedOrder(order)}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ x: 5 }}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <p className="font-medium text-white">#{order.order_number?.slice(-8)}</p>
@@ -493,7 +668,7 @@ const VendorDashboard = () => {
                               <Truck className="w-3 h-3" /> {order.driver_name}
                             </p>
                           )}
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   ) : (
@@ -502,7 +677,7 @@ const VendorDashboard = () => {
                       <p className="text-slate-400 text-sm">Aucune livraison en cours</p>
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Map & Details */}
                 <div className="lg:col-span-2 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -580,104 +755,204 @@ const VendorDashboard = () => {
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Stats Section */}
           {activeSection === 'stats' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-white">Statistiques</h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-                  <h3 className="font-bold text-white mb-4">Ventes</h3>
+            <motion.div 
+              key="stats"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.h2 
+                className="text-xl font-bold text-white flex items-center gap-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <BarChart3 className="w-6 h-6 text-indigo-400" />
+                Statistiques
+              </motion.h2>
+              <motion.div 
+                className="grid md:grid-cols-2 gap-6"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
+                <motion.div 
+                  variants={statCardVariant}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl border border-slate-700 p-6 shadow-lg"
+                >
+                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-green-400" />
+                    Ventes
+                  </h3>
                   <div className="space-y-4">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Total des ventes</span>
-                      <span className="font-bold text-white">{stats?.total_sales || 0}</span>
+                      <span className="font-bold text-white text-xl"><AnimatedNumber value={stats?.total_sales || 0} /></span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Revenus</span>
-                      <span className="font-bold text-emerald-400">{formatPrice(stats?.total_revenue_fcfa || 0)} FCFA</span>
+                      <motion.span 
+                        className="font-bold text-emerald-400 text-xl"
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <AnimatedNumber value={stats?.total_revenue_fcfa || 0} /> FCFA
+                      </motion.span>
                     </div>
                   </div>
-                </div>
-                <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-                  <h3 className="font-bold text-white mb-4">Produits</h3>
+                </motion.div>
+                <motion.div 
+                  variants={statCardVariant}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl border border-slate-700 p-6 shadow-lg"
+                >
+                  <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-blue-400" />
+                    Produits
+                  </h3>
                   <div className="space-y-4">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Total</span>
-                      <span className="font-bold text-white">{stats?.total_products || 0}</span>
+                      <span className="font-bold text-white text-xl"><AnimatedNumber value={stats?.total_products || 0} /></span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Approuvés</span>
-                      <span className="font-bold text-green-400">{stats?.approved_products || 0}</span>
+                      <span className="font-bold text-green-400 text-xl"><AnimatedNumber value={stats?.approved_products || 0} /></span>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
           )}
 
           {/* Subscription Section */}
           {activeSection === 'subscription' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-white">Mon abonnement</h2>
+            <motion.div 
+              key="subscription"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.h2 
+                className="text-xl font-bold text-white flex items-center gap-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Crown className="w-6 h-6 text-yellow-400" />
+                Mon abonnement
+              </motion.h2>
               {plan && (
-                <div className={`p-6 rounded-2xl border ${
-                  plan.id === 'free' ? 'bg-slate-700/50 border-slate-600' : 'bg-gradient-to-br from-purple-900/50 to-indigo-900/50 border-purple-500/50'
-                }`}>
+                <motion.div 
+                  className={`p-6 rounded-2xl border ${
+                    plan.id === 'free' ? 'bg-slate-700/50 border-slate-600' : 'bg-gradient-to-br from-purple-900/50 to-indigo-900/50 border-purple-500/50'
+                  }`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="text-5xl">{plan.emoji}</div>
+                    <motion.div 
+                      className="text-5xl"
+                      animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                    >
+                      {plan.emoji}
+                    </motion.div>
                     <div>
                       <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
                       <p className="text-slate-400">{plan.price_fcfa > 0 ? `${formatPrice(plan.price_fcfa)} FCFA/mois` : 'Gratuit'}</p>
                     </div>
                   </div>
                   
-                  <div className="grid md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-slate-800/50 rounded-xl p-4">
+                  <motion.div 
+                    className="grid md:grid-cols-3 gap-4 mb-6"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    <motion.div 
+                      variants={statCardVariant}
+                      className="bg-slate-800/50 rounded-xl p-4"
+                    >
                       <p className="text-sm text-slate-400">Commission</p>
                       <p className="text-xl font-bold text-white">{plan.commission_percent}%</p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4">
+                    </motion.div>
+                    <motion.div 
+                      variants={statCardVariant}
+                      className="bg-slate-800/50 rounded-xl p-4"
+                    >
                       <p className="text-sm text-slate-400">Produits max</p>
                       <p className="text-xl font-bold text-white">{plan.max_products === -1 ? 'Illimité' : plan.max_products}</p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4">
+                    </motion.div>
+                    <motion.div 
+                      variants={statCardVariant}
+                      className="bg-slate-800/50 rounded-xl p-4"
+                    >
                       <p className="text-sm text-slate-400">Utilisés</p>
                       <p className="text-xl font-bold text-white">{stats?.total_products || 0}</p>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                   
                   {plan.id === 'free' && (
-                    <Button asChild className="w-full">
-                      <Link to="/vendeur/abonnement"><Crown className="w-4 h-4 mr-2" /> Passer à un plan supérieur</Link>
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg">
+                        <Link to="/vendeur/abonnement"><Crown className="w-4 h-4 mr-2" /> Passer à un plan supérieur</Link>
+                      </Button>
+                    </motion.div>
                   )}
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Settings Section */}
           {activeSection === 'settings' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-white">Paramètres</h2>
-              <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+            <motion.div 
+              key="settings"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.h2 
+                className="text-xl font-bold text-white flex items-center gap-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Settings className="w-6 h-6 text-slate-400" />
+                Paramètres
+              </motion.h2>
+              <motion.div 
+                className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 <h3 className="font-bold text-white mb-4">Informations de la boutique</h3>
                 <div className="space-y-4">
-                  <div>
+                  <motion.div whileHover={{ x: 5 }} className="p-3 bg-slate-700/30 rounded-lg">
                     <label className="block text-sm text-slate-400 mb-1">Nom</label>
                     <Input value={user?.shop_name || ''} className="bg-slate-700 border-slate-600 text-white" readOnly />
-                  </div>
-                  <div>
+                  </motion.div>
+                  <motion.div whileHover={{ x: 5 }} className="p-3 bg-slate-700/30 rounded-lg">
                     <label className="block text-sm text-slate-400 mb-1">Email</label>
                     <Input value={user?.email || ''} className="bg-slate-700 border-slate-600 text-white" readOnly />
-                  </div>
+                  </motion.div>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </main>
       </div>
     </div>

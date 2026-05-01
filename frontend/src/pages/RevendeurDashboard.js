@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
   ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle,
-  Image, Upload, Trash2, Edit2, Share2, Copy, Check
+  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -15,6 +16,14 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import MessagesSection from '../components/MessagesSection';
 import ShareButtons from '../components/ShareButtons';
+import { 
+  AnimatedNumber, 
+  staggerContainer, 
+  statCardVariant,
+  fadeInUp,
+  productCardVariant,
+  tabContentVariant
+} from '../components/AnimatedComponents';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -384,143 +393,247 @@ const RevendeurDashboard = () => {
       <main className="lg:ml-64 min-h-screen">
         <div className="p-6 lg:p-8">
           {/* Dashboard Tab */}
+          <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && dashboardData && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Bonjour, {user?.name} !</h1>
+            <motion.div 
+              key="dashboard"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-purple-500" />
+                  Bonjour, {user?.name} !
+                </h1>
                 <p className="text-gray-500">Voici un aperçu de votre activité revente</p>
-              </div>
+              </motion.div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Produits actifs</p>
-                        <p className="text-3xl font-bold text-gray-900">{dashboardData.stats.active_products}</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                        <Package className="w-6 h-6 text-purple-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Commandes</p>
-                        <p className="text-3xl font-bold text-gray-900">{dashboardData.stats.total_orders}</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <ShoppingCart className="w-6 h-6 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Complétées</p>
-                        <p className="text-3xl font-bold text-gray-900">{dashboardData.stats.completed_orders}</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-green-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Gains totaux</p>
-                        <p className="text-3xl font-bold text-green-600">{dashboardData.stats.total_earnings_fcfa.toLocaleString()} FCFA</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                        <DollarSign className="w-6 h-6 text-green-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab('catalog')}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">Ajouter des produits</h3>
-                        <p className="text-sm text-gray-500">Parcourir le catalogue</p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.open(`/boutique/${user?.shop_slug}`, '_blank')}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
-                        <Eye className="w-6 h-6 text-indigo-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">Voir ma boutique</h3>
-                        <p className="text-sm text-gray-500">Aperçu public</p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Recent Orders */}
-              {dashboardData.recent_orders.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Commandes récentes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {dashboardData.recent_orders.slice(0, 5).map((order) => (
-                        <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium">{order.order_number}</p>
-                            <p className="text-sm text-gray-500">{order.customer_name}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold">{order.total_fcfa?.toLocaleString()} FCFA</p>
-                            <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
-                              {order.status}
-                            </Badge>
-                          </div>
+              {/* Stats Cards - Animated */}
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
+                <motion.div variants={statCardVariant} whileHover={{ y: -5, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gradient-to-br from-purple-50 to-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Produits actifs</p>
+                          <p className="text-3xl font-bold text-gray-900">
+                            <AnimatedNumber value={dashboardData.stats.active_products} />
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <motion.div 
+                          className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center"
+                          whileHover={{ rotate: 15, scale: 1.1 }}
+                        >
+                          <Package className="w-6 h-6 text-purple-600" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={statCardVariant} whileHover={{ y: -5, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gradient-to-br from-blue-50 to-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Commandes</p>
+                          <p className="text-3xl font-bold text-gray-900">
+                            <AnimatedNumber value={dashboardData.stats.total_orders} />
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"
+                          whileHover={{ rotate: 15, scale: 1.1 }}
+                        >
+                          <ShoppingCart className="w-6 h-6 text-blue-600" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={statCardVariant} whileHover={{ y: -5, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gradient-to-br from-green-50 to-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Complétées</p>
+                          <p className="text-3xl font-bold text-gray-900">
+                            <AnimatedNumber value={dashboardData.stats.completed_orders} />
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center"
+                          whileHover={{ rotate: 15, scale: 1.1 }}
+                        >
+                          <TrendingUp className="w-6 h-6 text-green-600" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={statCardVariant} whileHover={{ y: -5, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gradient-to-br from-emerald-50 to-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Gains totaux</p>
+                          <p className="text-3xl font-bold text-green-600">
+                            <AnimatedNumber value={dashboardData.stats.total_earnings_fcfa} /> FCFA
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center"
+                          whileHover={{ rotate: 15, scale: 1.1 }}
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <DollarSign className="w-6 h-6 text-green-600" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+
+              {/* Quick Actions - Animated */}
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <motion.div whileHover={{ scale: 1.02, y: -3 }} whileTap={{ scale: 0.98 }}>
+                  <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200" onClick={() => setActiveTab('catalog')}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-4">
+                        <motion.div 
+                          className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg"
+                          whileHover={{ rotate: 5 }}
+                        >
+                          <Plus className="w-6 h-6 text-white" />
+                        </motion.div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">Ajouter des produits</h3>
+                          <p className="text-sm text-gray-500">Parcourir le catalogue</p>
+                        </div>
+                        <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                          <ChevronRight className="w-5 h-5 text-purple-400" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div whileHover={{ scale: 1.02, y: -3 }} whileTap={{ scale: 0.98 }}>
+                  <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-indigo-200" onClick={() => window.open(`/boutique/${user?.shop_slug}`, '_blank')}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-4">
+                        <motion.div 
+                          className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg"
+                          whileHover={{ rotate: -5 }}
+                        >
+                          <Eye className="w-6 h-6 text-white" />
+                        </motion.div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">Voir ma boutique</h3>
+                          <p className="text-sm text-gray-500">Aperçu public</p>
+                        </div>
+                        <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}>
+                          <ChevronRight className="w-5 h-5 text-indigo-400" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+
+              {/* Recent Orders - Animated */}
+              {dashboardData.recent_orders.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <Card className="overflow-hidden shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+                      <CardTitle className="flex items-center gap-2">
+                        <ShoppingBag className="w-5 h-5" />
+                        Commandes récentes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y">
+                        {dashboardData.recent_orders.slice(0, 5).map((order, index) => (
+                          <motion.div 
+                            key={order.id} 
+                            className="flex items-center justify-between p-4 hover:bg-purple-50 transition-colors"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.6 + index * 0.1 }}
+                            whileHover={{ x: 5 }}
+                          >
+                            <div>
+                              <p className="font-medium">{order.order_number}</p>
+                              <p className="text-sm text-gray-500">{order.customer_name}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">{order.total_fcfa?.toLocaleString()} FCFA</p>
+                              <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
+                                {order.status}
+                              </Badge>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Catalog Tab */}
           {activeTab === 'catalog' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <motion.div 
+              key="catalog"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div 
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Catalogue produits</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <Package2 className="w-6 h-6 text-purple-500" />
+                    Catalogue produits
+                  </h1>
                   <p className="text-gray-500">Sélectionnez des produits à ajouter à votre boutique</p>
                 </div>
-                <div className="relative w-full sm:w-64">
+                <motion.div 
+                  className="relative w-full sm:w-64"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     placeholder="Rechercher..."
@@ -529,189 +642,311 @@ const RevendeurDashboard = () => {
                       setCatalogSearch(e.target.value);
                       fetchCatalog(1, e.target.value);
                     }}
-                    className="pl-10"
+                    className="pl-10 border-purple-200 focus:border-purple-400"
                   />
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
 
               {catalogLoading ? (
                 <div className="flex justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {catalogProducts.map((product) => (
-                    <Card key={product.id} className="overflow-hidden">
-                      <div className="aspect-square relative">
-                        <img
-                          src={product.images?.[0] || '/placeholder.jpg'}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {product.is_dropshipped && (
-                          <div className="absolute top-2 right-2">
-                            <Badge className="bg-green-500">Ajouté</Badge>
-                          </div>
-                        )}
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
-                        {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
-                          <div className="space-y-1">
-                            <p className="text-xs text-gray-400 line-through">{product.price_fcfa?.toLocaleString()} FCFA</p>
-                            <p className="text-lg font-bold text-green-600">{product.promo_price_fcfa?.toLocaleString()} FCFA</p>
-                            <Badge className="bg-green-100 text-green-700 text-xs">
-                              -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
-                            </Badge>
-                          </div>
-                        ) : (
-                          <p className="text-lg font-bold text-purple-600">{product.price_fcfa?.toLocaleString()} FCFA</p>
-                        )}
-                        <p className="text-xs text-gray-500 mb-3">Prix d'achat minimum</p>
-                        {product.is_dropshipped ? (
-                          <Button variant="outline" className="w-full" disabled>
-                            Déjà ajouté
-                          </Button>
-                        ) : (
-                          <Button 
-                            className="w-full bg-purple-600 hover:bg-purple-700"
-                            onClick={() => handleAddProduct(product)}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Ajouter
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
+                <motion.div 
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  {catalogProducts.map((product, index) => (
+                    <motion.div
+                      key={product.id}
+                      variants={productCardVariant}
+                      whileHover={{ y: -8, scale: 1.02 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <div className="aspect-square relative group">
+                          <motion.img
+                            src={product.images?.[0] || '/placeholder.jpg'}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          {product.is_dropshipped && (
+                            <motion.div 
+                              className="absolute top-2 right-2"
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 300 }}
+                            >
+                              <Badge className="bg-green-500 shadow-lg">
+                                <Check className="w-3 h-3 mr-1" />
+                                Ajouté
+                              </Badge>
+                            </motion.div>
+                          )}
+                        </div>
+                        <CardContent className="p-4">
+                          <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
+                          {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-400 line-through">{product.price_fcfa?.toLocaleString()} FCFA</p>
+                              <p className="text-lg font-bold text-green-600">{product.promo_price_fcfa?.toLocaleString()} FCFA</p>
+                              <Badge className="bg-green-100 text-green-700 text-xs">
+                                -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
+                              </Badge>
+                            </div>
+                          ) : (
+                            <p className="text-lg font-bold text-purple-600">{product.price_fcfa?.toLocaleString()} FCFA</p>
+                          )}
+                          <p className="text-xs text-gray-500 mb-3">Prix d'achat minimum</p>
+                          {product.is_dropshipped ? (
+                            <Button variant="outline" className="w-full opacity-60" disabled>
+                              Déjà ajouté
+                            </Button>
+                          ) : (
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button 
+                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md"
+                                onClick={() => handleAddProduct(product)}
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Ajouter
+                              </Button>
+                            </motion.div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
 
               {catalogProducts.length === 0 && !catalogLoading && (
-                <div className="text-center py-12">
+                <motion.div 
+                  className="text-center py-12"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
                   <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
                   <p className="text-gray-500">Aucun produit trouvé</p>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* My Products Tab */}
           {activeTab === 'products' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
+            <motion.div 
+              key="products"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div 
+                className="flex justify-between items-center"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Mes produits</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <Package className="w-6 h-6 text-purple-500" />
+                    Mes produits
+                  </h1>
                   <p className="text-gray-500">Gérez les produits de votre boutique</p>
                 </div>
-                <Button onClick={() => setActiveTab('catalog')} className="bg-purple-600 hover:bg-purple-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter
-                </Button>
-              </div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button onClick={() => setActiveTab('catalog')} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter
+                  </Button>
+                </motion.div>
+              </motion.div>
 
               {myProductsLoading ? (
                 <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+                  <motion.div 
+                    className="rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
                 </div>
               ) : myProducts.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {myProducts.map((product) => (
-                    <Card key={product.id}>
-                      <CardContent className="p-4">
-                        <div className="flex gap-4">
-                          <img
-                            src={product.original_images?.[0] || '/placeholder.jpg'}
-                            alt={product.original_name}
-                            className="w-24 h-24 object-cover rounded-lg"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-medium">{product.original_name}</h3>
-                                <Badge variant={product.is_active ? 'default' : 'secondary'} className="mt-1">
-                                  {product.is_active ? 'Actif' : 'Inactif'}
-                                </Badge>
+                <motion.div 
+                  className="grid grid-cols-1 gap-4"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  {myProducts.map((product, index) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ x: 5, boxShadow: "0 10px 40px -10px rgba(139, 92, 246, 0.3)" }}
+                    >
+                      <Card className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300">
+                        <CardContent className="p-4">
+                          <div className="flex gap-4">
+                            <motion.img
+                              src={product.original_images?.[0] || '/placeholder.jpg'}
+                              alt={product.original_name}
+                              className="w-24 h-24 object-cover rounded-lg shadow-md"
+                              whileHover={{ scale: 1.05 }}
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="font-medium">{product.original_name}</h3>
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 500 }}
+                                  >
+                                    <Badge 
+                                      variant={product.is_active ? 'default' : 'secondary'} 
+                                      className={`mt-1 ${product.is_active ? 'bg-green-500' : ''}`}
+                                    >
+                                      {product.is_active ? 'Actif' : 'Inactif'}
+                                    </Badge>
+                                  </motion.div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-gray-500">Prix d'achat</p>
+                                  {product.original_promo_price_fcfa && product.original_promo_price_fcfa < product.original_price_fcfa ? (
+                                    <div>
+                                      <p className="text-xs text-gray-400 line-through">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
+                                      <p className="font-medium text-green-600">{product.original_promo_price_fcfa?.toLocaleString()} FCFA</p>
+                                    </div>
+                                  ) : (
+                                    <p className="font-medium">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
+                                  )}
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <p className="text-sm text-gray-500">Prix d'achat</p>
-                                {product.original_promo_price_fcfa && product.original_promo_price_fcfa < product.original_price_fcfa ? (
-                                  <div>
-                                    <p className="text-xs text-gray-400 line-through">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
-                                    <p className="font-medium text-green-600">{product.original_promo_price_fcfa?.toLocaleString()} FCFA</p>
-                                  </div>
-                                ) : (
-                                  <p className="font-medium">{product.original_price_fcfa?.toLocaleString()} FCFA</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="mt-3 flex items-center gap-4">
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-500">Votre prix de vente</p>
-                                <p className="text-lg font-bold text-purple-600">{product.selling_price_fcfa?.toLocaleString()} FCFA</p>
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-500">Votre marge</p>
-                                <p className="text-lg font-bold text-green-600">+{product.revendeur_share_fcfa?.toLocaleString()} FCFA</p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => toggleProductStatus(product.id, product.is_active)}
-                                >
-                                  {product.is_active ? 'Désactiver' : 'Activer'}
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => deleteProduct(product.id)}
-                                >
-                                  Supprimer
-                                </Button>
+                              <div className="mt-3 flex items-center gap-4">
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-500">Votre prix de vente</p>
+                                  <p className="text-lg font-bold text-purple-600">{product.selling_price_fcfa?.toLocaleString()} FCFA</p>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-500">Votre marge</p>
+                                  <motion.p 
+                                    className="text-lg font-bold text-green-600"
+                                    animate={{ scale: [1, 1.05, 1] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                  >
+                                    +{(product.dropshipper_share_fcfa || product.revendeur_share_fcfa)?.toLocaleString()} FCFA
+                                  </motion.p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => toggleProductStatus(product.id, product.is_active)}
+                                      className="hover:bg-purple-50"
+                                    >
+                                      {product.is_active ? 'Désactiver' : 'Activer'}
+                                    </Button>
+                                  </motion.div>
+                                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button 
+                                      variant="destructive" 
+                                      size="sm"
+                                      onClick={() => deleteProduct(product.id)}
+                                    >
+                                      Supprimer
+                                    </Button>
+                                  </motion.div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500 mb-4">Vous n'avez pas encore de produits</p>
-                    <Button onClick={() => setActiveTab('catalog')} className="bg-purple-600 hover:bg-purple-700">
-                      Parcourir le catalogue
-                    </Button>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Card className="border-dashed border-2">
+                    <CardContent className="py-12 text-center">
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      </motion.div>
+                      <p className="text-gray-500 mb-4">Vous n'avez pas encore de produits</p>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button onClick={() => setActiveTab('catalog')} className="bg-gradient-to-r from-purple-600 to-indigo-600">
+                          Parcourir le catalogue
+                        </Button>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Orders Tab */}
           {activeTab === 'orders' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mes commandes</h1>
+            <motion.div 
+              key="orders"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <ShoppingCart className="w-6 h-6 text-purple-500" />
+                  Mes commandes
+                </h1>
                 <p className="text-gray-500">Suivez les commandes de vos clients</p>
-              </div>
+              </motion.div>
 
               {ordersLoading ? (
                 <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+                  <motion.div 
+                    className="rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
                 </div>
               ) : orders.length > 0 ? (
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <Card key={order.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="font-semibold">{order.order_number}</p>
-                            <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
+                <motion.div 
+                  className="space-y-4"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  {orders.map((order, index) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ scale: 1.01, x: 5 }}
+                    >
+                      <Card className="shadow-md hover:shadow-xl transition-all duration-300">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <p className="font-semibold">{order.order_number}</p>
+                              <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
                           </div>
                           <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
                             {order.status === 'pending' && 'En attente'}
@@ -733,7 +968,13 @@ const RevendeurDashboard = () => {
                           </div>
                           <div>
                             <p className="text-gray-500">Votre gain</p>
-                            <p className="font-medium text-green-600">+{order.margin_breakdown?.revendeur_receives_fcfa?.toLocaleString()} FCFA</p>
+                            <motion.p 
+                              className="font-medium text-green-600"
+                              animate={{ scale: [1, 1.05, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
+                              +{order.margin_breakdown?.revendeur_receives_fcfa?.toLocaleString()} FCFA
+                            </motion.p>
                           </div>
                           <div>
                             <p className="text-gray-500">Adresse</p>
@@ -742,92 +983,185 @@ const RevendeurDashboard = () => {
                         </div>
                       </CardContent>
                     </Card>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <ShoppingCart className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500">Aucune commande pour le moment</p>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Card className="border-dashed border-2">
+                    <CardContent className="py-12 text-center">
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <ShoppingCart className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      </motion.div>
+                      <p className="text-gray-500">Aucune commande pour le moment</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Messages Tab */}
           {activeTab === 'messages' && (
-            <div className="space-y-6">
-              <div>
+            <motion.div 
+              key="messages"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <MessageCircle className="w-6 h-6 text-purple-600" />
                   Messages clients
                 </h1>
                 <p className="text-gray-500">Répondez aux questions de vos clients</p>
-              </div>
+              </motion.div>
               <MessagesSection token={token} userType="revendeur" />
-            </div>
+            </motion.div>
           )}
 
           {/* Tracking Tab - Live Delivery Tracking */}
           {activeTab === 'tracking' && (
-            <RevendeurOrderTracking token={token} />
+            <motion.div
+              key="tracking"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <RevendeurOrderTracking token={token} />
+            </motion.div>
           )}
 
           {/* Earnings Tab */}
           {activeTab === 'earnings' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mes gains</h1>
+            <motion.div 
+              key="earnings"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <DollarSign className="w-6 h-6 text-green-500" />
+                  Mes gains
+                </h1>
                 <p className="text-gray-500">Historique de vos revenus</p>
-              </div>
+              </motion.div>
 
               {earningsLoading ? (
                 <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
+                  <motion.div 
+                    className="rounded-full h-8 w-8 border-t-2 border-b-2 border-green-600"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
                 </div>
               ) : earnings.length > 0 ? (
-                <div className="space-y-4">
-                  {earnings.map((earning) => (
-                    <Card key={earning.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{earning.product_name}</p>
-                            <p className="text-sm text-gray-500">Commande {earning.order_number}</p>
-                            <p className="text-xs text-gray-400">{new Date(earning.created_at).toLocaleDateString('fr-FR')}</p>
+                <motion.div 
+                  className="space-y-4"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
+                  {earnings.map((earning, index) => (
+                    <motion.div
+                      key={earning.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ scale: 1.01, x: 5 }}
+                    >
+                      <Card className="shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-green-50 to-white">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{earning.product_name}</p>
+                              <p className="text-sm text-gray-500">Commande {earning.order_number}</p>
+                              <p className="text-xs text-gray-400">{new Date(earning.created_at).toLocaleDateString('fr-FR')}</p>
+                            </div>
+                            <div className="text-right">
+                              <motion.p 
+                                className="text-lg font-bold text-green-600"
+                                animate={{ scale: [1, 1.05, 1] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                              >
+                                +{earning.revendeur_share?.toLocaleString()} FCFA
+                              </motion.p>
+                              <p className="text-xs text-gray-500">sur {earning.total_margin?.toLocaleString()} FCFA de marge</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-green-600">+{earning.revendeur_share?.toLocaleString()} FCFA</p>
-                            <p className="text-xs text-gray-500">sur {earning.total_margin?.toLocaleString()} FCFA de marge</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               ) : (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <DollarSign className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500">Pas encore de gains</p>
-                  </CardContent>
-                </Card>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Card className="border-dashed border-2">
+                    <CardContent className="py-12 text-center">
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <DollarSign className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      </motion.div>
+                      <p className="text-gray-500">Pas encore de gains</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Shop Tab */}
           {activeTab === 'shop' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Ma boutique</h1>
+            <motion.div 
+              key="shop"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Store className="w-6 h-6 text-purple-500" />
+                  Ma boutique
+                </h1>
                 <p className="text-gray-500">Informations de votre boutique</p>
-              </div>
+              </motion.div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card className="shadow-lg overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-6">
                     <div className="w-20 h-20 rounded-xl bg-purple-100 flex items-center justify-center">
                       <Store className="w-10 h-10 text-purple-600" />
                     </div>
@@ -837,66 +1171,110 @@ const RevendeurDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-lg mb-4">
+                  <motion.div 
+                    className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl mb-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
                     <p className="text-sm text-gray-500 mb-1">Lien de votre boutique</p>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 p-2 bg-white rounded border text-sm">
+                      <code className="flex-1 p-2 bg-white rounded-lg border text-sm font-mono">
                         {window.location.origin}/boutique/{user?.shop_slug}
                       </code>
-                      <Button 
-                        variant="outline"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/boutique/${user?.shop_slug}`);
-                          toast.success('Lien copié !');
-                        }}
-                      >
-                        Copier
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/boutique/${user?.shop_slug}`);
+                            toast.success('Lien copié !');
+                          }}
+                          className="hover:bg-purple-50"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copier
+                        </Button>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
 
-                  <Button 
-                    className="w-full"
-                    onClick={() => window.open(`/boutique/${user?.shop_slug}`, '_blank')}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Voir ma boutique
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button 
+                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg"
+                      onClick={() => window.open(`/boutique/${user?.shop_slug}`, '_blank')}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Voir ma boutique
+                    </Button>
+                  </motion.div>
                 </CardContent>
               </Card>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Paramètres</h1>
+            <motion.div 
+              key="settings"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-gray-500" />
+                  Paramètres
+                </h1>
                 <p className="text-gray-500">Gérez votre compte</p>
-              </div>
+              </motion.div>
 
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Nom</p>
-                    <p className="font-medium">{user?.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">{user?.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Téléphone</p>
-                    <p className="font-medium">{user?.phone || 'Non renseigné'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Membre depuis</p>
-                    <p className="font-medium">{new Date(user?.created_at).toLocaleDateString('fr-FR')}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card className="shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <motion.div 
+                      className="p-3 bg-gray-50 rounded-lg"
+                      whileHover={{ backgroundColor: "rgba(139, 92, 246, 0.05)" }}
+                    >
+                      <p className="text-sm text-gray-500">Nom</p>
+                      <p className="font-medium">{user?.name}</p>
+                    </motion.div>
+                    <motion.div 
+                      className="p-3 bg-gray-50 rounded-lg"
+                      whileHover={{ backgroundColor: "rgba(139, 92, 246, 0.05)" }}
+                    >
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium">{user?.email}</p>
+                    </motion.div>
+                    <motion.div 
+                      className="p-3 bg-gray-50 rounded-lg"
+                      whileHover={{ backgroundColor: "rgba(139, 92, 246, 0.05)" }}
+                    >
+                      <p className="text-sm text-gray-500">Téléphone</p>
+                      <p className="font-medium">{user?.phone || 'Non renseigné'}</p>
+                    </motion.div>
+                    <motion.div 
+                      className="p-3 bg-gray-50 rounded-lg"
+                      whileHover={{ backgroundColor: "rgba(139, 92, 246, 0.05)" }}
+                    >
+                      <p className="text-sm text-gray-500">Membre depuis</p>
+                      <p className="font-medium">{new Date(user?.created_at).toLocaleDateString('fr-FR')}</p>
+                    </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </main>
 
