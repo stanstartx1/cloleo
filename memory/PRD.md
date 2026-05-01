@@ -234,6 +234,39 @@ Cloléo est une marketplace e-commerce complète conçue pour le marché africai
   - [x] Bouton orange "⚡ Achat Direct" dans ProductPage
   - [x] Backend supporte `is_direct_purchase: true` dans /api/orders
 
+### Phase 16 ✅ (COMPLÉTÉ 01/05/2026)
+- [x] **Animations Avancées Framer Motion**
+  - [x] Installation de framer-motion
+  - [x] Composant `AnimatedComponents.js` avec variants réutilisables :
+    - `staggerContainer` : Animation en cascade pour les grilles
+    - `statCardVariant` : Animation spring pour cartes stats
+    - `tabContentVariant` : Transitions fluides entre onglets
+    - `AnimatedNumber` : Compteur animé avec easing
+    - `productCardVariant` : Animations hover sur cartes produits
+  - [x] **Dashboard Revendeur animé** :
+    - 4 cartes stats avec gradients et icônes animés
+    - Chiffres compteurs animés (AnimatedNumber)
+    - Hover effects (lift, scale) sur les cartes
+    - Icônes avec rotation au hover
+    - Transitions AnimatePresence entre onglets
+    - Messages de gains avec animation pulse
+  - [x] **Dashboard Vendeur animé** :
+    - Thème dark avec gradients subtils
+    - 4 cartes stats avec animations spring
+    - Hover effects cohérents
+    - Plan emoji avec animation scale
+    - Sections stats et abonnement stylisées
+  - [x] **Correction Bug Marge Revendeur** :
+    - Affichage marge: utilise `dropshipper_share_fcfa || revendeur_share_fcfa`
+    - Compatibilité backward avec les deux clés API
+
+- [x] **Vérification Publication Produits Revendeur**
+  - [x] Ajout produit depuis catalogue → apparaît dans "Mes produits"
+  - [x] Produits actifs visibles sur boutique publique /boutique/{shop_slug}
+  - [x] Prix de vente personnalisé correctement affiché
+  - [x] Marge calculée et affichée (50/50)
+  - [x] Boutons Partager/Copier fonctionnels sur boutique
+
 ## Schéma de Base de Données
 
 ### Collection: users (role: dropshipper/revendeur)
