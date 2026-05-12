@@ -149,7 +149,7 @@ const ProfileSettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dashboard-card-skin home-premium-gradient">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
         <div className="container mx-auto px-4 py-8">

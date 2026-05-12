@@ -119,7 +119,7 @@ const VendorProducts = () => {
   }
 
   return (
-    <div className="min-h-screen py-8 bg-muted/30" data-testid="vendor-products">
+    <div className="min-h-screen py-8 bg-muted/30 dashboard-card-skin home-premium-gradient" data-testid="vendor-products">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">

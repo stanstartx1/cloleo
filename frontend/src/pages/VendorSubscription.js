@@ -122,7 +122,7 @@ const VendorSubscription = () => {
   }
 
   return (
-    <div className="min-h-screen py-12 bg-gradient-to-br from-orange-50 to-amber-50" data-testid="subscription-page">
+    <div className="min-h-screen py-12 bg-gradient-to-br from-orange-50 to-amber-50 dashboard-card-skin home-premium-gradient" data-testid="subscription-page">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">

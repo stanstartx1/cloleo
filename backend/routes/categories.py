@@ -30,6 +30,9 @@ async def get_categories():
             await db.categories.insert_one({
                 "id": str(uuid.uuid4()),
                 **c,
+                "image": None,
+                "banner_images": [],
+                "is_active": True,
                 "product_count": 0,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })

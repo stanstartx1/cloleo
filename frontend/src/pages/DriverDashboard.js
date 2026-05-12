@@ -13,8 +13,10 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import GoogleMap from '../components/GoogleMap';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const WS_URL = BACKEND_URL
+  .replace(/^https:\/\//, 'wss://')
+  .replace(/^http:\/\//, 'ws://');
 const API = `${BACKEND_URL}/api`;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
@@ -296,9 +298,9 @@ const DriverDashboard = () => {
   } : null;
 
   return (
-    <div className="min-h-screen bg-slate-900" data-testid="driver-dashboard">
+    <div className="min-h-screen premium-dashboard-bg dashboard-card-skin" data-testid="driver-dashboard">
       {/* Mobile Header */}
-      <header className="lg:hidden bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+      <header className="lg:hidden premium-panel border-b border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
             currentStatus === 'available' ? 'bg-green-500' :
@@ -315,7 +317,7 @@ const DriverDashboard = () => {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-slate-800 border-b border-slate-700 p-4 space-y-2">
+        <div className="lg:hidden premium-panel border-b border-slate-700 p-4 space-y-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -349,7 +351,7 @@ const DriverDashboard = () => {
 
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-64 bg-slate-800 border-r border-slate-700 min-h-screen fixed left-0 top-0">
+        <aside className="hidden lg:flex flex-col w-64 premium-panel border-r border-slate-700 min-h-screen fixed left-0 top-0">
           {/* Logo */}
           <div className="p-4 border-b border-slate-700">
             <div className="flex items-center gap-3">

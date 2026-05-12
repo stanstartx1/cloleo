@@ -58,6 +58,7 @@ const HomePage = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [categorySlideTick, setCategorySlideTick] = useState(0);
   const [stats, setStats] = useState({ products: 0, vendors: 0, drivers: 0 });
 
   // Refs for scroll animations
@@ -99,6 +100,13 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, [featuredProducts.length]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCategorySlideTick((prev) => prev + 1);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
   const nextSlide = () => {
     setCarouselIndex(prev => Math.min(prev + 1, Math.max(0, featuredProducts.length - 4)));
   };
@@ -108,7 +116,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden" data-testid="home-page">
+    <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       {/* Scroll Progress Indicator */}
       <ScrollProgress />
       
@@ -132,7 +140,7 @@ const HomePage = () => {
       {/* Stats Bar with Animated Counters */}
       <section 
         ref={statsRef}
-        className="py-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
+        className="py-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden animate-fade-in-up"
       >
         {/* Animated background particles */}
         <div className="absolute inset-0 overflow-hidden">
@@ -179,7 +187,7 @@ const HomePage = () => {
       </section>
 
       {/* Featured Products Carousel with Enhanced Animations */}
-      <section className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative">
+      <section className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative animate-fade-in-up">
         {/* Decorative elements */}
         <div className="absolute top-20 left-0 w-72 h-72 bg-gradient-to-br from-orange-200/40 to-amber-200/30 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-0 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/20 rounded-full blur-3xl" />
@@ -238,7 +246,7 @@ const HomePage = () => {
                     className="w-full md:w-[calc(25%-18px)] flex-shrink-0"
                   >
                     <div
-                      className="transform transition-all duration-500"
+                      className="transform transition-all duration-500 hover-lift"
                       style={{ 
                         opacity: index >= carouselIndex && index < carouselIndex + 4 ? 1 : 0.3,
                         transform: index >= carouselIndex && index < carouselIndex + 4 ? 'scale(1)' : 'scale(0.9)'
@@ -270,7 +278,7 @@ const HomePage = () => {
       {/* Categories Grid with Staggered Entrance */}
       <section 
         ref={categoriesRef}
-        className="py-20 bg-white relative overflow-hidden"
+        className="py-20 bg-white relative overflow-hidden animate-fade-in-up"
       >
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-100/50 to-pink-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         
@@ -295,8 +303,8 @@ const HomePage = () => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {categories.map((category, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {categories.filter(category => category.is_active !== false).map((category, index) => (
                 <Link
                   key={category.slug}
                   to={`/categories/${category.slug}`}
@@ -308,11 +316,20 @@ const HomePage = () => {
                   style={{ transitionDelay: `${index * 100}ms` }}
                   data-testid={`category-${category.slug}`}
                 >
-                  <img
-                    src={category.image || `https://source.unsplash.com/400x300/?${category.name}`}
-                    alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+                  {(() => {
+                    const banners = category.banner_images || [];
+                    const hasBanners = banners.length > 0;
+                    const currentBanner = hasBanners
+                      ? banners[(categorySlideTick + index) % banners.length]
+                      : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
+                    return (
+                      <img
+                        src={currentBanner}
+                        alt={category.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                    );
+                  })()}
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   
@@ -338,7 +355,7 @@ const HomePage = () => {
       {/* Trending Products - Dark Section */}
       <section 
         ref={trendingRef}
-        className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
+        className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden animate-fade-in-up"
       >
         {/* Animated background */}
         <div className="absolute inset-0">
@@ -399,7 +416,7 @@ const HomePage = () => {
       {/* New Products with Entrance Animations */}
       <section 
         ref={newProductsRef}
-        className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
+        className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white animate-fade-in-up"
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-12">
@@ -460,7 +477,7 @@ const HomePage = () => {
       </section>
 
       {/* CTA Section with Enhanced Animations */}
-      <section className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden">
+      <section className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden animate-fade-in-up">
         {/* Animated background elements */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
@@ -506,7 +523,7 @@ const HomePage = () => {
       </section>
 
       {/* Animated Marquee Banner */}
-      <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
+      <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden animate-fade-in-up">
         <div className="relative flex overflow-hidden">
           <div className="animate-marquee flex items-center whitespace-nowrap">
             {[...Array(2)].map((_, setIndex) => (
@@ -534,7 +551,7 @@ const HomePage = () => {
       </section>
       
       {/* Testimonials Section */}
-      <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
+      <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden animate-fade-in-up">
         <div className="container mx-auto px-4 mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Ce que disent nos clients</h2>
           <p className="text-muted-foreground text-center">Des milliers de clients satisfaits chaque jour</p>

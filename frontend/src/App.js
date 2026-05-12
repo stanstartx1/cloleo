@@ -29,6 +29,7 @@ import FavoritesPage from "./pages/FavoritesPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import AuthPage from "./pages/AuthPage";
 import CustomerChatPage from "./pages/CustomerChatPage";
+import OfferPage from "./pages/OfferPage";
 
 // Vendor Pages
 import VendorDashboard from "./pages/VendorDashboard";
@@ -204,6 +205,11 @@ const AppRoutes = () => {
 
       {/* Customer Chat Route */}
       <Route path="/mes-messages" element={<PublicLayout><CustomerChatPage /></PublicLayout>} />
+      <Route path="/offre/:offerToken" element={
+        <ProtectedRoute>
+          <PublicLayout><OfferPage /></PublicLayout>
+        </ProtectedRoute>
+      } />
 
       {/* Profile Settings Route */}
       <Route path="/parametres" element={

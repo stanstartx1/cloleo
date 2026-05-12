@@ -25,8 +25,10 @@ import {
   tabContentVariant
 } from '../components/AnimatedComponents';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const WS_URL = BACKEND_URL
+  .replace(/^https:\/\//, 'wss://')
+  .replace(/^http:\/\//, 'ws://');
 const API = `${BACKEND_URL}/api`;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
@@ -391,7 +393,7 @@ const RevendeurDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="revendeur-dashboard">
+    <div className="min-h-screen home-premium-gradient dashboard-card-skin" data-testid="revendeur-dashboard">
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -405,7 +407,7 @@ const RevendeurDashboard = () => {
       </div>
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r shadow-sm transform transition-transform duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 premium-panel-soft border-r shadow-sm transform transition-transform duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b">

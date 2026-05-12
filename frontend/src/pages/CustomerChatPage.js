@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  MessageCircle, Send, X, Store, ArrowLeft, Search, 
-  Image as ImageIcon, Clock, Check, CheckCheck, ChevronRight
+  MessageCircle, Send, X, Store, ArrowLeft, Search, LogOut,
+  Image as ImageIcon, Clock, Check, CheckCheck, ChevronRight, Tag
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -11,13 +11,15 @@ import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const WS_URL = BACKEND_URL
+  .replace(/^https:\/\//, 'wss://')
+  .replace(/^http:\/\//, 'ws://');
 
 const CustomerChatPage = () => {
   const navigate = useNavigate();
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated, logout } = useAuth();
   
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -228,6 +230,11 @@ const CustomerChatPage = () => {
     return groups;
   }, {});
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   // Filter conversations
   const filteredConversations = conversations.filter(c => 
     !searchTerm || 
@@ -246,20 +253,33 @@ const CustomerChatPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20" data-testid="customer-chat-page">
+    <div className="min-h-screen home-premium-gradient pt-20" data-testid="customer-chat-page">
       <div className="container mx-auto px-4 py-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '500px' }}>
+        <div className="premium-panel-soft rounded-2xl shadow-lg border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '500px' }}>
           <div className="flex h-full">
             
             {/* Conversations List (Left Panel) */}
             <div className={`w-full md:w-96 border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
               {/* Header */}
               <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-indigo-600">
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                  <MessageCircle className="w-6 h-6" />
-                  Mes Messages
-                </h1>
-                <p className="text-purple-200 text-sm mt-1">{conversations.length} conversation(s)</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                      <MessageCircle className="w-6 h-6" />
+                      Mes Messages
+                    </h1>
+                    <p className="text-purple-200 text-sm mt-1">{conversations.length} conversation(s)</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                  >
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Déconnexion
+                  </Button>
+                </div>
               </div>
               
               {/* Search */}
@@ -414,7 +434,22 @@ const CustomerChatPage = () => {
                                   : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
                               } ${message.status === 'sending' ? 'opacity-70' : ''}`}
                             >
-                              <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                              {message.type === 'offer' ? (
+                                <div className="space-y-2">
+                                  <p className="text-sm font-semibold">Offre spéciale reçue</p>
+                                  <p className="text-sm">{(message.offer_price_fcfa || 0).toLocaleString()} FCFA</p>
+                                  <Link
+                                    to={message.offer_url || '#'}
+                                    className="inline-flex items-center gap-1 text-xs underline"
+                                  >
+                                    <Tag className="w-3 h-3" />
+                                    Voir l'offre et payer
+                                  </Link>
+                                  {message.text && <p className="text-xs opacity-90">{message.text}</p>}
+                                </div>
+                              ) : (
+                                <p className="text-sm whitespace-pre-wrap">{message.text || message.content}</p>
+                              )}
                               <div className={`flex items-center justify-end gap-1 mt-1 ${
                                 message.sender_id === user?.id ? 'text-purple-200' : 'text-gray-400'
                               }`}>

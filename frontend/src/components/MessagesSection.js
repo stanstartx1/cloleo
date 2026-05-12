@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, Send, User, Clock, Search, ChevronLeft, 
-  Loader2, Package, Store, Check, CheckCheck, Bell
+  Loader2, Package, Store, Check, CheckCheck, Bell, Tag
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -10,8 +10,10 @@ import { Badge } from './ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const WS_URL = BACKEND_URL
+  .replace(/^https:\/\//, 'wss://')
+  .replace(/^http:\/\//, 'ws://');
 const API = `${BACKEND_URL}/api`;
 
 const MessagesSection = ({ token, userType = 'vendor' }) => {
@@ -23,6 +25,9 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [offerPrice, setOfferPrice] = useState('');
+  const [offerNote, setOfferNote] = useState('');
+  const [sendingOffer, setSendingOffer] = useState(false);
   
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -210,6 +215,34 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       toast.error('Erreur lors de l\'envoi');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleSendOffer = async () => {
+    if (!selectedConversation || sendingOffer) return;
+    const price = parseInt(offerPrice, 10);
+    if (!price || price <= 0) {
+      toast.error('Prix de l\'offre invalide');
+      return;
+    }
+    setSendingOffer(true);
+    try {
+      await axios.post(
+        `${API}/offers/create`,
+        {
+          conversation_id: selectedConversation.id,
+          offered_price_fcfa: price,
+          note: offerNote
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setOfferPrice('');
+      setOfferNote('');
+      toast.success('Offre envoyée');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de l\'envoi de l\'offre');
+    } finally {
+      setSendingOffer(false);
     }
   };
 
@@ -401,7 +434,24 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                                     : 'bg-white text-gray-800 shadow-sm rounded-bl-md'
                                 }`}
                               >
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                {message.type === 'offer' ? (
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-semibold">Offre spéciale</p>
+                                    <p className="text-sm">{(message.offer_price_fcfa || 0).toLocaleString()} FCFA</p>
+                                    <a
+                                      href={message.offer_url || '#'}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs underline"
+                                    >
+                                      <Tag className="w-3 h-3" />
+                                      Voir lien de paiement
+                                    </a>
+                                    {message.text && <p className="text-xs opacity-90">{message.text}</p>}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm whitespace-pre-wrap">{message.content || message.text}</p>
+                                )}
                               </div>
                               <div className={`flex items-center gap-1 mt-1 ${isSeller ? 'justify-end' : ''}`}>
                                 <Clock className="w-3 h-3 text-gray-400" />
@@ -423,7 +473,31 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
               </div>
 
               {/* Input */}
-              <form onSubmit={handleSend} className="p-4 border-t bg-white">
+              <form onSubmit={handleSend} className="p-4 border-t bg-white space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={offerPrice}
+                    onChange={(e) => setOfferPrice(e.target.value)}
+                    placeholder="Prix offre (FCFA)"
+                  />
+                  <Input
+                    value={offerNote}
+                    onChange={(e) => setOfferNote(e.target.value)}
+                    placeholder="Message offre (optionnel)"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleSendOffer}
+                    disabled={sendingOffer || !offerPrice}
+                    variant="outline"
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <Tag className="w-4 h-4 mr-2" />
+                    Faire une offre
+                  </Button>
+                </div>
                 <div className="flex gap-2">
                   <Input
                     type="text"

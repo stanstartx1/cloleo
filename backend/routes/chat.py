@@ -184,6 +184,8 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
         "sender_name": user.get("shop_name") or user.get("name"),
         "sender_type": "seller" if is_seller else "customer",
         "content": data.content,
+        "text": data.content,
+        "type": "text",
         "is_read": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }

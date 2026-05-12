@@ -5,12 +5,13 @@ import {
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
   BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star,
-  Trash2, Edit, Plus, AlertTriangle, RefreshCw
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
+import ImageUpload from '../components/ImageUpload';
 import { toast } from 'sonner';
 import AdminLiveTracking from '../components/AdminLiveTracking';
 
@@ -38,7 +39,7 @@ const SIDEBAR_ITEMS = [
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user, token, isAdmin } = useAuth();
+  const { user, token, isAdmin, logout } = useAuth();
   
   const [activeSection, setActiveSection] = useState('stats');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -63,7 +64,7 @@ const AdminDashboard = () => {
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [userSearch, setUserSearch] = useState('');
   const [editingCategory, setEditingCategory] = useState(null);
-  const [newCategory, setNewCategory] = useState({ name: '', slug: '', icon: 'Package', description: '' });
+  const [newCategory, setNewCategory] = useState({ name: '', slug: '', icon: 'Package', description: '', banner_images: [] });
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   
   // Filter states
@@ -129,6 +130,11 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   const handleApproveProduct = async (productId) => {
@@ -335,7 +341,7 @@ const AdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Catégorie créée');
-      setNewCategory({ name: '', slug: '', icon: 'Package', description: '' });
+      setNewCategory({ name: '', slug: '', icon: 'Package', description: '', banner_images: [] });
       setShowNewCategoryForm(false);
       fetchAllData();
     } catch (error) {
@@ -443,6 +449,7 @@ const AdminDashboard = () => {
         />;
       case 'categories':
         return <CategoriesSection 
+          token={token}
           categories={categories}
           editingCategory={editingCategory}
           setEditingCategory={setEditingCategory}
@@ -473,9 +480,9 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex" data-testid="admin-dashboard">
+    <div className="min-h-screen premium-dashboard-bg dashboard-card-skin text-white flex" data-testid="admin-dashboard">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-800 border-r border-slate-700 transition-all duration-300 flex flex-col`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} premium-panel border-r border-slate-700 transition-all duration-300 flex flex-col`}>
         {/* Logo */}
         <div className="p-4 border-b border-slate-700 flex items-center justify-between">
           {sidebarOpen && (
@@ -540,7 +547,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="bg-slate-800/50 border-b border-slate-700 p-4 sticky top-0 z-10">
+        <header className="premium-panel border-b border-slate-700 p-4 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold">
@@ -558,12 +565,20 @@ const AdminDashboard = () => {
                   className="pl-10 w-64 bg-slate-700 border-slate-600 text-white"
                 />
               </div>
+              <Button
+                variant="destructive"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Déconnexion
+              </Button>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 space-y-4">
           {renderContent()}
         </div>
       </main>
@@ -1623,6 +1638,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
 
 // ============== CATEGORIES SECTION ==============
 const CategoriesSection = ({ 
+  token,
   categories, 
   editingCategory, 
   setEditingCategory, 
@@ -1698,6 +1714,16 @@ const CategoriesSection = ({
               />
             </div>
           </div>
+          <div className="mt-4">
+            <ImageUpload
+              images={newCategory.banner_images || []}
+              onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
+              maxImages={3}
+              token={token}
+              label="3 images à la une (diaporama)"
+              hint="Ces 3 images défileront sur la page principale."
+            />
+          </div>
           <div className="flex gap-2 mt-4">
             <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700">
               <Plus className="w-4 h-4 mr-2" /> Créer
@@ -1719,6 +1745,7 @@ const CategoriesSection = ({
                 <th className="p-4">Slug</th>
                 <th className="p-4">Icône</th>
                 <th className="p-4">Produits</th>
+                <th className="p-4">Images à la une</th>
                 <th className="p-4">Statut</th>
                 <th className="p-4">Actions</th>
               </tr>
@@ -1726,7 +1753,7 @@ const CategoriesSection = ({
             <tbody>
               {categories.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
+                  <td colSpan="7" className="p-8 text-center text-slate-400">
                     Aucune catégorie
                   </td>
                 </tr>
@@ -1771,6 +1798,27 @@ const CategoriesSection = ({
                       )}
                     </td>
                     <td className="p-4">{cat.product_count || 0}</td>
+                    <td className="p-4">
+                      {editingCategory?.id === cat.id ? (
+                        <ImageUpload
+                          images={editingCategory.banner_images || []}
+                          onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
+                          maxImages={3}
+                          token={token}
+                          label=""
+                          hint="Max 3 images"
+                        />
+                      ) : (
+                        <div className="flex gap-1">
+                          {(cat.banner_images || []).slice(0, 3).map((img, idx) => (
+                            <img key={idx} src={img} alt="" className="w-10 h-10 rounded object-cover border border-slate-600" />
+                          ))}
+                          {(!cat.banner_images || cat.banner_images.length === 0) && (
+                            <span className="text-xs text-slate-500">Aucune</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs ${cat.is_active !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                         {cat.is_active !== false ? 'Active' : 'Inactive'}

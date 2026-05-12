@@ -128,12 +128,14 @@ class DropshippedProductCreate(BaseModel):
     original_product_id: str
     custom_description: Optional[str] = None
     selling_price_fcfa: int
+    custom_images: Optional[List[str]] = None
 
 
 class DropshippedProductUpdate(BaseModel):
     custom_description: Optional[str] = None
     selling_price_fcfa: Optional[int] = None
     is_active: Optional[bool] = None
+    custom_images: Optional[List[str]] = None
 
 
 # Chat/Messaging models

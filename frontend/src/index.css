@@ -418,6 +418,104 @@ html {
   @apply transition-all duration-300;
 }
 
+/* Premium dashboard visual system */
+.premium-dashboard-bg {
+  background:
+    radial-gradient(1200px 500px at -10% -10%, rgba(249, 115, 22, 0.18), transparent 50%),
+    radial-gradient(900px 450px at 110% 10%, rgba(14, 165, 233, 0.16), transparent 50%),
+    radial-gradient(800px 400px at 50% 110%, rgba(139, 92, 246, 0.15), transparent 50%),
+    linear-gradient(180deg, #0b1220 0%, #111827 100%);
+}
+
+.premium-panel {
+  background: rgba(17, 24, 39, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 10px 35px rgba(2, 6, 23, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+}
+
+.premium-panel-soft {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+}
+
+.premium-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.08), transparent 35%);
+  pointer-events: none;
+}
+
+.premium-hover {
+  transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
+}
+
+.premium-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 38px rgba(2, 6, 23, 0.38);
+  border-color: rgba(99, 102, 241, 0.38);
+}
+
+.home-premium-gradient {
+  background:
+    radial-gradient(1200px 620px at 20% -10%, rgba(251, 146, 60, 0.22), transparent 48%),
+    radial-gradient(900px 520px at 90% -20%, rgba(45, 212, 191, 0.18), transparent 45%),
+    linear-gradient(180deg, #fff9f4 0%, #ffffff 60%);
+}
+
+/* Dashboard-wide card skin (scoped and non-invasive) */
+.dashboard-card-skin .bg-white,
+.dashboard-card-skin .bg-gray-50,
+.dashboard-card-skin .bg-slate-50 {
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.dashboard-card-skin .bg-white:hover,
+.dashboard-card-skin .bg-gray-50:hover,
+.dashboard-card-skin .bg-slate-50:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.14);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.dashboard-card-skin .rounded-lg,
+.dashboard-card-skin .rounded-xl,
+.dashboard-card-skin .rounded-2xl {
+  overflow: hidden;
+}
+
+.home-hero-glow {
+  position: relative;
+}
+
+.home-hero-glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  background: linear-gradient(120deg, rgba(249, 115, 22, 0.35), rgba(20, 184, 166, 0.22), rgba(59, 130, 246, 0.22));
+  filter: blur(16px);
+  opacity: 0.6;
+  z-index: -1;
+}
+
 .product-card:hover {
   @apply -translate-y-1;
   box-shadow: 0 20px 40px -15px hsl(var(--primary) / 0.15);

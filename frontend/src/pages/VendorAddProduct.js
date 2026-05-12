@@ -110,7 +110,7 @@ const VendorAddProduct = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 bg-muted/30" data-testid="add-product-page">
+    <div className="min-h-screen py-8 bg-muted/30 dashboard-card-skin home-premium-gradient" data-testid="add-product-page">
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">

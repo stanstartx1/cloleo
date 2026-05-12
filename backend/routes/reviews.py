@@ -8,18 +8,7 @@ import jwt
 import os
 import secrets
 
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Load env
-ROOT_DIR = Path(__file__).parent.parent
-load_dotenv(ROOT_DIR / '.env')
-
-# Database connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+from core.database import db
 
 # JWT config
 JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))

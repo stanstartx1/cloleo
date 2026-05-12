@@ -6,7 +6,7 @@ import {
   Package, ShoppingBag, DollarSign, TrendingUp, Clock, CheckCircle, XCircle,
   Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles, AlertCircle,
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
-  LogOut, Edit, X, MessageCircle
+  LogOut, Edit, X, MessageCircle, Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -22,8 +22,10 @@ import {
   tabContentVariant
 } from '../components/AnimatedComponents';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const WS_URL = BACKEND_URL
+  .replace(/^https:\/\//, 'wss://')
+  .replace(/^http:\/\//, 'ws://');
 const API = `${BACKEND_URL}/api`;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
@@ -167,6 +169,24 @@ const VendorDashboard = () => {
     }
   };
 
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('Supprimer ce produit ?')) return;
+    try {
+      await axios.delete(`${API}/vendor/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Produit supprimé');
+      if (editingProduct?.id === productId) {
+        setShowEditModal(false);
+        setEditingProduct(null);
+      }
+      fetchProducts();
+      fetchDashboard();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
   useEffect(() => {
     if (activeSection === 'orders' || activeSection === 'tracking') fetchOrders();
     if (activeSection === 'products') fetchProducts();
@@ -236,9 +256,9 @@ const VendorDashboard = () => {
   } : null);
 
   return (
-    <div className="min-h-screen bg-slate-900" data-testid="vendor-dashboard">
+    <div className="min-h-screen premium-dashboard-bg dashboard-card-skin" data-testid="vendor-dashboard">
       {/* Mobile Header */}
-      <header className="lg:hidden bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+      <header className="lg:hidden premium-panel border-b border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <Store className="w-8 h-8 text-indigo-400" />
           <span className="font-bold text-white">Vendeur</span>
@@ -250,7 +270,7 @@ const VendorDashboard = () => {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-slate-800 border-b border-slate-700 p-4 space-y-2">
+        <div className="lg:hidden premium-panel border-b border-slate-700 p-4 space-y-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -282,7 +302,7 @@ const VendorDashboard = () => {
 
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-64 bg-slate-800 border-r border-slate-700 min-h-screen fixed left-0 top-0">
+        <aside className="hidden lg:flex flex-col w-64 premium-panel border-r border-slate-700 min-h-screen fixed left-0 top-0">
           <div className="p-4 border-b border-slate-700">
             <div className="flex items-center gap-3">
               <Store className="w-10 h-10 text-indigo-400" />
@@ -503,17 +523,29 @@ const VendorDashboard = () => {
                         >
                           {product.status === 'approved' ? 'Approuvé' : product.status === 'pending' ? 'En attente' : 'Rejeté'}
                         </motion.span>
-                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => openEditModal(product)}
-                            className="border-slate-600 text-slate-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Modifier
-                          </Button>
-                        </motion.div>
+                        <div className="flex gap-2">
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => openEditModal(product)}
+                              className="border-slate-600 text-slate-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Modifier
+                            </Button>
+                          </motion.div>
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Supprimer
+                            </Button>
+                          </motion.div>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
