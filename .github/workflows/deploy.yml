@@ -1,0 +1,34 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /var/www/cloleo
+            git pull origin main
+            source /var/www/cloleo/backend/venv/bin/activate
+            pip install -r /var/www/cloleo/backend/requirements.txt --quiet
+            deactivate
+            cd /var/www/cloleo/frontend
+            npm ci --silent
+            npm run build
+            systemctl reload apache2
+            echo "Deploy OK!"
