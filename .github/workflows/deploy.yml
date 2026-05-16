@@ -30,11 +30,5 @@ jobs:
             cd /var/www/cloleo/frontend
             npm ci --silent
             npm run build
-            pkill -f "uvicorn server:app" || true
-            sleep 1
-            cd /var/www/cloleo/backend
-            source venv/bin/activate
-            nohup uvicorn server:app --host 127.0.0.1 --port 8000 > /var/log/cloleo-backend.log 2>&1 &
-            deactivate
             systemctl reload apache2
             echo "Deploy OK!"
