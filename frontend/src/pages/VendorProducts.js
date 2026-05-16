@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Package, Plus, Edit, Trash2, Eye, Clock, CheckCircle, XCircle,
-  Search, Filter, ArrowLeft
+  Search, Filter, ArrowLeft, LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -19,7 +19,7 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' 
 
 const VendorProducts = () => {
   const navigate = useNavigate();
-  const { token, isVendor } = useAuth();
+  const { token, isVendor, logout } = useAuth();
   
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,11 @@ const VendorProducts = () => {
     } else {
       fetchProducts(tab);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   const filteredProducts = products.filter(p => 
@@ -139,11 +144,16 @@ const VendorProducts = () => {
               </p>
             </div>
           </div>
-          <Button asChild>
-            <Link to="/vendeur/produits/nouveau" data-testid="add-product-btn">
-              <Plus className="w-4 h-4 mr-2" /> Ajouter un produit
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild>
+              <Link to="/vendeur/produits/nouveau" data-testid="add-product-btn">
+                <Plus className="w-4 h-4 mr-2" /> Ajouter un produit
+              </Link>
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            </Button>
+          </div>
         </div>
 
         {/* Search & Filters */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
+import { toAbsoluteMediaUrl } from '../utils/media';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import GoogleMap from '../components/GoogleMap';
 import MessagesSection from '../components/MessagesSection';
 import { 
@@ -98,6 +100,8 @@ const VendorDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDashboard(response.data);
+      fetchOrders();
+      fetchProducts();
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur de chargement');
@@ -231,16 +235,24 @@ const VendorDashboard = () => {
     navigate('/');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-indigo-400" />
-      </div>
-    );
-  }
-
   const plan = dashboard?.subscription?.plan;
   const stats = dashboard?.stats;
+  const computedStats = {
+    total_products: Math.max(Number(stats?.total_products || 0), products.length),
+    pending_products: Math.max(
+      Number(stats?.pending_products || 0),
+      products.filter((p) => p.status === 'pending').length
+    ),
+    approved_products: Math.max(
+      Number(stats?.approved_products || 0),
+      products.filter((p) => p.status === 'approved').length
+    ),
+    total_sales: Math.max(Number(stats?.total_sales || 0), orders.length),
+    total_revenue_fcfa: Math.max(
+      Number(stats?.total_revenue_fcfa || 0),
+      orders.reduce((sum, o) => sum + Number(o.total_fcfa || 0), 0)
+    ),
+  };
   const isPendingVerification = !user?.is_verified || !user?.is_active;
   const pendingOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
   const activeOrders = orders.filter(o => ['assigned', 'picked_up', 'in_transit'].includes(o.status));
@@ -254,6 +266,41 @@ const VendorDashboard = () => {
     latitude: selectedOrder.driver_live_location.latitude,
     longitude: selectedOrder.driver_live_location.longitude
   } : null);
+
+  const revenueSeries = useMemo(() => {
+    const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const map = {};
+    orders.forEach((o) => {
+      const date = new Date(o.created_at || o.updated_at || Date.now());
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      if (!map[key]) map[key] = { label: months[date.getMonth()], revenue: 0, orders: 0 };
+      map[key].revenue += Number(o.total_fcfa || 0);
+      map[key].orders += 1;
+    });
+    return Object.values(map).slice(-6);
+  }, [orders]);
+
+  const productStatusSeries = useMemo(() => {
+    const statusCount = { approved: 0, pending: 0, rejected: 0 };
+    products.forEach((p) => {
+      if (p.status === 'approved') statusCount.approved += 1;
+      else if (p.status === 'pending') statusCount.pending += 1;
+      else statusCount.rejected += 1;
+    });
+    return [
+      { name: 'Approuvés', value: statusCount.approved, color: '#22c55e' },
+      { name: 'En attente', value: statusCount.pending, color: '#f59e0b' },
+      { name: 'Rejetés', value: statusCount.rejected, color: '#ef4444' },
+    ];
+  }, [products]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-indigo-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen premium-dashboard-bg dashboard-card-skin" data-testid="vendor-dashboard">
@@ -305,7 +352,13 @@ const VendorDashboard = () => {
         <aside className="hidden lg:flex flex-col w-64 premium-panel border-r border-slate-700 min-h-screen fixed left-0 top-0">
           <div className="p-4 border-b border-slate-700">
             <div className="flex items-center gap-3">
-              <Store className="w-10 h-10 text-indigo-400" />
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-indigo-500/20 flex items-center justify-center">
+                {user?.profile_photo ? (
+                  <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-6 h-6 text-indigo-300" />
+                )}
+              </div>
               <div>
                 <h1 className="font-bold text-white">Espace Vendeur</h1>
                 <p className="text-xs text-slate-400 truncate">{user?.shop_name || user?.name}</p>
@@ -347,6 +400,12 @@ const VendorDashboard = () => {
 
         {/* Main Content */}
         <main className="flex-1 lg:ml-64 p-4 lg:p-6">
+          <div className="mb-4 flex justify-end">
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            </Button>
+          </div>
+
           {isPendingVerification && (
             <div className="mb-4 p-4 bg-amber-500/20 border border-amber-500/50 rounded-xl flex items-start gap-3">
               <AlertCircle className="w-6 h-6 text-amber-400 shrink-0" />
@@ -413,7 +472,7 @@ const VendorDashboard = () => {
                   <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
                     <Package className="w-7 h-7 text-blue-400 mb-3" />
                   </motion.div>
-                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={stats?.total_products || 0} /></p>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={computedStats.total_products} /></p>
                   <p className="text-sm text-slate-400">Produits</p>
                 </motion.div>
                 <motion.div 
@@ -424,7 +483,7 @@ const VendorDashboard = () => {
                   <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
                     <Clock className="w-7 h-7 text-amber-400 mb-3" />
                   </motion.div>
-                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={stats?.pending_products || 0} /></p>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={computedStats.pending_products} /></p>
                   <p className="text-sm text-slate-400">En attente</p>
                 </motion.div>
                 <motion.div 
@@ -435,7 +494,7 @@ const VendorDashboard = () => {
                   <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
                     <ShoppingBag className="w-7 h-7 text-green-400 mb-3" />
                   </motion.div>
-                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={stats?.total_sales || 0} /></p>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={computedStats.total_sales} /></p>
                   <p className="text-sm text-slate-400">Ventes</p>
                 </motion.div>
                 <motion.div 
@@ -450,10 +509,61 @@ const VendorDashboard = () => {
                   >
                     <DollarSign className="w-7 h-7 text-emerald-400 mb-3" />
                   </motion.div>
-                  <p className="text-2xl font-bold text-white"><AnimatedNumber value={stats?.total_revenue_fcfa || 0} /></p>
+                  <p className="text-2xl font-bold text-white"><AnimatedNumber value={computedStats.total_revenue_fcfa} /></p>
                   <p className="text-sm text-slate-400">Revenus FCFA</p>
                 </motion.div>
               </motion.div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg">
+                  <h3 className="text-white font-semibold mb-3">Évolution des revenus (6 derniers mois)</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueSeries}>
+                        <defs>
+                          <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="label" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                        <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
+                        <Tooltip
+                          contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#fff' }}
+                          formatter={(value) => [`${formatPrice(Number(value))} FCFA`, 'Revenus']}
+                        />
+                        <Area type="monotone" dataKey="revenue" stroke="#6366f1" fill="url(#revenueFill)" strokeWidth={3} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg">
+                  <h3 className="text-white font-semibold mb-3">État des produits</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={productStatusSeries} dataKey="value" nameKey="name" outerRadius={85} innerRadius={45} paddingAngle={4}>
+                          {productStatusSeries.map((entry, index) => (
+                            <Cell key={index} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#fff' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    {productStatusSeries.map((s) => (
+                      <div key={s.name} className="flex items-center gap-2 text-xs text-slate-300">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.name}: {s.value}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -528,7 +638,7 @@ const VendorDashboard = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => openEditModal(product)}
+                              onClick={() => navigate(`/vendeur/produits/${product.id}/modifier`)}
                               className="border-slate-600 text-slate-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"
                             >
                               <Edit className="w-4 h-4 mr-1" />
@@ -893,7 +1003,7 @@ const VendorDashboard = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Total des ventes</span>
-                      <span className="font-bold text-white text-xl"><AnimatedNumber value={stats?.total_sales || 0} /></span>
+                      <span className="font-bold text-white text-xl"><AnimatedNumber value={computedStats.total_sales} /></span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Revenus</span>
@@ -902,7 +1012,7 @@ const VendorDashboard = () => {
                         animate={{ scale: [1, 1.05, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       >
-                        <AnimatedNumber value={stats?.total_revenue_fcfa || 0} /> FCFA
+                        <AnimatedNumber value={computedStats.total_revenue_fcfa} /> FCFA
                       </motion.span>
                     </div>
                   </div>
@@ -919,11 +1029,11 @@ const VendorDashboard = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Total</span>
-                      <span className="font-bold text-white text-xl"><AnimatedNumber value={stats?.total_products || 0} /></span>
+                      <span className="font-bold text-white text-xl"><AnimatedNumber value={computedStats.total_products} /></span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg">
                       <span className="text-slate-400">Approuvés</span>
-                      <span className="font-bold text-green-400 text-xl"><AnimatedNumber value={stats?.approved_products || 0} /></span>
+                      <span className="font-bold text-green-400 text-xl"><AnimatedNumber value={computedStats.approved_products} /></span>
                     </div>
                   </div>
                 </motion.div>
@@ -997,7 +1107,7 @@ const VendorDashboard = () => {
                       className="bg-slate-800/50 rounded-xl p-4"
                     >
                       <p className="text-sm text-slate-400">Utilisés</p>
-                      <p className="text-xl font-bold text-white">{stats?.total_products || 0}</p>
+                      <p className="text-xl font-bold text-white">{computedStats.total_products}</p>
                     </motion.div>
                   </motion.div>
                   
@@ -1047,6 +1157,17 @@ const VendorDashboard = () => {
                     <label className="block text-sm text-slate-400 mb-1">Email</label>
                     <Input value={user?.email || ''} className="bg-slate-700 border-slate-600 text-white" readOnly />
                   </motion.div>
+                </div>
+                <div className="mt-5 pt-4 border-t border-slate-700">
+                  <p className="text-sm text-slate-400 mb-3">
+                    Modifiez votre nom, photo de profil, mot de passe et informations boutique depuis la page profil complète.
+                  </p>
+                  <Button asChild className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+                    <Link to="/parametres">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Ouvrir les paramètres du profil
+                    </Link>
+                  </Button>
                 </div>
               </motion.div>
             </motion.div>

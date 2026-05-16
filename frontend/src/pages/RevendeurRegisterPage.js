@@ -40,8 +40,8 @@ const RevendeurRegisterPage = () => {
       const response = await axios.post(`${API}/auth/register/revendeur`, formData);
       const { token, user } = response.data;
       
-      // Login with the received token
-      login(token);
+      // Login with the received token and user to avoid redirect race condition
+      login(token, undefined, user);
       
       toast.success('Compte revendeur créé avec succès !');
       navigate('/revendeur');

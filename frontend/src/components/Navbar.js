@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
+import { toAbsoluteMediaUrl } from '../utils/media';
 import { Input } from './ui/input';
 import {
   DropdownMenu,
@@ -178,8 +179,12 @@ const Navbar = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="relative" data-testid="user-menu-btn">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white text-sm font-bold">
-                        {user?.name?.[0]?.toUpperCase() || 'U'}
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-sm font-bold">
+                        {user?.profile_photo ? (
+                          <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
+                        ) : (
+                          user?.name?.[0]?.toUpperCase() || 'U'
+                        )}
                       </div>
                     </Button>
                   </DropdownMenuTrigger>
@@ -202,6 +207,20 @@ const Navbar = () => {
                           <Truck className="w-4 h-4" /> Espace livreur
                         </Link>
                       </DropdownMenuItem>
+                    )}
+                    {isRevendeur && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/revendeur" className="flex items-center gap-2">
+                            <Store className="w-4 h-4" /> Espace revendeur
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/boutique/${user?.shop_slug || ''}`} className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" /> Voir ma boutique
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
                     )}
                     {isVendor && !isAdmin && (
                       <DropdownMenuItem asChild>

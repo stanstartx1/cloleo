@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+﻿import React, { useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
@@ -48,6 +48,7 @@ import DriverDashboard from "./pages/DriverDashboard";
 import RevendeurRegisterPage from "./pages/RevendeurRegisterPage";
 import RevendeurDashboard from "./pages/RevendeurDashboard";
 import RevendeurShopPage from "./pages/RevendeurShopPage";
+import RevendeurEditProduct from "./pages/RevendeurEditProduct";
 
 // Shop Pages
 import VendorShopPage from "./pages/VendorShopPage";
@@ -119,22 +120,8 @@ const DashboardLayout = ({ children }) => (
 
 // App Routes Component
 const AppRoutes = () => {
-  // Seed database on first load (if needed)
-  useEffect(() => {
-    const seedIfNeeded = async () => {
-      try {
-        const res = await axios.get(`${API}/categories`);
-        if (!res.data || res.data.length === 0) {
-          console.log('Seeding database...');
-          await axios.post(`${API}/seed`);
-          console.log('Database seeded!');
-        }
-      } catch (error) {
-        console.error('Error checking/seeding database:', error);
-      }
-    };
-    seedIfNeeded();
-  }, []);
+  // Categories are managed manually by admin (no auto-seed).
+
 
   return (
     <Routes>
@@ -170,6 +157,11 @@ const AppRoutes = () => {
           <StandaloneDashboardLayout><VendorAddProduct /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
+      <Route path="/vendeur/produits/:id/modifier" element={
+        <ProtectedRoute requireVendor>
+          <StandaloneDashboardLayout><VendorAddProduct /></StandaloneDashboardLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/vendeur/abonnement" element={
         <ProtectedRoute requireVendor>
           <StandaloneDashboardLayout><VendorSubscription /></StandaloneDashboardLayout>
@@ -196,6 +188,11 @@ const AppRoutes = () => {
       <Route path="/revendeur" element={
         <ProtectedRoute requireDropshipper>
           <RevendeurDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/revendeur/produits/:id/modifier" element={
+        <ProtectedRoute requireDropshipper>
+          <StandaloneDashboardLayout><RevendeurEditProduct /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
       <Route path="/boutique/:shopSlug" element={<RevendeurShopPage />} />
@@ -252,3 +249,4 @@ function App() {
 }
 
 export default App;
+

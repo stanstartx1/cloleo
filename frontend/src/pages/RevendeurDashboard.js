@@ -13,6 +13,8 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
+import { toAbsoluteMediaUrl } from '../utils/media';
+import { copyToClipboard } from '../utils/share';
 import axios from 'axios';
 import MessagesSection from '../components/MessagesSection';
 import ShareButtons from '../components/ShareButtons';
@@ -25,7 +27,7 @@ import {
   tabContentVariant
 } from '../components/AnimatedComponents';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || window.location.origin;
 const WS_URL = BACKEND_URL
   .replace(/^https:\/\//, 'wss://')
   .replace(/^http:\/\//, 'ws://');
@@ -89,7 +91,12 @@ const RevendeurDashboard = () => {
         setDashboardData(response.data);
       } catch (error) {
         console.error('Error fetching dashboard:', error);
-        toast.error('Erreur lors du chargement du tableau de bord');
+        toast.error(error.response?.data?.detail || 'Erreur lors du chargement du tableau de bord');
+        // Keep UI usable even if dashboard API fails once (prevents blank content).
+        setDashboardData({
+          stats: { active_products: 0, total_products: 0, order_count: 0, revenue_fcfa: 0 },
+          shop: { slug: user?.shop_slug || '', name: user?.shop_name || user?.name || 'Ma boutique' },
+        });
       } finally {
         setLoading(false);
       }
@@ -290,7 +297,8 @@ const RevendeurDashboard = () => {
   const handleCopyLink = async (productId) => {
     const url = `${window.location.origin}/produit/${productId}`;
     try {
-      await navigator.clipboard.writeText(url);
+      const ok = await copyToClipboard(url);
+      if (!ok) throw new Error('copy_failed');
       setCopied(productId);
       toast.success('Lien copié !');
       setTimeout(() => setCopied(null), 2000);
@@ -372,6 +380,25 @@ const RevendeurDashboard = () => {
     navigate('/');
   };
 
+  const safeStats = {
+    active_products: Math.max(
+      Number(dashboardData?.stats?.active_products || dashboardData?.stats?.product_count || 0),
+      myProducts.filter((p) => p.is_active !== false).length
+    ),
+    total_orders: Math.max(
+      Number(dashboardData?.stats?.total_orders || dashboardData?.stats?.order_count || 0),
+      orders.length
+    ),
+    completed_orders: Math.max(
+      Number(dashboardData?.stats?.completed_orders || 0),
+      orders.filter((o) => ['delivered', 'cancelled'].includes(o.status)).length
+    ),
+    total_earnings_fcfa: Math.max(
+      Number(dashboardData?.stats?.total_earnings_fcfa || dashboardData?.stats?.revenue_fcfa || 0),
+      earnings.reduce((sum, e) => sum + Number(e.revendeur_share || 0), 0)
+    ),
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'catalog', label: 'Catalogue produits', icon: Package2 },
@@ -425,8 +452,12 @@ const RevendeurDashboard = () => {
           {/* User Info */}
           <div className="p-4 border-b">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <Store className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 rounded-full bg-purple-100 overflow-hidden flex items-center justify-center">
+                {user?.profile_photo ? (
+                  <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-5 h-5 text-purple-600" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{user?.shop_name || user?.name}</p>
@@ -473,9 +504,15 @@ const RevendeurDashboard = () => {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen">
         <div className="p-6 lg:p-8">
+          <div className="mb-4 flex justify-end">
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            </Button>
+          </div>
+
           {/* Dashboard Tab */}
           <AnimatePresence mode="wait">
-          {activeTab === 'dashboard' && dashboardData && (
+          {activeTab === 'dashboard' && (
             <motion.div 
               key="dashboard"
               variants={tabContentVariant}
@@ -510,7 +547,7 @@ const RevendeurDashboard = () => {
                         <div>
                           <p className="text-sm text-gray-500">Produits actifs</p>
                           <p className="text-3xl font-bold text-gray-900">
-                            <AnimatedNumber value={dashboardData.stats.active_products} />
+                            <AnimatedNumber value={safeStats.active_products} />
                           </p>
                         </div>
                         <motion.div 
@@ -531,7 +568,7 @@ const RevendeurDashboard = () => {
                         <div>
                           <p className="text-sm text-gray-500">Commandes</p>
                           <p className="text-3xl font-bold text-gray-900">
-                            <AnimatedNumber value={dashboardData.stats.total_orders} />
+                            <AnimatedNumber value={safeStats.total_orders} />
                           </p>
                         </div>
                         <motion.div 
@@ -552,7 +589,7 @@ const RevendeurDashboard = () => {
                         <div>
                           <p className="text-sm text-gray-500">Complétées</p>
                           <p className="text-3xl font-bold text-gray-900">
-                            <AnimatedNumber value={dashboardData.stats.completed_orders} />
+                            <AnimatedNumber value={safeStats.completed_orders} />
                           </p>
                         </div>
                         <motion.div 
@@ -573,7 +610,7 @@ const RevendeurDashboard = () => {
                         <div>
                           <p className="text-sm text-gray-500">Gains totaux</p>
                           <p className="text-3xl font-bold text-green-600">
-                            <AnimatedNumber value={dashboardData.stats.total_earnings_fcfa} /> FCFA
+                            <AnimatedNumber value={safeStats.total_earnings_fcfa} /> FCFA
                           </p>
                         </div>
                         <motion.div 
@@ -643,7 +680,7 @@ const RevendeurDashboard = () => {
               </motion.div>
 
               {/* Recent Orders - Animated */}
-              {dashboardData.recent_orders.length > 0 && (
+              {(dashboardData?.recent_orders?.length || 0) > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -658,7 +695,7 @@ const RevendeurDashboard = () => {
                     </CardHeader>
                     <CardContent className="p-0">
                       <div className="divide-y">
-                        {dashboardData.recent_orders.slice(0, 5).map((order, index) => (
+                        {(dashboardData?.recent_orders || []).slice(0, 5).map((order, index) => (
                           <motion.div 
                             key={order.id} 
                             className="flex items-center justify-between p-4 hover:bg-purple-50 transition-colors"
@@ -928,7 +965,7 @@ const RevendeurDashboard = () => {
                                     <Button 
                                       variant="outline" 
                                       size="sm"
-                                      onClick={() => openEditModal(product)}
+                                      onClick={() => navigate(`/revendeur/produits/${product.id}/modifier`)}
                                       className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
                                     >
                                       <Edit2 className="w-4 h-4 mr-1" />
@@ -1278,7 +1315,7 @@ const RevendeurDashboard = () => {
                         <Button 
                           variant="outline"
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/boutique/${user?.shop_slug}`);
+                            copyToClipboard(`${window.location.origin}/boutique/${user?.shop_slug}`);
                             toast.success('Lien copié !');
                           }}
                           className="hover:bg-purple-50"
@@ -1361,6 +1398,17 @@ const RevendeurDashboard = () => {
                       <p className="text-sm text-gray-500">Membre depuis</p>
                       <p className="font-medium">{new Date(user?.created_at).toLocaleDateString('fr-FR')}</p>
                     </motion.div>
+                    <div className="pt-4 border-t">
+                      <p className="text-sm text-gray-500 mb-3">
+                        Pour modifier nom, photo de profil, mot de passe et informations boutique, utilisez la page profil complète.
+                      </p>
+                      <Button asChild className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+                        <Link to="/parametres">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Ouvrir les paramètres du profil
+                        </Link>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>

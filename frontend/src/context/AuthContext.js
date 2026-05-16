@@ -75,6 +75,10 @@ export const AuthProvider = ({ children }) => {
     await fetchUser();
   };
 
+  const updateUser = (partialUser) => {
+    setUser((prev) => ({ ...(prev || {}), ...(partialUser || {}) }));
+  };
+
   // Axios interceptor for auth
   useEffect(() => {
     const interceptor = axios.interceptors.request.use((config) => {
@@ -88,9 +92,15 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   // Direct login with token (for driver registration flow)
-  const loginWithToken = (newToken) => {
+  const loginWithToken = (newToken, userData = null) => {
+    setLoading(true);
     localStorage.setItem('cloleo_token', newToken);
     setToken(newToken);
+    if (userData) {
+      setUser(userData);
+      setLoading(false);
+      return;
+    }
     fetchUser();
   };
 
@@ -99,10 +109,10 @@ export const AuthProvider = ({ children }) => {
       user,
       token,
       loading,
-      login: async (emailOrToken, password) => {
+      login: async (emailOrToken, password, userData = null) => {
         // If only one argument is passed, treat it as a token
         if (password === undefined) {
-          loginWithToken(emailOrToken);
+          loginWithToken(emailOrToken, userData);
           return { success: true };
         }
         // Otherwise, normal login
@@ -126,6 +136,7 @@ export const AuthProvider = ({ children }) => {
       register,
       logout,
       refreshUser,
+      updateUser,
       isAuthenticated: !!user,
       isVendor: user?.role === 'vendor' || user?.role === 'admin',
       isAdmin: user?.role === 'admin',

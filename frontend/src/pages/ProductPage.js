@@ -15,6 +15,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+import { copyToClipboard, shareOrCopy } from '../utils/share';
 import { cn } from '../lib/utils';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -127,14 +128,12 @@ const ProductPage = () => {
   };
 
   const handleShare = async () => {
-    try {
-      await navigator.share({
-        title: product.name,
-        text: product.description,
-        url: window.location.href,
-      });
-    } catch {
-      navigator.clipboard.writeText(window.location.href);
+    const res = await shareOrCopy({
+      title: product.name,
+      text: product.description,
+      url: window.location.href,
+    });
+    if (res.copied) {
       toast.success('Lien copié dans le presse-papier');
     }
   };
@@ -148,12 +147,17 @@ const ProductPage = () => {
     }
     
     try {
-      await startConversation(product.id, null, {
+      const conversation = await startConversation(product.id, null, {
         seller_name: product.seller_name,
         seller_id: product.seller_id,
         product_name: product.name,
         product_image: product.images?.[0]
       });
+      if (conversation?.conversationId) {
+        navigate(`/mes-messages?conversation=${conversation.conversationId}`);
+      } else {
+        navigate('/mes-messages');
+      }
       toast.success('Conversation ouverte !');
     } catch (error) {
       console.error('Error starting conversation:', error);
@@ -411,7 +415,7 @@ const ProductPage = () => {
               </button>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
+                  copyToClipboard(window.location.href);
                   toast.success('Lien copié !');
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors shadow-sm"

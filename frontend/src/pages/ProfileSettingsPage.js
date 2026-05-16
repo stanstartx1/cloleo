@@ -12,6 +12,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
+import { toAbsoluteMediaUrl } from '../utils/media';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -133,7 +134,7 @@ const ProfileSettingsPage = () => {
       });
       
       if (updateUser) {
-        updateUser({ ...user, profile_photo: response.data.url });
+        updateUser({ profile_photo: response.data.url });
       }
       toast.success('Photo de profil mise à jour !');
     } catch (error) {
@@ -175,7 +176,7 @@ const ProfileSettingsPage = () => {
                 <div className="w-24 h-24 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden shadow-xl">
                   {user?.profile_photo ? (
                     <img 
-                      src={user.profile_photo} 
+                      src={toAbsoluteMediaUrl(user.profile_photo)} 
                       alt={user.name}
                       className="w-full h-full object-cover"
                     />

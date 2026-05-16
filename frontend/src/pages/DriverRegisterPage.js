@@ -38,6 +38,7 @@ const DriverRegisterPage = () => {
   const [uploadingLicense, setUploadingLicense] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [tempToken, setTempToken] = useState(null);
+  const [tempUser, setTempUser] = useState(null);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -92,6 +93,7 @@ const DriverRegisterPage = () => {
       });
 
       setTempToken(response.data.token);
+      setTempUser(response.data.user || null);
       setStep(2);
       toast.success('Informations enregistrées ! Uploadez maintenant votre permis.');
     } catch (error) {
@@ -138,7 +140,6 @@ const DriverRegisterPage = () => {
 
       await axios.post(`${API}/driver/upload-license`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${tempToken}`
         }
       });
@@ -148,20 +149,20 @@ const DriverRegisterPage = () => {
       
       // Auto login after 2 seconds
       setTimeout(() => {
-        login(tempToken);
+        login(tempToken, undefined, tempUser);
         navigate('/livreur');
       }, 2000);
       
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Erreur lors de l\'upload du permis');
+      toast.error(error.response?.data?.detail || 'Erreur lors de l\'upload du permis');
     } finally {
       setUploadingLicense(false);
     }
   };
 
   const handleSkipLicense = () => {
-    login(tempToken);
+    login(tempToken, undefined, tempUser);
     navigate('/livreur');
   };
 

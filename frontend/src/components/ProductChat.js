@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from './FloatingChat';
 import { Button } from './ui/button';
@@ -14,6 +15,7 @@ const ProductChat = ({
   productImage,
   autoOpen = false
 }) => {
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { startConversation } = useChat();
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
@@ -25,12 +27,17 @@ const ProductChat = ({
       return;
     }
 
-    await startConversation(productId, dropshippedProductId, {
+    const conversation = await startConversation(productId, dropshippedProductId, {
       seller_id: sellerId,
       seller_name: sellerName,
       product_name: productName,
       product_image: productImage
     });
+    if (conversation?.conversationId) {
+      navigate(`/mes-messages?conversation=${conversation.conversationId}`);
+    } else {
+      navigate('/mes-messages');
+    }
   };
 
   // Auto-open chat when autoOpen prop is true and user is authenticated
@@ -45,7 +52,7 @@ const ProductChat = ({
     <Button
       onClick={handleOpenChat}
       variant="outline"
-      className="flex items-center gap-2 border-orange-200 text-orange-600 hover:bg-orange-50"
+      className="flex items-center gap-2 border-orange-200 text-orange-600 hover:bg-orange-50 animate-pulse"
       data-testid="contact-seller-btn"
     >
       <MessageCircle className="w-4 h-4" />

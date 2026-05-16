@@ -7,6 +7,7 @@ import { useChat } from './FloatingChat';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { copyToClipboard, shareOrCopy } from '../utils/share';
 
 const formatPrice = (price, currency = 'FCFA') => {
   if (currency === 'FCFA') {
@@ -33,20 +34,19 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const handleShare = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: product.name,
-          text: `Découvrez ${product.name} sur Cloléo - ${formatPrice(displayPrice)}`,
-          url: productUrl
-        });
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          handleCopyLink(e);
-        }
+
+    try {
+      const res = await shareOrCopy({
+        title: product.name,
+        text: `Découvrez ${product.name} sur Cloléo - ${formatPrice(displayPrice)}`,
+        url: productUrl
+      });
+      if (res.copied) {
+        setCopied(true);
+        toast.success('Lien copié !');
+        setTimeout(() => setCopied(false), 2000);
       }
-    } else {
+    } catch {
       handleCopyLink(e);
     }
   };
@@ -56,7 +56,8 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
     e.stopPropagation();
     
     try {
-      await navigator.clipboard.writeText(productUrl);
+      const ok = await copyToClipboard(productUrl);
+      if (!ok) throw new Error('copy_failed');
       setCopied(true);
       toast.success('Lien copié !');
       setTimeout(() => setCopied(false), 2000);
@@ -77,12 +78,17 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
     
     // Open floating chat directly without page navigation
     try {
-      await startConversation(product.id, null, {
+      const conversation = await startConversation(product.id, null, {
         seller_id: product.seller_id,
         seller_name: product.seller_name || product.seller?.shop_name || product.seller?.name,
         product_name: product.name,
         product_image: product.images?.[0]
       });
+      if (conversation?.conversationId) {
+        navigate(`/mes-messages?conversation=${conversation.conversationId}`);
+      } else {
+        navigate('/mes-messages');
+      }
       toast.success('Conversation ouverte !');
     } catch (error) {
       console.error('Error starting conversation:', error);
@@ -238,7 +244,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         {/* Contact Vendor Button - Slide up animation */}
         {showContactButton && (
           <div className={cn(
-            "absolute bottom-0 left-0 right-0 p-4 transform transition-all duration-500 ease-out",
+            "absolute bottom-0 left-0 right-0 p-4 transform transition-all duration-500 ease-out hidden md:block",
             isHovered ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
           )}>
             <Button
@@ -403,6 +409,22 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           )}>
             ≈ ${displayPriceUsd || (displayPrice * 0.00165).toFixed(2)}
           </p>
+          {showContactButton && (
+            <Button
+              onClick={handleContactVendor}
+              className={cn(
+                "mt-3 w-full rounded-xl py-5 font-semibold shadow-lg",
+                "bg-gradient-to-r from-orange-500 to-amber-500 text-white",
+                "hover:from-orange-600 hover:to-amber-600",
+                "animate-pulse"
+              )}
+              size="lg"
+              data-testid={`contact-vendor-btn-persistent-${product.id}`}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Contacter le vendeur
+            </Button>
+          )}
         </div>
       </div>
     </Link>

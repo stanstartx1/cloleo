@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [userSearch, setUserSearch] = useState('');
   const [editingCategory, setEditingCategory] = useState(null);
-  const [newCategory, setNewCategory] = useState({ name: '', slug: '', icon: 'Package', description: '', banner_images: [] });
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', banner_images: [] });
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   
   // Filter states
@@ -169,7 +169,7 @@ const AdminDashboard = () => {
       await axios.put(`${API}/admin/vendors/${vendorId}/toggle-status`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Statut mis à jour');
+      toast.success('Statut mis Ã  jour');
       fetchAllData();
     } catch (error) {
       toast.error('Erreur');
@@ -217,7 +217,7 @@ const AdminDashboard = () => {
       await axios.put(`${API}/admin/drivers/${driverId}/toggle`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Statut mis à jour');
+      toast.success('Statut mis Ã  jour');
       fetchAllData();
     } catch (error) {
       toast.error('Erreur');
@@ -245,7 +245,7 @@ const AdminDashboard = () => {
   // ========== USER MANAGEMENT FUNCTIONS ==========
   
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) {
+    if (!window.confirm(`ÃŠtes-vous sÃ»r de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) {
       return;
     }
     
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
       toast.success(response.data.message);
       fetchAllData();
     } catch (error) {
-      toast.error('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise Ã  jour');
     }
   };
 
@@ -331,17 +331,28 @@ const AdminDashboard = () => {
   // ========== CATEGORY MANAGEMENT FUNCTIONS ==========
   
   const handleCreateCategory = async () => {
-    if (!newCategory.name || !newCategory.slug) {
-      toast.error('Le nom et le slug sont requis');
+    if (!newCategory.name) {
+      toast.error('Le nom est requis');
       return;
     }
     
     try {
-      await axios.post(`${API}/admin/categories`, newCategory, {
+      const slug = newCategory.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      await axios.post(`${API}/admin/categories`, {
+        ...newCategory,
+        slug,
+        icon: 'Package',
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Catégorie créée');
-      setNewCategory({ name: '', slug: '', icon: 'Package', description: '', banner_images: [] });
+      setNewCategory({ name: '', description: '', banner_images: [] });
       setShowNewCategoryForm(false);
       fetchAllData();
     } catch (error) {
@@ -353,14 +364,27 @@ const AdminDashboard = () => {
     if (!editingCategory) return;
     
     try {
-      await axios.put(`${API}/admin/categories/${categoryId}`, editingCategory, {
+      const slug = (editingCategory.slug && editingCategory.slug.trim())
+        ? editingCategory.slug
+        : editingCategory.name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+      await axios.put(`${API}/admin/categories/${categoryId}`, {
+        ...editingCategory,
+        slug,
+        icon: editingCategory.icon || 'Package',
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Catégorie mise à jour');
+      toast.success('Catégorie mise Ã  jour');
       setEditingCategory(null);
       fetchAllData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erreur lors de la mise à jour');
+      toast.error(error.response?.data?.detail || 'Erreur lors de la mise Ã  jour');
     }
   };
 
@@ -386,7 +410,7 @@ const AdminDashboard = () => {
       toast.success(response.data.message);
       fetchAllData();
     } catch (error) {
-      toast.error('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise Ã  jour');
     }
   };
 
@@ -634,7 +658,7 @@ const StatsSection = ({ stats, pendingCount, pendingVendors }) => (
           <TrendingUp className="w-5 h-5 text-emerald-400" /> Aperçu des ventes
         </h3>
         <div className="h-48 flex items-center justify-center text-slate-500">
-          Graphique à venir
+          Graphique Ã  venir
         </div>
       </div>
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -1237,9 +1261,9 @@ const RoutesSection = ({ drivers }) => (
       <MapPin className="w-16 h-16 text-slate-600 mx-auto mb-4" />
       <h4 className="text-lg font-medium mb-2">Carte en développement</h4>
       <p className="text-slate-400 text-sm">
-        Le suivi en temps réel des livreurs sera disponible dans une prochaine mise à jour.
+        Le suivi en temps réel des livreurs sera disponible dans une prochaine mise Ã  jour.
         <br />
-        Pour l'instant, les livreurs peuvent mettre à jour leur position manuellement.
+        Pour l'instant, les livreurs peuvent mettre Ã  jour leur position manuellement.
       </p>
     </div>
 
@@ -1358,10 +1382,10 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
       await axios.put(`${API}/admin/revendeurs/${revendeurId}/toggle`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Statut mis à jour');
+      toast.success('Statut mis Ã  jour');
       onRefresh();
     } catch (error) {
-      toast.error('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise Ã  jour');
     } finally {
       setLoading(false);
     }
@@ -1482,7 +1506,7 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
               <div key={t.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                 <div>
                   <p className="font-medium">{t.product_name}</p>
-                  <p className="text-sm text-slate-400">{t.revendeur_name} • {t.order_number}</p>
+                  <p className="text-sm text-slate-400">{t.revendeur_name} â€¢ {t.order_number}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-green-400 font-medium">+{formatPrice(t.admin_share || 0)} F</p>
@@ -1651,8 +1675,6 @@ const CategoriesSection = ({
   onDelete, 
   onToggle 
 }) => {
-  const iconOptions = ['Package', 'Shirt', 'Sparkles', 'Gem', 'Laptop', 'Home', 'Apple', 'Dumbbell', 'Palette', 'Music', 'Book', 'Car'];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1684,27 +1706,6 @@ const CategoriesSection = ({
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">Slug *</label>
-              <Input
-                value={newCategory.slug}
-                onChange={(e) => setNewCategory({...newCategory, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-                placeholder="mode-textile"
-                className="bg-slate-700 border-slate-600"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 mb-1 block">Icône</label>
-              <select
-                value={newCategory.icon}
-                onChange={(e) => setNewCategory({...newCategory, icon: e.target.value})}
-                className="w-full p-2 rounded-md bg-slate-700 border border-slate-600 text-white"
-              >
-                {iconOptions.map(icon => (
-                  <option key={icon} value={icon}>{icon}</option>
-                ))}
-              </select>
-            </div>
-            <div>
               <label className="text-sm text-slate-400 mb-1 block">Description</label>
               <Input
                 value={newCategory.description}
@@ -1720,7 +1721,7 @@ const CategoriesSection = ({
               onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
               maxImages={3}
               token={token}
-              label="3 images à la une (diaporama)"
+              label="3 images Ã  la une (diaporama)"
               hint="Ces 3 images défileront sur la page principale."
             />
           </div>
@@ -1735,6 +1736,51 @@ const CategoriesSection = ({
         </div>
       )}
 
+      {/* Edit Category Form */}
+      {editingCategory && (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <h3 className="font-semibold mb-4">Modifier la catégorie</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
+              <Input
+                value={editingCategory.name || ''}
+                onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                placeholder="Nom de la catégorie"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Description</label>
+              <Input
+                value={editingCategory.description || ''}
+                onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                placeholder="Description de la catégorie"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+            <ImageUpload
+              images={editingCategory.banner_images || []}
+              onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
+              maxImages={3}
+              token={token}
+              label="3 images Ã  la une (diaporama)"
+              hint="Ces 3 images défileront sur la page principale."
+            />
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={() => onUpdate(editingCategory.id)} className="bg-green-600 hover:bg-green-700">
+              <Check className="w-4 h-4 mr-2" /> Enregistrer
+            </Button>
+            <Button variant="outline" onClick={() => setEditingCategory(null)}>
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Categories List */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -1742,10 +1788,8 @@ const CategoriesSection = ({
             <thead>
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
                 <th className="p-4">Catégorie</th>
-                <th className="p-4">Slug</th>
-                <th className="p-4">Icône</th>
                 <th className="p-4">Produits</th>
-                <th className="p-4">Images à la une</th>
+                <th className="p-4">Images Ã  la une</th>
                 <th className="p-4">Statut</th>
                 <th className="p-4">Actions</th>
               </tr>
@@ -1753,7 +1797,7 @@ const CategoriesSection = ({
             <tbody>
               {categories.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-400">
+                  <td colSpan="5" className="p-8 text-center text-slate-400">
                     Aucune catégorie
                   </td>
                 </tr>
@@ -1761,63 +1805,18 @@ const CategoriesSection = ({
                 categories.map((cat) => (
                   <tr key={cat.id || cat.slug} className="border-b border-slate-700 hover:bg-slate-700/50">
                     <td className="p-4">
-                      {editingCategory?.id === cat.id ? (
-                        <Input
-                          value={editingCategory.name}
-                          onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})}
-                          className="bg-slate-700 border-slate-600"
-                        />
-                      ) : (
-                        <span className="font-medium">{cat.name}</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-slate-400">
-                      {editingCategory?.id === cat.id ? (
-                        <Input
-                          value={editingCategory.slug}
-                          onChange={(e) => setEditingCategory({...editingCategory, slug: e.target.value})}
-                          className="bg-slate-700 border-slate-600"
-                        />
-                      ) : (
-                        cat.slug
-                      )}
-                    </td>
-                    <td className="p-4">
-                      {editingCategory?.id === cat.id ? (
-                        <select
-                          value={editingCategory.icon}
-                          onChange={(e) => setEditingCategory({...editingCategory, icon: e.target.value})}
-                          className="p-2 rounded-md bg-slate-700 border border-slate-600 text-white"
-                        >
-                          {iconOptions.map(icon => (
-                            <option key={icon} value={icon}>{icon}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-teal-400">{cat.icon || 'Package'}</span>
-                      )}
+                      <span className="font-medium">{cat.name}</span>
                     </td>
                     <td className="p-4">{cat.product_count || 0}</td>
                     <td className="p-4">
-                      {editingCategory?.id === cat.id ? (
-                        <ImageUpload
-                          images={editingCategory.banner_images || []}
-                          onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
-                          maxImages={3}
-                          token={token}
-                          label=""
-                          hint="Max 3 images"
-                        />
-                      ) : (
-                        <div className="flex gap-1">
-                          {(cat.banner_images || []).slice(0, 3).map((img, idx) => (
-                            <img key={idx} src={img} alt="" className="w-10 h-10 rounded object-cover border border-slate-600" />
-                          ))}
-                          {(!cat.banner_images || cat.banner_images.length === 0) && (
-                            <span className="text-xs text-slate-500">Aucune</span>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex gap-1">
+                        {(cat.banner_images || []).slice(0, 3).map((img, idx) => (
+                          <img key={idx} src={img} alt="" className="w-10 h-10 rounded object-cover border border-slate-600" />
+                        ))}
+                        {(!cat.banner_images || cat.banner_images.length === 0) && (
+                          <span className="text-xs text-slate-500">Aucune</span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs ${cat.is_active !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -1826,28 +1825,15 @@ const CategoriesSection = ({
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        {editingCategory?.id === cat.id ? (
-                          <>
-                            <Button size="sm" onClick={() => onUpdate(cat.id)} className="bg-green-600 hover:bg-green-700">
-                              <Check className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}>
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
-                              {cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </>
-                        )}
+                        <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}>
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
+                          {cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -1862,3 +1848,4 @@ const CategoriesSection = ({
 };
 
 export default AdminDashboard;
+

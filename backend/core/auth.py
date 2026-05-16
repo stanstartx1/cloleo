@@ -99,10 +99,14 @@ async def require_admin(user: dict = Depends(get_current_user)):
 async def require_driver(user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.DRIVER:
         raise HTTPException(status_code=403, detail="Acces reserve aux livreurs")
+    if not user.get("is_active", False) or not user.get("is_verified", False):
+        raise HTTPException(status_code=403, detail="Compte livreur en attente d'approbation")
     return user
 
 
 async def require_dropshipper(user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.DROPSHIPPER:
         raise HTTPException(status_code=403, detail="Acces reserve aux dropshippers")
+    if not user.get("is_active", False) or not user.get("is_verified", False):
+        raise HTTPException(status_code=403, detail="Compte revendeur en attente d'approbation")
     return user

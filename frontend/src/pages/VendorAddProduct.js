@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  ArrowLeft, Save, Loader2
+  ArrowLeft, Save, Loader2, LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -24,7 +24,9 @@ const CONDITIONS = [
 
 const VendorAddProduct = () => {
   const navigate = useNavigate();
-  const { token, isVendor } = useAuth();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
+  const { token, isVendor, logout } = useAuth();
   
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +50,38 @@ const VendorAddProduct = () => {
     }
     fetchCategories();
   }, [isVendor, navigate]);
+
+  useEffect(() => {
+    if (!isEditMode || !token) return;
+    const fetchProductForEdit = async () => {
+      try {
+        const response = await axios.get(`${API}/vendor/products`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const allProducts = Array.isArray(response.data) ? response.data : (response.data.products || []);
+        const product = allProducts.find((p) => p.id === id);
+        if (!product) {
+          toast.error('Produit introuvable');
+          navigate('/vendeur/produits');
+          return;
+        }
+        setFormData({
+          name: product.name || '',
+          description: product.description || '',
+          price_fcfa: product.price_fcfa?.toString() || '',
+          promo_price_fcfa: product.promo_price_fcfa?.toString() || '',
+          stock: product.stock?.toString() || '',
+          condition: product.condition || 'neuf',
+          category_slug: product.category_slug || '',
+          images: product.images || [],
+          tags: Array.isArray(product.tags) ? product.tags.join(', ') : ''
+        });
+      } catch (error) {
+        toast.error('Erreur chargement produit');
+      }
+    };
+    fetchProductForEdit();
+  }, [id, isEditMode, token, navigate]);
 
   const fetchCategories = async () => {
     try {
@@ -95,11 +129,17 @@ const VendorAddProduct = () => {
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
       };
 
-      await axios.post(`${API}/vendor/products`, data, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      toast.success('Produit créé ! En attente de validation par l\'admin.');
+      if (isEditMode) {
+        await axios.put(`${API}/vendor/products/${id}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Produit modifié avec succès');
+      } else {
+        await axios.post(`${API}/vendor/products`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Produit créé ! En attente de validation par l\'admin.');
+      }
       navigate('/vendeur/produits');
     } catch (error) {
       console.error('Error creating product:', error);
@@ -109,22 +149,32 @@ const VendorAddProduct = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen py-8 bg-muted/30 dashboard-card-skin home-premium-gradient" data-testid="add-product-page">
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button asChild variant="ghost" size="icon">
-            <Link to="/vendeur/produits">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Ajouter un produit</h1>
-            <p className="text-muted-foreground">
-              Votre produit sera soumis à validation avant publication
-            </p>
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <Button asChild variant="ghost" size="icon">
+              <Link to="/vendeur/produits">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{isEditMode ? 'Modifier le produit' : 'Ajouter un produit'}</h1>
+              <p className="text-muted-foreground">
+                {isEditMode ? 'Modifiez images, prix, stock et détails du produit' : 'Votre produit sera soumis à validation avant publication'}
+              </p>
+            </div>
           </div>
+          <Button variant="destructive" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+          </Button>
         </div>
 
         {/* Form */}
@@ -289,11 +339,11 @@ const VendorAddProduct = () => {
             <Button type="submit" disabled={loading} data-testid="submit-product">
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Création...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isEditMode ? 'Mise à jour...' : 'Création...'}
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" /> Créer le produit
+                  <Save className="w-4 h-4 mr-2" /> {isEditMode ? 'Mettre à jour le produit' : 'Créer le produit'}
                 </>
               )}
             </Button>

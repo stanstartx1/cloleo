@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Check, Crown, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { Check, Crown, Sparkles, ArrowRight, Loader2, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
@@ -15,7 +15,7 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const VendorSubscription = () => {
   const navigate = useNavigate();
-  const { user, token, isVendor, refreshUser } = useAuth();
+  const { user, token, isVendor, refreshUser, logout } = useAuth();
   const [searchParams] = useSearchParams();
   
   const [plans, setPlans] = useState([]);
@@ -61,7 +61,7 @@ const VendorSubscription = () => {
       });
       
       if (response.data.payment_status === 'paid') {
-        toast.success('🎉 Abonnement activé avec succès !');
+        toast.success('ðŸŽ‰ Abonnement activé avec succès !');
         await refreshUser();
         // Clear URL params
         navigate('/vendeur/abonnement', { replace: true });
@@ -106,6 +106,11 @@ const VendorSubscription = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   const currentPlan = user?.subscription_plan || 'free';
 
   if (loading) {
@@ -132,7 +137,7 @@ const VendorSubscription = () => {
           </div>
           <h1 className="text-4xl font-bold mb-4">Plans d'abonnement vendeur</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Développez votre activité sur Cloléo avec le plan adapté à vos besoins. 
+            Développez votre activité sur Cloléo avec le plan adapté Ã  vos besoins. 
             Commencez gratuitement et évoluez selon votre croissance.
           </p>
         </div>
@@ -196,7 +201,7 @@ const VendorSubscription = () => {
                       <div className="text-3xl font-bold">
                         {formatPrice(plan.price_fcfa)} <span className="text-base font-normal text-muted-foreground">FCFA</span>
                       </div>
-                      <div className="text-sm text-muted-foreground">≈ ${plan.price_usd} / mois</div>
+                      <div className="text-sm text-muted-foreground">â‰ˆ ${plan.price_usd} / mois</div>
                     </>
                   )}
                 </div>
@@ -249,9 +254,9 @@ const VendorSubscription = () => {
           <h2 className="text-2xl font-bold text-center mb-8">Questions fréquentes</h2>
           <div className="space-y-4">
             <div className="bg-white rounded-xl p-6 border">
-              <h3 className="font-bold mb-2">Puis-je changer de plan à tout moment ?</h3>
+              <h3 className="font-bold mb-2">Puis-je changer de plan Ã  tout moment ?</h3>
               <p className="text-muted-foreground text-sm">
-                Oui ! Vous pouvez passer à un plan supérieur à tout moment. Le changement est effectif immédiatement.
+                Oui ! Vous pouvez passer Ã  un plan supérieur Ã  tout moment. Le changement est effectif immédiatement.
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 border">
@@ -269,15 +274,14 @@ const VendorSubscription = () => {
           </div>
         </div>
 
-        {/* Back button */}
-        <div className="text-center mt-8">
+        {/* Back / Logout buttons */}
+        <div className="text-center mt-8 flex items-center justify-center gap-3">
           <Button asChild variant="ghost">
-            <Link to="/vendeur">← Retour au tableau de bord</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
+            <Link to="/vendeur">â† Retour au tableau de bord</Link>
+          </Button>`r`n          <Button variant="destructive" onClick={handleLogout}>`r`n            <LogOut className="w-4 h-4 mr-2" /> Déconnexion`r`n          </Button>`r`n        </div>`r`n      </div>`r`n    </div>
   );
 };
 
 export default VendorSubscription;
+
+

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   MessageCircle, Send, X, Store, ArrowLeft, Search, LogOut,
@@ -19,6 +19,7 @@ const WS_URL = BACKEND_URL
 
 const CustomerChatPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, token, isAuthenticated, logout } = useAuth();
   
   const [conversations, setConversations] = useState([]);
@@ -241,6 +242,16 @@ const CustomerChatPage = () => {
     c.seller_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.product_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    const targetConversationId = searchParams.get('conversation');
+    if (!targetConversationId || conversations.length === 0) return;
+    const target = conversations.find((c) => c.id === targetConversationId);
+    if (target) {
+      setSelectedConversation(target);
+      loadMessages(target.id);
+    }
+  }, [searchParams, conversations, loadMessages]);
 
   if (loading) {
     return (

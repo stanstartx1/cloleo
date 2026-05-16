@@ -336,12 +336,13 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "images": payload.get("images") or [],
         "tags": payload.get("tags") or [],
         "is_active": True,
-        "status": "approved",
+        "status": "pending",
         "is_featured": False,
         "created_at": _utc(),
         "updated_at": _utc(),
     }
     await db.products.insert_one(product)
+    product.pop("_id", None)
     return product
 
 
@@ -392,7 +393,9 @@ async def driver_status_update(payload: dict, user: dict = Depends(require_drive
 
 
 @api.post("/driver/upload-license")
-async def driver_upload_license(file: UploadFile = File(...), user: dict = Depends(require_driver)):
+async def driver_upload_license(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    if user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Acces reserve aux livreurs")
     ext = Path(file.filename or "").suffix or ".bin"
     filename = f"license_{user['id']}_{uuid.uuid4()}{ext}"
     dest = uploads_dir / filename
@@ -469,6 +472,33 @@ async def create_revendeur_product(payload: DropshippedProductCreate, user: dict
         "updated_at": _utc(),
     }
     await db.dropshipped_products.insert_one(doc)
+
+    # Publish revendeur product in the global public catalog so it appears on homepage/listing.
+    public_product = {
+        "id": dp_id,
+        "slug": _slugify(f"{original.get('name') or 'produit'}-{dp_id[:6]}"),
+        "seller_id": user["id"],
+        "seller_name": user.get("shop_name") or user.get("name"),
+        "seller_type": "dropshipper",
+        "name": original.get("name"),
+        "description": payload.custom_description or original.get("description"),
+        "category_slug": original.get("category_slug"),
+        "condition": original.get("condition", "neuf"),
+        "price_fcfa": int(payload.selling_price_fcfa),
+        "promo_price_fcfa": None,
+        "stock": int(original.get("stock") or 999),
+        "images": images,
+        "tags": original.get("tags") or [],
+        "is_active": True,
+        "status": "pending",
+        "is_featured": False,
+        "source": "revendeur",
+        "original_product_id": original.get("id"),
+        "created_at": _utc(),
+        "updated_at": _utc(),
+    }
+    await db.products.insert_one(public_product)
+    doc.pop("_id", None)
     return doc
 
 
@@ -490,6 +520,20 @@ async def update_revendeur_product(product_id: str, payload: DropshippedProductU
     doc = await db.dropshipped_products.find_one({"id": product_id, "dropshipper_id": user["id"]}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Produit revendeur non trouvé")
+
+    # Keep public catalog product in sync with revendeur product edits.
+    public_update = {"updated_at": _utc()}
+    if "selling_price_fcfa" in update:
+        public_update["price_fcfa"] = int(update["selling_price_fcfa"])
+    if "custom_description" in update:
+        public_update["description"] = update.get("custom_description")
+    if "custom_images" in update:
+        imgs = update.get("custom_images") or doc.get("original_images") or []
+        public_update["images"] = imgs
+    await db.products.update_one(
+        {"id": product_id, "seller_id": user["id"], "seller_type": "dropshipper"},
+        {"$set": public_update},
+    )
     return doc
 
 
@@ -498,6 +542,7 @@ async def delete_revendeur_product(product_id: str, user: dict = Depends(require
     result = await db.dropshipped_products.delete_one({"id": product_id, "dropshipper_id": user["id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produit revendeur non trouve")
+    await db.products.delete_one({"id": product_id, "seller_id": user["id"], "seller_type": "dropshipper"})
     return {"ok": True}
 
 
@@ -521,7 +566,21 @@ async def public_revendeur_shop(shop_slug: str, page: int = 1):
     for p in products:
         if not p.get("original_images"):
             p["original_images"] = p.get("custom_images") or []
-    return {"shop": {"revendeur_id": shop_user["id"], "slug": shop_slug, "name": shop_user.get("shop_name")}, "products": products, "page": page}
+    return {
+        "shop": {
+            "revendeur_id": shop_user["id"],
+            "slug": shop_slug,
+            "name": shop_user.get("shop_name"),
+            "description": shop_user.get("shop_description"),
+            "profile_photo": shop_user.get("profile_photo"),
+            "location": shop_user.get("location") or shop_user.get("city"),
+            "country": shop_user.get("country"),
+            "created_at": shop_user.get("created_at"),
+            "is_verified": bool(shop_user.get("is_verified")),
+        },
+        "products": products,
+        "page": page,
+    }
 
 
 @api.get("/vendor-shop/{seller_id}")
@@ -534,11 +593,21 @@ async def public_vendor_shop(seller_id: str, page: int = 1, limit: int = 12):
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
     return {
-        "shop": {"seller_id": seller_id, "name": shop_user.get("shop_name") or shop_user.get("name")},
+        "shop": {
+            "seller_id": seller_id,
+            "name": shop_user.get("shop_name") or shop_user.get("name"),
+            "description": shop_user.get("shop_description"),
+            "profile_photo": shop_user.get("profile_photo"),
+            "location": shop_user.get("location") or shop_user.get("city"),
+            "country": shop_user.get("country"),
+            "created_at": shop_user.get("created_at"),
+            "is_verified": bool(shop_user.get("is_verified")),
+        },
         "products": products,
         "total": total,
         "page": page,
         "limit": limit,
+        "total_pages": max(1, (total + limit - 1) // limit),
     }
 
 
@@ -774,6 +843,15 @@ async def admin_toggle_revendeur(revendeur_id: str, user: dict = Depends(require
     if not revendeur:
         raise HTTPException(status_code=404, detail="Revendeur non trouve")
     await db.users.update_one({"id": revendeur_id}, {"$set": {"is_active": not bool(revendeur.get("is_active", True)), "updated_at": _utc()}})
+    return {"ok": True}
+
+
+@api.put("/admin/revendeurs/{revendeur_id}/verify")
+async def admin_verify_revendeur(revendeur_id: str, user: dict = Depends(require_admin)):
+    await db.users.update_one(
+        {"id": revendeur_id, "role": "dropshipper"},
+        {"$set": {"is_verified": True, "is_active": True, "approval_status": "approved", "updated_at": _utc()}},
+    )
     return {"ok": True}
 
 

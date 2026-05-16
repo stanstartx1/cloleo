@@ -443,6 +443,12 @@ const DriverDashboard = () => {
 
         {/* Main Content */}
         <main className="flex-1 lg:ml-64 p-4 lg:p-6">
+          <div className="mb-4 flex justify-end">
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            </Button>
+          </div>
+
           {/* Pending Verification Alert */}
           {isPendingVerification && (
             <div className="mb-4 p-4 bg-amber-500/20 border border-amber-500/50 rounded-xl flex items-start gap-3">

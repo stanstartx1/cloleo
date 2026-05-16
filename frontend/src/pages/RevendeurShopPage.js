@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import ProductChat from '../components/ProductChat';
 import { useAuth } from '../context/AuthContext';
+import { toAbsoluteMediaUrl } from '../utils/media';
+import { copyToClipboard, shareOrCopy } from '../utils/share';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -60,21 +62,19 @@ const RevendeurShopPage = () => {
 
   const handleShare = async () => {
     const shopUrl = window.location.href;
-    try {
-      await navigator.share({
-        title: `Boutique ${shop?.name}`,
-        text: `Découvrez la boutique ${shop?.name} sur Cloléo`,
-        url: shopUrl,
-      });
-    } catch {
-      navigator.clipboard.writeText(shopUrl);
-      toast.success('Lien de la boutique copié !');
-    }
+    const res = await shareOrCopy({
+      title: `Boutique ${shop?.name}`,
+      text: `Découvrez la boutique ${shop?.name} sur Cloléo`,
+      url: shopUrl,
+    });
+    if (res.copied) toast.success('Lien de la boutique copié !');
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success('Lien copié dans le presse-papier');
+    copyToClipboard(window.location.href).then((ok) => {
+      if (ok) toast.success('Lien copié dans le presse-papier');
+      else toast.error('Impossible de copier le lien');
+    });
   };
 
   const handleSubscribe = async () => {
@@ -187,10 +187,15 @@ const RevendeurShopPage = () => {
       </header>
 
       {/* Shop Banner */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-12">
-        <div className="container mx-auto px-4 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-            <Store className="w-10 h-10" />
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-700 to-purple-800 text-white py-14 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.3),transparent_45%)]" />
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-white/20 border-4 border-white/30 overflow-hidden flex items-center justify-center shadow-2xl">
+            {shop.profile_photo ? (
+              <img src={toAbsoluteMediaUrl(shop.profile_photo)} alt={shop.name} className="w-full h-full object-cover" />
+            ) : (
+              <Store className="w-10 h-10" />
+            )}
           </div>
           <h1 className="text-3xl font-bold mb-2">{shop.name}</h1>
           {shop.description && (
@@ -353,10 +358,13 @@ const RevendeurShopPage = () => {
       {/* Chat Component */}
       {chatProduct && (
         <ProductChat
+          productId={null}
           dropshippedProductId={chatProduct.id}
+          sellerId={shop?.revendeur_id}
           sellerName={shop?.name || 'Vendeur'}
           productName={chatProduct.original_name}
           productImage={chatProduct.original_images?.[0]}
+          autoOpen={true}
         />
       )}
     </div>

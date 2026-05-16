@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import { useAuth } from '../context/AuthContext';
+import { toAbsoluteMediaUrl } from '../utils/media';
+import { copyToClipboard, shareOrCopy } from '../utils/share';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -66,21 +68,19 @@ const VendorShopPage = () => {
 
   const handleShare = async () => {
     const shopUrl = window.location.href;
-    try {
-      await navigator.share({
-        title: `Boutique ${shop?.name}`,
-        text: `Découvrez la boutique ${shop?.name} sur Cloléo`,
-        url: shopUrl,
-      });
-    } catch {
-      navigator.clipboard.writeText(shopUrl);
-      toast.success('Lien de la boutique copié !');
-    }
+    const res = await shareOrCopy({
+      title: `Boutique ${shop?.name}`,
+      text: `Découvrez la boutique ${shop?.name} sur Cloléo`,
+      url: shopUrl,
+    });
+    if (res.copied) toast.success('Lien de la boutique copié !');
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success('Lien copié dans le presse-papier');
+    copyToClipboard(window.location.href).then((ok) => {
+      if (ok) toast.success('Lien copié dans le presse-papier');
+      else toast.error('Impossible de copier le lien');
+    });
   };
 
   const handleSubscribe = async () => {
@@ -167,10 +167,14 @@ const VendorShopPage = () => {
         <div className="container mx-auto px-4 py-12 md:py-16 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
             {/* Shop Avatar */}
-            <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white/30 shadow-xl">
-              <span className="text-5xl md:text-6xl font-bold text-white">
-                {shop.name?.charAt(0)?.toUpperCase() || 'V'}
-              </span>
+            <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white/30 shadow-xl overflow-hidden">
+              {shop.profile_photo ? (
+                <img src={toAbsoluteMediaUrl(shop.profile_photo)} alt={shop.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-5xl md:text-6xl font-bold text-white">
+                  {shop.name?.charAt(0)?.toUpperCase() || 'V'}
+                </span>
+              )}
             </div>
             
             {/* Shop Info */}
