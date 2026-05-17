@@ -475,7 +475,7 @@ const AdminDashboard = () => {
       case 'products':
         return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
       case 'categories':
-        return <CategoriesSection token={token} categories={categories} editingCategory={editingCategory} setEditingCategory={setEditingCategory} newCategory={newCategory} setNewCategory={setNewCategory} showNewForm={showNewCategoryForm} setShowNewForm={setShowNewCategoryForm} onCreate={handleCreateCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} onToggle={handleToggleCategory} products={products} />;
+        return <CategoriesSection token={token} categories={categories} editingCategory={editingCategory} setEditingCategory={setEditingCategory} newCategory={newCategory} setNewCategory={setNewCategory} showNewForm={showNewCategoryForm} setShowNewForm={setShowNewCategoryForm} onCreate={handleCreateCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} onToggle={handleToggleCategory} onRefresh={fetchAllData} products={products} />;
       case 'transactions':
         return <TransactionsSection transactions={transactions} />;
       case 'plans':
@@ -1374,10 +1374,12 @@ const CategoriesSection = ({
   onCreate, 
   onUpdate, 
   onDelete, 
-  onToggle 
+  onToggle,
+  onRefresh
 }) => {
   const [showSubForm, setShowSubForm] = useState(false);
   const [selectedParent, setSelectedParent] = useState(null);
+  const [expandedCategory, setExpandedCategory] = useState(null);
 
   const [newSubCategory, setNewSubCategory] = useState({ 
     name: '', 
@@ -1427,8 +1429,10 @@ const CategoriesSection = ({
       setNewSubCategory({ name: '', description: '', parent_slug: '', banner_images: [] });
       setShowSubForm(false);
       
-      // Rafraîchissement complet
-      window.location.reload();
+      // Rafraîchissement des données
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (error) {
       console.error(error.response?.data);
       toast.error(error.response?.data?.detail || 'Erreur lors de la création de la sous-catégorie');
@@ -1451,6 +1455,48 @@ const CategoriesSection = ({
           </Button>
         </div>
       </div>
+
+      {/* Formulaire Catégorie principale */}
+      {showNewForm && (
+        <div className="bg-slate-800 rounded-xl border border-teal-500/30 p-6">
+          <h3 className="font-semibold mb-4 text-teal-400">Créer une Catégorie principale</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Nom de la catégorie *</label>
+              <Input 
+                value={newCategory.name} 
+                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})} 
+                placeholder="Ex: Mode" 
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Description</label>
+              <Input 
+                value={newCategory.description} 
+                onChange={(e) => setNewCategory({...newCategory, description: e.target.value})} 
+              />
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <ImageUpload 
+              images={newCategory.banner_images || []}
+              onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
+              maxImages={3}
+              token={token}
+              label="3 photos de mise en avant (bannière)"
+              hint="Ces images défileront en haut de la catégorie"
+            />
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700">
+              Créer la catégorie
+            </Button>
+            <Button variant="outline" onClick={() => setShowNewForm(false)}>Annuler</Button>
+          </div>
+        </div>
+      )}
 
       {/* Formulaire Sous-catégorie */}
       {showSubForm && (
@@ -1507,22 +1553,87 @@ const CategoriesSection = ({
         </div>
       )}
 
+      {/* Formulaire d'édition (réutilisable pour catégorie et sous-catégorie) */}
+      {editingCategory && (
+        <div className="bg-slate-800 rounded-xl border border-amber-500/30 p-6">
+          <h3 className="font-semibold mb-4 text-amber-400">
+            {editingCategory.parent_slug ? 'Modifier la Sous-catégorie' : 'Modifier la Catégorie'}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
+              <Input 
+                value={editingCategory.name || ''} 
+                onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})} 
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Description</label>
+              <Input 
+                value={editingCategory.description || ''} 
+                onChange={(e) => setEditingCategory({...editingCategory, description: e.target.value})} 
+              />
+            </div>
+            {editingCategory.parent_slug && (
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Catégorie parente</label>
+                <select 
+                  value={editingCategory.parent_slug || ''} 
+                  onChange={(e) => setEditingCategory({...editingCategory, parent_slug: e.target.value})}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 text-white"
+                >
+                  <option value="">Sélectionner une catégorie</option>
+                  {parentCategories.map(cat => (
+                    <option key={cat.slug} value={cat.slug}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5">
+            <ImageUpload 
+              images={editingCategory.banner_images || []}
+              onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
+              maxImages={3}
+              token={token}
+              label="3 photos de mise en avant (bannière)"
+              hint="Ces images défileront en haut"
+            />
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={() => onUpdate(editingCategory.id)} className="bg-amber-600 hover:bg-amber-700">
+              Mettre à jour
+            </Button>
+            <Button variant="outline" onClick={() => setEditingCategory(null)}>Annuler</Button>
+          </div>
+        </div>
+      )}
+
       {/* Liste des catégories */}
       <div className="space-y-4">
         {parentCategories.map((cat) => {
           const subCats = getSubCategories(cat.slug);
+          const isExpanded = expandedCategory === cat.id;
           return (
             <div key={cat.id} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-              <div className="p-5 flex items-center justify-between bg-slate-700/40">
-                <div>
-                  <h3 className="font-bold text-lg">{cat.name}</h3>
-                  <p className="text-sm text-slate-400">{subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}</p>
+              <div 
+                className="p-5 flex items-center justify-between bg-slate-700/40 cursor-pointer hover:bg-slate-700/60 transition-colors"
+                onClick={() => setExpandedCategory(isExpanded ? null : cat.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                  <div>
+                    <h3 className="font-bold text-lg">{cat.name}</h3>
+                    <p className="text-sm text-slate-400">{subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   {(cat.banner_images || []).slice(0,3).map((img,i) => (
                     <img key={i} src={img} className="w-12 h-12 object-cover rounded" alt="" />
                   ))}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button size="sm" variant="outline" onClick={() => setEditingCategory(cat)}><Edit className="w-4 h-4" /></Button>
                     <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
                       {cat.is_active !== false ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
@@ -1533,7 +1644,7 @@ const CategoriesSection = ({
               </div>
 
               {/* Sous-catégories */}
-              {subCats.length > 0 && (
+              {isExpanded && subCats.length > 0 && (
                 <div className="p-4 pl-8 bg-slate-900/30">
                   {subCats.map(sub => (
                     <div key={sub.id} className="flex justify-between items-center p-3 hover:bg-slate-700/50 rounded-lg mb-1">
