@@ -56,7 +56,7 @@ const HeroSection = () => {
   const prev = () => setCurrent((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
 
   return (
-    <section className="relative min-h-[85vh] overflow-hidden">
+    <section className="relative min-h-[60vh] overflow-hidden">
       <div className="absolute inset-0">
         {HERO_SLIDES.map((s, idx) => (
           <div
@@ -69,13 +69,13 @@ const HeroSection = () => {
       </div>
 
       <motion.div
-        className="relative z-10 container mx-auto px-4 min-h-[85vh] flex items-center"
+        className="relative z-10 container mx-auto px-4 min-h-[60vh] flex items-center"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
       >
-        <div className="grid lg:grid-cols-2 gap-10 items-center w-full py-14">
-          <div className="text-white space-y-7">
+        <div className="grid lg:grid-cols-2 gap-10 items-center w-full py-8">
+          <div className="text-white space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/25 bg-white/10 backdrop-blur-sm">
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span className="text-sm font-medium">Cloleo Marketplace Premium</span>
@@ -83,7 +83,7 @@ const HeroSection = () => {
 
             <motion.h1
               key={slide.id}
-              className="text-4xl md:text-6xl font-black leading-tight"
+              className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
@@ -93,7 +93,7 @@ const HeroSection = () => {
 
             <motion.p
               key={`${slide.id}-subtitle`}
-              className="text-lg md:text-2xl text-white/85 max-w-xl"
+              className="text-lg md:text-xl text-white/85 max-w-xl"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.12 }}
@@ -114,6 +114,7 @@ const HeroSection = () => {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
               </Button>
+
               <Button asChild size="lg" variant="outline" className="rounded-full px-7 border-white/40 text-white hover:bg-white/10">
                 <Link to="/connexion">Devenir vendeur</Link>
               </Button>
@@ -148,7 +149,8 @@ const HeroSection = () => {
         </div>
       </motion.div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+      {/* Navigation */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
         <button onClick={prev} className="w-10 h-10 rounded-full border border-white/30 text-white bg-white/10 hover:bg-white/20">
           <ChevronLeft className="w-5 h-5 mx-auto" />
         </button>
