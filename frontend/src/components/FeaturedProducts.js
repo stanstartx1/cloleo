@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Star, Heart, ShoppingCart, Sparkles, Crown, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Sparkles, Crown, ArrowRight, ChevronLeft, ChevronRight, Zap, Tag } from 'lucide-react';
 import { Button } from './ui/button';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
@@ -20,6 +20,7 @@ const FeaturedProducts = () => {
   const carouselRef = useRef(null);
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -55,11 +56,27 @@ const FeaturedProducts = () => {
     setActiveIndex((prev) => Math.min(products.length - 4, prev + 1));
   };
 
-  const handleAddToCart = (product, e) => {
+  const handleAddToCart = async (product, e) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
-    toast.success('Ajouté au panier !');
+    const success = await addToCart(product.id);
+    if (success) {
+      toast.success('Ajouté au panier !');
+    } else {
+      toast.error('Erreur lors de l\'ajout au panier');
+    }
+  };
+
+  const handleBuyNow = async (product, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const success = await addToCart(product.id);
+    if (success) {
+      toast.success('Redirection vers le paiement...');
+      navigate('/checkout');
+    } else {
+      toast.error('Erreur lors de l\'achat');
+    }
   };
 
   const handleToggleFavorite = (product, e) => {
@@ -155,6 +172,7 @@ const FeaturedProducts = () => {
                 product={product}
                 index={index}
                 onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
                 onToggleFavorite={handleToggleFavorite}
                 isFavorite={isFavorite(product.id)}
                 isActive={index >= activeIndex && index < activeIndex + 4}
@@ -182,7 +200,7 @@ const FeaturedProducts = () => {
   );
 };
 
-const FeaturedProductCard = ({ product, index, onAddToCart, onToggleFavorite, isFavorite, isActive }) => {
+const FeaturedProductCard = ({ product, index, onAddToCart, onBuyNow, onToggleFavorite, isFavorite, isActive }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   const planBadge = {
@@ -192,6 +210,7 @@ const FeaturedProductCard = ({ product, index, onAddToCart, onToggleFavorite, is
   };
   
   const badge = planBadge[product.seller?.subscription_plan];
+  const isPromo = !!product.promo_price_fcfa;
 
   return (
     <Link
@@ -219,11 +238,21 @@ const FeaturedProductCard = ({ product, index, onAddToCart, onToggleFavorite, is
           />
           
           {/* Overlay gradient */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent transition-opacity duration-500 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
           
-          {/* Featured badge */}
-          {product.is_featured && (
-            <div className="absolute top-3 left-3">
+          {/* Badge EN PROMO — toujours visible */}
+          {isPromo && (
+            <div className="absolute top-3 left-3 z-10">
+              <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
+                <Tag className="w-3 h-3" />
+                En Promo
+              </div>
+            </div>
+          )}
+
+          {/* Featured badge — si pas de promo */}
+          {product.is_featured && !isPromo && (
+            <div className="absolute top-3 left-3 z-10">
               <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
                 <Sparkles className="w-3 h-3" />
                 Vedette
@@ -233,33 +262,21 @@ const FeaturedProductCard = ({ product, index, onAddToCart, onToggleFavorite, is
           
           {/* Seller badge */}
           {badge && (
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-3 right-3 z-10">
               <div className={`flex items-center gap-1 px-2 py-1 bg-gradient-to-r ${badge.color} text-white text-xs font-bold rounded-full shadow-lg`}>
                 <badge.icon className="w-3 h-3" />
                 {badge.text}
               </div>
             </div>
           )}
-          
-          {/* Quick actions */}
-          <div className={`absolute bottom-3 left-3 right-3 flex gap-2 transition-all duration-500 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <Button
-              size="sm"
-              className="flex-1 bg-white/90 backdrop-blur-sm text-gray-900 hover:bg-white shadow-lg"
-              onClick={(e) => onAddToCart(product, e)}
-            >
-              <ShoppingCart className="w-4 h-4 mr-1" />
-              Ajouter
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className={`bg-white/90 backdrop-blur-sm border-0 shadow-lg ${isFavorite ? 'text-red-500' : 'text-gray-600'}`}
-              onClick={(e) => onToggleFavorite(product, e)}
-            >
-              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500' : ''}`} />
-            </Button>
-          </div>
+
+          {/* Favori — toujours visible */}
+          <button
+            className={`absolute bottom-3 right-3 z-10 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-lg transition-all duration-300 ${isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+            onClick={(e) => onToggleFavorite(product, e)}
+          >
+            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500' : ''}`} />
+          </button>
         </div>
         
         {/* Content */}
@@ -273,9 +290,9 @@ const FeaturedProductCard = ({ product, index, onAddToCart, onToggleFavorite, is
           
           <div className="flex items-center justify-between mt-3">
             <div>
-              {product.promo_price_fcfa ? (
+              {isPromo ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-orange-600">
+                  <span className="text-lg font-bold text-red-600">
                     {formatPrice(product.promo_price_fcfa)} <span className="text-xs">FCFA</span>
                   </span>
                   <span className="text-sm text-muted-foreground line-through">
@@ -294,6 +311,27 @@ const FeaturedProductCard = ({ product, index, onAddToCart, onToggleFavorite, is
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               <span className="text-sm font-medium">{(Math.random() * 2 + 3).toFixed(1)}</span>
             </div>
+          </div>
+
+          {/* Boutons — toujours visibles */}
+          <div className="flex gap-2 mt-3">
+            <Button
+              size="sm"
+              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md text-xs"
+              onClick={(e) => onBuyNow(product, e)}
+            >
+              <Zap className="w-3 h-3 mr-1" />
+              Acheter
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 border-orange-200 hover:bg-orange-50 text-orange-600 text-xs"
+              onClick={(e) => onAddToCart(product, e)}
+            >
+              <ShoppingCart className="w-3 h-3 mr-1" />
+              Panier
+            </Button>
           </div>
         </div>
 
