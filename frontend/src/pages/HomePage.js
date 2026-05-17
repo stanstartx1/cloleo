@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight, Package, Users, Truck, Shield, Heart, Clock, Gift, Award, BadgeCheck } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight, Package, Users, Truck, Shield } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import { Button } from '../components/ui/button';
@@ -26,23 +26,19 @@ const cardMotion = {
 const useInView = (options) => {
   const ref = useRef(null);
   const [isInView, setIsInView] = useState(false);
-
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) setIsInView(true);
-    }, { threshold: 0.1, ...options });
-
+    }, { threshold: 0.1 });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, [options]);
-
+  }, []);
   return [ref, isInView];
 };
 
 const AnimatedCounter = ({ end, duration = 2000, suffix = '' }) => {
   const [count, setCount] = useState(0);
   const [ref, isInView] = useInView();
-
   useEffect(() => {
     if (!isInView) return;
     let startTime;
@@ -54,7 +50,6 @@ const AnimatedCounter = ({ end, duration = 2000, suffix = '' }) => {
     };
     requestAnimationFrame(animate);
   }, [isInView, end, duration]);
-
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 };
 
@@ -81,30 +76,24 @@ const HomePage = () => {
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
 
+  const particles = useMemo(() => [...Array(20)].map((_, i) => ({
+    left: `${(i * 17 + 5) % 100}%`,
+    top: `${(i * 13 + 7) % 100}%`,
+    delay: `${(i * 0.3) % 3}s`,
+    duration: `${3 + (i % 3)}s`,
+  })), []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // =================================================================
-        // FIX : On tente d'abord l'endpoint dédié /products/featured.
-        // S'il échoue (404 ou erreur), on tombe sur le fallback :
-        // on récupère tous les produits approuvés et on filtre is_featured.
-        // =================================================================
         const fetchFeatured = async () => {
           try {
             const res = await axios.get(`${API}/products/featured?limit=12`);
-            // ✅ FIX : le backend retourne une LISTE directe (pas { products: [] })
-            // On gère les deux cas pour être robuste
-            const products = Array.isArray(res.data)
-              ? res.data
-              : (res.data?.products || []);
+            const products = Array.isArray(res.data) ? res.data : (res.data?.products || []);
             return products;
           } catch (err) {
-            // Fallback : filtre is_featured localement
-            console.warn('[HomePage] /products/featured erreur — fallback local', err);
             const res = await axios.get(`${API}/products?limit=100`);
-            const allProducts = Array.isArray(res.data)
-              ? res.data
-              : (res.data?.products || []);
+            const allProducts = Array.isArray(res.data) ? res.data : (res.data?.products || []);
             return allProducts.filter(p => p.is_featured === true);
           }
         };
@@ -131,7 +120,6 @@ const HomePage = () => {
     fetchData();
   }, []);
 
-  // Auto-scroll carousel
   useEffect(() => {
     if (featuredProducts.length <= 4) return;
     const interval = setInterval(() => {
@@ -147,13 +135,8 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const nextSlide = () => {
-    setCarouselIndex(prev => Math.min(prev + 1, Math.max(0, featuredProducts.length - 4)));
-  };
-
-  const prevSlide = () => {
-    setCarouselIndex(prev => Math.max(prev - 1, 0));
-  };
+  const nextSlide = () => setCarouselIndex(prev => Math.min(prev + 1, Math.max(0, featuredProducts.length - 4)));
+  const prevSlide = () => setCarouselIndex(prev => Math.max(prev - 1, 0));
 
   const toggleConditionFilter = (key) => {
     setConditionFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -180,6 +163,8 @@ const HomePage = () => {
   const filteredTrendingProducts = applyProductFilters(trendingProducts);
   const filteredNewProducts = applyProductFilters(newProducts);
 
+  const activeCategories = categories.filter(c => c.is_active !== false);
+
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -187,84 +172,38 @@ const HomePage = () => {
       <PromoBanner />
       <HeroSection />
 
-      {/* Floating Categories Bubble */}
-      <div
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
-        onMouseEnter={() => setIsCategoryMenuOpen(true)}
-        onMouseLeave={() => setIsCategoryMenuOpen(false)}
-      >
-        <button className="ml-3 rounded-r-2xl rounded-l-full bg-gradient-to-b from-orange-500 to-amber-500 text-white px-4 py-4 shadow-2xl animate-bounce">
-          <span className="font-extrabold tracking-wide [writing-mode:vertical-rl] rotate-180">CATEGORIES</span>
-        </button>
-
-        <div className={`absolute left-16 top-1/2 -translate-y-1/2 w-[360px] max-h-[78vh] overflow-y-auto rounded-2xl border border-orange-200 bg-white p-4 shadow-2xl transition-all duration-300 ${isCategoryMenuOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-4 pointer-events-none'}`}>
-          <h3 className="text-lg font-black text-slate-800 mb-3">Catégories</h3>
-          <div className="space-y-2 mb-4">
-            <button
-              onMouseEnter={() => setHoveredCategorySlug(null)}
-              onClick={() => setSelectedCategory('all')}
-              className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${selectedCategory === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-            >
-              Toutes les catégories
-            </button>
-            {categories.filter(c => c.is_active !== false).map((category) => (
-              <div key={category.slug} className="flex items-center gap-2">
-                <Link
-                  to={`/categories/${category.slug}`}
-                  onMouseEnter={() => setHoveredCategorySlug(category.slug)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-orange-100 hover:text-orange-700 transition"
-                >
-                  {category.name}
-                </Link>
-                <button
-                  onClick={() => setSelectedCategory(category.slug)}
-                  className={`text-xs px-2 py-2 rounded-lg transition ${selectedCategory === category.slug ? 'bg-orange-500 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
-                >
-                  Filtrer
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 mb-4">
-            {(() => {
-              const category = categories.find((c) => c.slug === hoveredCategorySlug) || categories[0];
-              if (!category) return <div className="p-4 text-sm text-slate-500">Aucune catégorie</div>;
-              const index = categories.findIndex((c) => c.slug === category.slug);
+      {/* ===== CATEGORIES DEFILANTES ===== */}
+      <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
+        <div className="container mx-auto px-4 mb-3">
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Parcourir par catégorie</p>
+        </div>
+        <div className="relative flex overflow-hidden">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
+            {[...activeCategories, ...activeCategories].map((category, index) => {
               const banners = category.banner_images || [];
-              const banner = banners.length > 0
-                ? banners[(categorySlideTick + Math.max(0, index)) % banners.length]
-                : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
+              const img = banners.length > 0
+                ? banners[(categorySlideTick + index) % banners.length]
+                : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
               return (
-                <div>
-                  <img src={banner} alt={category.name} className="h-28 w-full object-cover" />
-                  <div className="p-3">
-                    <p className="text-sm font-bold text-slate-800">{category.name}</p>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{category.description || 'Explore cette catégorie'}</p>
+                <Link
+                  key={`cat-${index}`}
+                  to={`/categories/${category.slug}`}
+                  className="flex-shrink-0 flex flex-col items-center gap-2 group"
+                >
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-110">
+                    <img src={img} alt={category.name} className="w-full h-full object-cover" />
                   </div>
-                </div>
+                  <span className="text-xs font-semibold text-slate-600 group-hover:text-orange-600 transition-colors text-center w-20 truncate">
+                    {category.name}
+                  </span>
+                </Link>
               );
-            })()}
-          </div>
-
-          <h4 className="text-sm font-bold text-slate-800 mb-2">Filtres rapides</h4>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={conditionFilters.neuf} onChange={() => toggleConditionFilter('neuf')} />
-              Neuf
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={conditionFilters.presque_neuf} onChange={() => toggleConditionFilter('presque_neuf')} />
-              Presque neuf
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={conditionFilters.occasion} onChange={() => toggleConditionFilter('occasion')} />
-              Occasion
-            </label>
+            })}
           </div>
         </div>
-      </div>
+      </section>
 
+      {/* Notification Feed */}
       <NotificationFeed notifications={[
         { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
         { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
@@ -275,7 +214,7 @@ const HomePage = () => {
       {/* Stats Bar */}
       <motion.section
         ref={statsRef}
-        className="py-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
+        className="py-8 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 relative overflow-hidden"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
@@ -283,27 +222,18 @@ const HomePage = () => {
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-orange-500/30 rounded-full animate-float"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${3 + Math.random() * 2}s`
-              }}
-            />
+          {particles.map((p, i) => (
+            <div key={i} className="absolute w-1 h-1 bg-white/30 rounded-full animate-float"
+              style={{ left: p.left, top: p.top, animationDelay: p.delay, animationDuration: p.duration }} />
           ))}
         </div>
-
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {[
-              { icon: Package, value: stats.products || 0, suffix: '', label: 'Produits', color: 'from-orange-500 to-amber-500' },
-              { icon: Users, value: stats.vendors || 0, suffix: '', label: 'Vendeurs actifs', color: 'from-purple-500 to-pink-500' },
-              { icon: Truck, value: stats.drivers || 0, suffix: '', label: 'Livreurs', color: 'from-blue-500 to-cyan-500' },
-              { icon: Shield, value: 99, suffix: '%', label: 'Satisfaction', color: 'from-emerald-500 to-green-500' },
+              { icon: Package, value: stats.products || 0, suffix: '', label: 'Produits' },
+              { icon: Users, value: stats.vendors || 0, suffix: '', label: 'Vendeurs actifs' },
+              { icon: Truck, value: stats.drivers || 0, suffix: '', label: 'Livreurs' },
+              { icon: Shield, value: 99, suffix: '%', label: 'Satisfaction' },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -314,24 +244,20 @@ const HomePage = () => {
                 transition={{ duration: 0.7, delay: index * 0.1 }}
                 whileHover={{ y: -6 }}
               >
-                <div className={`w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
-                  <stat.icon className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 md:w-14 md:h-14 mx-auto mb-3 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg">
+                  <stat.icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
-                <p className="text-3xl md:text-4xl font-bold text-white mb-1">
+                <p className="text-2xl md:text-4xl font-bold text-white mb-1">
                   <AnimatedCounter end={stat.value} suffix={stat.suffix} />
                 </p>
-                <p className="text-slate-400 text-sm">{stat.label}</p>
+                <p className="text-white/80 text-xs md:text-sm">{stat.label}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </motion.section>
 
-      {/* ================================================================
-          SECTION "PRODUITS EN VEDETTE"
-          Affiche les produits où is_featured === true.
-          Si aucun produit en vedette, affiche un message clair.
-          ================================================================ */}
+      {/* Featured Products */}
       <motion.section
         className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative"
         initial="hidden"
@@ -342,7 +268,6 @@ const HomePage = () => {
       >
         <div className="absolute top-20 left-0 w-72 h-72 bg-gradient-to-br from-orange-200/40 to-amber-200/30 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-0 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/20 rounded-full blur-3xl" />
-
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
@@ -353,33 +278,17 @@ const HomePage = () => {
                 <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
                   Produits en Vedette
                 </h2>
-                <p className="text-muted-foreground mt-1">
-                  Les meilleures sélections de nos vendeurs
-                  {featuredProducts.length > 0 && (
-                    <span className="ml-2 text-orange-500 font-semibold">({featuredProducts.length})</span>
-                  )}
-                </p>
+                <p className="text-muted-foreground mt-1">Les meilleures sélections de nos vendeurs</p>
               </div>
             </div>
-
             {filteredFeaturedProducts.length > 4 && (
               <div className="hidden md:flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={prevSlide}
-                  disabled={carouselIndex === 0}
-                  className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50"
-                >
+                <Button variant="outline" size="icon" onClick={prevSlide} disabled={carouselIndex === 0}
+                  className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50">
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={nextSlide}
-                  disabled={carouselIndex >= filteredFeaturedProducts.length - 4}
-                  className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50"
-                >
+                <Button variant="outline" size="icon" onClick={nextSlide} disabled={carouselIndex >= filteredFeaturedProducts.length - 4}
+                  className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50">
                   <ChevronRight className="w-5 h-5" />
                 </Button>
               </div>
@@ -388,40 +297,29 @@ const HomePage = () => {
 
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="aspect-square rounded-2xl" />
-              ))}
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
             </div>
           ) : filteredFeaturedProducts.length === 0 ? (
-            // Message si aucun produit en vedette
             <div className="text-center py-16 text-slate-400">
               <Star className="w-16 h-16 mx-auto mb-4 opacity-20" />
               <p className="text-lg font-medium">Aucun produit en vedette pour le moment</p>
-              <p className="text-sm mt-1">Revenez bientôt !</p>
             </div>
           ) : (
             <div className="relative overflow-hidden">
-              <div
-                className="flex gap-6 transition-transform duration-700 ease-out"
-                style={{ transform: `translateX(-${carouselIndex * (100 / 4 + 1.5)}%)` }}
-              >
+              <div className="flex gap-6 transition-transform duration-700 ease-out"
+                style={{ transform: `translateX(-${carouselIndex * (100 / 4 + 1.5)}%)` }}>
                 {filteredFeaturedProducts.map((product, index) => (
-                  <motion.div
-                    key={product.id}
+                  <motion.div key={product.id}
                     className="w-full md:w-[calc(25%-18px)] lg:w-[calc(20%-18px)] flex-shrink-0"
-                    variants={cardMotion}
-                    initial="hidden"
-                    animate="visible"
+                    variants={cardMotion} initial="hidden" animate="visible"
                     transition={{ duration: 0.7, delay: index * 0.08 }}
                     whileHover={{ y: -8, scale: 1.03 }}
                   >
-                    <div
-                      className="transform transition-all duration-500"
+                    <div className="transform transition-all duration-500"
                       style={{
                         opacity: index >= carouselIndex && index < carouselIndex + 4 ? 1 : 0.3,
                         transform: index >= carouselIndex && index < carouselIndex + 4 ? 'scale(1)' : 'scale(0.95)'
-                      }}
-                    >
+                      }}>
                       <ProductCard product={product} className="scale-[0.94]" />
                     </div>
                   </motion.div>
@@ -430,17 +328,11 @@ const HomePage = () => {
             </div>
           )}
 
-          {/* Carousel indicators */}
           {filteredFeaturedProducts.length > 4 && (
             <div className="flex justify-center gap-2 mt-8">
               {[...Array(Math.max(1, filteredFeaturedProducts.length - 3))].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCarouselIndex(i)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'
-                  }`}
-                />
+                <button key={i} onClick={() => setCarouselIndex(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'}`} />
               ))}
             </div>
           )}
@@ -458,7 +350,6 @@ const HomePage = () => {
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-100/50 to-pink-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-12">
             <h2 className={`text-3xl md:text-4xl font-bold mb-4 transition-all duration-700 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
@@ -468,12 +359,9 @@ const HomePage = () => {
               Découvrez notre sélection de produits authentiques
             </p>
           </div>
-
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
-              ))}
+              {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />)}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -484,24 +372,14 @@ const HomePage = () => {
                     ? banners[(categorySlideTick + index) % banners.length]
                     : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
                 })();
-
                 return (
-                  <motion.div
-                    key={category.slug}
-                    variants={cardMotion}
-                    initial="hidden"
+                  <motion.div key={category.slug} variants={cardMotion} initial="hidden"
                     animate={categoriesInView ? 'visible' : 'hidden'}
                     transition={{ duration: 0.6, delay: index * 0.08 }}
-                    whileHover={{ y: -6 }}
-                    className="relative"
+                    whileHover={{ y: -6 }} className="relative"
                   >
-                    <Link
-                      to={`/categories/${category.slug}`}
-                      className={`group relative aspect-[5/3] rounded-xl overflow-hidden shadow-lg transition-all duration-700 flex ${
-                        categoriesInView
-                          ? 'translate-y-0 opacity-100 hover:-translate-y-2 hover:shadow-2xl'
-                          : 'translate-y-20 opacity-0'
-                      }`}
+                    <Link to={`/categories/${category.slug}`}
+                      className={`group relative aspect-[5/3] rounded-xl overflow-hidden shadow-lg transition-all duration-700 flex ${categoriesInView ? 'translate-y-0 opacity-100 hover:-translate-y-2 hover:shadow-2xl' : 'translate-y-20 opacity-0'}`}
                       style={{ transitionDelay: `${index * 100}ms` }}
                       data-testid={`category-${category.slug}`}
                     >
@@ -509,9 +387,7 @@ const HomePage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                       <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-amber-500/0 group-hover:from-orange-500/30 group-hover:to-amber-500/30 transition-all duration-500" />
                       <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="text-white font-bold text-base md:text-lg group-hover:translate-x-2 transition-transform duration-300">
-                          {category.name}
-                        </h3>
+                        <h3 className="text-white font-bold text-base md:text-lg group-hover:translate-x-2 transition-transform duration-300">{category.name}</h3>
                         <p className="text-white/0 group-hover:text-white/80 text-sm flex items-center gap-2 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
                           Explorer la collection <ArrowRight className="w-4 h-4" />
                         </p>
@@ -530,17 +406,13 @@ const HomePage = () => {
       <motion.section
         ref={trendingRef}
         className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
+        initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
-
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
@@ -557,26 +429,19 @@ const HomePage = () => {
               </div>
             </div>
             <Button asChild variant="outline" className="hidden md:flex border-white/30 text-white hover:bg-white/10">
-              <Link to="/produits?sort_by=sales_count">
-                Voir tout <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
+              <Link to="/produits?sort_by=sales_count">Voir tout <ArrowRight className="ml-2 w-4 h-4" /></Link>
             </Button>
           </div>
-
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="aspect-square rounded-2xl bg-slate-700" />
-              ))}
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl bg-slate-700" />)}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
               {filteredTrendingProducts.slice(0, 10).map((product, index) => (
-                <div
-                  key={product.id}
+                <div key={product.id}
                   className={`transition-all duration-700 ${trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                  style={{ transitionDelay: `${index * 100}ms` }}
-                >
+                  style={{ transitionDelay: `${index * 100}ms` }}>
                   <ProductCard product={product} className="scale-[0.94]" />
                 </div>
               ))}
@@ -589,11 +454,8 @@ const HomePage = () => {
       <motion.section
         ref={newProductsRef}
         className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
+        initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-12">
@@ -611,74 +473,53 @@ const HomePage = () => {
               </div>
             </div>
             <Button asChild variant="ghost" className="hidden md:flex text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
-              <Link to="/produits?sort_by=created_at">
-                Voir tout <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
+              <Link to="/produits?sort_by=created_at">Voir tout <ArrowRight className="ml-2 w-4 h-4" /></Link>
             </Button>
           </div>
-
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="aspect-square rounded-2xl" />
-              ))}
+              {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
               {filteredNewProducts.slice(0, 20).map((product, index) => (
-                <div
-                  key={product.id}
+                <div key={product.id}
                   className={`transition-all duration-700 ${newProductsInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                  style={{ transitionDelay: `${index * 75}ms` }}
-                >
+                  style={{ transitionDelay: `${index * 75}ms` }}>
                   <ProductCard product={product} className="scale-[0.94]" />
                 </div>
               ))}
             </div>
           )}
-
           <div className="mt-10 text-center">
             <Button asChild size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full px-10 shadow-lg shadow-emerald-500/30">
-              <Link to="/produits">
-                Voir tous les produits <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
+              <Link to="/produits">Voir tous les produits <ArrowRight className="ml-2 w-5 h-5" /></Link>
             </Button>
           </div>
         </div>
       </motion.section>
 
-      {/* CTA Section */}
+      {/* CTA */}
       <motion.section
         className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
+        initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute inset-0">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
-
         <div className="container mx-auto px-4 relative z-10 text-center text-white">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6">
-            Rejoignez notre communauté
-          </h2>
+          <h2 className="text-4xl md:text-6xl font-bold mb-6">Rejoignez notre communauté</h2>
           <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto">
             Vendez vos créations à des milliers d'acheteurs passionnés ou découvrez des produits uniques du continent africain.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-white/90 rounded-full px-10 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-              <Link to="/connexion">
-                <Zap className="w-5 h-5 mr-2" />
-                Commencer à vendre
-              </Link>
+              <Link to="/connexion"><Zap className="w-5 h-5 mr-2" />Commencer à vendre</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 rounded-full px-10 py-6 text-lg font-semibold transition-all duration-300 hover:-translate-y-1">
-              <Link to="/devenir-revendeur">
-                Devenir Revendeur
-              </Link>
+              <Link to="/devenir-revendeur">Devenir Revendeur</Link>
             </Button>
           </div>
         </div>
@@ -729,6 +570,69 @@ const HomePage = () => {
 
       <TrustBanner />
 
+      {/* Floating Categories (desktop) */}
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
+        onMouseEnter={() => setIsCategoryMenuOpen(true)}
+        onMouseLeave={() => setIsCategoryMenuOpen(false)}
+      >
+        <button className="ml-3 rounded-r-2xl rounded-l-full bg-gradient-to-b from-orange-500 to-amber-500 text-white px-4 py-4 shadow-2xl animate-bounce">
+          <span className="font-extrabold tracking-wide [writing-mode:vertical-rl] rotate-180">CATEGORIES</span>
+        </button>
+        <div className={`absolute left-16 top-1/2 -translate-y-1/2 w-[360px] max-h-[78vh] overflow-y-auto rounded-2xl border border-orange-200 bg-white p-4 shadow-2xl transition-all duration-300 ${isCategoryMenuOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-4 pointer-events-none'}`}>
+          <h3 className="text-lg font-black text-slate-800 mb-3">Catégories</h3>
+          <div className="space-y-2 mb-4">
+            <button onMouseEnter={() => setHoveredCategorySlug(null)} onClick={() => setSelectedCategory('all')}
+              className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${selectedCategory === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+              Toutes les catégories
+            </button>
+            {categories.filter(c => c.is_active !== false).map((category) => (
+              <div key={category.slug} className="flex items-center gap-2">
+                <Link to={`/categories/${category.slug}`} onMouseEnter={() => setHoveredCategorySlug(category.slug)}
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-orange-100 hover:text-orange-700 transition">
+                  {category.name}
+                </Link>
+                <button onClick={() => setSelectedCategory(category.slug)}
+                  className={`text-xs px-2 py-2 rounded-lg transition ${selectedCategory === category.slug ? 'bg-orange-500 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}>
+                  Filtrer
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 mb-4">
+            {(() => {
+              const category = categories.find((c) => c.slug === hoveredCategorySlug) || categories[0];
+              if (!category) return <div className="p-4 text-sm text-slate-500">Aucune catégorie</div>;
+              const index = categories.findIndex((c) => c.slug === category.slug);
+              const banners = category.banner_images || [];
+              const banner = banners.length > 0
+                ? banners[(categorySlideTick + Math.max(0, index)) % banners.length]
+                : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
+              return (
+                <div>
+                  <img src={banner} alt={category.name} className="h-28 w-full object-cover" />
+                  <div className="p-3">
+                    <p className="text-sm font-bold text-slate-800">{category.name}</p>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{category.description || 'Explore cette catégorie'}</p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+          <h4 className="text-sm font-bold text-slate-800 mb-2">Filtres rapides</h4>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={conditionFilters.neuf} onChange={() => toggleConditionFilter('neuf')} />Neuf
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={conditionFilters.presque_neuf} onChange={() => toggleConditionFilter('presque_neuf')} />Presque neuf
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={conditionFilters.occasion} onChange={() => toggleConditionFilter('occasion')} />Occasion
+            </label>
+          </div>
+        </div>
+      </div>
+
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -740,6 +644,11 @@ const HomePage = () => {
           100% { transform: translateX(-50%); }
         }
         .animate-marquee { animation: marquee 30s linear infinite; }
+        @keyframes marquee-cats {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee-cats { animation: marquee-cats 25s linear infinite; }
       `}</style>
     </div>
   );
