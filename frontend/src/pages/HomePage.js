@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight, Package, Users, Truck, Shield } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import { Button } from '../components/ui/button';
@@ -23,7 +23,7 @@ const cardMotion = {
   visible: { opacity: 1, y: 0, scale: 1 },
 };
 
-const useInView = (options) => {
+const useInView = () => {
   const ref = useRef(null);
   const [isInView, setIsInView] = useState(false);
   useEffect(() => {
@@ -36,23 +36,6 @@ const useInView = (options) => {
   return [ref, isInView];
 };
 
-const AnimatedCounter = ({ end, duration = 2000, suffix = '' }) => {
-  const [count, setCount] = useState(0);
-  const [ref, isInView] = useInView();
-  useEffect(() => {
-    if (!isInView) return;
-    let startTime;
-    const animate = (currentTime) => {
-      if (!startTime) startTime = currentTime;
-      const progress = Math.min((currentTime - startTime) / duration, 1);
-      setCount(Math.floor(progress * end));
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [isInView, end, duration]);
-  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
-};
-
 const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -61,7 +44,6 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [categorySlideTick, setCategorySlideTick] = useState(0);
-  const [stats, setStats] = useState({ products: 0, vendors: 0, drivers: 0 });
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [conditionFilters, setConditionFilters] = useState({
     neuf: false,
@@ -71,17 +53,9 @@ const HomePage = () => {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [hoveredCategorySlug, setHoveredCategorySlug] = useState(null);
 
-  const [statsRef, statsInView] = useInView();
   const [categoriesRef, categoriesInView] = useInView();
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
-
-  const particles = useMemo(() => [...Array(20)].map((_, i) => ({
-    left: `${(i * 17 + 5) % 100}%`,
-    top: `${(i * 13 + 7) % 100}%`,
-    delay: `${(i * 0.3) % 3}s`,
-    duration: `${3 + (i % 3)}s`,
-  })), []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,19 +72,17 @@ const HomePage = () => {
           }
         };
 
-        const [catRes, featured, newRes, trendingRes, statsRes] = await Promise.all([
+        const [catRes, featured, newRes, trendingRes] = await Promise.all([
           axios.get(`${API}/categories`),
           fetchFeatured(),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=16`),
           axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
-          axios.get(`${API}/stats/public`).catch(() => ({ data: { products: 0, vendors: 0, drivers: 0 } }))
         ]);
 
         setCategories(catRes.data);
         setFeaturedProducts(featured);
         setNewProducts(newRes.data?.products || newRes.data || []);
         setTrendingProducts(trendingRes.data?.products || trendingRes.data || []);
-        setStats(statsRes.data || { products: 0, vendors: 0, drivers: 0 });
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -162,7 +134,6 @@ const HomePage = () => {
   const filteredFeaturedProducts = applyProductFilters(featuredProducts);
   const filteredTrendingProducts = applyProductFilters(trendingProducts);
   const filteredNewProducts = applyProductFilters(newProducts);
-
   const activeCategories = categories.filter(c => c.is_active !== false);
 
   return (
@@ -170,9 +141,11 @@ const HomePage = () => {
       <ScrollProgress />
       <FloatingBadges />
       <PromoBanner />
-      <HeroSection />
 
-      {/* ===== CATEGORIES DEFILANTES ===== */}
+      {/* Hero avec vraies catégories */}
+      <HeroSection categories={categories} />
+
+      {/* Catégories défilantes */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
         <div className="container mx-auto px-4 mb-3">
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Parcourir par catégorie</p>
@@ -211,60 +184,12 @@ const HomePage = () => {
         { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
       ]} />
 
-      {/* Stats Bar */}
-      <motion.section
-        ref={statsRef}
-        className="py-8 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 relative overflow-hidden"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-      >
-        <div className="absolute inset-0 overflow-hidden">
-          {particles.map((p, i) => (
-            <div key={i} className="absolute w-1 h-1 bg-white/30 rounded-full animate-float"
-              style={{ left: p.left, top: p.top, animationDelay: p.delay, animationDuration: p.duration }} />
-          ))}
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-            {[
-              { icon: Package, value: stats.products || 0, suffix: '', label: 'Produits' },
-              { icon: Users, value: stats.vendors || 0, suffix: '', label: 'Vendeurs actifs' },
-              { icon: Truck, value: stats.drivers || 0, suffix: '', label: 'Livreurs' },
-              { icon: Shield, value: 99, suffix: '%', label: 'Satisfaction' },
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                className="text-center"
-                variants={cardMotion}
-                initial="hidden"
-                animate={statsInView ? 'visible' : 'hidden'}
-                transition={{ duration: 0.7, delay: index * 0.1 }}
-                whileHover={{ y: -6 }}
-              >
-                <div className="w-12 h-12 md:w-14 md:h-14 mx-auto mb-3 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg">
-                  <stat.icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
-                </div>
-                <p className="text-2xl md:text-4xl font-bold text-white mb-1">
-                  <AnimatedCounter end={stat.value} suffix={stat.suffix} />
-                </p>
-                <p className="text-white/80 text-xs md:text-sm">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
       {/* Featured Products */}
       <motion.section
         className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative"
-        initial="hidden"
-        whileInView="visible"
+        initial="hidden" whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
+        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute top-20 left-0 w-72 h-72 bg-gradient-to-br from-orange-200/40 to-amber-200/30 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-0 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/20 rounded-full blur-3xl" />
@@ -343,11 +268,9 @@ const HomePage = () => {
       <motion.section
         ref={categoriesRef}
         className="py-20 bg-white relative overflow-hidden"
-        initial="hidden"
-        whileInView="visible"
+        initial="hidden" whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
+        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-100/50 to-pink-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="container mx-auto px-4 relative z-10">
@@ -365,7 +288,7 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {categories.filter(category => category.is_active !== false).map((category, index) => {
+              {activeCategories.map((category, index) => {
                 const currentBanner = (() => {
                   const banners = category.banner_images || [];
                   return banners.length > 0
@@ -406,7 +329,8 @@ const HomePage = () => {
       <motion.section
         ref={trendingRef}
         className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
-        initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+        initial="hidden" whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
         variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute inset-0">
@@ -454,7 +378,8 @@ const HomePage = () => {
       <motion.section
         ref={newProductsRef}
         className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
-        initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+        initial="hidden" whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
         variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="container mx-auto px-4">
@@ -502,7 +427,8 @@ const HomePage = () => {
       {/* CTA */}
       <motion.section
         className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
-        initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}
+        initial="hidden" whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
         variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute inset-0">
@@ -570,7 +496,7 @@ const HomePage = () => {
 
       <TrustBanner />
 
-      {/* Floating Categories (desktop) */}
+      {/* Floating Categories desktop */}
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
         onMouseEnter={() => setIsCategoryMenuOpen(true)}
         onMouseLeave={() => setIsCategoryMenuOpen(false)}
@@ -585,7 +511,7 @@ const HomePage = () => {
               className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${selectedCategory === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
               Toutes les catégories
             </button>
-            {categories.filter(c => c.is_active !== false).map((category) => (
+            {activeCategories.map((category) => (
               <div key={category.slug} className="flex items-center gap-2">
                 <Link to={`/categories/${category.slug}`} onMouseEnter={() => setHoveredCategorySlug(category.slug)}
                   className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-orange-100 hover:text-orange-700 transition">
