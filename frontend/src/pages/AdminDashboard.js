@@ -5,7 +5,7 @@ import {
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
   BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star,
-  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -20,7 +20,6 @@ const API = `${BACKEND_URL}/api`;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
-// Sidebar Navigation Items
 const SIDEBAR_ITEMS = [
   { id: 'stats', label: 'Stats', icon: BarChart3, color: 'text-amber-400' },
   { id: 'users', label: 'Utilisateurs', icon: Users, color: 'text-rose-400' },
@@ -45,7 +44,6 @@ const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   
-  // Data states
   const [stats, setStats] = useState(null);
   const [vendors, setVendors] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -57,8 +55,6 @@ const AdminDashboard = () => {
   const [revendeurs, setRevendeurs] = useState([]);
   const [dropshippingStats, setDropshippingStats] = useState(null);
   const [dropshippingTransactions, setDropshippingTransactions] = useState([]);
-  
-  // New states for user management and categories
   const [allUsers, setAllUsers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [userRoleFilter, setUserRoleFilter] = useState('all');
@@ -66,10 +62,16 @@ const AdminDashboard = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '', banner_images: [] });
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
-  
-  // Filter states
   const [productFilter, setProductFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // ===== AUTO-APPROVE STATES =====
+  const [autoApprove, setAutoApprove] = useState({
+    vendors: false,
+    drivers: false,
+    products: false,
+    revendeurs: false,
+  });
 
   useEffect(() => {
     if (!isAdmin) {
@@ -111,7 +113,6 @@ const AdminDashboard = () => {
       setAllUsers(usersRes.data.users || []);
       setCategories(catsRes.data || []);
       
-      // Load settings
       const [vendorSettings, driverSettings, platformSettings] = await Promise.all([
         axios.get(`${API}/admin/settings/vendor`, { headers }),
         axios.get(`${API}/admin/settings/delivery`, { headers }),
@@ -129,6 +130,57 @@ const AdminDashboard = () => {
       toast.error('Erreur de chargement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ===== AUTO-APPROVE LOGIC =====
+  const handleToggleAutoApprove = async (type) => {
+    const newValue = !autoApprove[type];
+    setAutoApprove(prev => ({ ...prev, [type]: newValue }));
+
+    if (newValue) {
+      // Approuver automatiquement tous les éléments en attente
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        if (type === 'products') {
+          await Promise.all(
+            pendingProducts.map(p =>
+              axios.post(`${API}/admin/products/${p.id}/approve`, {}, { headers })
+            )
+          );
+          toast.success(`✅ ${pendingProducts.length} produit(s) approuvé(s) automatiquement`);
+        } else if (type === 'vendors') {
+          const pending = vendors.filter(v => !v.is_verified);
+          await Promise.all(
+            pending.map(v =>
+              axios.put(`${API}/admin/vendors/${v.id}/verify`, {}, { headers })
+            )
+          );
+          toast.success(`✅ ${pending.length} vendeur(s) approuvé(s) automatiquement`);
+        } else if (type === 'drivers') {
+          const pending = drivers.filter(d => !d.is_verified);
+          await Promise.all(
+            pending.map(d =>
+              axios.put(`${API}/admin/drivers/${d.id}/verify`, {}, { headers })
+            )
+          );
+          toast.success(`✅ ${pending.length} livreur(s) approuvé(s) automatiquement`);
+        } else if (type === 'revendeurs') {
+          const pending = revendeurs.filter(r => !r.is_active);
+          await Promise.all(
+            pending.map(r =>
+              axios.put(`${API}/admin/revendeurs/${r.id}/toggle`, {}, { headers })
+            )
+          );
+          toast.success(`✅ ${pending.length} revendeur(s) activé(s) automatiquement`);
+        }
+        fetchAllData();
+      } catch (error) {
+        toast.error("Erreur lors de l'approbation automatique");
+        setAutoApprove(prev => ({ ...prev, [type]: false }));
+      }
+    } else {
+      toast.info(`Approbation automatique désactivée pour les ${type}`);
     }
   };
 
@@ -152,7 +204,6 @@ const AdminDashboard = () => {
   const handleRejectProduct = async (productId) => {
     const reason = prompt('Raison du rejet :');
     if (!reason) return;
-    
     try {
       await axios.post(`${API}/admin/products/${productId}/reject?reason=${encodeURIComponent(reason)}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
@@ -188,18 +239,11 @@ const AdminDashboard = () => {
     }
   };
 
-  // =====================================================================
-  // FIX: handleToggleProductFeatured — après le toggle, on met à jour
-  // le state local IMMÉDIATEMENT pour que l'UI reflète le changement,
-  // puis on re-fetch pour synchroniser avec le backend.
-  // =====================================================================
   const handleToggleProductFeatured = async (productId) => {
     try {
       const response = await axios.put(`${API}/admin/products/${productId}/feature`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      // Mise à jour optimiste du state local AVANT le re-fetch
       const isFeaturedNow = response.data?.is_featured;
       setProducts(prev =>
         prev.map(p =>
@@ -208,10 +252,7 @@ const AdminDashboard = () => {
             : p
         )
       );
-
       toast.success(response.data?.message || 'Mis à jour');
-
-      // Re-fetch complet pour s'assurer que tout est synchronisé
       fetchAllData();
     } catch (error) {
       toast.error('Erreur lors de la mise en avant');
@@ -260,13 +301,8 @@ const AdminDashboard = () => {
     }));
   };
 
-  // ========== USER MANAGEMENT FUNCTIONS ==========
-  
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) {
-      return;
-    }
-    
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
     try {
       const response = await axios.delete(`${API}/admin/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -278,7 +314,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleToggleUserActive = async (userId, userName) => {
+  const handleToggleUserActive = async (userId) => {
     try {
       const response = await axios.put(`${API}/admin/users/${userId}/toggle-active`, {}, {
         headers: { Authorization: `Bearer ${token}` }
@@ -292,7 +328,6 @@ const AdminDashboard = () => {
 
   const handleDeleteProduct = async (productId, productName) => {
     if (!window.confirm(`Supprimer le produit "${productName}" ?`)) return;
-    
     try {
       await axios.delete(`${API}/admin/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -306,7 +341,6 @@ const AdminDashboard = () => {
 
   const handleDeleteVendor = async (vendorId, vendorName) => {
     if (!window.confirm(`Supprimer le vendeur "${vendorName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
-    
     try {
       const response = await axios.delete(`${API}/admin/vendors/${vendorId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -320,7 +354,6 @@ const AdminDashboard = () => {
 
   const handleDeleteDriver = async (driverId, driverName) => {
     if (!window.confirm(`Supprimer le livreur "${driverName}" ?\n\nToutes ses données seront supprimées définitivement.`)) return;
-    
     try {
       await axios.delete(`${API}/admin/drivers/${driverId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -334,7 +367,6 @@ const AdminDashboard = () => {
 
   const handleDeleteRevendeur = async (revendeurId, revendeurName) => {
     if (!window.confirm(`Supprimer le revendeur "${revendeurName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) return;
-    
     try {
       const response = await axios.delete(`${API}/admin/revendeurs/${revendeurId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -346,27 +378,11 @@ const AdminDashboard = () => {
     }
   };
 
-  // ========== CATEGORY MANAGEMENT FUNCTIONS ==========
-  
   const handleCreateCategory = async () => {
-    if (!newCategory.name) {
-      toast.error('Le nom est requis');
-      return;
-    }
-    
+    if (!newCategory.name) { toast.error('Le nom est requis'); return; }
     try {
-      const slug = newCategory.name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
-      await axios.post(`${API}/admin/categories`, {
-        ...newCategory,
-        slug,
-        icon: 'Package',
-      }, {
+      const slug = newCategory.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      await axios.post(`${API}/admin/categories`, { ...newCategory, slug, icon: 'Package' }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Catégorie créée');
@@ -380,22 +396,11 @@ const AdminDashboard = () => {
 
   const handleUpdateCategory = async (categoryId) => {
     if (!editingCategory) return;
-    
     try {
       const slug = (editingCategory.slug && editingCategory.slug.trim())
         ? editingCategory.slug
-        : editingCategory.name
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-
-      await axios.put(`${API}/admin/categories/${categoryId}`, {
-        ...editingCategory,
-        slug,
-        icon: editingCategory.icon || 'Package',
-      }, {
+        : editingCategory.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      await axios.put(`${API}/admin/categories/${categoryId}`, { ...editingCategory, slug, icon: editingCategory.icon || 'Package' }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Catégorie mise à jour');
@@ -408,7 +413,6 @@ const AdminDashboard = () => {
 
   const handleDeleteCategory = async (categoryId, categoryName) => {
     if (!window.confirm(`Supprimer la catégorie "${categoryName}" ?`)) return;
-    
     try {
       await axios.delete(`${API}/admin/categories/${categoryId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -432,10 +436,9 @@ const AdminDashboard = () => {
     }
   };
 
-  // Filter users based on role and search
   const filteredUsers = allUsers.filter(u => {
     const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter;
-    const matchesSearch = !userSearch || 
+    const matchesSearch = !userSearch ||
       u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email?.toLowerCase().includes(userSearch.toLowerCase());
     return matchesRole && matchesSearch;
@@ -457,53 +460,22 @@ const AdminDashboard = () => {
     );
   }
 
-  // Render content based on active section
   const renderContent = () => {
     switch (activeSection) {
       case 'stats':
-        return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
+        return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} categories={categories} products={products} />;
       case 'users':
-        return <UsersSection 
-          users={filteredUsers} 
-          roleFilter={userRoleFilter}
-          setRoleFilter={setUserRoleFilter}
-          search={userSearch}
-          setSearch={setUserSearch}
-          onDelete={handleDeleteUser}
-          onToggleActive={handleToggleUserActive}
-        />;
+        return <UsersSection users={filteredUsers} roleFilter={userRoleFilter} setRoleFilter={setUserRoleFilter} search={userSearch} setSearch={setUserSearch} onDelete={handleDeleteUser} onToggleActive={handleToggleUserActive} />;
       case 'vendors':
-        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} searchTerm={searchTerm} />;
+        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} searchTerm={searchTerm} autoApprove={autoApprove.vendors} onToggleAutoApprove={() => handleToggleAutoApprove('vendors')} />;
       case 'drivers':
-        return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} />;
+        return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} autoApprove={autoApprove.drivers} onToggleAutoApprove={() => handleToggleAutoApprove('drivers')} />;
       case 'revendeurs':
-        return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} />;
+        return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
       case 'products':
-        return <ProductsSection 
-          products={products} 
-          pendingProducts={pendingProducts}
-          filter={productFilter} 
-          setFilter={setProductFilter}
-          onApprove={handleApproveProduct}
-          onReject={handleRejectProduct}
-          onToggleFeatured={handleToggleProductFeatured}
-          onDelete={handleDeleteProduct}
-        />;
+        return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
       case 'categories':
-        return <CategoriesSection 
-          token={token}
-          categories={categories}
-          editingCategory={editingCategory}
-          setEditingCategory={setEditingCategory}
-          newCategory={newCategory}
-          setNewCategory={setNewCategory}
-          showNewForm={showNewCategoryForm}
-          setShowNewForm={setShowNewCategoryForm}
-          onCreate={handleCreateCategory}
-          onUpdate={handleUpdateCategory}
-          onDelete={handleDeleteCategory}
-          onToggle={handleToggleCategory}
-        />;
+        return <CategoriesSection token={token} categories={categories} editingCategory={editingCategory} setEditingCategory={setEditingCategory} newCategory={newCategory} setNewCategory={setNewCategory} showNewForm={showNewCategoryForm} setShowNewForm={setShowNewCategoryForm} onCreate={handleCreateCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} onToggle={handleToggleCategory} products={products} />;
       case 'transactions':
         return <TransactionsSection transactions={transactions} />;
       case 'plans':
@@ -517,15 +489,13 @@ const AdminDashboard = () => {
       case 'settings-general':
         return <SettingsSection type="platform" settings={settings.platform} onUpdate={(k, v) => updateSetting('platform', k, v)} onSave={() => handleSaveSettings('platform')} />;
       default:
-        return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
+        return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} categories={categories} products={products} />;
     }
   };
 
   return (
     <div className="min-h-screen premium-dashboard-bg dashboard-card-skin text-white flex" data-testid="admin-dashboard">
-      {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} premium-panel border-r border-slate-700 transition-all duration-300 flex flex-col`}>
-        {/* Logo */}
         <div className="p-4 border-b border-slate-700 flex items-center justify-between">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
@@ -533,32 +503,18 @@ const AdminDashboard = () => {
               <span className="font-bold">Admin</span>
             </div>
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-slate-400 hover:text-white"
-          >
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white">
             <Menu className="w-5 h-5" />
           </Button>
         </div>
-
-        {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1">
           {SIDEBAR_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             const isPending = item.id === 'products' && pendingProducts.length > 0;
-            
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                  isActive 
-                    ? 'bg-slate-700 text-white' 
-                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
-                }`}
+              <button key={item.id} onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'}`}
                 data-testid={`nav-${item.id}`}
               >
                 <Icon className={`w-5 h-5 ${item.color}`} />
@@ -576,8 +532,6 @@ const AdminDashboard = () => {
             );
           })}
         </nav>
-
-        {/* Footer */}
         <div className="p-4 border-t border-slate-700">
           <Link to="/" className="flex items-center gap-2 text-slate-400 hover:text-white text-sm">
             <Home className="w-4 h-4" />
@@ -586,40 +540,24 @@ const AdminDashboard = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        {/* Header */}
         <header className="premium-panel border-b border-slate-700 p-4 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold">
-                {SIDEBAR_ITEMS.find(i => i.id === activeSection)?.label || 'Dashboard'}
-              </h1>
+              <h1 className="text-xl font-bold">{SIDEBAR_ITEMS.find(i => i.id === activeSection)?.label || 'Dashboard'}</h1>
               <p className="text-sm text-slate-400">Bienvenue, {user?.name}</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input 
-                  placeholder="Rechercher..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64 bg-slate-700 border-slate-600 text-white"
-                />
+                <Input placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 w-64 bg-slate-700 border-slate-600 text-white" />
               </div>
-              <Button
-                variant="destructive"
-                onClick={handleLogout}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Déconnexion
+              <Button variant="destructive" onClick={handleLogout} className="flex items-center gap-2">
+                <LogOut className="w-4 h-4" /> Déconnexion
               </Button>
             </div>
           </div>
         </header>
-
-        {/* Content */}
         <div className="p-6 space-y-4">
           {renderContent()}
         </div>
@@ -628,83 +566,132 @@ const AdminDashboard = () => {
   );
 };
 
-// ============== SECTION COMPONENTS ==============
-
-const StatsSection = ({ stats, pendingCount, pendingVendors }) => (
-  <div className="space-y-6">
-    {/* Alert for pending products */}
-    {pendingCount > 0 && (
-      <div className="p-4 bg-amber-500/20 border border-amber-500/50 rounded-xl flex items-center gap-3">
-        <Clock className="w-6 h-6 text-amber-400" />
-        <div>
-          <p className="font-bold text-amber-200">{pendingCount} produit(s) en attente de validation</p>
-          <p className="text-sm text-amber-300/70">Des vendeurs attendent votre approbation</p>
-        </div>
-      </div>
-    )}
-
-    {/* Alert for pending vendors */}
-    {pendingVendors > 0 && (
-      <div className="p-4 bg-purple-500/20 border border-purple-500/50 rounded-xl flex items-center gap-3">
-        <Store className="w-6 h-6 text-purple-400" />
-        <div>
-          <p className="font-bold text-purple-200">{pendingVendors} vendeur(s) en attente de vérification</p>
-          <p className="text-sm text-purple-300/70">De nouveaux vendeurs attendent votre approbation</p>
-        </div>
-      </div>
-    )}
-
-    {/* Stats Grid */}
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard icon={Users} color="text-blue-400" value={stats?.total_users || 0} label="Utilisateurs" />
-      <StatCard icon={Store} color="text-purple-400" value={stats?.total_vendors || 0} label="Vendeurs" />
-      <StatCard icon={Truck} color="text-cyan-400" value={stats?.total_drivers || 0} label="Livreurs" />
-      <StatCard icon={Package} color="text-green-400" value={stats?.total_products || 0} label="Produits" />
+// ===== COMPOSANT AUTO-APPROVE TOGGLE =====
+const AutoApproveToggle = ({ enabled, onToggle, label }) => (
+  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${enabled ? 'bg-green-500/10 border-green-500/40' : 'bg-slate-700/50 border-slate-600'} transition-all`}>
+    <Zap className={`w-5 h-5 ${enabled ? 'text-green-400' : 'text-slate-400'}`} />
+    <div className="flex-1">
+      <p className={`text-sm font-semibold ${enabled ? 'text-green-300' : 'text-slate-300'}`}>
+        Approbation automatique
+      </p>
+      <p className="text-xs text-slate-400">{label}</p>
     </div>
+    <button
+      onClick={onToggle}
+      className={`w-12 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? 'bg-green-500' : 'bg-slate-600'}`}
+    >
+      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+    </button>
+  </div>
+);
 
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard icon={Clock} color="text-amber-400" value={stats?.pending_products || 0} label="En attente" />
-      <StatCard icon={CheckCircle} color="text-emerald-400" value={stats?.approved_products || 0} label="Approuvés" />
-      <StatCard icon={Crown} color="text-yellow-400" value={stats?.paid_vendors || 0} label="Vendeurs payants" />
-      <StatCard icon={DollarSign} color="text-green-400" value={`$${stats?.total_revenue_usd?.toFixed(2) || 0}`} label="Revenus" />
-    </div>
+// ===== STATS SECTION avec produits par catégorie =====
+const StatsSection = ({ stats, pendingCount, pendingVendors, categories, products }) => {
+  // Calcul dynamique du nombre de produits par catégorie
+  const productsByCategory = categories.map(cat => ({
+    name: cat.name,
+    count: products.filter(p => p.category_slug === cat.slug).length,
+    slug: cat.slug,
+  })).sort((a, b) => b.count - a.count);
 
-    {/* Charts placeholder */}
-    <div className="grid lg:grid-cols-2 gap-6">
-      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h3 className="font-bold mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-emerald-400" /> Aperçu des ventes
-        </h3>
-        <div className="h-48 flex items-center justify-center text-slate-500">
-          Graphique à venir
+  return (
+    <div className="space-y-6">
+      {pendingCount > 0 && (
+        <div className="p-4 bg-amber-500/20 border border-amber-500/50 rounded-xl flex items-center gap-3">
+          <Clock className="w-6 h-6 text-amber-400" />
+          <div>
+            <p className="font-bold text-amber-200">{pendingCount} produit(s) en attente de validation</p>
+            <p className="text-sm text-amber-300/70">Des vendeurs attendent votre approbation</p>
+          </div>
         </div>
+      )}
+      {pendingVendors > 0 && (
+        <div className="p-4 bg-purple-500/20 border border-purple-500/50 rounded-xl flex items-center gap-3">
+          <Store className="w-6 h-6 text-purple-400" />
+          <div>
+            <p className="font-bold text-purple-200">{pendingVendors} vendeur(s) en attente de vérification</p>
+            <p className="text-sm text-purple-300/70">De nouveaux vendeurs attendent votre approbation</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Users} color="text-blue-400" value={stats?.total_users || 0} label="Utilisateurs" />
+        <StatCard icon={Store} color="text-purple-400" value={stats?.total_vendors || 0} label="Vendeurs" />
+        <StatCard icon={Truck} color="text-cyan-400" value={stats?.total_drivers || 0} label="Livreurs" />
+        <StatCard icon={Package} color="text-green-400" value={stats?.total_products || 0} label="Produits" />
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Clock} color="text-amber-400" value={stats?.pending_products || 0} label="En attente" />
+        <StatCard icon={CheckCircle} color="text-emerald-400" value={stats?.approved_products || 0} label="Approuvés" />
+        <StatCard icon={Crown} color="text-yellow-400" value={stats?.paid_vendors || 0} label="Vendeurs payants" />
+        <StatCard icon={DollarSign} color="text-green-400" value={`$${stats?.total_revenue_usd?.toFixed(2) || 0}`} label="Revenus" />
+      </div>
+
+      {/* ===== PRODUITS PAR CATÉGORIE ===== */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h3 className="font-bold mb-4 flex items-center gap-2">
-          <Crown className="w-5 h-5 text-amber-400" /> Répartition abonnements
+        <h3 className="font-bold mb-5 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-teal-400" /> Produits par catégorie
         </h3>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-slate-400">Gratuit</span>
-            <span className="font-bold">{stats?.free_vendors || 0}</span>
+        {productsByCategory.length === 0 ? (
+          <p className="text-slate-400 text-sm">Aucune donnée disponible</p>
+        ) : (
+          <div className="space-y-3">
+            {productsByCategory.map((cat) => {
+              const maxCount = productsByCategory[0]?.count || 1;
+              const pct = maxCount > 0 ? (cat.count / maxCount) * 100 : 0;
+              return (
+                <div key={cat.slug} className="flex items-center gap-3">
+                  <span className="text-sm text-slate-300 w-40 truncate">{cat.name}</span>
+                  <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-teal-400 w-8 text-right">{cat.count}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-slate-400">Payants</span>
-            <span className="font-bold text-green-400">{stats?.paid_vendors || 0}</span>
-          </div>
-          <div className="border-t border-slate-700 pt-3">
+        )}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-emerald-400" /> Aperçu des ventes
+          </h3>
+          <div className="h-48 flex items-center justify-center text-slate-500">Graphique à venir</div>
+        </div>
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <Crown className="w-5 h-5 text-amber-400" /> Répartition abonnements
+          </h3>
+          <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">Taux conversion</span>
-              <span className="font-bold text-amber-400">
-                {stats?.total_vendors > 0 ? ((stats?.paid_vendors / stats?.total_vendors) * 100).toFixed(1) : 0}%
-              </span>
+              <span className="text-slate-400">Gratuit</span>
+              <span className="font-bold">{stats?.free_vendors || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Payants</span>
+              <span className="font-bold text-green-400">{stats?.paid_vendors || 0}</span>
+            </div>
+            <div className="border-t border-slate-700 pt-3">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Taux conversion</span>
+                <span className="font-bold text-amber-400">
+                  {stats?.total_vendors > 0 ? ((stats?.paid_vendors / stats?.total_vendors) * 100).toFixed(1) : 0}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const StatCard = ({ icon: Icon, color, value, label }) => (
   <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
@@ -714,13 +701,11 @@ const StatCard = ({ icon: Icon, color, value, label }) => (
   </div>
 );
 
-const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm }) => {
-  const filteredVendors = vendors.filter(v => 
+const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm, autoApprove, onToggleAutoApprove }) => {
+  const filteredVendors = vendors.filter(v =>
     v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Sort: unverified first
   const sortedVendors = [...filteredVendors].sort((a, b) => {
     if (!a.is_verified && b.is_verified) return -1;
     if (a.is_verified && !b.is_verified) return 1;
@@ -729,7 +714,12 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm }) =
 
   return (
     <div className="space-y-4">
-      {/* Pending vendors alert */}
+      <AutoApproveToggle
+        enabled={autoApprove}
+        onToggle={onToggleAutoApprove}
+        label={`Active : vérifie automatiquement tous les vendeurs en attente (${sortedVendors.filter(v => !v.is_verified).length} en attente)`}
+      />
+
       {sortedVendors.filter(v => !v.is_verified).length > 0 && (
         <div className="p-4 bg-purple-500/20 border border-purple-500/50 rounded-xl flex items-center gap-3">
           <Clock className="w-6 h-6 text-purple-400" />
@@ -774,54 +764,29 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm }) =
                   <td className="p-4 font-medium">{vendor.product_count || 0}</td>
                   <td className="p-4">
                     {vendor.is_verified ? (
-                      <span className="flex items-center gap-1 text-green-400 text-xs">
-                        <CheckCircle className="w-4 h-4" /> Vérifié
-                      </span>
+                      <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="w-4 h-4" /> Vérifié</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-amber-400 text-xs">
-                        <Clock className="w-4 h-4" /> En attente
-                      </span>
+                      <span className="flex items-center gap-1 text-amber-400 text-xs"><Clock className="w-4 h-4" /> En attente</span>
                     )}
                   </td>
                   <td className="p-4">
                     {vendor.is_active ? (
-                      <span className="flex items-center gap-1 text-green-400 text-sm">
-                        <CheckCircle className="w-4 h-4" /> Actif
-                      </span>
+                      <span className="flex items-center gap-1 text-green-400 text-sm"><CheckCircle className="w-4 h-4" /> Actif</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-red-400 text-sm">
-                        <XCircle className="w-4 h-4" /> Inactif
-                      </span>
+                      <span className="flex items-center gap-1 text-red-400 text-sm"><XCircle className="w-4 h-4" /> Inactif</span>
                     )}
                   </td>
                   <td className="p-4">
                     <div className="flex gap-2">
                       {!vendor.is_verified && (
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => onVerify(vendor.id)}
-                        >
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onVerify(vendor.id)}>
                           <Check className="w-4 h-4 mr-1" /> Vérifier
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onToggle(vendor.id)}
-                        className="text-slate-400 hover:text-white"
-                        title={vendor.is_active ? 'Désactiver' : 'Activer'}
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => onToggle(vendor.id)} className="text-slate-400 hover:text-white" title={vendor.is_active ? 'Désactiver' : 'Activer'}>
                         {vendor.is_active ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onDelete(vendor.id, vendor.shop_name || vendor.name)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        title="Supprimer le vendeur"
-                        data-testid={`delete-vendor-${vendor.id}`}
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => onDelete(vendor.id, vendor.shop_name || vendor.name)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10" data-testid={`delete-vendor-${vendor.id}`}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -831,18 +796,20 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm }) =
             </tbody>
           </table>
         </div>
-        {sortedVendors.length === 0 && (
-          <div className="p-12 text-center text-slate-500">
-            Aucun vendeur trouvé
-          </div>
-        )}
+        {sortedVendors.length === 0 && <div className="p-12 text-center text-slate-500">Aucun vendeur trouvé</div>}
       </div>
     </div>
   );
 };
 
-const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
+const DriversSection = ({ drivers, onVerify, onToggle, onDelete, autoApprove, onToggleAutoApprove }) => (
   <div className="space-y-4">
+    <AutoApproveToggle
+      enabled={autoApprove}
+      onToggle={onToggleAutoApprove}
+      label={`Active : vérifie automatiquement tous les livreurs en attente (${drivers.filter(d => !d.is_verified).length} en attente)`}
+    />
+
     {drivers.length === 0 ? (
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center">
         <Truck className="w-16 h-16 text-slate-600 mx-auto mb-4" />
@@ -870,15 +837,11 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
                   <p className="text-sm text-slate-400">{driver.email}</p>
                   <p className="text-xs text-slate-500">{driver.phone}</p>
                 </td>
-                <td className="p-4">
-                  <span className="capitalize">{driver.vehicle_type}</span>
-                </td>
+                <td className="p-4 capitalize">{driver.vehicle_type}</td>
                 <td className="p-4">{driver.city}</td>
                 <td className="p-4">
                   {driver.license_image ? (
-                    <a href={`${BACKEND_URL}${driver.license_image}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm">
-                      Voir le permis
-                    </a>
+                    <a href={`${BACKEND_URL}${driver.license_image}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm">Voir le permis</a>
                   ) : (
                     <span className="text-slate-500 text-sm">Non uploadé</span>
                   )}
@@ -886,19 +849,11 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
                 <td className="p-4">
                   <div className="flex flex-col gap-1">
                     {driver.is_verified ? (
-                      <span className="text-green-400 text-xs flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Vérifié
-                      </span>
+                      <span className="text-green-400 text-xs flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Vérifié</span>
                     ) : (
-                      <span className="text-amber-400 text-xs flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> En attente
-                      </span>
+                      <span className="text-amber-400 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> En attente</span>
                     )}
-                    {driver.is_active ? (
-                      <span className="text-green-400 text-xs">Actif</span>
-                    ) : (
-                      <span className="text-red-400 text-xs">Inactif</span>
-                    )}
+                    {driver.is_active ? <span className="text-green-400 text-xs">Actif</span> : <span className="text-red-400 text-xs">Inactif</span>}
                   </div>
                 </td>
                 <td className="p-4">
@@ -911,14 +866,7 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
                     <Button size="sm" variant="ghost" onClick={() => onToggle(driver.id)} className="text-slate-400" title={driver.is_active ? 'Désactiver' : 'Activer'}>
                       {driver.is_active ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      onClick={() => onDelete(driver.id, driver.name)} 
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      title="Supprimer le livreur"
-                      data-testid={`delete-driver-${driver.id}`}
-                    >
+                    <Button size="sm" variant="ghost" onClick={() => onDelete(driver.id, driver.name)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10" data-testid={`delete-driver-${driver.id}`}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -932,125 +880,76 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
   </div>
 );
 
-// =====================================================================
-// FIX PRINCIPAL : ProductsSection
-// 
-// Problème : Le filtre "featured" et l'affichage du badge ⭐ dépendaient
-// uniquement du champ `is_featured` renvoyé par l'API.  Si le backend
-// ne retourne pas ce champ (ou le retourne sous un autre nom), rien
-// ne s'affiche sur le site.
-//
-// Corrections apportées :
-// 1. Le bouton ⭐ est désormais visible pour TOUS les produits approuvés
-//    (pas uniquement ceux déjà en vedette).
-// 2. Le compteur du filtre "En vedette" est calculé localement depuis
-//    `products` pour rester réactif même avant le re-fetch.
-// 3. Ajout d'un indicateur visuel clair (badge doré + bordure) sur chaque
-//    produit en vedette pour confirmer l'état côté admin.
-// 4. Le bouton toggle affiche un label explicite : "Retirer" ou "⭐ Mettre
-//    en vedette" pour éviter toute ambiguïté.
-// =====================================================================
-const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured, onDelete }) => {
-  // Calcul local du nombre de produits en vedette (réactif au state)
+const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured, onDelete, autoApprove, onToggleAutoApprove }) => {
   const featuredCount = products.filter(p => p.is_featured).length;
-
   const displayProducts = filter === 'pending' ? pendingProducts
     : filter === 'featured' ? products.filter(p => p.is_featured)
     : filter === 'approved' ? products.filter(p => p.status === 'approved')
     : filter === 'rejected' ? products.filter(p => p.status === 'rejected')
-    : products; // 'all'
+    : products;
 
   return (
     <div className="space-y-4">
-      {/* ---- Explication featured ---- */}
+      <AutoApproveToggle
+        enabled={autoApprove}
+        onToggle={onToggleAutoApprove}
+        label={`Active : approuve automatiquement tous les produits en attente (${pendingProducts.length} en attente)`}
+      />
+
       <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
         <Star className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
         <p className="text-sm text-amber-300">
-          Les produits <strong>en vedette</strong> apparaissent dans la section "Coups de cœur" 
-          et en priorité sur la page d'accueil du site. Cliquez sur <Sparkles className="w-3 h-3 inline" /> pour 
-          mettre ou retirer un produit approuvé de la sélection.
+          Les produits <strong>en vedette</strong> apparaissent en priorité sur la page d'accueil.
         </p>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-2 flex-wrap">
         {[
-          { key: 'all',      label: `Tous (${products.length})` },
-          { key: 'pending',  label: `En attente (${pendingProducts.length})` },
+          { key: 'all', label: `Tous (${products.length})` },
+          { key: 'pending', label: `En attente (${pendingProducts.length})` },
           { key: 'approved', label: `Approuvés (${products.filter(p => p.status === 'approved').length})` },
           { key: 'featured', label: `⭐ En vedette (${featuredCount})` },
           { key: 'rejected', label: `Rejetés (${products.filter(p => p.status === 'rejected').length})` },
         ].map(({ key, label }) => (
-          <Button
-            key={key}
-            variant={filter === key ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter(key)}
-            className={
-              filter === key
-                ? key === 'featured' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-700'
-                : 'border-slate-600 text-slate-400 hover:text-white'
-            }
-          >
+          <Button key={key} variant={filter === key ? 'default' : 'outline'} size="sm" onClick={() => setFilter(key)}
+            className={filter === key ? (key === 'featured' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-700') : 'border-slate-600 text-slate-400 hover:text-white'}>
             {label}
           </Button>
         ))}
       </div>
 
-      {/* Products List */}
       <div className="bg-slate-800 rounded-xl border border-slate-700">
         {displayProducts.length === 0 ? (
           <div className="p-12 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">Aucun produit</h3>
             <p className="text-slate-400">
-              {filter === 'pending' ? 'Aucun produit en attente de validation'
-                : filter === 'featured' ? 'Aucun produit en vedette — cliquez sur ⭐ pour en ajouter'
-                : 'Aucun produit dans cette catégorie'}
+              {filter === 'pending' ? 'Aucun produit en attente' : filter === 'featured' ? 'Aucun produit en vedette' : 'Aucun produit'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-700">
             {displayProducts.map((product) => (
-              <div
-                key={product.id}
-                className={`p-4 flex gap-4 items-center transition-colors ${
-                  product.is_featured ? 'bg-amber-500/5 border-l-2 border-amber-500' : ''
-                }`}
-              >
-                {/* Thumbnail */}
+              <div key={product.id} className={`p-4 flex gap-4 items-center transition-colors ${product.is_featured ? 'bg-amber-500/5 border-l-2 border-amber-500' : ''}`}>
                 <div className="relative flex-shrink-0">
-                  <img 
-                    src={product.images?.[0] || 'https://via.placeholder.com/80'}
-                    alt={product.name}
-                    className={`w-16 h-16 rounded-lg object-cover ${product.is_featured ? 'ring-2 ring-amber-400' : ''}`}
-                  />
+                  <img src={product.images?.[0] || 'https://via.placeholder.com/80'} alt={product.name} className={`w-16 h-16 rounded-lg object-cover ${product.is_featured ? 'ring-2 ring-amber-400' : ''}`} />
                   {product.is_featured && (
                     <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
                       <Star className="w-3.5 h-3.5 text-white fill-white" />
                     </div>
                   )}
                 </div>
-
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-medium truncate">{product.name}</h4>
-                    {product.is_featured && (
-                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">
-                        ⭐ En vedette
-                      </span>
-                    )}
+                    {product.is_featured && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">⭐ En vedette</span>}
                   </div>
                   <p className="text-sm text-slate-400 truncate">{product.description}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
                     {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
                       <>
-                        <span className="text-slate-500 line-through">{formatPrice(product.price_fcfa)} FCFA</span>
+                        <span className="line-through">{formatPrice(product.price_fcfa)} FCFA</span>
                         <span className="text-green-400 font-bold">{formatPrice(product.promo_price_fcfa)} FCFA</span>
-                        <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">
-                          -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
-                        </span>
                       </>
                     ) : (
                       <span className="text-amber-400 font-bold">{formatPrice(product.price_fcfa)} FCFA</span>
@@ -1059,59 +958,25 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                     {product.seller && <span>Par : {product.seller.name}</span>}
                   </div>
                 </div>
-
-                {/* Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-                  {/* Statut badge */}
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    product.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                    product.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                    'bg-amber-500/20 text-amber-400'
-                  }`}>
+                  <span className={`px-2 py-1 rounded text-xs ${product.status === 'approved' ? 'bg-green-500/20 text-green-400' : product.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
                     {product.status}
                   </span>
-
-                  {/* ---- FIX : bouton featured toujours visible pour les produits approuvés ---- */}
                   {product.status === 'approved' && (
-                    <Button
-                      size="sm"
-                      variant={product.is_featured ? 'default' : 'outline'}
-                      className={
-                        product.is_featured
-                          ? 'bg-amber-500 hover:bg-amber-600 text-white gap-1'
-                          : 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10 gap-1'
-                      }
-                      onClick={() => onToggleFeatured(product.id)}
-                      title={product.is_featured ? 'Retirer des vedettes' : 'Mettre en vedette'}
-                    >
+                    <Button size="sm" variant={product.is_featured ? 'default' : 'outline'}
+                      className={product.is_featured ? 'bg-amber-500 hover:bg-amber-600 text-white gap-1' : 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10 gap-1'}
+                      onClick={() => onToggleFeatured(product.id)}>
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline text-xs">
-                        {product.is_featured ? 'Retirer' : 'Vedette'}
-                      </span>
+                      <span className="hidden sm:inline text-xs">{product.is_featured ? 'Retirer' : 'Vedette'}</span>
                     </Button>
                   )}
-
-                  {/* Approve / Reject pour les produits pending */}
                   {product.status === 'pending' && (
                     <>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onApprove(product.id)}>
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10" onClick={() => onReject(product.id)}>
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onApprove(product.id)}><Check className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10" onClick={() => onReject(product.id)}><X className="w-4 h-4" /></Button>
                     </>
                   )}
-
-                  {/* Delete — toujours visible */}
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => onDelete(product.id, product.name)} 
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    title="Supprimer le produit"
-                    data-testid={`delete-product-${product.id}`}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => onDelete(product.id, product.name)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10" data-testid={`delete-product-${product.id}`}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -1156,9 +1021,7 @@ const TransactionsSection = ({ transactions }) => (
                 <p className="text-xs text-slate-400">{formatPrice(tx.amount_fcfa)} FCFA</p>
               </td>
               <td className="p-4">
-                <span className={`px-2 py-1 rounded text-xs ${
-                  tx.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'
-                }`}>
+                <span className={`px-2 py-1 rounded text-xs ${tx.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
                   {tx.payment_status}
                 </span>
               </td>
@@ -1180,89 +1043,42 @@ const PlansSection = ({ plans, vendors }) => {
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {plans.map((plan) => (
-          <div 
-            key={plan.id} 
-            className={`bg-slate-800 rounded-xl border p-6 ${
-              plan.id === 'entreprise' ? 'border-purple-500/50' :
-              plan.id === 'commercant' ? 'border-amber-500/50' :
-              plan.id === 'artisan' ? 'border-blue-500/50' :
-              'border-slate-700'
-            }`}
-          >
+          <div key={plan.id} className={`bg-slate-800 rounded-xl border p-6 ${plan.id === 'entreprise' ? 'border-purple-500/50' : plan.id === 'commercant' ? 'border-amber-500/50' : plan.id === 'artisan' ? 'border-blue-500/50' : 'border-slate-700'}`}>
             <div className="text-3xl mb-2">{plan.emoji}</div>
             <h3 className="font-bold text-lg">{plan.name}</h3>
             <div className="mt-2">
-              <p className="text-2xl font-bold text-white">
-                {plan.price_fcfa === 0 ? 'Gratuit' : `${formatPrice(plan.price_fcfa)} FCFA`}
-              </p>
-              {plan.price_usd > 0 && (
-                <p className="text-xs text-slate-400">~${plan.price_usd}/mois</p>
-              )}
+              <p className="text-2xl font-bold">{plan.price_fcfa === 0 ? 'Gratuit' : `${formatPrice(plan.price_fcfa)} FCFA`}</p>
+              {plan.price_usd > 0 && <p className="text-xs text-slate-400">~${plan.price_usd}/mois</p>}
             </div>
             <div className="my-4 py-3 border-t border-b border-slate-700">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400">Vendeurs actifs</span>
-                <span className="font-bold text-white">{planCounts[plan.id] || 0}</span>
+                <span className="font-bold">{planCounts[plan.id] || 0}</span>
               </div>
             </div>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>{plan.max_products === -1 ? 'Produits illimités' : `${plan.max_products} produits max`}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Commission de {plan.commission_percent}%</span>
-              </li>
-              {plan.badge && (
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span>Badge {plan.badge}</span>
-                </li>
-              )}
-              {plan.priority_support && (
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span>Support prioritaire</span>
-                </li>
-              )}
-              {plan.featured_products > 0 && (
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span>{plan.featured_products} produits en vedette</span>
-                </li>
-              )}
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /><span>{plan.max_products === -1 ? 'Produits illimités' : `${plan.max_products} produits max`}</span></li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /><span>Commission de {plan.commission_percent}%</span></li>
+              {plan.badge && <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /><span>Badge {plan.badge}</span></li>}
+              {plan.priority_support && <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /><span>Support prioritaire</span></li>}
+              {plan.featured_products > 0 && <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /><span>{plan.featured_products} produits en vedette</span></li>}
             </ul>
           </div>
         ))}
       </div>
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <Crown className="w-5 h-5 text-amber-400" />
-          Répartition des abonnements
-        </h3>
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Crown className="w-5 h-5 text-amber-400" />Répartition des abonnements</h3>
         <div className="grid md:grid-cols-4 gap-4">
           {plans.map((plan) => {
             const count = planCounts[plan.id] || 0;
             const percentage = vendors.length > 0 ? ((count / vendors.length) * 100).toFixed(1) : 0;
             return (
               <div key={plan.id} className="p-4 bg-slate-700/50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">{plan.emoji}</span>
-                  <span className="text-lg font-bold">{count}</span>
-                </div>
+                <div className="flex items-center justify-between mb-2"><span className="text-2xl">{plan.emoji}</span><span className="text-lg font-bold">{count}</span></div>
                 <p className="text-sm text-slate-400">{plan.name}</p>
                 <div className="mt-2 h-2 bg-slate-600 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${
-                      plan.id === 'entreprise' ? 'bg-purple-500' :
-                      plan.id === 'commercant' ? 'bg-amber-500' :
-                      plan.id === 'artisan' ? 'bg-blue-500' :
-                      'bg-slate-400'
-                    }`}
-                    style={{ width: `${percentage}%` }}
-                  />
+                  <div className={`h-full ${plan.id === 'entreprise' ? 'bg-purple-500' : plan.id === 'commercant' ? 'bg-amber-500' : plan.id === 'artisan' ? 'bg-blue-500' : 'bg-slate-400'}`} style={{ width: `${percentage}%` }} />
                 </div>
                 <p className="text-xs text-slate-500 mt-1">{percentage}%</p>
               </div>
@@ -1272,18 +1088,12 @@ const PlansSection = ({ plans, vendors }) => {
       </div>
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-green-400" />
-          Potentiel de revenus mensuels
-        </h3>
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-400" />Potentiel de revenus mensuels</h3>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-left text-sm text-slate-400">
-                <th className="p-3">Plan</th>
-                <th className="p-3">Prix/mois</th>
-                <th className="p-3">Vendeurs</th>
-                <th className="p-3">Revenu potentiel</th>
+                <th className="p-3">Plan</th><th className="p-3">Prix/mois</th><th className="p-3">Vendeurs</th><th className="p-3">Revenu potentiel</th>
               </tr>
             </thead>
             <tbody>
@@ -1292,10 +1102,7 @@ const PlansSection = ({ plans, vendors }) => {
                 const revenue = count * plan.price_fcfa;
                 return (
                   <tr key={plan.id} className="border-t border-slate-700">
-                    <td className="p-3">
-                      <span className="mr-2">{plan.emoji}</span>
-                      {plan.name}
-                    </td>
+                    <td className="p-3"><span className="mr-2">{plan.emoji}</span>{plan.name}</td>
                     <td className="p-3">{formatPrice(plan.price_fcfa)} FCFA</td>
                     <td className="p-3 font-medium">{count}</td>
                     <td className="p-3 font-bold text-green-400">{formatPrice(revenue)} FCFA</td>
@@ -1305,9 +1112,7 @@ const PlansSection = ({ plans, vendors }) => {
               <tr className="border-t-2 border-slate-600 font-bold">
                 <td className="p-3" colSpan={3}>Total</td>
                 <td className="p-3 text-green-400">
-                  {formatPrice(plans.filter(p => p.price_fcfa > 0).reduce((sum, plan) => {
-                    return sum + ((planCounts[plan.id] || 0) * plan.price_fcfa);
-                  }, 0))} FCFA
+                  {formatPrice(plans.filter(p => p.price_fcfa > 0).reduce((sum, plan) => sum + ((planCounts[plan.id] || 0) * plan.price_fcfa), 0))} FCFA
                 </td>
               </tr>
             </tbody>
@@ -1320,7 +1125,6 @@ const PlansSection = ({ plans, vendors }) => {
 
 const SettingsSection = ({ type, settings, onUpdate, onSave }) => {
   if (!settings) return <Skeleton className="h-64 bg-slate-800" />;
-
   const renderFields = () => {
     switch (type) {
       case 'vendor':
@@ -1356,8 +1160,7 @@ const SettingsSection = ({ type, settings, onUpdate, onSave }) => {
             <SettingToggle label="Checkout invité" value={settings.allow_guest_checkout} onChange={(v) => onUpdate('allow_guest_checkout', v)} />
           </>
         );
-      default:
-        return null;
+      default: return null;
     }
   };
 
@@ -1367,13 +1170,9 @@ const SettingsSection = ({ type, settings, onUpdate, onSave }) => {
         <Settings className="w-5 h-5" />
         {type === 'vendor' ? 'Paramètres Vendeurs' : type === 'delivery' ? 'Paramètres Livreurs' : 'Paramètres Généraux'}
       </h3>
-      <div className="space-y-4">
-        {renderFields()}
-      </div>
+      <div className="space-y-4">{renderFields()}</div>
       <div className="mt-6 pt-6 border-t border-slate-700">
-        <Button onClick={onSave} className="bg-green-600 hover:bg-green-700">
-          <Check className="w-4 h-4 mr-2" /> Sauvegarder
-        </Button>
+        <Button onClick={onSave} className="bg-green-600 hover:bg-green-700"><Check className="w-4 h-4 mr-2" /> Sauvegarder</Button>
       </div>
     </div>
   );
@@ -1382,31 +1181,22 @@ const SettingsSection = ({ type, settings, onUpdate, onSave }) => {
 const SettingField = ({ label, value, onChange, type = 'text' }) => (
   <div className="flex items-center justify-between gap-4">
     <label className="text-sm text-slate-400">{label}</label>
-    <Input
-      type={type}
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-48 bg-slate-700 border-slate-600"
-    />
+    <Input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-48 bg-slate-700 border-slate-600" />
   </div>
 );
 
 const SettingToggle = ({ label, value, onChange }) => (
   <div className="flex items-center justify-between gap-4">
     <label className="text-sm text-slate-400">{label}</label>
-    <button
-      onClick={() => onChange(!value)}
-      className={`w-12 h-6 rounded-full transition-colors ${value ? 'bg-green-500' : 'bg-slate-600'}`}
-    >
+    <button onClick={() => onChange(!value)} className={`w-12 h-6 rounded-full transition-colors ${value ? 'bg-green-500' : 'bg-slate-600'}`}>
       <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${value ? 'translate-x-6' : 'translate-x-0'}`} />
     </button>
   </div>
 );
 
-// ============= DROPSHIPPERS SECTION =============
-const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, onDelete }) => {
+const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, onDelete, autoApprove, onToggleAutoApprove }) => {
   const [loading, setLoading] = useState(false);
-  
+
   const handleToggleRevendeur = async (revendeurId) => {
     setLoading(true);
     try {
@@ -1421,95 +1211,51 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold flex items-center gap-2">
-        <Package className="w-6 h-6 text-indigo-400" />
-        Gestion Revente
-      </h2>
-      
+      <AutoApproveToggle
+        enabled={autoApprove}
+        onToggle={onToggleAutoApprove}
+        label={`Active : active automatiquement tous les revendeurs inactifs (${revendeurs.filter(r => !r.is_active).length} inactifs)`}
+      />
+
+      <h2 className="text-xl font-bold flex items-center gap-2"><Package className="w-6 h-6 text-indigo-400" />Gestion Revente</h2>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-slate-400 text-sm">Revendeurs actifs</p>
-          <p className="text-2xl font-bold text-indigo-400">{stats?.active_revendeurs || 0}</p>
-        </div>
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-slate-400 text-sm">Produits dropshippés</p>
-          <p className="text-2xl font-bold text-purple-400">{stats?.total_products || 0}</p>
-        </div>
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-slate-400 text-sm">Revenus Admin</p>
-          <p className="text-2xl font-bold text-green-400">{formatPrice(stats?.admin_earnings_fcfa || 0)} F</p>
-        </div>
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <p className="text-slate-400 text-sm">Marges totales</p>
-          <p className="text-2xl font-bold text-amber-400">{formatPrice(stats?.total_margins_fcfa || 0)} F</p>
-        </div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700"><p className="text-slate-400 text-sm">Revendeurs actifs</p><p className="text-2xl font-bold text-indigo-400">{stats?.active_revendeurs || 0}</p></div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700"><p className="text-slate-400 text-sm">Produits dropshippés</p><p className="text-2xl font-bold text-purple-400">{stats?.total_products || 0}</p></div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700"><p className="text-slate-400 text-sm">Revenus Admin</p><p className="text-2xl font-bold text-green-400">{formatPrice(stats?.admin_earnings_fcfa || 0)} F</p></div>
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700"><p className="text-slate-400 text-sm">Marges totales</p><p className="text-2xl font-bold text-amber-400">{formatPrice(stats?.total_margins_fcfa || 0)} F</p></div>
       </div>
-      
+
       <div className="bg-slate-800 rounded-xl border border-slate-700">
-        <div className="p-4 border-b border-slate-700">
-          <h3 className="font-semibold">Liste des Revendeurs ({revendeurs.length})</h3>
-        </div>
+        <div className="p-4 border-b border-slate-700"><h3 className="font-semibold">Liste des Revendeurs ({revendeurs.length})</h3></div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
-                <th className="p-4">Revendeur</th>
-                <th className="p-4">Boutique</th>
-                <th className="p-4">Produits</th>
-                <th className="p-4">Commandes</th>
-                <th className="p-4">Gains</th>
-                <th className="p-4">Statut</th>
-                <th className="p-4">Actions</th>
+                <th className="p-4">Revendeur</th><th className="p-4">Boutique</th><th className="p-4">Produits</th><th className="p-4">Commandes</th><th className="p-4">Gains</th><th className="p-4">Statut</th><th className="p-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {revendeurs.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-400">
-                    Aucun revendeur inscrit
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="p-8 text-center text-slate-400">Aucun revendeur inscrit</td></tr>
               ) : (
                 revendeurs.map((d) => (
                   <tr key={d.id} className="border-b border-slate-700 hover:bg-slate-700/50">
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium">{d.name}</p>
-                        <p className="text-sm text-slate-400">{d.email}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-indigo-400">{d.shop_name}</span>
-                    </td>
+                    <td className="p-4"><div><p className="font-medium">{d.name}</p><p className="text-sm text-slate-400">{d.email}</p></div></td>
+                    <td className="p-4"><span className="text-indigo-400">{d.shop_name}</span></td>
                     <td className="p-4">{d.product_count || 0}</td>
                     <td className="p-4">{d.order_count || 0}</td>
                     <td className="p-4 text-green-400">{formatPrice(d.total_earnings || 0)} F</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs ${d.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {d.is_active ? 'Actif' : 'Inactif'}
-                      </span>
-                    </td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${d.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{d.is_active ? 'Actif' : 'Inactif'}</span></td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={d.is_active ? 'destructive' : 'default'}
-                          onClick={() => handleToggleRevendeur(d.id)}
-                          disabled={loading}
-                        >
+                        <Button size="sm" variant={d.is_active ? 'destructive' : 'default'} onClick={() => handleToggleRevendeur(d.id)} disabled={loading}>
                           {d.is_active ? 'Désactiver' : 'Activer'}
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => onDelete(d.id, d.shop_name || d.name)} 
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          title="Supprimer le revendeur"
-                          data-testid={`delete-revendeur-${d.id}`}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => onDelete(d.id, d.shop_name || d.name)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10" data-testid={`delete-revendeur-${d.id}`}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -1521,25 +1267,17 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
           </table>
         </div>
       </div>
-      
+
       <div className="bg-slate-800 rounded-xl border border-slate-700">
-        <div className="p-4 border-b border-slate-700">
-          <h3 className="font-semibold">Transactions Revente récentes</h3>
-        </div>
+        <div className="p-4 border-b border-slate-700"><h3 className="font-semibold">Transactions Revente récentes</h3></div>
         <div className="p-4 space-y-3">
           {transactions.length === 0 ? (
             <p className="text-slate-400 text-center py-4">Aucune transaction</p>
           ) : (
             transactions.slice(0, 10).map((t) => (
               <div key={t.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                <div>
-                  <p className="font-medium">{t.product_name}</p>
-                  <p className="text-sm text-slate-400">{t.revendeur_name} · {t.order_number}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-400 font-medium">+{formatPrice(t.admin_share || 0)} F</p>
-                  <p className="text-xs text-slate-400">sur {formatPrice(t.total_margin || 0)} F de marge</p>
-                </div>
+                <div><p className="font-medium">{t.product_name}</p><p className="text-sm text-slate-400">{t.revendeur_name} · {t.order_number}</p></div>
+                <div className="text-right"><p className="text-green-400 font-medium">+{formatPrice(t.admin_share || 0)} F</p><p className="text-xs text-slate-400">sur {formatPrice(t.total_margin || 0)} F de marge</p></div>
               </div>
             ))
           )}
@@ -1549,16 +1287,8 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
   );
 };
 
-// ============== USERS SECTION ==============
 const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onDelete, onToggleActive }) => {
-  const roleLabels = {
-    all: 'Tous',
-    customer: 'Clients',
-    vendor: 'Vendeurs',
-    driver: 'Livreurs',
-    revendeur: 'Revendeurs'
-  };
-
+  const roleLabels = { all: 'Tous', customer: 'Clients', vendor: 'Vendeurs', driver: 'Livreurs', revendeur: 'Revendeurs' };
   const getRoleColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-red-500/20 text-red-400';
@@ -1571,109 +1301,50 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold flex items-center gap-2">
-        <Users className="w-6 h-6 text-rose-400" />
-        Gestion des Utilisateurs ({users.length})
-      </h2>
-
+      <h2 className="text-xl font-bold flex items-center gap-2"><Users className="w-6 h-6 text-rose-400" />Gestion des Utilisateurs ({users.length})</h2>
       <div className="flex flex-wrap gap-4">
         <div className="flex gap-2 flex-wrap">
           {Object.entries(roleLabels).map(([key, label]) => (
-            <Button
-              key={key}
-              size="sm"
-              variant={roleFilter === key ? 'default' : 'outline'}
-              onClick={() => setRoleFilter(key)}
-              className={roleFilter === key ? 'bg-rose-600 hover:bg-rose-700' : ''}
-            >
-              {label}
-            </Button>
+            <Button key={key} size="sm" variant={roleFilter === key ? 'default' : 'outline'} onClick={() => setRoleFilter(key)} className={roleFilter === key ? 'bg-rose-600 hover:bg-rose-700' : ''}>{label}</Button>
           ))}
         </div>
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Rechercher..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-slate-800 border-slate-700"
-          />
+          <Input placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-slate-800 border-slate-700" />
         </div>
       </div>
-
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
-                <th className="p-4">Utilisateur</th>
-                <th className="p-4">Rôle</th>
-                <th className="p-4">Téléphone</th>
-                <th className="p-4">Produits</th>
-                <th className="p-4">Statut</th>
-                <th className="p-4">Inscrit le</th>
-                <th className="p-4">Actions</th>
+                <th className="p-4">Utilisateur</th><th className="p-4">Rôle</th><th className="p-4">Téléphone</th><th className="p-4">Produits</th><th className="p-4">Statut</th><th className="p-4">Inscrit le</th><th className="p-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-400">
-                    Aucun utilisateur trouvé
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="p-8 text-center text-slate-400">Aucun utilisateur trouvé</td></tr>
               ) : (
                 users.map((u) => (
                   <tr key={u.id} className="border-b border-slate-700 hover:bg-slate-700/50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                          {u.name?.[0]?.toUpperCase() || '?'}
-                        </div>
-                        <div>
-                          <p className="font-medium">{u.name}</p>
-                          <p className="text-sm text-slate-400">{u.email}</p>
-                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold">{u.name?.[0]?.toUpperCase() || '?'}</div>
+                        <div><p className="font-medium">{u.name}</p><p className="text-sm text-slate-400">{u.email}</p></div>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs ${getRoleColor(u.role)}`}>
-                        {roleLabels[u.role] || u.role}
-                      </span>
-                    </td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${getRoleColor(u.role)}`}>{roleLabels[u.role] || u.role}</span></td>
                     <td className="p-4 text-slate-300">{u.phone || '-'}</td>
                     <td className="p-4">{u.product_count || 0}</td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${u.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{u.is_active ? 'Actif' : 'Désactivé'}</span></td>
+                    <td className="p-4 text-slate-400 text-sm">{u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '-'}</td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs ${u.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {u.is_active ? 'Actif' : 'Désactivé'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-400 text-sm">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '-'}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {u.role !== 'admin' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => onToggleActive(u.id, u.name)}
-                              className="text-xs"
-                            >
-                              {u.is_active ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => onDelete(u.id, u.name)}
-                              className="text-xs"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                      {u.role !== 'admin' && (
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => onToggleActive(u.id, u.name)} className="text-xs">{u.is_active ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}</Button>
+                          <Button size="sm" variant="destructive" onClick={() => onDelete(u.id, u.name)} className="text-xs"><Trash2 className="w-3 h-3" /></Button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -1686,128 +1357,65 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
   );
 };
 
-// ============== CATEGORIES SECTION ==============
-const CategoriesSection = ({ 
-  token,
-  categories, 
-  editingCategory, 
-  setEditingCategory, 
-  newCategory, 
-  setNewCategory, 
-  showNewForm, 
-  setShowNewForm,
-  onCreate, 
-  onUpdate, 
-  onDelete, 
-  onToggle 
-}) => {
+const CategoriesSection = ({ token, categories, editingCategory, setEditingCategory, newCategory, setNewCategory, showNewForm, setShowNewForm, onCreate, onUpdate, onDelete, onToggle, products }) => {
+  // Calcul dynamique du nombre de produits par catégorie
+  const getProductCount = (slug) => products.filter(p => p.category_slug === slug).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Cog className="w-6 h-6 text-teal-400" />
-          Gestion des Catégories ({categories.length})
-        </h2>
-        <Button
-          onClick={() => setShowNewForm(!showNewForm)}
-          className="bg-teal-600 hover:bg-teal-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nouvelle catégorie
+        <h2 className="text-xl font-bold flex items-center gap-2"><Cog className="w-6 h-6 text-teal-400" />Gestion des Catégories ({categories.length})</h2>
+        <Button onClick={() => setShowNewForm(!showNewForm)} className="bg-teal-600 hover:bg-teal-700">
+          <Plus className="w-4 h-4 mr-2" />Nouvelle catégorie
         </Button>
       </div>
 
-      {/* New Category Form */}
       {showNewForm && (
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
           <h3 className="font-semibold mb-4">Créer une nouvelle catégorie</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
-              <Input
-                value={newCategory.name}
-                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                placeholder="Mode & Textile"
-                className="bg-slate-700 border-slate-600"
-              />
+              <Input value={newCategory.name} onChange={(e) => setNewCategory({...newCategory, name: e.target.value})} placeholder="Mode & Textile" className="bg-slate-700 border-slate-600" />
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Description</label>
-              <Input
-                value={newCategory.description}
-                onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-                placeholder="Description de la catégorie"
-                className="bg-slate-700 border-slate-600"
-              />
+              <Input value={newCategory.description} onChange={(e) => setNewCategory({...newCategory, description: e.target.value})} placeholder="Description de la catégorie" className="bg-slate-700 border-slate-600" />
             </div>
           </div>
           <div className="mt-4">
-            <ImageUpload
-              images={newCategory.banner_images || []}
-              onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
-              maxImages={3}
-              token={token}
-              label="3 images à la une (diaporama)"
-              hint="Ces 3 images défileront sur la page principale."
-            />
+            <ImageUpload images={newCategory.banner_images || []} onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })} maxImages={3} token={token} label="3 images à la une (diaporama)" hint="Ces 3 images défileront sur la page principale." />
           </div>
           <div className="flex gap-2 mt-4">
-            <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700">
-              <Plus className="w-4 h-4 mr-2" /> Créer
-            </Button>
-            <Button variant="outline" onClick={() => setShowNewForm(false)}>
-              Annuler
-            </Button>
+            <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700"><Plus className="w-4 h-4 mr-2" />Créer</Button>
+            <Button variant="outline" onClick={() => setShowNewForm(false)}>Annuler</Button>
           </div>
         </div>
       )}
 
-      {/* Edit Category Form */}
       {editingCategory && (
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
           <h3 className="font-semibold mb-4">Modifier la catégorie</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
-              <Input
-                value={editingCategory.name || ''}
-                onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                placeholder="Nom de la catégorie"
-                className="bg-slate-700 border-slate-600"
-              />
+              <Input value={editingCategory.name || ''} onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} className="bg-slate-700 border-slate-600" />
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Description</label>
-              <Input
-                value={editingCategory.description || ''}
-                onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
-                placeholder="Description de la catégorie"
-                className="bg-slate-700 border-slate-600"
-              />
+              <Input value={editingCategory.description || ''} onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })} className="bg-slate-700 border-slate-600" />
             </div>
           </div>
           <div className="mt-4">
-            <ImageUpload
-              images={editingCategory.banner_images || []}
-              onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
-              maxImages={3}
-              token={token}
-              label="3 images à la une (diaporama)"
-              hint="Ces 3 images défileront sur la page principale."
-            />
+            <ImageUpload images={editingCategory.banner_images || []} onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })} maxImages={3} token={token} label="3 images à la une (diaporama)" hint="Ces 3 images défileront sur la page principale." />
           </div>
           <div className="flex gap-2 mt-4">
-            <Button onClick={() => onUpdate(editingCategory.id)} className="bg-green-600 hover:bg-green-700">
-              <Check className="w-4 h-4 mr-2" /> Enregistrer
-            </Button>
-            <Button variant="outline" onClick={() => setEditingCategory(null)}>
-              Annuler
-            </Button>
+            <Button onClick={() => onUpdate(editingCategory.id)} className="bg-green-600 hover:bg-green-700"><Check className="w-4 h-4 mr-2" />Enregistrer</Button>
+            <Button variant="outline" onClick={() => setEditingCategory(null)}>Annuler</Button>
           </div>
         </div>
       )}
 
-      {/* Categories List */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -1822,26 +1430,22 @@ const CategoriesSection = ({
             </thead>
             <tbody>
               {categories.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="p-8 text-center text-slate-400">
-                    Aucune catégorie
-                  </td>
-                </tr>
+                <tr><td colSpan="5" className="p-8 text-center text-slate-400">Aucune catégorie</td></tr>
               ) : (
                 categories.map((cat) => (
                   <tr key={cat.id || cat.slug} className="border-b border-slate-700 hover:bg-slate-700/50">
+                    <td className="p-4"><span className="font-medium">{cat.name}</span></td>
                     <td className="p-4">
-                      <span className="font-medium">{cat.name}</span>
+                      <span className="px-2 py-1 bg-teal-500/20 text-teal-400 rounded-full text-xs font-bold">
+                        {getProductCount(cat.slug)} produits
+                      </span>
                     </td>
-                    <td className="p-4">{cat.product_count || 0}</td>
                     <td className="p-4">
                       <div className="flex gap-1">
                         {(cat.banner_images || []).slice(0, 3).map((img, idx) => (
                           <img key={idx} src={img} alt="" className="w-10 h-10 rounded object-cover border border-slate-600" />
                         ))}
-                        {(!cat.banner_images || cat.banner_images.length === 0) && (
-                          <span className="text-xs text-slate-500">Aucune</span>
-                        )}
+                        {(!cat.banner_images || cat.banner_images.length === 0) && <span className="text-xs text-slate-500">Aucune</span>}
                       </div>
                     </td>
                     <td className="p-4">
@@ -1851,15 +1455,9 @@ const CategoriesSection = ({
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}>
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
-                          {cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}><Edit className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>{cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}</Button>
+                        <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </td>
                   </tr>
