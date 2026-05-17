@@ -1391,6 +1391,12 @@ const CategoriesSection = ({
   const parentCategories = categories.filter(c => !c.parent_slug);
   const getSubCategories = (parentSlug) => categories.filter(c => c.parent_slug === parentSlug);
 
+  // Debug: log pour voir la structure des catégories
+  console.log('=== DEBUG CATEGORIES ===');
+  console.log('Total catégories:', categories.length);
+  console.log('Catégories parentes:', parentCategories.map(c => ({ name: c.name, slug: c.slug, hasParent: !!c.parent_slug })));
+  console.log('Toutes les catégories avec parent_slug:', categories.filter(c => c.parent_slug).map(c => ({ name: c.name, slug: c.slug, parent_slug: c.parent_slug })));
+
   // ==================== CRÉATION SOUS-CATÉGORIE ====================
   const handleCreateSubCategory = async () => {
     if (!newSubCategory.name || !newSubCategory.parent_slug) {
