@@ -1425,6 +1425,10 @@ const CategoriesSection = ({
         icon: 'Package',
       };
 
+      console.log('=== DEBUG PAYLOAD SOUS-CATÉGORIE ===');
+      console.log('Payload envoyé:', payload);
+      console.log('newSubCategory.parent_slug:', newSubCategory.parent_slug);
+
       await axios.post(`${API}/admin/categories`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
