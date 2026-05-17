@@ -892,12 +892,24 @@ async def admin_toggle_user_active(user_id: str, user: dict = Depends(require_ad
     return {"ok": True, "message": "Utilisateur active" if new_active else "Utilisateur desactive"}
 
 
+
 @api.post("/admin/categories")
 async def admin_create_category(payload: dict, user: dict = Depends(require_admin)):
     banner_images = payload.get("banner_images") or payload.get("featured_images") or []
     if not isinstance(banner_images, list):
         raise HTTPException(status_code=400, detail="banner_images doit etre une liste")
     banner_images = [img for img in banner_images if isinstance(img, str) and img.strip()][:3]
+
+    parent_slug = payload.get("parent_slug") or None
+
+    # Si c'est une sous-catégorie, vérifier que le parent existe
+    if parent_slug:
+        parent = await db.categories.find_one({"slug": parent_slug}, {"_id": 0})
+        if not parent:
+            raise HTTPException(status_code=400, detail="Catégorie parente introuvable")
+        # Les sous-catégories ne peuvent pas avoir de parent elles-mêmes
+        if parent.get("parent_slug"):
+            raise HTTPException(status_code=400, detail="Impossible de créer une sous-sous-catégorie")
 
     category = {
         "id": str(uuid.uuid4()),
@@ -907,6 +919,7 @@ async def admin_create_category(payload: dict, user: dict = Depends(require_admi
         "description": payload.get("description", ""),
         "banner_images": banner_images,
         "image": banner_images[0] if banner_images else payload.get("image"),
+        "parent_slug": parent_slug,
         "is_active": True,
         "created_at": _utc(),
         "updated_at": _utc(),
@@ -914,6 +927,7 @@ async def admin_create_category(payload: dict, user: dict = Depends(require_admi
     if not category["name"] or not category["slug"]:
         raise HTTPException(status_code=400, detail="name et slug requis")
     await db.categories.insert_one(category)
+    category.pop("_id", None)
     return category
 
 
@@ -925,6 +939,9 @@ async def admin_update_category(category_id: str, payload: dict, user: dict = De
             raise HTTPException(status_code=400, detail="banner_images doit etre une liste")
         update["banner_images"] = [img for img in update["banner_images"] if isinstance(img, str) and img.strip()][:3]
         update["image"] = update["banner_images"][0] if update["banner_images"] else update.get("image")
+    # Permettre de vider parent_slug (passer à None explicitement)
+    if "parent_slug" in payload:
+        update["parent_slug"] = payload["parent_slug"] or None
     update["updated_at"] = _utc()
     await db.categories.update_one({"id": category_id}, {"$set": update})
     category = await db.categories.find_one({"id": category_id}, {"_id": 0})
@@ -935,6 +952,10 @@ async def admin_update_category(category_id: str, payload: dict, user: dict = De
 
 @api.delete("/admin/categories/{category_id}")
 async def admin_delete_category(category_id: str, user: dict = Depends(require_admin)):
+    # Supprimer aussi les sous-catégories
+    cat = await db.categories.find_one({"id": category_id}, {"_id": 0})
+    if cat and not cat.get("parent_slug"):
+        await db.categories.delete_many({"parent_slug": cat.get("slug")})
     await db.categories.delete_one({"id": category_id})
     return {"ok": True}
 
@@ -946,6 +967,12 @@ async def admin_toggle_category(category_id: str, user: dict = Depends(require_a
         raise HTTPException(status_code=404, detail="Categorie non trouvee")
     new_status = not bool(category.get("is_active", True))
     await db.categories.update_one({"id": category_id}, {"$set": {"is_active": new_status, "updated_at": _utc()}})
+    # Si on désactive une catégorie parente, désactiver aussi ses sous-catégories
+    if not new_status and not category.get("parent_slug"):
+        await db.categories.update_many(
+            {"parent_slug": category.get("slug")},
+            {"$set": {"is_active": False, "updated_at": _utc()}}
+        )
     return {"ok": True, "message": "Categorie activee" if new_status else "Categorie desactivee"}
 
 

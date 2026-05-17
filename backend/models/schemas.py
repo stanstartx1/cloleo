@@ -8,20 +8,19 @@ class UserRole:
     VENDOR = "vendor"
     ADMIN = "admin"
     DRIVER = "driver"
-    DROPSHIPPER = "dropshipper"  # Keep for DB compatibility
-    REVENDEUR = "dropshipper"    # Alias en français
+    DROPSHIPPER = "dropshipper"
+    REVENDEUR = "dropshipper"
 
 
 class OrderStatus:
-    PENDING = "pending"           # Client just placed order
-    ASSIGNED = "assigned"         # Driver accepted
-    PICKED_UP = "picked_up"       # Driver has the package
-    IN_TRANSIT = "in_transit"     # Driver is on the way
-    DELIVERED = "delivered"       # Delivered
-    CANCELLED = "cancelled"       # Cancelled
+    PENDING = "pending"
+    ASSIGNED = "assigned"
+    PICKED_UP = "picked_up"
+    IN_TRANSIT = "in_transit"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
 
 
-# Auth models
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
@@ -35,7 +34,6 @@ class UserLogin(BaseModel):
     password: str
 
 
-# Vendor models
 class VendorProduct(BaseModel):
     name: str
     description: str
@@ -44,11 +42,11 @@ class VendorProduct(BaseModel):
     stock: int
     condition: str
     category_slug: str
+    subcategory_slug: Optional[str] = None
     images: List[str]
     tags: List[str] = []
 
 
-# Cart models
 class CartItemCreate(BaseModel):
     product_id: str
     quantity: int = 1
@@ -59,31 +57,28 @@ class CartItemUpdate(BaseModel):
     quantity: int
 
 
-# Subscription models
 class SubscriptionCheckout(BaseModel):
     plan_id: str
     origin_url: str
 
 
-# Settings models
 class SettingsUpdate(BaseModel):
     settings: Dict[str, Any]
 
 
-# Driver models
 class DriverRegister(BaseModel):
     email: EmailStr
     password: str
     name: str
     phone: str
-    vehicle_type: str  # moto, voiture, velo
+    vehicle_type: str
     license_number: str
     city: str
     country: str = "Côte d'Ivoire"
 
 
 class DriverStatusUpdate(BaseModel):
-    status: str  # available, busy, offline
+    status: str
 
 
 class DriverLocationUpdate(BaseModel):
@@ -91,7 +86,6 @@ class DriverLocationUpdate(BaseModel):
     longitude: float
 
 
-# Order models
 class OrderAddress(BaseModel):
     street: str
     city: str
@@ -103,9 +97,9 @@ class OrderAddress(BaseModel):
 
 
 class CreateOrder(BaseModel):
-    items: List[dict]  # [{product_id, quantity}]
+    items: List[dict]
     delivery_address: OrderAddress
-    payment_method: str = "cash"  # cash, card
+    payment_method: str = "cash"
     notes: Optional[str] = None
 
 
@@ -114,7 +108,6 @@ class OrderUpdate(BaseModel):
     notes: Optional[str] = None
 
 
-# Dropshipper models
 class DropshipperRegister(BaseModel):
     email: EmailStr
     password: str
@@ -138,11 +131,10 @@ class DropshippedProductUpdate(BaseModel):
     custom_images: Optional[List[str]] = None
 
 
-# Chat/Messaging models
 class MessageCreate(BaseModel):
     conversation_id: Optional[str] = None
-    product_id: Optional[str] = None  # For starting new conversation
-    dropshipped_product_id: Optional[str] = None  # For dropshipped products
+    product_id: Optional[str] = None
+    dropshipped_product_id: Optional[str] = None
     content: str
 
 
@@ -151,7 +143,6 @@ class ConversationCreate(BaseModel):
     dropshipped_product_id: Optional[str] = None
 
 
-# Review models
 class ReviewCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     comment: Optional[str] = None
@@ -162,12 +153,13 @@ class ReviewUpdate(BaseModel):
     comment: Optional[str] = None
 
 
-# Category models
+# Category models — avec support sous-catégories
 class CategoryCreate(BaseModel):
     name: str
     slug: str
     icon: str
     description: Optional[str] = None
+    parent_slug: Optional[str] = None  # None = catégorie principale
 
 
 class CategoryUpdate(BaseModel):
@@ -176,3 +168,4 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    parent_slug: Optional[str] = None

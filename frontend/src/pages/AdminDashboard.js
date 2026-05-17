@@ -1356,35 +1356,84 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
     </div>
   );
 };
+// ============================================================
+// REMPLACE uniquement la fonction CategoriesSection dans AdminDashboard.js
+// (cherche "const CategoriesSection" et remplace toute la fonction)
+// ============================================================
 
 const CategoriesSection = ({ token, categories, editingCategory, setEditingCategory, newCategory, setNewCategory, showNewForm, setShowNewForm, onCreate, onUpdate, onDelete, onToggle, products }) => {
-  // Calcul dynamique du nombre de produits par catégorie
+  const [showSubForm, setShowSubForm] = useState(false);
+  const [newSubCategory, setNewSubCategory] = useState({ name: '', description: '', parent_slug: '', banner_images: [] });
+
   const getProductCount = (slug) => products.filter(p => p.category_slug === slug).length;
+
+  // Séparer parents et enfants
+  const parentCategories = categories.filter(c => !c.parent_slug);
+  const getSubCategories = (parentSlug) => categories.filter(c => c.parent_slug === parentSlug);
+
+  const handleCreateSubCategory = async () => {
+    if (!newSubCategory.name || !newSubCategory.parent_slug) {
+      toast.error('Le nom et la catégorie parente sont requis');
+      return;
+    }
+    try {
+      const slug = newSubCategory.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const parentSlug = newSubCategory.parent_slug;
+      await axios.post(`${API}/admin/categories`, {
+        ...newSubCategory,
+        slug: `${parentSlug}-${slug}`,
+        icon: 'Package',
+        parent_slug: parentSlug,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success('Sous-catégorie créée');
+      setNewSubCategory({ name: '', description: '', parent_slug: '', banner_images: [] });
+      setShowSubForm(false);
+      // Refresh
+      window.location.reload();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la création');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center gap-2"><Cog className="w-6 h-6 text-teal-400" />Gestion des Catégories ({categories.length})</h2>
-        <Button onClick={() => setShowNewForm(!showNewForm)} className="bg-teal-600 hover:bg-teal-700">
-          <Plus className="w-4 h-4 mr-2" />Nouvelle catégorie
-        </Button>
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Cog className="w-6 h-6 text-teal-400" />
+          Gestion des Catégories ({categories.length})
+        </h2>
+        <div className="flex gap-2">
+          <Button onClick={() => { setShowSubForm(!showSubForm); setShowNewForm(false); }}
+            className="bg-purple-600 hover:bg-purple-700">
+            <Plus className="w-4 h-4 mr-2" />Sous-catégorie
+          </Button>
+          <Button onClick={() => { setShowNewForm(!showNewForm); setShowSubForm(false); }}
+            className="bg-teal-600 hover:bg-teal-700">
+            <Plus className="w-4 h-4 mr-2" />Nouvelle catégorie
+          </Button>
+        </div>
       </div>
 
+      {/* Formulaire nouvelle catégorie principale */}
       {showNewForm && (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h3 className="font-semibold mb-4">Créer une nouvelle catégorie</h3>
+        <div className="bg-slate-800 rounded-xl border border-teal-500/30 p-6">
+          <h3 className="font-semibold mb-4 text-teal-400">➕ Créer une catégorie principale</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
-              <Input value={newCategory.name} onChange={(e) => setNewCategory({...newCategory, name: e.target.value})} placeholder="Mode & Textile" className="bg-slate-700 border-slate-600" />
+              <Input value={newCategory.name} onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                placeholder="Mode & Textile" className="bg-slate-700 border-slate-600" />
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Description</label>
-              <Input value={newCategory.description} onChange={(e) => setNewCategory({...newCategory, description: e.target.value})} placeholder="Description de la catégorie" className="bg-slate-700 border-slate-600" />
+              <Input value={newCategory.description} onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                placeholder="Description de la catégorie" className="bg-slate-700 border-slate-600" />
             </div>
           </div>
           <div className="mt-4">
-            <ImageUpload images={newCategory.banner_images || []} onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })} maxImages={3} token={token} label="3 images à la une (diaporama)" hint="Ces 3 images défileront sur la page principale." />
+            <ImageUpload images={newCategory.banner_images || []}
+              onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
+              maxImages={3} token={token} label="3 images à la une" hint="Ces images défileront sur la page principale." />
           </div>
           <div className="flex gap-2 mt-4">
             <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700"><Plus className="w-4 h-4 mr-2" />Créer</Button>
@@ -1393,82 +1442,159 @@ const CategoriesSection = ({ token, categories, editingCategory, setEditingCateg
         </div>
       )}
 
-      {editingCategory && (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h3 className="font-semibold mb-4">Modifier la catégorie</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Formulaire nouvelle sous-catégorie */}
+      {showSubForm && (
+        <div className="bg-slate-800 rounded-xl border border-purple-500/30 p-6">
+          <h3 className="font-semibold mb-4 text-purple-400">➕ Créer une sous-catégorie</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Catégorie parente *</label>
+              <select
+                value={newSubCategory.parent_slug}
+                onChange={(e) => setNewSubCategory({...newSubCategory, parent_slug: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm"
+              >
+                <option value="">Sélectionner...</option>
+                {parentCategories.map(cat => (
+                  <option key={cat.slug} value={cat.slug}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
-              <Input value={editingCategory.name || ''} onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} className="bg-slate-700 border-slate-600" />
+              <Input value={newSubCategory.name}
+                onChange={(e) => setNewSubCategory({...newSubCategory, name: e.target.value})}
+                placeholder="Ex: Robes" className="bg-slate-700 border-slate-600" />
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Description</label>
-              <Input value={editingCategory.description || ''} onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })} className="bg-slate-700 border-slate-600" />
+              <Input value={newSubCategory.description}
+                onChange={(e) => setNewSubCategory({...newSubCategory, description: e.target.value})}
+                placeholder="Description..." className="bg-slate-700 border-slate-600" />
             </div>
           </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleCreateSubCategory} className="bg-purple-600 hover:bg-purple-700">
+              <Plus className="w-4 h-4 mr-2" />Créer la sous-catégorie
+            </Button>
+            <Button variant="outline" onClick={() => setShowSubForm(false)}>Annuler</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Formulaire modification */}
+      {editingCategory && (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <h3 className="font-semibold mb-4">Modifier : {editingCategory.name}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
+              <Input value={editingCategory.name || ''}
+                onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                className="bg-slate-700 border-slate-600" />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Description</label>
+              <Input value={editingCategory.description || ''}
+                onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                className="bg-slate-700 border-slate-600" />
+            </div>
+          </div>
+          {/* Permettre de changer la catégorie parente */}
           <div className="mt-4">
-            <ImageUpload images={editingCategory.banner_images || []} onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })} maxImages={3} token={token} label="3 images à la une (diaporama)" hint="Ces 3 images défileront sur la page principale." />
+            <label className="text-sm text-slate-400 mb-1 block">Catégorie parente (laisser vide = catégorie principale)</label>
+            <select
+              value={editingCategory.parent_slug || ''}
+              onChange={(e) => setEditingCategory({ ...editingCategory, parent_slug: e.target.value || null })}
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm"
+            >
+              <option value="">Aucune (catégorie principale)</option>
+              {parentCategories.filter(c => c.id !== editingCategory.id).map(cat => (
+                <option key={cat.slug} value={cat.slug}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-4">
+            <ImageUpload images={editingCategory.banner_images || []}
+              onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
+              maxImages={3} token={token} label="3 images à la une" hint="Ces images défileront sur la page principale." />
           </div>
           <div className="flex gap-2 mt-4">
-            <Button onClick={() => onUpdate(editingCategory.id)} className="bg-green-600 hover:bg-green-700"><Check className="w-4 h-4 mr-2" />Enregistrer</Button>
+            <Button onClick={() => onUpdate(editingCategory.id)} className="bg-green-600 hover:bg-green-700">
+              <Check className="w-4 h-4 mr-2" />Enregistrer
+            </Button>
             <Button variant="outline" onClick={() => setEditingCategory(null)}>Annuler</Button>
           </div>
         </div>
       )}
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
-                <th className="p-4">Catégorie</th>
-                <th className="p-4">Produits</th>
-                <th className="p-4">Images à la une</th>
-                <th className="p-4">Statut</th>
-                <th className="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.length === 0 ? (
-                <tr><td colSpan="5" className="p-8 text-center text-slate-400">Aucune catégorie</td></tr>
-              ) : (
-                categories.map((cat) => (
-                  <tr key={cat.id || cat.slug} className="border-b border-slate-700 hover:bg-slate-700/50">
-                    <td className="p-4"><span className="font-medium">{cat.name}</span></td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 bg-teal-500/20 text-teal-400 rounded-full text-xs font-bold">
-                        {getProductCount(cat.slug)} produits
+      {/* Liste des catégories groupées */}
+      <div className="space-y-4">
+        {parentCategories.map((cat) => {
+          const subCats = getSubCategories(cat.slug);
+          return (
+            <div key={cat.id || cat.slug} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              {/* Catégorie principale */}
+              <div className="flex items-center gap-4 p-4 bg-slate-700/30">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{cat.name}</span>
+                    <span className="px-2 py-0.5 bg-teal-500/20 text-teal-400 rounded-full text-xs font-bold">
+                      {getProductCount(cat.slug)} produits
+                    </span>
+                    {subCats.length > 0 && (
+                      <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full text-xs">
+                        {subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}
                       </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-1">
-                        {(cat.banner_images || []).slice(0, 3).map((img, idx) => (
-                          <img key={idx} src={img} alt="" className="w-10 h-10 rounded object-cover border border-slate-600" />
-                        ))}
-                        {(!cat.banner_images || cat.banner_images.length === 0) && <span className="text-xs text-slate-500">Aucune</span>}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs ${cat.is_active !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {cat.is_active !== false ? 'Active' : 'Inactive'}
+                    )}
+                  </div>
+                  {cat.description && <p className="text-xs text-slate-400 mt-0.5">{cat.description}</p>}
+                </div>
+                <div className="flex gap-1">
+                  {(cat.banner_images || []).slice(0, 3).map((img, idx) => (
+                    <img key={idx} src={img} alt="" className="w-8 h-8 rounded object-cover border border-slate-600" />
+                  ))}
+                </div>
+                <span className={`px-2 py-1 rounded text-xs ${cat.is_active !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {cat.is_active !== false ? 'Active' : 'Inactive'}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}><Edit className="w-3 h-3" /></Button>
+                  <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>{cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}</Button>
+                  <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}><Trash2 className="w-3 h-3" /></Button>
+                </div>
+              </div>
+
+              {/* Sous-catégories */}
+              {subCats.map((sub) => (
+                <div key={sub.id || sub.slug} className="flex items-center gap-4 p-3 pl-8 border-t border-slate-700/50 bg-slate-800/50">
+                  <div className="w-3 h-px bg-purple-500/50 mr-1" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-purple-300 font-medium">{sub.name}</span>
+                      <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full text-xs">
+                        {getProductCount(sub.slug)} produits
                       </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat})}><Edit className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>{cat.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}</Button>
-                        <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}><Trash2 className="w-3 h-3" /></Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                    {sub.description && <p className="text-xs text-slate-500">{sub.description}</p>}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-xs ${sub.is_active !== false ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {sub.is_active !== false ? 'Active' : 'Inactive'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setEditingCategory({...sub})}><Edit className="w-3 h-3" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => onToggle(sub.id)}>{sub.is_active !== false ? <Ban className="w-3 h-3" /> : <Check className="w-3 h-3" />}</Button>
+                    <Button size="sm" variant="destructive" onClick={() => onDelete(sub.id, sub.name)}><Trash2 className="w-3 h-3" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
+
 
 export default AdminDashboard;
