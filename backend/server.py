@@ -894,54 +894,57 @@ async def admin_toggle_user_active(user_id: str, user: dict = Depends(require_ad
 
 @api.post("/admin/categories")
 async def admin_create_category(payload: dict, user: dict = Depends(require_admin)):
-    banner_images = payload.get("banner_images") or payload.get("featured_images") or []
-    if not isinstance(banner_images, list):
-        banner_images = []
-    banner_images = [img for img in banner_images if isinstance(img, str) and img.strip()][:3]
+    try:
+        print("=== DEBUG Création Catégorie ===")
+        print("Payload reçu:", payload)
 
-    name = (payload.get("name") or "").strip()
-    if not name:
-        raise HTTPException(status_code=400, detail="Le nom de la catégorie est requis")
+        banner_images = payload.get("banner_images") or []
+        if not isinstance(banner_images, list):
+            banner_images = []
+        banner_images = [img for img in banner_images if isinstance(img, str) and img.strip()][:3]
 
-    parent_slug = payload.get("parent_slug") or None
-    slug_input = payload.get("slug") or _slugify(name)
+        name = (payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Le nom est obligatoire")
 
-    # === Gestion du slug pour sous-catégorie ===
-    if parent_slug:
-        parent = await db.categories.find_one({"slug": parent_slug})
-        if not parent:
-            raise HTTPException(status_code=400, detail="Catégorie parente introuvable")
-        if parent.get("parent_slug"):
-            raise HTTPException(status_code=400, detail="Impossible de créer une sous-sous-catégorie")
+        parent_slug = payload.get("parent_slug") or None
+        slug_input = payload.get("slug") or _slugify(name)
 
-        # Slug final = parent-slug + sous-slug
-        final_slug = f"{parent_slug}-{slug_input}"
-    else:
         final_slug = slug_input
+        if parent_slug:
+            parent = await db.categories.find_one({"slug": parent_slug})
+            if not parent:
+                raise HTTPException(status_code=400, detail=f"Catégorie parente '{parent_slug}' introuvable")
+            final_slug = f"{parent_slug}-{slug_input}"
 
-    # Vérifier si le slug existe déjà
-    existing = await db.categories.find_one({"slug": final_slug})
-    if existing:
-        final_slug = f"{final_slug}-{str(uuid.uuid4())[:6]}"
+        # Slug unique
+        existing = await db.categories.find_one({"slug": final_slug})
+        if existing:
+            final_slug = f"{final_slug}-{str(uuid.uuid4())[:6]}"
 
-    category = {
-        "id": str(uuid.uuid4()),
-        "name": name,
-        "slug": final_slug,
-        "icon": payload.get("icon", "Package"),
-        "description": payload.get("description", ""),
-        "banner_images": banner_images,
-        "image": banner_images[0] if banner_images else None,
-        "parent_slug": parent_slug,
-        "is_active": True,
-        "created_at": _utc(),
-        "updated_at": _utc(),
-    }
+        category = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "slug": final_slug,
+            "icon": payload.get("icon", "Package"),
+            "description": payload.get("description", ""),
+            "banner_images": banner_images,
+            "image": banner_images[0] if banner_images else None,
+            "parent_slug": parent_slug,
+            "is_active": True,
+            "created_at": _utc(),
+            "updated_at": _utc(),
+        }
 
-    await db.categories.insert_one(category)
-    category.pop("_id", None)
+        result = await db.categories.insert_one(category)
+        category.pop("_id", None)
 
-    return category
+        print("✅ Catégorie créée avec succès:", category["slug"])
+        return category
+
+    except Exception as e:
+        print("❌ Erreur création catégorie:", str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @api.put("/admin/categories/{category_id}")
