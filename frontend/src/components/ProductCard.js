@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Star, MapPin, Eye, Store, BadgeCheck, Share2, Copy, Check } from 'lucide-react';
+import { Heart, MessageCircle, Star, MapPin, Eye, Store, BadgeCheck, Share2, Copy, Check, ShoppingCart, Zap, Tag } from 'lucide-react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from './FloatingChat';
+import { useCart } from '../context/CartContext';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -21,6 +22,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { startConversation } = useChat();
+  const { addToCart } = useCart();
   const favorite = isFavorite(product.id);
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -34,7 +36,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const handleShare = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     try {
       const res = await shareOrCopy({
         title: product.name,
@@ -54,7 +55,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const handleCopyLink = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
     try {
       const ok = await copyToClipboard(productUrl);
       if (!ok) throw new Error('copy_failed');
@@ -69,14 +69,11 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const handleContactVendor = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (!isAuthenticated) {
       toast.error('Veuillez vous connecter pour contacter le vendeur');
       navigate('/connexion');
       return;
     }
-    
-    // Open floating chat directly without page navigation
     try {
       const conversation = await startConversation(product.id, null, {
         seller_id: product.seller_id,
@@ -108,13 +105,34 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const handleVisitShop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (product.seller_id && product.seller_id !== 'system') {
       navigate(`/vendeur-boutique/${product.seller_id}`);
     }
   };
 
-  // Check if it's a real vendor (not system-generated)
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const success = await addToCart(product.id);
+    if (success) {
+      toast.success('Ajouté au panier !');
+    } else {
+      toast.error('Erreur lors de l\'ajout au panier');
+    }
+  };
+
+  const handleBuyNow = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const success = await addToCart(product.id);
+    if (success) {
+      toast.success('Redirection vers le paiement...');
+      navigate('/checkout');
+    } else {
+      toast.error('Erreur lors de l\'achat');
+    }
+  };
+
   const isRealVendor = product.seller_id && product.seller_id !== 'system';
 
   return (
@@ -139,7 +157,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
-        {/* Image with zoom effect - optimized for mobile */}
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
@@ -165,15 +182,17 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           isHovered && "translate-x-full"
         )} />
         
-        {/* Badges with staggered animation */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+          {/* Badge EN PROMO — toujours visible */}
           {hasPromo && (
             <span className={cn(
-              "bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg",
+              "bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1",
               "transform transition-all duration-500",
               isHovered && "scale-110 -rotate-3 shadow-red-500/50"
             )}>
-              -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
+              <Tag className="w-3 h-3" />
+              En Promo -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
             </span>
           )}
           {product.condition === 'neuf' && (
@@ -185,7 +204,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               Neuf
             </span>
           )}
-          {product.is_featured && (
+          {product.is_featured && !hasPromo && (
             <span className={cn(
               "bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg",
               "transform transition-all duration-500 delay-100",
@@ -196,11 +215,11 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           )}
         </div>
 
-        {/* Favorite button with enhanced animation */}
+        {/* Favorite button */}
         <button
           onClick={handleToggleFavorite}
           className={cn(
-            "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center",
+            "absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center z-10",
             "transition-all duration-300 transform backdrop-blur-sm",
             "hover:scale-110 active:scale-95",
             favorite 
@@ -217,7 +236,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
 
         {/* Share buttons - appear on hover */}
         <div className={cn(
-          "absolute top-3 right-14 flex gap-1.5 transform transition-all duration-300",
+          "absolute top-3 right-14 flex gap-1.5 transform transition-all duration-300 z-10",
           isHovered ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0"
         )}>
           <button
@@ -275,16 +294,14 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         </div>
       </div>
 
-      {/* Content with enhanced animations */}
+      {/* Content */}
       <div className="p-4 relative">
-        {/* Subtle gradient background on hover */}
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent transition-opacity duration-500",
           isHovered ? "opacity-100" : "opacity-0"
         )} />
         
         <div className="relative">
-          {/* Category with slide animation */}
           <p className={cn(
             "text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-medium",
             "transform transition-all duration-300",
@@ -293,7 +310,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             {product.category_slug?.replace(/-/g, ' ')}
           </p>
 
-          {/* Name with color transition */}
           <h3 className={cn(
             "font-semibold text-sm line-clamp-2 mb-2 transition-all duration-300",
             isHovered && "text-primary"
@@ -301,7 +317,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             {product.name}
           </h3>
 
-          {/* Rating & Sales with scale animation */}
           <div className={cn(
             "flex items-center gap-2 mb-2 transition-all duration-300",
             isHovered && "scale-105 origin-left"
@@ -318,7 +333,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             </span>
           </div>
 
-          {/* Seller Info Section */}
+          {/* Seller Info */}
           {showSellerInfo && (product.seller_name || product.city) && (
             <div className={cn(
               "mb-3 p-2 rounded-lg transition-all duration-300",
@@ -326,7 +341,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             )}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {/* Seller Avatar */}
                   <div className={cn(
                     "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300",
                     isRealVendor 
@@ -339,8 +353,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
                       <Store className="w-3.5 h-3.5" />
                     )}
                   </div>
-                  
-                  {/* Seller Details */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
                       <p className="text-xs font-medium text-gray-900 truncate">
@@ -356,8 +368,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
                     </div>
                   </div>
                 </div>
-                
-                {/* Visit Shop Button */}
                 {isRealVendor && (
                   <button
                     onClick={handleVisitShop}
@@ -378,7 +388,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             </div>
           )}
 
-          {/* Location (only shown if showSellerInfo is false) */}
           {!showSellerInfo && (product.city || product.location) && (
             <div className={cn(
               "flex items-center gap-1 text-xs text-muted-foreground mb-3 transition-all duration-300",
@@ -389,12 +398,17 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             </div>
           )}
 
-          {/* Price with bounce animation */}
+          {/* Prix */}
           <div className={cn(
             "flex items-end gap-2 transition-all duration-300",
             isHovered && "scale-105 origin-left"
           )}>
-            <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            <span className={cn(
+              "text-xl font-bold bg-clip-text text-transparent",
+              hasPromo 
+                ? "bg-gradient-to-r from-red-600 to-rose-600"
+                : "bg-gradient-to-r from-orange-600 to-amber-600"
+            )}>
               {formatPrice(displayPrice)}
             </span>
             {hasPromo && (
@@ -409,19 +423,54 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           )}>
             ≈ ${displayPriceUsd || (displayPrice * 0.00165).toFixed(2)}
           </p>
+
+          {/* Boutons Acheter + Panier — toujours visibles */}
+          <div className="flex gap-2 mt-3">
+            <Button
+              onClick={handleBuyNow}
+              className={cn(
+                "flex-1 rounded-xl font-semibold shadow-md",
+                "bg-gradient-to-r from-orange-500 to-amber-500 text-white",
+                "hover:from-orange-600 hover:to-amber-600",
+                "transition-all duration-300"
+              )}
+              size="sm"
+              data-testid={`buy-now-btn-${product.id}`}
+            >
+              <Zap className="w-4 h-4 mr-1" />
+              Acheter
+            </Button>
+            <Button
+              onClick={handleAddToCart}
+              variant="outline"
+              className={cn(
+                "flex-1 rounded-xl font-semibold",
+                "border-orange-200 text-orange-600",
+                "hover:bg-orange-50 hover:border-orange-400",
+                "transition-all duration-300"
+              )}
+              size="sm"
+              data-testid={`add-to-cart-btn-${product.id}`}
+            >
+              <ShoppingCart className="w-4 h-4 mr-1" />
+              Panier
+            </Button>
+          </div>
+
+          {/* Bouton Contacter */}
           {showContactButton && (
             <Button
               onClick={handleContactVendor}
               className={cn(
-                "mt-3 w-full rounded-xl py-5 font-semibold shadow-lg",
-                "bg-gradient-to-r from-orange-500 to-amber-500 text-white",
-                "hover:from-orange-600 hover:to-amber-600",
-                "animate-pulse"
+                "mt-2 w-full rounded-xl py-4 font-semibold shadow-md",
+                "bg-gradient-to-r from-slate-700 to-slate-800 text-white",
+                "hover:from-slate-800 hover:to-slate-900",
+                "transition-all duration-300"
               )}
-              size="lg"
+              size="sm"
               data-testid={`contact-vendor-btn-persistent-${product.id}`}
             >
-              <MessageCircle className="w-5 h-5 mr-2" />
+              <MessageCircle className="w-4 h-4 mr-2" />
               Contacter le vendeur
             </Button>
           )}
