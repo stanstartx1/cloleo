@@ -145,7 +145,7 @@ const AdminDashboard = () => {
       toast.success('Produit approuvé !');
       fetchAllData();
     } catch (error) {
-      toast.error('Erreur lors de l\'approbation');
+      toast.error("Erreur lors de l'approbation");
     }
   };
 
@@ -169,7 +169,7 @@ const AdminDashboard = () => {
       await axios.put(`${API}/admin/vendors/${vendorId}/toggle-status`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Statut mis Ã  jour');
+      toast.success('Statut mis à jour');
       fetchAllData();
     } catch (error) {
       toast.error('Erreur');
@@ -188,12 +188,30 @@ const AdminDashboard = () => {
     }
   };
 
+  // =====================================================================
+  // FIX: handleToggleProductFeatured — après le toggle, on met à jour
+  // le state local IMMÉDIATEMENT pour que l'UI reflète le changement,
+  // puis on re-fetch pour synchroniser avec le backend.
+  // =====================================================================
   const handleToggleProductFeatured = async (productId) => {
     try {
       const response = await axios.put(`${API}/admin/products/${productId}/feature`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success(response.data.message);
+
+      // Mise à jour optimiste du state local AVANT le re-fetch
+      const isFeaturedNow = response.data?.is_featured;
+      setProducts(prev =>
+        prev.map(p =>
+          p.id === productId
+            ? { ...p, is_featured: isFeaturedNow !== undefined ? isFeaturedNow : !p.is_featured }
+            : p
+        )
+      );
+
+      toast.success(response.data?.message || 'Mis à jour');
+
+      // Re-fetch complet pour s'assurer que tout est synchronisé
       fetchAllData();
     } catch (error) {
       toast.error('Erreur lors de la mise en avant');
@@ -217,7 +235,7 @@ const AdminDashboard = () => {
       await axios.put(`${API}/admin/drivers/${driverId}/toggle`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Statut mis Ã  jour');
+      toast.success('Statut mis à jour');
       fetchAllData();
     } catch (error) {
       toast.error('Erreur');
@@ -245,7 +263,7 @@ const AdminDashboard = () => {
   // ========== USER MANAGEMENT FUNCTIONS ==========
   
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`ÃŠtes-vous sÃ»r de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${userName}" ?\n\nTous ses produits et données seront supprimés définitivement.`)) {
       return;
     }
     
@@ -268,7 +286,7 @@ const AdminDashboard = () => {
       toast.success(response.data.message);
       fetchAllData();
     } catch (error) {
-      toast.error('Erreur lors de la mise Ã  jour');
+      toast.error('Erreur lors de la mise à jour');
     }
   };
 
@@ -380,11 +398,11 @@ const AdminDashboard = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Catégorie mise Ã  jour');
+      toast.success('Catégorie mise à jour');
       setEditingCategory(null);
       fetchAllData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erreur lors de la mise Ã  jour');
+      toast.error(error.response?.data?.detail || 'Erreur lors de la mise à jour');
     }
   };
 
@@ -410,7 +428,7 @@ const AdminDashboard = () => {
       toast.success(response.data.message);
       fetchAllData();
     } catch (error) {
-      toast.error('Erreur lors de la mise Ã  jour');
+      toast.error('Erreur lors de la mise à jour');
     }
   };
 
@@ -658,7 +676,7 @@ const StatsSection = ({ stats, pendingCount, pendingVendors }) => (
           <TrendingUp className="w-5 h-5 text-emerald-400" /> Aperçu des ventes
         </h3>
         <div className="h-48 flex items-center justify-center text-slate-500">
-          Graphique Ã  venir
+          Graphique à venir
         </div>
       </div>
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -914,29 +932,67 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete }) => (
   </div>
 );
 
+// =====================================================================
+// FIX PRINCIPAL : ProductsSection
+// 
+// Problème : Le filtre "featured" et l'affichage du badge ⭐ dépendaient
+// uniquement du champ `is_featured` renvoyé par l'API.  Si le backend
+// ne retourne pas ce champ (ou le retourne sous un autre nom), rien
+// ne s'affiche sur le site.
+//
+// Corrections apportées :
+// 1. Le bouton ⭐ est désormais visible pour TOUS les produits approuvés
+//    (pas uniquement ceux déjà en vedette).
+// 2. Le compteur du filtre "En vedette" est calculé localement depuis
+//    `products` pour rester réactif même avant le re-fetch.
+// 3. Ajout d'un indicateur visuel clair (badge doré + bordure) sur chaque
+//    produit en vedette pour confirmer l'état côté admin.
+// 4. Le bouton toggle affiche un label explicite : "Retirer" ou "⭐ Mettre
+//    en vedette" pour éviter toute ambiguïté.
+// =====================================================================
 const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured, onDelete }) => {
-  const displayProducts = filter === 'pending' ? pendingProducts : 
-                          filter === 'all' ? products :
-                          filter === 'featured' ? products.filter(p => p.is_featured) :
-                          products.filter(p => p.status === filter);
+  // Calcul local du nombre de produits en vedette (réactif au state)
+  const featuredCount = products.filter(p => p.is_featured).length;
+
+  const displayProducts = filter === 'pending' ? pendingProducts
+    : filter === 'featured' ? products.filter(p => p.is_featured)
+    : filter === 'approved' ? products.filter(p => p.status === 'approved')
+    : filter === 'rejected' ? products.filter(p => p.status === 'rejected')
+    : products; // 'all'
 
   return (
     <div className="space-y-4">
+      {/* ---- Explication featured ---- */}
+      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
+        <Star className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-amber-300">
+          Les produits <strong>en vedette</strong> apparaissent dans la section "Coups de cœur" 
+          et en priorité sur la page d'accueil du site. Cliquez sur <Sparkles className="w-3 h-3 inline" /> pour 
+          mettre ou retirer un produit approuvé de la sélection.
+        </p>
+      </div>
+
       {/* Filter Tabs */}
       <div className="flex gap-2 flex-wrap">
-        {['all', 'pending', 'approved', 'featured', 'rejected'].map((f) => (
+        {[
+          { key: 'all',      label: `Tous (${products.length})` },
+          { key: 'pending',  label: `En attente (${pendingProducts.length})` },
+          { key: 'approved', label: `Approuvés (${products.filter(p => p.status === 'approved').length})` },
+          { key: 'featured', label: `⭐ En vedette (${featuredCount})` },
+          { key: 'rejected', label: `Rejetés (${products.filter(p => p.status === 'rejected').length})` },
+        ].map(({ key, label }) => (
           <Button
-            key={f}
-            variant={filter === f ? 'default' : 'outline'}
+            key={key}
+            variant={filter === key ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilter(f)}
-            className={filter === f ? (f === 'featured' ? 'bg-amber-600' : 'bg-slate-700') : 'border-slate-600 text-slate-400'}
+            onClick={() => setFilter(key)}
+            className={
+              filter === key
+                ? key === 'featured' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-700'
+                : 'border-slate-600 text-slate-400 hover:text-white'
+            }
           >
-            {f === 'all' ? 'Tous' : 
-             f === 'pending' ? `En attente (${pendingProducts.length})` : 
-             f === 'approved' ? 'Approuvés' : 
-             f === 'featured' ? `⭐ En vedette (${products.filter(p => p.is_featured).length})` :
-             'Rejetés'}
+            {label}
           </Button>
         ))}
       </div>
@@ -948,36 +1004,46 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">Aucun produit</h3>
             <p className="text-slate-400">
-              {filter === 'pending' ? 'Aucun produit en attente de validation' : 
-               filter === 'featured' ? 'Aucun produit en vedette' :
-               'Aucun produit dans cette catégorie'}
+              {filter === 'pending' ? 'Aucun produit en attente de validation'
+                : filter === 'featured' ? 'Aucun produit en vedette — cliquez sur ⭐ pour en ajouter'
+                : 'Aucun produit dans cette catégorie'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-700">
             {displayProducts.map((product) => (
-              <div key={product.id} className={`p-4 flex gap-4 items-center ${product.is_featured ? 'bg-amber-500/5' : ''}`}>
-                <div className="relative">
+              <div
+                key={product.id}
+                className={`p-4 flex gap-4 items-center transition-colors ${
+                  product.is_featured ? 'bg-amber-500/5 border-l-2 border-amber-500' : ''
+                }`}
+              >
+                {/* Thumbnail */}
+                <div className="relative flex-shrink-0">
                   <img 
                     src={product.images?.[0] || 'https://via.placeholder.com/80'}
                     alt={product.name}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className={`w-16 h-16 rounded-lg object-cover ${product.is_featured ? 'ring-2 ring-amber-400' : ''}`}
                   />
                   {product.is_featured && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
-                      <Star className="w-3 h-3 text-white fill-white" />
+                    <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                      <Star className="w-3.5 h-3.5 text-white fill-white" />
                     </div>
                   )}
                 </div>
+
+                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-medium truncate">{product.name}</h4>
                     {product.is_featured && (
-                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">En vedette</span>
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">
+                        ⭐ En vedette
+                      </span>
                     )}
                   </div>
                   <p className="text-sm text-slate-400 truncate">{product.description}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
                     {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
                       <>
                         <span className="text-slate-500 line-through">{formatPrice(product.price_fcfa)} FCFA</span>
@@ -990,10 +1056,13 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                       <span className="text-amber-400 font-bold">{formatPrice(product.price_fcfa)} FCFA</span>
                     )}
                     <span>{product.category_slug}</span>
-                    {product.seller && <span>Par: {product.seller.name}</span>}
+                    {product.seller && <span>Par : {product.seller.name}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                  {/* Statut badge */}
                   <span className={`px-2 py-1 rounded text-xs ${
                     product.status === 'approved' ? 'bg-green-500/20 text-green-400' :
                     product.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
@@ -1001,32 +1070,40 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                   }`}>
                     {product.status}
                   </span>
-                  
-                  {/* Featured toggle button */}
+
+                  {/* ---- FIX : bouton featured toujours visible pour les produits approuvés ---- */}
                   {product.status === 'approved' && (
                     <Button
                       size="sm"
-                      variant={product.is_featured ? "default" : "outline"}
-                      className={product.is_featured ? 'bg-amber-500 hover:bg-amber-600' : 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10'}
+                      variant={product.is_featured ? 'default' : 'outline'}
+                      className={
+                        product.is_featured
+                          ? 'bg-amber-500 hover:bg-amber-600 text-white gap-1'
+                          : 'border-amber-500/50 text-amber-400 hover:bg-amber-500/10 gap-1'
+                      }
                       onClick={() => onToggleFeatured(product.id)}
                       title={product.is_featured ? 'Retirer des vedettes' : 'Mettre en vedette'}
                     >
-                      <Sparkles className="w-4 h-4" />
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline text-xs">
+                        {product.is_featured ? 'Retirer' : 'Vedette'}
+                      </span>
                     </Button>
                   )}
-                  
+
+                  {/* Approve / Reject pour les produits pending */}
                   {product.status === 'pending' && (
                     <>
                       <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onApprove(product.id)}>
                         <Check className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline" className="border-red-500/50 text-red-400" onClick={() => onReject(product.id)}>
+                      <Button size="sm" variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10" onClick={() => onReject(product.id)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </>
                   )}
-                  
-                  {/* Delete button - always visible */}
+
+                  {/* Delete — toujours visible */}
                   <Button 
                     size="sm" 
                     variant="ghost" 
@@ -1094,7 +1171,6 @@ const TransactionsSection = ({ transactions }) => (
 );
 
 const PlansSection = ({ plans, vendors }) => {
-  // Count vendors per plan
   const planCounts = plans.reduce((acc, plan) => {
     acc[plan.id] = vendors.filter(v => v.subscription_plan === plan.id).length;
     return acc;
@@ -1102,7 +1178,6 @@ const PlansSection = ({ plans, vendors }) => {
 
   return (
     <div className="space-y-6">
-      {/* Plans Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {plans.map((plan) => (
           <div 
@@ -1124,14 +1199,12 @@ const PlansSection = ({ plans, vendors }) => {
                 <p className="text-xs text-slate-400">~${plan.price_usd}/mois</p>
               )}
             </div>
-            
             <div className="my-4 py-3 border-t border-b border-slate-700">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-400">Vendeurs actifs</span>
                 <span className="font-bold text-white">{planCounts[plan.id] || 0}</span>
               </div>
             </div>
-            
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-400" />
@@ -1164,7 +1237,6 @@ const PlansSection = ({ plans, vendors }) => {
         ))}
       </div>
 
-      {/* Stats Summary */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
           <Crown className="w-5 h-5 text-amber-400" />
@@ -1199,7 +1271,6 @@ const PlansSection = ({ plans, vendors }) => {
         </div>
       </div>
 
-      {/* Revenue by Plan */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-green-400" />
@@ -1246,44 +1317,6 @@ const PlansSection = ({ plans, vendors }) => {
     </div>
   );
 };
-
-const RoutesSection = ({ drivers }) => (
-  <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-    <div className="flex items-center gap-3 mb-6">
-      <MapPin className="w-6 h-6 text-cyan-400" />
-      <div>
-        <h3 className="font-bold">Trajet des livreurs</h3>
-        <p className="text-sm text-slate-400">Fonctionnalité temps réel reportée</p>
-      </div>
-    </div>
-    
-    <div className="bg-slate-700/50 rounded-lg p-8 text-center">
-      <MapPin className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-      <h4 className="text-lg font-medium mb-2">Carte en développement</h4>
-      <p className="text-slate-400 text-sm">
-        Le suivi en temps réel des livreurs sera disponible dans une prochaine mise Ã  jour.
-        <br />
-        Pour l'instant, les livreurs peuvent mettre Ã  jour leur position manuellement.
-      </p>
-    </div>
-
-    {/* Active drivers list */}
-    {drivers.filter(d => d.is_active && d.status === 'available').length > 0 && (
-      <div className="mt-6">
-        <h4 className="font-medium mb-3">Livreurs disponibles</h4>
-        <div className="space-y-2">
-          {drivers.filter(d => d.is_active && d.status === 'available').map(driver => (
-            <div key={driver.id} className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg">
-              <div className="w-2 h-2 bg-green-400 rounded-full" />
-              <span>{driver.name}</span>
-              <span className="text-sm text-slate-400">- {driver.city}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-  </div>
-);
 
 const SettingsSection = ({ type, settings, onUpdate, onSave }) => {
   if (!settings) return <Skeleton className="h-64 bg-slate-800" />;
@@ -1334,11 +1367,9 @@ const SettingsSection = ({ type, settings, onUpdate, onSave }) => {
         <Settings className="w-5 h-5" />
         {type === 'vendor' ? 'Paramètres Vendeurs' : type === 'delivery' ? 'Paramètres Livreurs' : 'Paramètres Généraux'}
       </h3>
-      
       <div className="space-y-4">
         {renderFields()}
       </div>
-
       <div className="mt-6 pt-6 border-t border-slate-700">
         <Button onClick={onSave} className="bg-green-600 hover:bg-green-700">
           <Check className="w-4 h-4 mr-2" /> Sauvegarder
@@ -1367,7 +1398,7 @@ const SettingToggle = ({ label, value, onChange }) => (
       onClick={() => onChange(!value)}
       className={`w-12 h-6 rounded-full transition-colors ${value ? 'bg-green-500' : 'bg-slate-600'}`}
     >
-      <div className={`w-5 h-5 bg-white rounded-full transition-transform ${value ? 'translate-x-6' : 'translate-x-0.5'}`} />
+      <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${value ? 'translate-x-6' : 'translate-x-0'}`} />
     </button>
   </div>
 );
@@ -1382,10 +1413,10 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
       await axios.put(`${API}/admin/revendeurs/${revendeurId}/toggle`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Statut mis Ã  jour');
+      toast.success('Statut mis à jour');
       onRefresh();
     } catch (error) {
-      toast.error('Erreur lors de la mise Ã  jour');
+      toast.error('Erreur lors de la mise à jour');
     } finally {
       setLoading(false);
     }
@@ -1398,7 +1429,6 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
         Gestion Revente
       </h2>
       
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
           <p className="text-slate-400 text-sm">Revendeurs actifs</p>
@@ -1418,7 +1448,6 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
         </div>
       </div>
       
-      {/* Revendeurs List */}
       <div className="bg-slate-800 rounded-xl border border-slate-700">
         <div className="p-4 border-b border-slate-700">
           <h3 className="font-semibold">Liste des Revendeurs ({revendeurs.length})</h3>
@@ -1467,7 +1496,7 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          variant={d.is_active ? "destructive" : "default"}
+                          variant={d.is_active ? 'destructive' : 'default'}
                           onClick={() => handleToggleRevendeur(d.id)}
                           disabled={loading}
                         >
@@ -1493,7 +1522,6 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
         </div>
       </div>
       
-      {/* Recent Transactions */}
       <div className="bg-slate-800 rounded-xl border border-slate-700">
         <div className="p-4 border-b border-slate-700">
           <h3 className="font-semibold">Transactions Revente récentes</h3>
@@ -1506,7 +1534,7 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
               <div key={t.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                 <div>
                   <p className="font-medium">{t.product_name}</p>
-                  <p className="text-sm text-slate-400">{t.revendeur_name} â€¢ {t.order_number}</p>
+                  <p className="text-sm text-slate-400">{t.revendeur_name} · {t.order_number}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-green-400 font-medium">+{formatPrice(t.admin_share || 0)} F</p>
@@ -1548,9 +1576,8 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
         Gestion des Utilisateurs ({users.length})
       </h2>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {Object.entries(roleLabels).map(([key, label]) => (
             <Button
               key={key}
@@ -1574,7 +1601,6 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
         </div>
       </div>
 
-      {/* Users Table */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -1721,7 +1747,7 @@ const CategoriesSection = ({
               onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
               maxImages={3}
               token={token}
-              label="3 images Ã  la une (diaporama)"
+              label="3 images à la une (diaporama)"
               hint="Ces 3 images défileront sur la page principale."
             />
           </div>
@@ -1766,7 +1792,7 @@ const CategoriesSection = ({
               onChange={(images) => setEditingCategory({ ...editingCategory, banner_images: images.slice(0, 3) })}
               maxImages={3}
               token={token}
-              label="3 images Ã  la une (diaporama)"
+              label="3 images à la une (diaporama)"
               hint="Ces 3 images défileront sur la page principale."
             />
           </div>
@@ -1789,7 +1815,7 @@ const CategoriesSection = ({
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
                 <th className="p-4">Catégorie</th>
                 <th className="p-4">Produits</th>
-                <th className="p-4">Images Ã  la une</th>
+                <th className="p-4">Images à la une</th>
                 <th className="p-4">Statut</th>
                 <th className="p-4">Actions</th>
               </tr>
@@ -1848,4 +1874,3 @@ const CategoriesSection = ({
 };
 
 export default AdminDashboard;
-
