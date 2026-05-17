@@ -253,10 +253,10 @@ const HomePage = () => {
       
       {/* Live Activity Feed */}
       <NotificationFeed notifications={[
-        { user: 'Marie D.', action: 'vient d\'acheter', product: 'Robe Africaine', time: 'il y a 2 min' },
+        { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
         { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
         { user: 'Awa S.', action: 'vient de commander', product: 'iPhone 14', time: 'il y a 8 min' },
-        { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac Ã  main', time: 'il y a 12 min' },
+        { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
       ]} />
 
       {/* Stats Bar with Animated Counters */}
@@ -649,11 +649,9 @@ const HomePage = () => {
         variants={sectionMotion}
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
-        {/* Animated background elements */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          {/* Floating icons */}
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
@@ -675,13 +673,13 @@ const HomePage = () => {
             Rejoignez notre communauté
           </h2>
           <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Vendez vos créations Ã  des milliers d'acheteurs passionnés ou découvrez des produits uniques du continent africain.
+            Vendez vos créations à des milliers d'acheteurs passionnés ou découvrez des produits uniques du continent africain.
           </p>
           <div className="flex flex-wrap justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-white/90 rounded-full px-10 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
               <Link to="/connexion">
                 <Zap className="w-5 h-5 mr-2" />
-                Commencer Ã  vendre
+                Commencer à vendre
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 rounded-full px-10 py-6 text-lg font-semibold transition-all duration-300 hover:-translate-y-1">
@@ -700,14 +698,14 @@ const HomePage = () => {
             {[...Array(2)].map((_, setIndex) => (
               <div key={setIndex} className="flex items-center">
                 {[
-                  { text: "Livraison rapide", icon: "ðŸš€" },
-                  { text: "Paiement sécurisé", icon: "ðŸ”’" },
+                  { text: "Livraison rapide", icon: "🚀" },
+                  { text: "Paiement sécurisé", icon: "🔒" },
                   { text: "Artisans vérifiés", icon: "✨" },
-                  { text: "Support 24/7", icon: "ðŸ’¬" },
-                  { text: "Retours gratuits", icon: "â†©ï¸" },
+                  { text: "Support 24/7", icon: "💬" },
+                  { text: "Retours gratuits", icon: "↩️" },
                   { text: "Qualité garantie", icon: "⭐" },
-                  { text: "Made in Africa", icon: "ðŸŒ" },
-                  { text: "Prix justes", icon: "ðŸ’°" },
+                  { text: "Made in Africa", icon: "🌍" },
+                  { text: "Prix justes", icon: "💰" },
                 ].map((item, index) => (
                   <span key={index} className="flex items-center gap-2 mx-8 text-white/80 text-sm font-medium">
                     <span className="text-lg">{item.icon}</span>
@@ -728,10 +726,10 @@ const HomePage = () => {
           <p className="text-muted-foreground text-center">Des milliers de clients satisfaits chaque jour</p>
         </div>
         <TestimonialsBanner testimonials={[
-          { name: 'Marie Dupont', location: 'Abidjan', rating: 5, comment: 'Service excellent ! Ma commande est arrivée en 2 jours. Produit conforme Ã  la description.' },
+          { name: 'Marie Dupont', location: 'Abidjan', rating: 5, comment: 'Service excellent ! Ma commande est arrivée en 2 jours. Produit conforme à la description.' },
           { name: 'Kofi Mensah', location: 'Dakar', rating: 5, comment: 'Je recommande vivement ! Les vendeurs sont très professionnels et les prix sont imbattables.' },
           { name: 'Awa Diallo', location: 'Bamako', rating: 4, comment: 'Très satisfaite de mon achat. Le suivi de commande en temps réel est vraiment pratique.' },
-          { name: 'Jean-Pierre K.', location: 'Douala', rating: 5, comment: 'Cloléo a changé ma façon de faire du shopping. Qualité au rendez-vous !' },
+          { name: 'Jean-Pierre K.', location: 'Douala', rating: 5, comment: "Cloléo a changé ma façon de faire du shopping. Qualité au rendez-vous !" },
           { name: 'Fatou Ndiaye', location: 'Conakry', rating: 5, comment: 'Les produits artisanaux sont magnifiques. Je suis devenue une cliente fidèle.' },
         ]} />
       </section>
@@ -768,5 +766,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-
-
