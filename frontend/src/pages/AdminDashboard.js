@@ -1361,6 +1361,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
 // (cherche "const CategoriesSection" et remplace toute la fonction)
 // ============================================================
 
+
 const CategoriesSection = ({ 
   token, 
   categories, 
@@ -1376,7 +1377,8 @@ const CategoriesSection = ({
   onToggle 
 }) => {
   const [showSubForm, setShowSubForm] = useState(false);
-  const [selectedParent, setSelectedParent] = useState(null); // Pour voir les sous-catégories d'une catégorie
+  const [selectedParent, setSelectedParent] = useState(null);
+
   const [newSubCategory, setNewSubCategory] = useState({ 
     name: '', 
     description: '', 
@@ -1387,7 +1389,7 @@ const CategoriesSection = ({
   const parentCategories = categories.filter(c => !c.parent_slug);
   const getSubCategories = (parentSlug) => categories.filter(c => c.parent_slug === parentSlug);
 
-  // Création sous-catégorie
+  // ==================== CRÉATION SOUS-CATÉGORIE ====================
   const handleCreateSubCategory = async () => {
     if (!newSubCategory.name || !newSubCategory.parent_slug) {
       toast.error('Le nom et la catégorie parente sont obligatoires');
@@ -1395,6 +1397,7 @@ const CategoriesSection = ({
     }
 
     try {
+      const parent = parentCategories.find(p => p.slug === newSubCategory.parent_slug);
       const baseSlug = newSubCategory.name
         .toLowerCase()
         .normalize('NFD')
@@ -1402,84 +1405,65 @@ const CategoriesSection = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 
-      await axios.post(`${API}/admin/categories`, {
+      // Slug unique pour sous-catégorie : parent-slug-sous-slug
+      const finalSlug = parent ? `${parent.slug}-${baseSlug}` : baseSlug;
+
+      const payload = {
         name: newSubCategory.name,
-        slug: baseSlug,
+        slug: finalSlug,
         description: newSubCategory.description || '',
         banner_images: newSubCategory.banner_images || [],
         parent_slug: newSubCategory.parent_slug,
         icon: 'Package',
-      }, {
+      };
+
+      await axios.post(`${API}/admin/categories`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      toast.success('Sous-catégorie créée avec succès !');
+      toast.success('✅ Sous-catégorie créée avec succès !');
+      
+      // Reset form
       setNewSubCategory({ name: '', description: '', parent_slug: '', banner_images: [] });
       setShowSubForm(false);
-      window.location.reload(); // Rafraîchissement simple
+      
+      // Rafraîchissement complet
+      window.location.reload();
     } catch (error) {
-      console.error(error);
+      console.error(error.response?.data);
       toast.error(error.response?.data?.detail || 'Erreur lors de la création de la sous-catégorie');
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Cog className="w-6 h-6 text-teal-400" />
-          Gestion des Catégories ({categories.length})
+          Catégories & Sous-catégories ({categories.length})
         </h2>
         <div className="flex gap-3">
-          <Button onClick={() => { setShowSubForm(true); setShowNewForm(false); setSelectedParent(null); }} className="bg-purple-600 hover:bg-purple-700">
+          <Button onClick={() => { setShowSubForm(true); setShowNewForm(false); }} className="bg-purple-600 hover:bg-purple-700">
             <Plus className="w-4 h-4 mr-2" /> Nouvelle sous-catégorie
           </Button>
-          <Button onClick={() => { setShowNewForm(true); setShowSubForm(false); setSelectedParent(null); }} className="bg-teal-600 hover:bg-teal-700">
-            <Plus className="w-4 h-4 mr-2" /> Nouvelle catégorie principale
+          <Button onClick={() => { setShowNewForm(true); setShowSubForm(false); }} className="bg-teal-600 hover:bg-teal-700">
+            <Plus className="w-4 h-4 mr-2" /> Nouvelle catégorie
           </Button>
         </div>
       </div>
 
-      {/* === FORMULAIRE CATÉGORIE PRINCIPALE === */}
-      {showNewForm && (
-        <div className="bg-slate-800 rounded-xl border border-teal-500/30 p-6">
-          <h3 className="font-semibold mb-4 text-teal-400">Nouvelle Catégorie Principale</h3>
-          {/* ... même formulaire que avant ... */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
-              <Input value={newCategory.name} onChange={(e) => setNewCategory({...newCategory, name: e.target.value})} placeholder="Ex: Mode & Textile" />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 mb-1 block">Description</label>
-              <Input value={newCategory.description} onChange={(e) => setNewCategory({...newCategory, description: e.target.value})} />
-            </div>
-          </div>
-          <div className="mt-4">
-            <ImageUpload 
-              images={newCategory.banner_images || []}
-              onChange={(images) => setNewCategory({ ...newCategory, banner_images: images.slice(0, 3) })}
-              maxImages={3}
-              token={token}
-              label="3 photos de mise en avant"
-              hint="Ces images défileront en haut de la catégorie"
-            />
-          </div>
-          <div className="flex gap-3 mt-6">
-            <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700">Créer</Button>
-            <Button variant="outline" onClick={() => setShowNewForm(false)}>Annuler</Button>
-          </div>
-        </div>
-      )}
-
-      {/* === FORMULAIRE SOUS-CATÉGORIE === */}
+      {/* Formulaire Sous-catégorie */}
       {showSubForm && (
         <div className="bg-slate-800 rounded-xl border border-purple-500/30 p-6">
-          <h3 className="font-semibold mb-4 text-purple-400">Nouvelle Sous-catégorie</h3>
+          <h3 className="font-semibold mb-4 text-purple-400">Créer une Sous-catégorie</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Catégorie parente *</label>
-              <select value={newSubCategory.parent_slug} onChange={(e) => setNewSubCategory({...newSubCategory, parent_slug: e.target.value})} className="w-full bg-slate-700 border border-slate-600 rounded-md p-2">
+              <select 
+                value={newSubCategory.parent_slug} 
+                onChange={(e) => setNewSubCategory({...newSubCategory, parent_slug: e.target.value})}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md p-3 text-white"
+              >
                 <option value="">Sélectionner une catégorie</option>
                 {parentCategories.map(cat => (
                   <option key={cat.slug} value={cat.slug}>{cat.name}</option>
@@ -1487,76 +1471,74 @@ const CategoriesSection = ({
               </select>
             </div>
             <div>
-              <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
-              <Input value={newSubCategory.name} onChange={(e) => setNewSubCategory({...newSubCategory, name: e.target.value})} placeholder="Ex: Robes wax" />
+              <label className="text-sm text-slate-400 mb-1 block">Nom de la sous-catégorie *</label>
+              <Input 
+                value={newSubCategory.name} 
+                onChange={(e) => setNewSubCategory({...newSubCategory, name: e.target.value})} 
+                placeholder="Ex: Robes Traditionnelles" 
+              />
             </div>
             <div>
               <label className="text-sm text-slate-400 mb-1 block">Description</label>
-              <Input value={newSubCategory.description} onChange={(e) => setNewSubCategory({...newSubCategory, description: e.target.value})} />
+              <Input 
+                value={newSubCategory.description} 
+                onChange={(e) => setNewSubCategory({...newSubCategory, description: e.target.value})} 
+              />
             </div>
           </div>
-          <div className="mt-4">
+
+          <div className="mt-5">
             <ImageUpload 
               images={newSubCategory.banner_images || []}
               onChange={(images) => setNewSubCategory({ ...newSubCategory, banner_images: images.slice(0, 3) })}
               maxImages={3}
               token={token}
-              label="3 photos de mise en avant"
+              label="3 photos de mise en avant (bannière)"
               hint="Ces images défileront en haut de la sous-catégorie"
             />
           </div>
+
           <div className="flex gap-3 mt-6">
-            <Button onClick={handleCreateSubCategory} className="bg-purple-600 hover:bg-purple-700">Créer la sous-catégorie</Button>
+            <Button onClick={handleCreateSubCategory} className="bg-purple-600 hover:bg-purple-700">
+              Créer la sous-catégorie
+            </Button>
             <Button variant="outline" onClick={() => setShowSubForm(false)}>Annuler</Button>
           </div>
         </div>
       )}
 
-      {/* Liste des catégories avec nombre dynamique */}
+      {/* Liste des catégories */}
       <div className="space-y-4">
         {parentCategories.map((cat) => {
           const subCats = getSubCategories(cat.slug);
           return (
             <div key={cat.id} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-              <div className="p-5 flex items-center justify-between bg-slate-700/30 cursor-pointer hover:bg-slate-700/50" onClick={() => setSelectedParent(selectedParent === cat.slug ? null : cat.slug)}>
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-lg">{cat.name}</span>
-                  <span className="px-3 py-1 text-xs bg-teal-500/20 text-teal-400 rounded-full font-medium">
-                    {subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}
-                  </span>
+              <div className="p-5 flex items-center justify-between bg-slate-700/40">
+                <div>
+                  <h3 className="font-bold text-lg">{cat.name}</h3>
+                  <p className="text-sm text-slate-400">{subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  {(cat.banner_images || []).slice(0, 3).map((img, i) => (
-                    <img key={i} src={img} alt="" className="w-10 h-10 object-cover rounded border border-slate-600" />
+                <div className="flex items-center gap-4">
+                  {(cat.banner_images || []).slice(0,3).map((img,i) => (
+                    <img key={i} src={img} className="w-12 h-12 object-cover rounded" alt="" />
                   ))}
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setEditingCategory(cat); }}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onToggle(cat.id); }}>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setEditingCategory(cat)}><Edit className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
                       {cat.is_active !== false ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); onDelete(cat.id, cat.name); }}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => onDelete(cat.id, cat.name)}><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
               </div>
 
-              {/* Sous-catégories (affichées quand on clique) */}
-              {selectedParent === cat.slug && subCats.length > 0 && (
-                <div className="p-4 pl-8 border-t border-slate-700 bg-slate-900/50">
+              {/* Sous-catégories */}
+              {subCats.length > 0 && (
+                <div className="p-4 pl-8 bg-slate-900/30">
                   {subCats.map(sub => (
-                    <div key={sub.id} className="flex items-center justify-between p-3 hover:bg-slate-700/50 rounded-lg mb-2">
+                    <div key={sub.id} className="flex justify-between items-center p-3 hover:bg-slate-700/50 rounded-lg mb-1">
                       <div className="flex items-center gap-3">
-                        <span className="text-purple-300 font-medium">{sub.name}</span>
-                        {(sub.banner_images || []).length > 0 && (
-                          <div className="flex gap-1">
-                            {sub.banner_images.slice(0, 2).map((img, i) => (
-                              <img key={i} src={img} className="w-8 h-8 rounded object-cover" alt="" />
-                            ))}
-                          </div>
-                        )}
+                        <span className="text-purple-300">↳ {sub.name}</span>
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => setEditingCategory(sub)}><Edit className="w-4 h-4" /></Button>
