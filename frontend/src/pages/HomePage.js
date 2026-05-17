@@ -23,16 +23,13 @@ const cardMotion = {
   visible: { opacity: 1, y: 0, scale: 1 },
 };
 
-// Intersection Observer hook for scroll animations
 const useInView = (options) => {
   const ref = useRef(null);
   const [isInView, setIsInView] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsInView(true);
-      }
+      if (entry.isIntersecting) setIsInView(true);
     }, { threshold: 0.1, ...options });
 
     if (ref.current) observer.observe(ref.current);
@@ -42,7 +39,6 @@ const useInView = (options) => {
   return [ref, isInView];
 };
 
-// Animated counter component
 const AnimatedCounter = ({ end, duration = 2000, suffix = '' }) => {
   const [count, setCount] = useState(0);
   const [ref, isInView] = useInView();
@@ -80,7 +76,6 @@ const HomePage = () => {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [hoveredCategorySlug, setHoveredCategorySlug] = useState(null);
 
-  // Refs for scroll animations
   const [statsRef, statsInView] = useInView();
   const [categoriesRef, categoriesInView] = useInView();
   const [newProductsRef, newProductsInView] = useInView();
@@ -89,17 +84,43 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, featuredRes, newRes, trendingRes, statsRes] = await Promise.all([
+        // =================================================================
+        // FIX : On tente d'abord l'endpoint dédié /products/featured.
+        // S'il échoue (404 ou erreur), on tombe sur le fallback :
+        // on récupère tous les produits approuvés et on filtre is_featured.
+        // =================================================================
+        const fetchFeatured = async () => {
+          try {
+            const res = await axios.get(`${API}/products/featured?limit=12`);
+            // ✅ FIX : le backend retourne une LISTE directe (pas { products: [] })
+            // On gère les deux cas pour être robuste
+            const products = Array.isArray(res.data)
+              ? res.data
+              : (res.data?.products || []);
+            return products;
+          } catch (err) {
+            // Fallback : filtre is_featured localement
+            console.warn('[HomePage] /products/featured erreur — fallback local', err);
+            const res = await axios.get(`${API}/products?limit=100`);
+            const allProducts = Array.isArray(res.data)
+              ? res.data
+              : (res.data?.products || []);
+            return allProducts.filter(p => p.is_featured === true);
+          }
+        };
+
+        const [catRes, featured, newRes, trendingRes, statsRes] = await Promise.all([
           axios.get(`${API}/categories`),
-          axios.get(`${API}/products/featured?limit=12`),
+          fetchFeatured(),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=16`),
           axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
           axios.get(`${API}/stats/public`).catch(() => ({ data: { products: 0, vendors: 0, drivers: 0 } }))
         ]);
+
         setCategories(catRes.data);
-        setFeaturedProducts(featuredRes.data.products || []);
-        setNewProducts(newRes.data.products || []);
-        setTrendingProducts(trendingRes.data.products || []);
+        setFeaturedProducts(featured);
+        setNewProducts(newRes.data?.products || newRes.data || []);
+        setTrendingProducts(trendingRes.data?.products || trendingRes.data || []);
         setStats(statsRes.data || { products: 0, vendors: 0, drivers: 0 });
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -161,19 +182,12 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
-      {/* Scroll Progress Indicator */}
       <ScrollProgress />
-      
-      {/* Floating Action Badges */}
       <FloatingBadges />
-      
-      {/* Promo Banner - Scrolling */}
       <PromoBanner />
-      
-      {/* Animated Hero Section */}
       <HeroSection />
 
-      {/* Floating Categories Bubble + Slideout */}
+      {/* Floating Categories Bubble */}
       <div
         className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
         onMouseEnter={() => setIsCategoryMenuOpen(true)}
@@ -250,8 +264,7 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-      
-      {/* Live Activity Feed */}
+
       <NotificationFeed notifications={[
         { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
         { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
@@ -259,8 +272,8 @@ const HomePage = () => {
         { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
       ]} />
 
-      {/* Stats Bar with Animated Counters */}
-      <motion.section 
+      {/* Stats Bar */}
+      <motion.section
         ref={statsRef}
         className="py-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
         initial="hidden"
@@ -269,7 +282,6 @@ const HomePage = () => {
         variants={sectionMotion}
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
-        {/* Animated background particles */}
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(20)].map((_, i) => (
             <div
@@ -284,7 +296,7 @@ const HomePage = () => {
             />
           ))}
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
@@ -302,7 +314,7 @@ const HomePage = () => {
                 transition={{ duration: 0.7, delay: index * 0.1 }}
                 whileHover={{ y: -6 }}
               >
-                <div className={`w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300`}>
+                <div className={`w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
                   <stat.icon className="w-7 h-7 text-white" />
                 </div>
                 <p className="text-3xl md:text-4xl font-bold text-white mb-1">
@@ -315,18 +327,22 @@ const HomePage = () => {
         </div>
       </motion.section>
 
-      {/* Featured Products Carousel with Enhanced Animations */}
-      <motion.section className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative"
+      {/* ================================================================
+          SECTION "PRODUITS EN VEDETTE"
+          Affiche les produits où is_featured === true.
+          Si aucun produit en vedette, affiche un message clair.
+          ================================================================ */}
+      <motion.section
+        className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
         variants={sectionMotion}
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
-        {/* Decorative elements */}
         <div className="absolute top-20 left-0 w-72 h-72 bg-gradient-to-br from-orange-200/40 to-amber-200/30 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-0 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/20 rounded-full blur-3xl" />
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
@@ -337,30 +353,37 @@ const HomePage = () => {
                 <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
                   Produits en Vedette
                 </h2>
-                <p className="text-muted-foreground mt-1">Les meilleures sélections de nos vendeurs</p>
+                <p className="text-muted-foreground mt-1">
+                  Les meilleures sélections de nos vendeurs
+                  {featuredProducts.length > 0 && (
+                    <span className="ml-2 text-orange-500 font-semibold">({featuredProducts.length})</span>
+                  )}
+                </p>
               </div>
             </div>
-            
-            <div className="hidden md:flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={prevSlide}
-                disabled={carouselIndex === 0}
-                className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={nextSlide}
-                disabled={carouselIndex >= featuredProducts.length - 4}
-                className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-            </div>
+
+            {filteredFeaturedProducts.length > 4 && (
+              <div className="hidden md:flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={prevSlide}
+                  disabled={carouselIndex === 0}
+                  className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={nextSlide}
+                  disabled={carouselIndex >= filteredFeaturedProducts.length - 4}
+                  className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -369,16 +392,23 @@ const HomePage = () => {
                 <Skeleton key={i} className="aspect-square rounded-2xl" />
               ))}
             </div>
+          ) : filteredFeaturedProducts.length === 0 ? (
+            // Message si aucun produit en vedette
+            <div className="text-center py-16 text-slate-400">
+              <Star className="w-16 h-16 mx-auto mb-4 opacity-20" />
+              <p className="text-lg font-medium">Aucun produit en vedette pour le moment</p>
+              <p className="text-sm mt-1">Revenez bientôt !</p>
+            </div>
           ) : (
             <div className="relative overflow-hidden">
-              <div 
+              <div
                 className="flex gap-6 transition-transform duration-700 ease-out"
                 style={{ transform: `translateX(-${carouselIndex * (100 / 4 + 1.5)}%)` }}
               >
                 {filteredFeaturedProducts.map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      className="w-full md:w-[calc(25%-18px)] lg:w-[calc(20%-18px)] flex-shrink-0"
+                  <motion.div
+                    key={product.id}
+                    className="w-full md:w-[calc(25%-18px)] lg:w-[calc(20%-18px)] flex-shrink-0"
                     variants={cardMotion}
                     initial="hidden"
                     animate="visible"
@@ -386,8 +416,8 @@ const HomePage = () => {
                     whileHover={{ y: -8, scale: 1.03 }}
                   >
                     <div
-                      className="transform transition-all duration-500 hover-lift"
-                      style={{ 
+                      className="transform transition-all duration-500"
+                      style={{
                         opacity: index >= carouselIndex && index < carouselIndex + 4 ? 1 : 0.3,
                         transform: index >= carouselIndex && index < carouselIndex + 4 ? 'scale(1)' : 'scale(0.95)'
                       }}
@@ -399,24 +429,26 @@ const HomePage = () => {
               </div>
             </div>
           )}
-          
+
           {/* Carousel indicators */}
-          <div className="flex justify-center gap-2 mt-8">
-            {[...Array(Math.max(1, filteredFeaturedProducts.length - 3))].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCarouselIndex(i)}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'
-                }`}
-              />
-            ))}
-          </div>
+          {filteredFeaturedProducts.length > 4 && (
+            <div className="flex justify-center gap-2 mt-8">
+              {[...Array(Math.max(1, filteredFeaturedProducts.length - 3))].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCarouselIndex(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </motion.section>
 
-      {/* Categories Grid with Staggered Entrance */}
-      <motion.section 
+      {/* Categories Grid */}
+      <motion.section
         ref={categoriesRef}
         className="py-20 bg-white relative overflow-hidden"
         initial="hidden"
@@ -426,17 +458,13 @@ const HomePage = () => {
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-100/50 to-pink-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-12">
-            <h2 className={`text-3xl md:text-4xl font-bold mb-4 transition-all duration-700 ${
-              categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-            }`}>
+            <h2 className={`text-3xl md:text-4xl font-bold mb-4 transition-all duration-700 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               Parcourir par catégorie
             </h2>
-            <p className={`text-muted-foreground text-lg transition-all duration-700 delay-100 ${
-              categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-            }`}>
+            <p className={`text-muted-foreground text-lg transition-all duration-700 delay-100 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               Découvrez notre sélection de produits authentiques
             </p>
           </div>
@@ -452,12 +480,11 @@ const HomePage = () => {
               {categories.filter(category => category.is_active !== false).map((category, index) => {
                 const currentBanner = (() => {
                   const banners = category.banner_images || [];
-                  const hasBanners = banners.length > 0;
-                  return hasBanners
+                  return banners.length > 0
                     ? banners[(categorySlideTick + index) % banners.length]
                     : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
                 })();
-                
+
                 return (
                   <motion.div
                     key={category.slug}
@@ -470,36 +497,28 @@ const HomePage = () => {
                   >
                     <Link
                       to={`/categories/${category.slug}`}
-                      className={`group relative aspect-[5/3] rounded-xl overflow-hidden shadow-lg transition-all duration-700 ${
-                        categoriesInView 
-                          ? 'translate-y-0 opacity-100 hover:-translate-y-2 hover:shadow-2xl' 
+                      className={`group relative aspect-[5/3] rounded-xl overflow-hidden shadow-lg transition-all duration-700 flex ${
+                        categoriesInView
+                          ? 'translate-y-0 opacity-100 hover:-translate-y-2 hover:shadow-2xl'
                           : 'translate-y-20 opacity-0'
                       }`}
                       style={{ transitionDelay: `${index * 100}ms` }}
                       data-testid={`category-${category.slug}`}
                     >
-                    <img
-                      src={currentBanner}
-                      alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                    
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-amber-500/0 group-hover:from-orange-500/30 group-hover:to-amber-500/30 transition-all duration-500" />
-                    
-                    <div className="absolute bottom-0 left-0 right-0 p-5">
-                      <h3 className="text-white font-bold text-base md:text-lg group-hover:translate-x-2 transition-transform duration-300">
-                        {category.name}
-                      </h3>
-                      <p className="text-white/0 group-hover:text-white/80 text-sm flex items-center gap-2 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-                        Explorer la collection <ArrowRight className="w-4 h-4" />
-                      </p>
-                    </div>
-                    
-                    <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/40 rounded-2xl transition-all duration-500" />
-                  </Link>
-                </motion.div>
+                      <img src={currentBanner} alt={category.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-amber-500/0 group-hover:from-orange-500/30 group-hover:to-amber-500/30 transition-all duration-500" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-white font-bold text-base md:text-lg group-hover:translate-x-2 transition-transform duration-300">
+                          {category.name}
+                        </h3>
+                        <p className="text-white/0 group-hover:text-white/80 text-sm flex items-center gap-2 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
+                          Explorer la collection <ArrowRight className="w-4 h-4" />
+                        </p>
+                      </div>
+                      <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/40 rounded-2xl transition-all duration-500" />
+                    </Link>
+                  </motion.div>
                 );
               })}
             </div>
@@ -507,8 +526,8 @@ const HomePage = () => {
         </div>
       </motion.section>
 
-      {/* Trending Products - Dark Section */}
-      <motion.section 
+      {/* Trending Products */}
+      <motion.section
         ref={trendingRef}
         className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
         initial="hidden"
@@ -517,12 +536,11 @@ const HomePage = () => {
         variants={sectionMotion}
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
-        {/* Animated background */}
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
@@ -530,14 +548,10 @@ const HomePage = () => {
                 <TrendingUp className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className={`text-3xl md:text-4xl font-bold text-white transition-all duration-700 ${
-                  trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-                }`}>
+                <h2 className={`text-3xl md:text-4xl font-bold text-white transition-all duration-700 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   Tendances du moment
                 </h2>
-                <p className={`text-slate-400 mt-1 transition-all duration-700 delay-100 ${
-                  trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-                }`}>
+                <p className={`text-slate-400 mt-1 transition-all duration-700 delay-100 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   Les produits les plus populaires
                 </p>
               </div>
@@ -560,9 +574,7 @@ const HomePage = () => {
               {filteredTrendingProducts.slice(0, 10).map((product, index) => (
                 <div
                   key={product.id}
-                  className={`transition-all duration-700 ${
-                    trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
-                  }`}
+                  className={`transition-all duration-700 ${trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
                   style={{ transitionDelay: `${index * 100}ms` }}
                 >
                   <ProductCard product={product} className="scale-[0.94]" />
@@ -573,8 +585,8 @@ const HomePage = () => {
         </div>
       </motion.section>
 
-      {/* New Products with Entrance Animations */}
-      <motion.section 
+      {/* New Products */}
+      <motion.section
         ref={newProductsRef}
         className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
         initial="hidden"
@@ -590,14 +602,10 @@ const HomePage = () => {
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className={`text-3xl md:text-4xl font-bold transition-all duration-700 ${
-                  newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-                }`}>
+                <h2 className={`text-3xl md:text-4xl font-bold transition-all duration-700 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   Nouveautés
                 </h2>
-                <p className={`text-muted-foreground mt-1 transition-all duration-700 delay-100 ${
-                  newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-                }`}>
+                <p className={`text-muted-foreground mt-1 transition-all duration-700 delay-100 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   Les dernières créations de nos artisans
                 </p>
               </div>
@@ -620,9 +628,7 @@ const HomePage = () => {
               {filteredNewProducts.slice(0, 20).map((product, index) => (
                 <div
                   key={product.id}
-                  className={`transition-all duration-700 ${
-                    newProductsInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'
-                  }`}
+                  className={`transition-all duration-700 ${newProductsInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
                   style={{ transitionDelay: `${index * 75}ms` }}
                 >
                   <ProductCard product={product} className="scale-[0.94]" />
@@ -641,8 +647,9 @@ const HomePage = () => {
         </div>
       </motion.section>
 
-      {/* CTA Section with Enhanced Animations */}
-      <motion.section className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
+      {/* CTA Section */}
+      <motion.section
+        className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
@@ -652,30 +659,16 @@ const HomePage = () => {
         <div className="absolute inset-0">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute text-white/10 animate-float"
-              style={{
-                left: `${10 + i * 12}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                animationDelay: `${i * 0.5}s`,
-                animationDuration: `${4 + i * 0.5}s`
-              }}
-            >
-              <Package className="w-12 h-12" />
-            </div>
-          ))}
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10 text-center text-white">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in">
+          <h2 className="text-4xl md:text-6xl font-bold mb-6">
             Rejoignez notre communauté
           </h2>
-          <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto">
             Vendez vos créations à des milliers d'acheteurs passionnés ou découvrez des produits uniques du continent africain.
           </p>
-          <div className="flex flex-wrap justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-white/90 rounded-full px-10 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
               <Link to="/connexion">
                 <Zap className="w-5 h-5 mr-2" />
@@ -691,8 +684,8 @@ const HomePage = () => {
         </div>
       </motion.section>
 
-      {/* Animated Marquee Banner */}
-      <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden animate-fade-in-up">
+      {/* Marquee */}
+      <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
         <div className="relative flex overflow-hidden">
           <div className="animate-marquee flex items-center whitespace-nowrap">
             {[...Array(2)].map((_, setIndex) => (
@@ -718,48 +711,35 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-      
-      {/* Testimonials Section */}
-      <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden animate-fade-in-up">
+
+      {/* Testimonials */}
+      <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
         <div className="container mx-auto px-4 mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Ce que disent nos clients</h2>
           <p className="text-muted-foreground text-center">Des milliers de clients satisfaits chaque jour</p>
         </div>
         <TestimonialsBanner testimonials={[
-          { name: 'Marie Dupont', location: 'Abidjan', rating: 5, comment: 'Service excellent ! Ma commande est arrivée en 2 jours. Produit conforme à la description.' },
-          { name: 'Kofi Mensah', location: 'Dakar', rating: 5, comment: 'Je recommande vivement ! Les vendeurs sont très professionnels et les prix sont imbattables.' },
-          { name: 'Awa Diallo', location: 'Bamako', rating: 4, comment: 'Très satisfaite de mon achat. Le suivi de commande en temps réel est vraiment pratique.' },
-          { name: 'Jean-Pierre K.', location: 'Douala', rating: 5, comment: "Cloléo a changé ma façon de faire du shopping. Qualité au rendez-vous !" },
-          { name: 'Fatou Ndiaye', location: 'Conakry', rating: 5, comment: 'Les produits artisanaux sont magnifiques. Je suis devenue une cliente fidèle.' },
+          { name: 'Marie Dupont', location: 'Abidjan', rating: 5, comment: 'Service excellent ! Ma commande est arrivée en 2 jours.' },
+          { name: 'Kofi Mensah', location: 'Dakar', rating: 5, comment: 'Je recommande vivement ! Les vendeurs sont très professionnels.' },
+          { name: 'Awa Diallo', location: 'Bamako', rating: 4, comment: 'Très satisfaite de mon achat. Le suivi en temps réel est pratique.' },
+          { name: 'Jean-Pierre K.', location: 'Douala', rating: 5, comment: "Cloléo a changé ma façon de faire du shopping !" },
+          { name: 'Fatou Ndiaye', location: 'Conakry', rating: 5, comment: 'Les produits artisanaux sont magnifiques.' },
         ]} />
       </section>
-      
-      {/* Trust Banner at bottom */}
+
       <TrustBanner />
 
-      {/* Custom CSS for animations */}
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(5deg); }
         }
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out forwards;
-        }
+        .animate-float { animation: float 4s ease-in-out infinite; }
         @keyframes marquee {
           0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }
         }
-        .animate-marquee {
-          animation: marquee 30s linear infinite;
-        }
+        .animate-marquee { animation: marquee 30s linear infinite; }
       `}</style>
     </div>
   );
