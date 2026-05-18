@@ -257,8 +257,8 @@ const HomePage = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { icon: '🛍️', value: '10K+', label: 'Produits' },
-              { icon: '👥', value: '5K+', label: 'Vendeurs' },
+              { icon: '🛍️', value: `${categories.length}+`, label: 'Catégories' },
+              { icon: '👥', value: `${featuredProducts.length}+`, label: 'Produits' },
               { icon: '🌍', value: '15+', label: 'Pays' },
               { icon: '⭐', value: '4.8', label: 'Note moyenne' },
             ].map((stat, index) => (
