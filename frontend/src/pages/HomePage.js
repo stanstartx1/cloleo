@@ -10,8 +10,14 @@ import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const envBackend = (process.env.REACT_APP_BACKEND_URL || '').trim();
+const browserOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
+const isBrowserLocal = typeof window !== 'undefined'
+  ? /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+  : true;
+const isEnvLocal = /localhost|127\.0\.0\.1/i.test(envBackend);
+const BACKEND_URL = envBackend && (isBrowserLocal || !isEnvLocal) ? envBackend : browserOrigin;
+const API = `${BACKEND_URL.replace(/\/$/, '')}/api`;
 
 const sectionMotion = {
   hidden: { opacity: 0, y: 40 },
