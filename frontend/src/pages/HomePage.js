@@ -176,7 +176,7 @@ const HomePage = () => {
       );
       return { category: parent, products: deduped.slice(0, 12) };
     });
-    return source.filter((s) => s.products.length > 0).slice(0, 5);
+    return source.filter((s) => s.products.length > 0).slice(0, 1);
   }, [parentCategories, subCategoriesByParent, productByCategorySlug]);
 
   return (
