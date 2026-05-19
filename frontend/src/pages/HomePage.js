@@ -141,6 +141,44 @@ const HomePage = () => {
   const filteredTrendingProducts = applyProductFilters(trendingProducts);
   const filteredNewProducts = applyProductFilters(newProducts);
   const activeCategories = categories.filter(c => c.is_active !== false);
+  const parentCategories = activeCategories.filter((c) => !c.parent_slug);
+  const subCategories = activeCategories.filter((c) => c.parent_slug);
+
+  const subCategoriesByParent = useMemo(() => {
+    const grouped = {};
+    subCategories.forEach((sub) => {
+      if (!grouped[sub.parent_slug]) grouped[sub.parent_slug] = [];
+      grouped[sub.parent_slug].push(sub);
+    });
+    return grouped;
+  }, [subCategories]);
+
+  const allVisibleProducts = useMemo(
+    () => applyProductFilters([...featuredProducts, ...trendingProducts, ...newProducts]),
+    [featuredProducts, trendingProducts, newProducts, selectedCategory, conditionFilters]
+  );
+
+  const productByCategorySlug = useMemo(() => {
+    const map = {};
+    allVisibleProducts.forEach((product) => {
+      if (!map[product.category_slug]) map[product.category_slug] = [];
+      map[product.category_slug].push(product);
+    });
+    return map;
+  }, [allVisibleProducts]);
+
+  const themeSections = useMemo(() => {
+    const source = parentCategories.map((parent) => {
+      const children = subCategoriesByParent[parent.slug] || [];
+      const ownProducts = productByCategorySlug[parent.slug] || [];
+      const childProducts = children.flatMap((child) => productByCategorySlug[child.slug] || []);
+      const deduped = [...ownProducts, ...childProducts].filter(
+        (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i
+      );
+      return { category: parent, products: deduped.slice(0, 12) };
+    });
+    return source.filter((s) => s.products.length > 0).slice(0, 5);
+  }, [parentCategories, subCategoriesByParent, productByCategorySlug]);
 
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
@@ -151,14 +189,14 @@ const HomePage = () => {
       {/* Hero avec vraies catégories */}
       <HeroSection categories={categories} />
 
-      {/* Catégories défilantes */}
+      {/* Catégories principales défilantes */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
         <div className="container mx-auto px-4 mb-3">
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Parcourir par catégorie</p>
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
           <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
-            {[...activeCategories, ...activeCategories].map((category, index) => {
+            {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
                 ? banners[(categorySlideTick + index) % banners.length]
@@ -181,6 +219,41 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Sous-catégories en carrousel */}
+      {subCategories.length > 0 && (
+        <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
+          <div className="container mx-auto px-4 mb-3 flex items-center justify-between">
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Sous-catégories</p>
+            <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
+          </div>
+          <div className="relative flex overflow-hidden">
+            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap">
+              {[...subCategories, ...subCategories].map((sub, index) => {
+                const banners = sub.banner_images || [];
+                const img = banners.length > 0
+                  ? banners[(categorySlideTick + index) % banners.length]
+                  : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
+                return (
+                  <Link
+                    key={`subcat-${sub.slug}-${index}`}
+                    to={`/categories/${sub.slug}`}
+                    className="flex-shrink-0 w-44 group"
+                  >
+                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
+                      <img src={img} alt={sub.name} className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="p-2">
+                        <p className="text-xs font-semibold text-slate-700 truncate">{sub.name}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Notification Feed */}
       <NotificationFeed notifications={[
@@ -294,7 +367,7 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {activeCategories.map((category, index) => {
+              {parentCategories.map((category, index) => {
                 const currentBanner = (() => {
                   const banners = category.banner_images || [];
                   return banners.length > 0
@@ -330,6 +403,44 @@ const HomePage = () => {
           )}
         </div>
       </motion.section>
+
+      {/* Sections thématiques dynamiques par catégorie */}
+      {themeSections.map((section, sectionIndex) => (
+        <motion.section
+          key={`theme-${section.category.slug}`}
+          className={`py-14 ${sectionIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={sectionMotion}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl md:text-3xl font-bold text-slate-900">
+                  Sélection {section.category.name}
+                </h3>
+                <p className="text-slate-500 text-sm">
+                  Produits de la catégorie et de ses sous-catégories
+                </p>
+              </div>
+              <Button asChild variant="ghost" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
+                <Link to={`/categories/${section.category.slug}`}>
+                  Voir la catégorie <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+              {section.products.map((product) => (
+                <div key={`${section.category.slug}-${product.id}`} className="min-w-[220px] md:min-w-[250px] lg:min-w-[270px] snap-start">
+                  <ProductCard product={product} className="h-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.section>
+      ))}
 
       {/* Trending Products */}
       <motion.section
@@ -517,7 +628,7 @@ const HomePage = () => {
               className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${selectedCategory === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
               Toutes les catégories
             </button>
-            {activeCategories.map((category) => (
+            {parentCategories.map((category) => (
               <div key={category.slug} className="flex items-center gap-2">
                 <Link to={`/categories/${category.slug}`} onMouseEnter={() => setHoveredCategorySlug(category.slug)}
                   className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-orange-100 hover:text-orange-700 transition">
