@@ -59,7 +59,6 @@ const HomePage = () => {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [hoveredCategorySlug, setHoveredCategorySlug] = useState(null);
 
-  const [categoriesRef, categoriesInView] = useInView();
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
 
@@ -338,67 +337,6 @@ const HomePage = () => {
                 <button key={i} onClick={() => setCarouselIndex(i)}
                   className={`h-2 rounded-full transition-all duration-300 ${i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'}`} />
               ))}
-            </div>
-          )}
-        </div>
-      </motion.section>
-
-      {/* Categories Grid */}
-      <motion.section
-        ref={categoriesRef}
-        className="py-20 bg-white relative overflow-hidden"
-        initial="hidden" whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-100/50 to-pink-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-12">
-            <h2 className={`text-3xl md:text-4xl font-bold mb-4 transition-all duration-700 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              Parcourir par catégorie
-            </h2>
-            <p className={`text-muted-foreground text-lg transition-all duration-700 delay-100 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              Découvrez notre sélection de produits authentiques
-            </p>
-          </div>
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {parentCategories.map((category, index) => {
-                const currentBanner = (() => {
-                  const banners = category.banner_images || [];
-                  return banners.length > 0
-                    ? banners[(categorySlideTick + index) % banners.length]
-                    : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
-                })();
-                return (
-                  <motion.div key={category.slug} variants={cardMotion} initial="hidden"
-                    animate={categoriesInView ? 'visible' : 'hidden'}
-                    transition={{ duration: 0.6, delay: index * 0.08 }}
-                    whileHover={{ y: -6 }} className="relative"
-                  >
-                    <Link to={`/categories/${category.slug}`}
-                      className={`group relative aspect-[5/3] rounded-xl overflow-hidden shadow-lg transition-all duration-700 flex ${categoriesInView ? 'translate-y-0 opacity-100 hover:-translate-y-2 hover:shadow-2xl' : 'translate-y-20 opacity-0'}`}
-                      style={{ transitionDelay: `${index * 100}ms` }}
-                      data-testid={`category-${category.slug}`}
-                    >
-                      <img src={currentBanner} alt={category.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-amber-500/0 group-hover:from-orange-500/30 group-hover:to-amber-500/30 transition-all duration-500" />
-                      <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="text-white font-bold text-base md:text-lg group-hover:translate-x-2 transition-transform duration-300">{category.name}</h3>
-                        <p className="text-white/0 group-hover:text-white/80 text-sm flex items-center gap-2 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-                          Explorer la collection <ArrowRight className="w-4 h-4" />
-                        </p>
-                      </div>
-                      <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/40 rounded-2xl transition-all duration-500" />
-                    </Link>
-                  </motion.div>
-                );
-              })}
             </div>
           )}
         </div>
