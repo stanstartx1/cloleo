@@ -192,49 +192,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Section Carrousel Catégories - Animation verticale */}
-      <motion.section
-        className="py-12 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 relative overflow-hidden"
-        initial="hidden" whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InBhdHRlcm4iIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMMTQwIDBIMjBMMjAgNDBaIiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjcGF0dGVybikiLz48L3N2Zz4=')] opacity-30" />
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Explorez nos catégories</h2>
-            <p className="text-slate-600">Découvrez toutes nos catégories de produits</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {parentCategories.slice(0, 10).map((category, index) => (
-              <motion.div
-                key={category.slug}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ scale: 1.05, y: -5 }}
-              >
-                <Link
-                  to={`/categories/${category.slug}`}
-                  className="block bg-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 border border-orange-100 hover:border-orange-300"
-                >
-                  <div className="w-full aspect-square rounded-xl overflow-hidden mb-3">
-                    <img
-                      src={category.banner_images?.[0] || category.image || `https://source.unsplash.com/300x300/?${encodeURIComponent(category.name)}`}
-                      alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                    />
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-800 text-center truncate">{category.name}</h3>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
       {/* Notification Feed */}
       <NotificationFeed notifications={[
         { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
@@ -242,87 +199,6 @@ const HomePage = () => {
         { user: 'Awa S.', action: 'vient de commander', product: 'iPhone 14', time: 'il y a 8 min' },
         { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
       ]} />
-
-      {/* Section Statistiques avec animations */}
-      <motion.section
-        className="py-16 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
-        initial="hidden" whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { icon: '🛍️', value: '10K+', label: 'Produits' },
-              { icon: '👥', value: '5K+', label: 'Vendeurs' },
-              { icon: '🌍', value: '15+', label: 'Pays' },
-              { icon: '⭐', value: '4.8', label: 'Note moyenne' },
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-5xl mb-3">{stat.icon}</div>
-                <div className="text-3xl md:text-4xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-slate-400">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Section Promotions avec carrousel horizontal */}
-      <motion.section
-        className="py-12 bg-gradient-to-b from-red-50 via-orange-50 to-white relative overflow-hidden"
-        initial="hidden" whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">🔥 Offres Spéciales</h2>
-            <p className="text-slate-600">Profitez de nos promotions exclusives</p>
-          </div>
-          <div className="relative overflow-hidden">
-            <div className="flex gap-6 animate-marquee-horizontal whitespace-nowrap">
-              {[...filteredFeaturedProducts.slice(0, 8), ...filteredFeaturedProducts.slice(0, 8)].map((product, index) => (
-                <motion.div
-                  key={`promo-${index}`}
-                  whileHover={{ scale: 1.05, y: -8 }}
-                  className="flex-shrink-0 w-72"
-                >
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div className="relative">
-                      <img
-                        src={product.images?.[0] || product.image}
-                        alt={product.name}
-                        className="w-full h-48 object-cover"
-                      />
-                      <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                        -{Math.floor(Math.random() * 30) + 10}%
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-slate-800 mb-2 truncate">{product.name}</h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-bold text-orange-600">{product.price} FCFA</span>
-                        <span className="text-sm text-slate-400 line-through">{Math.floor(product.price * 1.3)} FCFA</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
 
       {/* Featured Products */}
       <motion.section
@@ -462,53 +338,6 @@ const HomePage = () => {
               })}
             </div>
           )}
-        </div>
-      </motion.section>
-
-      {/* Section Catégories en vedette avec effets de hover */}
-      <motion.section
-        className="py-16 bg-gradient-to-b from-teal-50 via-cyan-50 to-white relative overflow-hidden"
-        initial="hidden" whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-teal-200/30 to-cyan-200/20 rounded-full blur-3xl" />
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">Catégories Populaires</h2>
-            <p className="text-slate-600">Les catégories les plus recherchées</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {parentCategories.slice(0, 6).map((category, index) => (
-              <motion.div
-                key={category.slug}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                whileHover={{ scale: 1.03, y: -8 }}
-              >
-                <Link
-                  to={`/categories/${category.slug}`}
-                  className="block bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group"
-                >
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={category.banner_images?.[0] || category.image || `https://source.unsplash.com/600x400/?${encodeURIComponent(category.name)}`}
-                      alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <h3 className="text-white font-bold text-xl mb-1">{category.name}</h3>
-                      <p className="text-white/80 text-sm">{subCategoriesByParent[category.slug]?.length || 0} sous-catégories</p>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </motion.section>
 
@@ -843,11 +672,6 @@ const HomePage = () => {
           100% { transform: translateX(-50%); }
         }
         .animate-marquee-right-to-left { animation: marquee-right-to-left 30s linear infinite; }
-        @keyframes marquee-horizontal {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee-horizontal { animation: marquee-horizontal 40s linear infinite; }
       `}</style>
     </div>
   );
