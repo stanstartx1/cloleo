@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -21,14 +22,25 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e
+            set -euxo pipefail
             cd /var/www/cloleo
             git pull origin main
+
+            echo "== Backend dependencies =="
             source /var/www/cloleo/backend/venv/bin/activate
-            pip install -r /var/www/cloleo/backend/requirements.txt --quiet
+            python --version
+            pip --version
+            pip install -r /var/www/cloleo/backend/requirements.txt
             deactivate
+
+            echo "== Frontend build =="
             cd /var/www/cloleo/frontend
-            npm ci --silent
+            node -v
+            npm -v
+            npm ci || npm install
             npm run build
+
+            echo "== Services =="
+            systemctl restart cloleo-backend
             systemctl reload apache2
-            echo "Deploy OK!"
+            echo "Deploy OK"
