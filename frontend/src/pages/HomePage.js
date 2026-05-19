@@ -136,22 +136,6 @@ const HomePage = () => {
   const filteredNewProducts = applyProductFilters(newProducts);
   const activeCategories = categories.filter(c => c.is_active !== false);
 
-  // Séparer les catégories parentes et sous-catégories
-  const parentCategories = activeCategories.filter(c => !c.parent_slug);
-  const subCategories = activeCategories.filter(c => c.parent_slug);
-
-  // Grouper les sous-catégories par catégorie parente
-  const subCategoriesByParent = useMemo(() => {
-    const grouped = {};
-    subCategories.forEach(sub => {
-      if (!grouped[sub.parent_slug]) {
-        grouped[sub.parent_slug] = [];
-      }
-      grouped[sub.parent_slug].push(sub);
-    });
-    return grouped;
-  }, [subCategories]);
-
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -161,14 +145,14 @@ const HomePage = () => {
       {/* Hero avec vraies catégories */}
       <HeroSection categories={categories} />
 
-      {/* Catégories principales défilantes */}
+      {/* Catégories défilantes */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
         <div className="container mx-auto px-4 mb-3">
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Parcourir par catégorie</p>
         </div>
         <div className="relative flex overflow-hidden">
           <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
-            {[...parentCategories, ...parentCategories].map((category, index) => {
+            {[...activeCategories, ...activeCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
                 ? banners[(categorySlideTick + index) % banners.length]
@@ -280,7 +264,7 @@ const HomePage = () => {
         </div>
       </motion.section>
 
-      {/* Categories Grid - Uniquement les catégories parentes */}
+      {/* Categories Grid */}
       <motion.section
         ref={categoriesRef}
         className="py-20 bg-white relative overflow-hidden"
@@ -292,10 +276,10 @@ const HomePage = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-12">
             <h2 className={`text-3xl md:text-4xl font-bold mb-4 transition-all duration-700 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              Catégories principales
+              Parcourir par catégorie
             </h2>
             <p className={`text-muted-foreground text-lg transition-all duration-700 delay-100 ${categoriesInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              Découvrez nos grandes catégories de produits
+              Découvrez notre sélection de produits authentiques
             </p>
           </div>
           {loading ? (
@@ -304,7 +288,7 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {parentCategories.map((category, index) => {
+              {activeCategories.map((category, index) => {
                 const currentBanner = (() => {
                   const banners = category.banner_images || [];
                   return banners.length > 0
@@ -340,82 +324,6 @@ const HomePage = () => {
           )}
         </div>
       </motion.section>
-
-      {/* Sous-catégories par catégorie parente - Carrousels animés */}
-      {parentCategories.map((parentCategory, parentIndex) => {
-        const subCats = subCategoriesByParent[parentCategory.slug] || [];
-        if (subCats.length === 0) return null;
-
-        return (
-          <motion.section
-            key={`subcats-${parentCategory.slug}`}
-            className="py-12 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden"
-            initial="hidden" whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-            variants={sectionMotion} transition={{ duration: 0.6, ease: 'easeOut' }}
-          >
-            <div className="container mx-auto px-4">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/30">
-                    <Sparkles className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-slate-800">
-                      {parentCategory.name}
-                    </h3>
-                    <p className="text-slate-500 text-sm mt-1">
-                      {subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-                <Button asChild variant="outline" className="border-teal-500/30 text-teal-600 hover:bg-teal-50">
-                  <Link to={`/categories/${parentCategory.slug}`}>
-                    Voir tout <ArrowRight className="ml-2 w-4 h-4" />
-                  </Link>
-                </Button>
-              </div>
-
-              {/* Carrousel de sous-catégories - Défilement de droite à gauche */}
-              <div className="relative overflow-hidden">
-                <div className="flex gap-4 animate-marquee-right-to-left whitespace-nowrap">
-                  {[...subCats, ...subCats].map((subCat, index) => {
-                    const banners = subCat.banner_images || [];
-                    const img = banners.length > 0
-                      ? banners[(categorySlideTick + index) % banners.length]
-                      : (subCat.image || `https://source.unsplash.com/300x200/?${encodeURIComponent(subCat.name)}`);
-                    return (
-                      <Link
-                        key={`subcat-${parentCategory.slug}-${index}`}
-                        to={`/categories/${subCat.slug}`}
-                        className="flex-shrink-0 w-48 md:w-56 group"
-                      >
-                        <motion.div
-                          whileHover={{ y: -8, scale: 1.05 }}
-                          className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-lg border border-slate-200"
-                        >
-                          <img
-                            src={img}
-                            alt={subCat.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <h4 className="text-white font-bold text-sm md:text-base group-hover:translate-x-1 transition-transform duration-300">
-                              {subCat.name}
-                            </h4>
-                          </div>
-                          <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/50 rounded-xl transition-all duration-300" />
-                        </motion.div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </motion.section>
-        );
-      })}
 
       {/* Trending Products */}
       <motion.section
@@ -667,11 +575,6 @@ const HomePage = () => {
           100% { transform: translateX(-50%); }
         }
         .animate-marquee-cats { animation: marquee-cats 25s linear infinite; }
-        @keyframes marquee-right-to-left {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee-right-to-left { animation: marquee-right-to-left 30s linear infinite; }
       `}</style>
     </div>
   );
