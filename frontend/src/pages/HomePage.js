@@ -380,6 +380,64 @@ const HomePage = () => {
         </motion.section>
       ))}
 
+      {/* Inter-bloc: carrousel catégories */}
+      <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
+        <div className="container mx-auto px-4 mb-3">
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
+        </div>
+        <div className="relative flex overflow-hidden">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
+            {[...parentCategories, ...parentCategories].map((category, index) => {
+              const banners = category.banner_images || [];
+              const img = banners.length > 0
+                ? banners[(categorySlideTick + index) % banners.length]
+                : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
+              return (
+                <Link key={`cat-mid-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-110">
+                    <img src={img} alt={category.name} className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-600 group-hover:text-orange-600 transition-colors text-center w-20 truncate">
+                    {category.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Inter-bloc: carrousel sous-catégories */}
+      {subCategories.length > 0 && (
+        <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
+          <div className="container mx-auto px-4 mb-3 flex items-center justify-between">
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Sous-catégories</p>
+            <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
+          </div>
+          <div className="relative flex overflow-hidden">
+            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap">
+              {[...subCategories, ...subCategories].map((sub, index) => {
+                const banners = sub.banner_images || [];
+                const img = banners.length > 0
+                  ? banners[(categorySlideTick + index) % banners.length]
+                  : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
+                return (
+                  <Link key={`subcat-mid-${sub.slug}-${index}`} to={`/categories/${sub.slug}`} className="flex-shrink-0 w-44 group">
+                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
+                      <img src={img} alt={sub.name} className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="p-2">
+                        <p className="text-xs font-semibold text-slate-700 truncate">{sub.name}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Trending Products */}
       <motion.section
         ref={trendingRef}
@@ -428,6 +486,33 @@ const HomePage = () => {
           )}
         </div>
       </motion.section>
+
+      {/* Inter-bloc: carrousel catégories */}
+      <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
+        <div className="container mx-auto px-4 mb-3">
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
+        </div>
+        <div className="relative flex overflow-hidden">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
+            {[...parentCategories, ...parentCategories].map((category, index) => {
+              const banners = category.banner_images || [];
+              const img = banners.length > 0
+                ? banners[(categorySlideTick + index) % banners.length]
+                : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
+              return (
+                <Link key={`cat-bottom-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-110">
+                    <img src={img} alt={category.name} className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-600 group-hover:text-orange-600 transition-colors text-center w-20 truncate">
+                    {category.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* New Products */}
       <motion.section
