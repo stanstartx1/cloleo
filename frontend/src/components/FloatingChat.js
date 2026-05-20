@@ -263,7 +263,25 @@ const FloatingChat = () => {
               )}
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-800 truncate">{activeConversation.product_name || "Produit"}</p>
-                <p className="text-[11px] text-fuchsia-600">Voir les détails du produit</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {activeConversation?.product_promo_price_fcfa ? (
+                    <>
+                      <span className="text-[11px] font-bold text-emerald-600">
+                        {new Intl.NumberFormat("fr-FR").format(activeConversation.product_promo_price_fcfa)} FCFA
+                      </span>
+                      {activeConversation?.product_price_fcfa && (
+                        <span className="text-[10px] text-slate-400 line-through">
+                          {new Intl.NumberFormat("fr-FR").format(activeConversation.product_price_fcfa)} FCFA
+                        </span>
+                      )}
+                    </>
+                  ) : activeConversation?.product_price_fcfa ? (
+                    <span className="text-[11px] font-bold text-slate-700">
+                      {new Intl.NumberFormat("fr-FR").format(activeConversation.product_price_fcfa)} FCFA
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-[11px] text-fuchsia-600 mt-0.5">Voir les détails du produit</p>
               </div>
             </button>
           )}

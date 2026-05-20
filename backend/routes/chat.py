@@ -47,6 +47,8 @@ async def start_conversation(
     seller_type = None
     product_name = None
     product_image = None
+    product_price_fcfa = None
+    product_promo_price_fcfa = None
     
     # Determine who to chat with based on product type
     if data.dropshipped_product_id:
@@ -58,6 +60,8 @@ async def start_conversation(
         seller_type = "dropshipper"
         product_name = dp.get("original_name")
         product_image = dp.get("original_images", [None])[0]
+        product_price_fcfa = dp.get("original_price_fcfa")
+        product_promo_price_fcfa = dp.get("original_promo_price_fcfa") or dp.get("selling_price_fcfa")
         product_id = data.dropshipped_product_id
         
     elif data.product_id:
@@ -69,6 +73,8 @@ async def start_conversation(
         seller_type = "vendor"
         product_name = product["name"]
         product_image = product.get("images", [None])[0]
+        product_price_fcfa = product.get("price_fcfa")
+        product_promo_price_fcfa = product.get("promo_price_fcfa")
         product_id = data.product_id
     else:
         raise HTTPException(status_code=400, detail="product_id ou dropshipped_product_id requis")
@@ -91,6 +97,8 @@ async def start_conversation(
         "product_id": product_id,
         "product_name": product_name,
         "product_image": product_image,
+        "product_price_fcfa": product_price_fcfa,
+        "product_promo_price_fcfa": product_promo_price_fcfa,
         "customer_id": user["id"],
         "customer_name": user.get("name"),
         "customer_email": user.get("email"),
