@@ -146,7 +146,7 @@ const Navbar = () => {
             </form>
 
             {/* Actions */}
-            <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -163,11 +163,11 @@ const Navbar = () => {
                 </Link>
               </Button>
 
-              <Link to="/panier" data-testid="cart-btn">
-                <Button variant="ghost" size="icon" className="relative group">
+              <Link to="/panier" data-testid="cart-btn" className="mr-1">
+                <Button variant="ghost" size="icon" className="relative group z-10">
                   <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pop-in cart-badge-bounce">
+                    <span className="absolute -top-1.5 -right-1.5 z-30 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pop-in cart-badge-bounce shadow">
                       {cart.item_count}
                     </span>
                   )}
@@ -178,7 +178,7 @@ const Navbar = () => {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative" data-testid="user-menu-btn">
+                    <Button variant="ghost" size="icon" className="relative ml-1" data-testid="user-menu-btn">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-sm font-bold">
                         {user?.profile_photo ? (
                           <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
