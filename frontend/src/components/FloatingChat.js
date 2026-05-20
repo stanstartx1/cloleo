@@ -107,7 +107,7 @@ export const useChat = () => {
 };
 
 const FloatingChat = () => {
-  const { isOpen, closeChat, conversations, activeConversationId, openConversation, refreshConversations } = useChat();
+  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations } = useChat();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -168,7 +168,25 @@ const FloatingChat = () => {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    if (!token) return null;
+    return (
+      <button
+        onClick={openChat}
+        className="fixed bottom-4 right-4 z-[90] group"
+        aria-label="Ouvrir la messagerie"
+      >
+        <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 blur opacity-70 group-hover:opacity-100 animate-pulse" />
+        <span className="relative w-16 h-16 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 shadow-2xl flex items-center justify-center overflow-hidden">
+          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/35 to-transparent group-hover:translate-x-full transition-transform duration-1000" />
+          <MessageCircle className="w-7 h-7 text-white relative z-10" />
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white border border-white">
+            En ligne
+          </span>
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div className="fixed bottom-4 right-4 z-[90] w-[95vw] max-w-[420px] h-[75vh] max-h-[620px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
