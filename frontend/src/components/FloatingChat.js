@@ -179,7 +179,7 @@ const FloatingChat = () => {
       return (
         <button
           onClick={() => toast.error("Connectez-vous pour ouvrir le chat")}
-          className="fixed bottom-4 right-4 z-[90] group"
+          className="fixed bottom-[5.9rem] md:bottom-4 right-3 md:right-4 z-[90] group"
           aria-label="Ouvrir la messagerie"
         >
           <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 blur opacity-70 group-hover:opacity-100 animate-pulse" />
@@ -196,7 +196,7 @@ const FloatingChat = () => {
     return (
       <button
         onClick={openChat}
-        className="fixed bottom-4 right-4 z-[90] group"
+        className="fixed bottom-[5.9rem] md:bottom-4 right-3 md:right-4 z-[90] group"
         aria-label="Ouvrir la messagerie"
       >
         <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 blur opacity-70 group-hover:opacity-100 animate-pulse" />
@@ -212,7 +212,7 @@ const FloatingChat = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[90] w-[95vw] max-w-[420px] h-[75vh] max-h-[620px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed bottom-[5.9rem] md:bottom-4 right-2 md:right-4 z-[90] w-[96vw] md:w-[95vw] max-w-[420px] h-[68vh] md:h-[75vh] max-h-[620px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
       <div className="h-14 bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 text-white flex items-center justify-between px-4">
         <div className="flex items-center gap-2 font-semibold">
           <MessageCircle className="w-4 h-4" />
@@ -224,7 +224,7 @@ const FloatingChat = () => {
       </div>
 
       <div className="h-[calc(100%-56px)] flex">
-        <div className="w-40 border-r border-slate-200 overflow-y-auto bg-slate-50">
+        <div className="w-32 sm:w-40 border-r border-slate-200 overflow-y-auto bg-slate-50">
           {conversations.length === 0 ? (
             <div className="p-3 text-xs text-slate-500">Aucune conversation</div>
           ) : (

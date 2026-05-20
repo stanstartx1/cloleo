@@ -321,3 +321,39 @@
     min-width: max-content;
   }
 }
+
+/* Device QA refinements */
+@media (max-width: 430px) {
+  html {
+    font-size: 14px;
+  }
+
+  .container {
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+  }
+
+  /* Reduce oversized paddings and controls */
+  main .px-4 { padding-left: 0.65rem !important; padding-right: 0.65rem !important; }
+  main .py-6 { padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; }
+  main .h-16 { height: 3.5rem !important; }
+
+  /* Keep product/chat action buttons readable */
+  .text-lg { font-size: 1rem !important; }
+  .text-base { font-size: 0.95rem !important; }
+}
+
+@media (max-width: 380px) {
+  html {
+    font-size: 13.5px;
+  }
+
+  .pb-mobile-nav {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  /* Very small phones: more compact cards/grids */
+  .grid-cols-2 { gap: 0.5rem !important; }
+  .rounded-2xl { border-radius: 0.75rem !important; }
+  .rounded-xl { border-radius: 0.65rem !important; }
+}
