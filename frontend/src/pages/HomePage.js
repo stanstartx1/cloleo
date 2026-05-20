@@ -194,7 +194,7 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
             {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
@@ -227,7 +227,7 @@ const HomePage = () => {
             <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
           </div>
           <div className="relative flex overflow-hidden">
-            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
               {[...subCategories, ...subCategories].map((sub, index) => {
                 const banners = sub.banner_images || [];
                 const img = banners.length > 0
@@ -386,7 +386,7 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
             {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
@@ -415,7 +415,7 @@ const HomePage = () => {
             <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
           </div>
           <div className="relative flex overflow-hidden">
-            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
               {[...subCategories, ...subCategories].map((sub, index) => {
                 const banners = sub.banner_images || [];
                 const img = banners.length > 0
@@ -493,7 +493,7 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
             {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
@@ -594,7 +594,7 @@ const HomePage = () => {
       {/* Marquee */}
       <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
         <div className="relative flex overflow-hidden">
-          <div className="animate-marquee flex items-center whitespace-nowrap touch-scroll-x overflow-x-auto">
+          <div className="animate-marquee flex items-center whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
             {[...Array(2)].map((_, setIndex) => (
               <div key={setIndex} className="flex items-center">
                 {[
@@ -721,4 +721,5 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
 

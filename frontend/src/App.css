@@ -186,7 +186,7 @@
   }
 
   html {
-    font-size: 15px;
+    font-size: 14.5px;
   }
 
   h1 {
@@ -206,6 +206,27 @@
   .premium-hover {
     transform: none !important;
   }
+
+  /* Generic compact spacing for mobile across pages/dashboards */
+  main .p-6 { padding: 1rem !important; }
+  main .p-5 { padding: 0.9rem !important; }
+  main .py-12 { padding-top: 1.4rem !important; padding-bottom: 1.4rem !important; }
+  main .py-8 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  main .gap-8 { gap: 1rem !important; }
+  main .gap-6 { gap: 0.85rem !important; }
+
+  /* Reduce large headings globally on mobile */
+  .text-6xl { font-size: 1.9rem !important; line-height: 1.15 !important; }
+  .text-5xl { font-size: 1.7rem !important; line-height: 1.15 !important; }
+  .text-4xl { font-size: 1.55rem !important; line-height: 1.2 !important; }
+  .text-3xl { font-size: 1.35rem !important; line-height: 1.25 !important; }
+
+  /* Grid density for product cards and dashboard widgets */
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .xl\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .xl\:grid-cols-5 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 
 /* Touch-friendly horizontal scroll */
