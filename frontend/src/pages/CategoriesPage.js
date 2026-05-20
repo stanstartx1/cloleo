@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Grid3X3 } from 'lucide-react';
+import { ArrowRight, Sparkles, Grid3X3, ChevronDown } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -11,12 +11,30 @@ const CategoriesPage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [expanded, setExpanded] = useState({});
+
+  const parentCategories = useMemo(
+    () => categories.filter((c) => !c.parent_slug),
+    [categories]
+  );
+
+  const childrenByParent = useMemo(
+    () =>
+      categories.reduce((acc, cat) => {
+        if (cat.parent_slug) {
+          acc[cat.parent_slug] = acc[cat.parent_slug] || [];
+          acc[cat.parent_slug].push(cat);
+        }
+        return acc;
+      }, {}),
+    [categories]
+  );
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await axios.get(`${API}/categories`);
-        setCategories(response.data);
+        setCategories(response.data || []);
       } catch (error) {
         console.error('Error fetching categories:', error);
       } finally {
@@ -26,126 +44,132 @@ const CategoriesPage = () => {
     fetchCategories();
   }, []);
 
+  const toggleExpanded = (slug) => {
+    setExpanded((prev) => ({ ...prev, [slug]: !prev[slug] }));
+  };
+
   return (
     <div className="min-h-screen" data-testid="categories-page">
-      {/* Animated Header */}
       <div className="relative bg-gradient-to-br from-slate-900 via-orange-900/20 to-slate-900 text-white py-20 overflow-hidden">
-        {/* Animated background */}
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          {/* Grid pattern */}
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '30px 30px'
-          }} />
+          <div
+            className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl animate-pulse"
+            style={{ animationDelay: '1s' }}
+          />
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+              backgroundSize: '30px 30px'
+            }}
+          />
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <nav className="flex items-center text-sm text-slate-400 mb-6">
             <Link to="/" className="hover:text-white transition-colors">Accueil</Link>
             <span className="mx-2">/</span>
             <span className="text-amber-400">Catégories</span>
           </nav>
-          
+
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/25">
               <Grid3X3 className="w-7 h-7 text-white" />
             </div>
             <div>
               <h1 className="text-4xl md:text-5xl font-bold">Toutes les catégories</h1>
-              <p className="text-slate-400 mt-1">
-                {categories.length} univers à explorer
-              </p>
+              <p className="text-slate-400 mt-1">{parentCategories.length} univers à explorer</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Categories Grid */}
       <div className="container mx-auto px-4 py-12">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
+          <div className="space-y-5">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-2xl" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
-              <Link
-                key={category.slug}
-                to={`/categories/${category.slug}`}
-                className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]"
-                style={{ animationDelay: `${index * 100}ms` }}
-                data-testid={`category-card-${category.slug}`}
-                onMouseEnter={() => setHoveredCategory(category.slug)}
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                {/* Image */}
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
-                    hoveredCategory === category.slug ? 'scale-110 brightness-75' : 'scale-100'
-                  }`}
-                />
-                
-                {/* Gradient overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                <div className={`absolute inset-0 bg-gradient-to-r from-orange-500/0 to-amber-500/0 transition-all duration-500 ${
-                  hoveredCategory === category.slug ? 'from-orange-500/30 to-amber-500/20' : ''
-                }`} />
-                
-                {/* Decorative corner */}
-                <div className={`absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-white/0 transition-all duration-500 ${
-                  hoveredCategory === category.slug ? 'border-white/50' : ''
-                }`} />
-                <div className={`absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-white/0 transition-all duration-500 ${
-                  hoveredCategory === category.slug ? 'border-white/50' : ''
-                }`} />
-                
-                {/* Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs mb-3 transition-all duration-300 ${
-                    hoveredCategory === category.slug ? 'bg-orange-500/50' : ''
-                  }`}>
-                    <Sparkles className="w-3 h-3" />
-                    {category.product_count} produits
+          <div className="space-y-5">
+            {parentCategories.map((category, index) => {
+              const subCategories = childrenByParent[category.slug] || [];
+              const isOpen = !!expanded[category.slug];
+              const imageSrc = category.image || category.banner_images?.[0] || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=1200&auto=format&fit=crop';
+              return (
+                <div
+                  key={category.slug}
+                  className="rounded-2xl overflow-hidden border border-border bg-card opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]"
+                  style={{ animationDelay: `${index * 90}ms` }}
+                >
+                  <div className="relative">
+                    <img
+                      src={imageSrc}
+                      alt={category.name}
+                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
+                        hoveredCategory === category.slug ? 'scale-105 brightness-75' : 'scale-100 brightness-50'
+                      }`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30" />
+
+                    <div className="relative z-10 p-5 md:p-6 flex items-start md:items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs mb-3 text-white/90">
+                          <Sparkles className="w-3 h-3" />
+                          {category.product_count || 0} produits
+                        </div>
+                        <h2 className="text-2xl font-bold text-white truncate">{category.name}</h2>
+                        <p className="text-sm text-white/80 mt-1 line-clamp-2">{category.description || 'Explorez cette catégorie.'}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          to={`/categories/${category.slug}`}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                          onMouseEnter={() => setHoveredCategory(category.slug)}
+                          onMouseLeave={() => setHoveredCategory(null)}
+                        >
+                          Explorer <ArrowRight className="w-4 h-4" />
+                        </Link>
+                        {subCategories.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(category.slug)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/15 text-white hover:bg-white/25 transition-colors"
+                          >
+                            Sous-catégories
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  
-                  <h2 className={`text-2xl font-bold mb-2 transition-all duration-300 ${
-                    hoveredCategory === category.slug ? 'translate-x-2' : ''
-                  }`}>
-                    {category.name}
-                  </h2>
-                  
-                  <p className={`text-sm text-white/70 mb-3 line-clamp-2 transition-all duration-300 ${
-                    hoveredCategory === category.slug ? 'text-white/90' : ''
-                  }`}>
-                    {category.description}
-                  </p>
-                  
-                  <div className={`flex items-center gap-2 text-orange-400 font-medium transition-all duration-300 ${
-                    hoveredCategory === category.slug ? 'translate-x-2' : ''
-                  }`}>
-                    Explorer <ArrowRight className={`w-4 h-4 transition-transform duration-300 ${
-                      hoveredCategory === category.slug ? 'translate-x-1' : ''
-                    }`} />
-                  </div>
+
+                  {isOpen && subCategories.length > 0 && (
+                    <div className="p-4 md:p-5 bg-muted/20 border-t border-border">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {subCategories.map((sub) => (
+                          <Link
+                            key={sub.slug}
+                            to={`/categories/${sub.slug}`}
+                            className="group rounded-xl border border-border bg-background p-3 hover:border-orange-400/50 hover:bg-orange-50/40 transition-colors"
+                          >
+                            <p className="font-semibold text-sm group-hover:text-orange-600 transition-colors">{sub.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{sub.description || 'Voir les produits de cette sous-catégorie.'}</p>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                {/* Bottom border animation */}
-                <div className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-500 ${
-                  hoveredCategory === category.slug ? 'w-full' : 'w-0'
-                }`} />
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Animation styles */}
       <style>{`
         @keyframes fadeInUp {
           from {
