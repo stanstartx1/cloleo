@@ -14,6 +14,7 @@ import { ChatProvider } from "./components/FloatingChat";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import FloatingChat from "./components/FloatingChat";
+import MobileBottomNav from "./components/MobileBottomNav";
 
 // Public Pages
 import HomePage from "./pages/HomePage";
@@ -98,14 +99,14 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false,
 const PublicLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
-    <main className="flex-1">{children}</main>
+    <main className="flex-1 pb-mobile-nav">{children}</main>
     <Footer />
   </div>
 );
 
 // Dashboard Layout (no Navbar/Footer - for dashboards with their own sidebar)
 const StandaloneDashboardLayout = ({ children }) => (
-  <div className="min-h-screen">
+  <div className="min-h-screen pb-mobile-nav">
     {children}
   </div>
 );
@@ -114,7 +115,7 @@ const StandaloneDashboardLayout = ({ children }) => (
 const DashboardLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
-    <main className="flex-1">{children}</main>
+    <main className="flex-1 pb-mobile-nav">{children}</main>
   </div>
 );
 
@@ -229,6 +230,7 @@ function App() {
           <BrowserRouter>
             <ChatProvider>
               <AppRoutes />
+              <MobileBottomNav />
               <FloatingChat />
               <Toaster 
                 position="bottom-right" 

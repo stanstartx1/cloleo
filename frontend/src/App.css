@@ -167,3 +167,66 @@
   from { transform: translateY(0); opacity: 1; }
   to { transform: translateY(100%); opacity: 0; }
 }
+
+/* Global mobile responsiveness helpers */
+.pb-mobile-nav {
+  padding-bottom: 0;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pb-mobile-nav {
+    padding-bottom: calc(4.8rem + env(safe-area-inset-bottom));
+  }
+
+  html {
+    font-size: 15px;
+  }
+
+  h1 {
+    font-size: clamp(1.4rem, 5vw, 1.9rem) !important;
+  }
+
+  h2 {
+    font-size: clamp(1.2rem, 4.5vw, 1.6rem) !important;
+  }
+
+  h3 {
+    font-size: clamp(1.05rem, 4vw, 1.3rem) !important;
+  }
+
+  .card-hover,
+  .product-card,
+  .premium-hover {
+    transform: none !important;
+  }
+}
+
+/* Touch-friendly horizontal scroll */
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.touch-scroll-x::-webkit-scrollbar {
+  height: 6px;
+}
+
+@media (max-width: 768px) {
+  /* On mobile, stop automatic marquee so users can swipe manually */
+  .animate-marquee,
+  .animate-marquee-cats,
+  .animate-scroll-left,
+  .animate-scroll-right {
+    animation: none !important;
+  }
+}
