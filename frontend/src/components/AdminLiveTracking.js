@@ -391,7 +391,7 @@ const AdminLiveTracking = ({ token }) => {
           </h3>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x">
           <table className="w-full">
             <thead className="bg-slate-700/50">
               <tr>

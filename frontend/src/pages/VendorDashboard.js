@@ -714,7 +714,7 @@ const VendorDashboard = () => {
                 transition={{ delay: 0.2 }}
               >
                 {orders.length > 0 ? (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto touch-scroll-x">
                     <table className="w-full">
                       <thead className="bg-slate-700/50">
                         <tr>

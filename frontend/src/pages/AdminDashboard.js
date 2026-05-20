@@ -811,7 +811,7 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, onMessage, sear
       )}
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x">
           <table className="w-full">
             <thead className="bg-slate-700/50">
               <tr>
@@ -1202,7 +1202,7 @@ const PlansSection = ({ plans, vendors }) => {
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-400" />Potentiel de revenus mensuels</h3>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x">
           <table className="w-full">
             <thead>
               <tr className="text-left text-sm text-slate-400">
@@ -1344,7 +1344,7 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
 
       <div className="bg-slate-800 rounded-xl border border-slate-700">
         <div className="p-4 border-b border-slate-700"><h3 className="font-semibold">Liste des Revendeurs ({revendeurs.length})</h3></div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
@@ -1437,7 +1437,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
         </div>
       </div>
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-700 text-left text-sm text-slate-400">
@@ -1814,7 +1814,7 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
       </div>
 
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-scroll-x">
           <table className="w-full">
             <thead className="bg-slate-700/50">
               <tr>
@@ -1864,4 +1864,3 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
 };
 
 export default AdminDashboard;
-

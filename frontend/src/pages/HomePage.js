@@ -194,7 +194,7 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
             {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
@@ -227,7 +227,7 @@ const HomePage = () => {
             <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
           </div>
           <div className="relative flex overflow-hidden">
-            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap">
+            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
               {[...subCategories, ...subCategories].map((sub, index) => {
                 const banners = sub.banner_images || [];
                 const img = banners.length > 0
@@ -369,7 +369,7 @@ const HomePage = () => {
                 </Link>
               </Button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+            <div className="flex gap-4 overflow-x-auto touch-scroll-x pb-2 snap-x snap-mandatory">
               {section.products.map((product) => (
                 <div key={`${section.category.slug}-${product.id}`} className="min-w-[220px] md:min-w-[250px] lg:min-w-[270px] snap-start">
                   <ProductCard product={product} className="h-full" />
@@ -386,7 +386,7 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
             {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
@@ -415,7 +415,7 @@ const HomePage = () => {
             <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
           </div>
           <div className="relative flex overflow-hidden">
-            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap">
+            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
               {[...subCategories, ...subCategories].map((sub, index) => {
                 const banners = sub.banner_images || [];
                 const img = banners.length > 0
@@ -493,7 +493,7 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap">
+          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
             {[...parentCategories, ...parentCategories].map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
@@ -594,7 +594,7 @@ const HomePage = () => {
       {/* Marquee */}
       <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
         <div className="relative flex overflow-hidden">
-          <div className="animate-marquee flex items-center whitespace-nowrap">
+          <div className="animate-marquee flex items-center whitespace-nowrap touch-scroll-x overflow-x-auto">
             {[...Array(2)].map((_, setIndex) => (
               <div key={setIndex} className="flex items-center">
                 {[
@@ -721,3 +721,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
