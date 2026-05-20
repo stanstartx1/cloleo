@@ -269,10 +269,11 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             <Button
               onClick={handleContactVendor}
               className={cn(
-                "w-full bg-white/95 backdrop-blur-sm text-gray-900 font-semibold",
-                "hover:bg-gradient-to-r hover:from-orange-500 hover:to-amber-500 hover:text-white",
-                "transition-all duration-300 shadow-xl rounded-xl py-5",
-                "border-2 border-white/50"
+                "w-full backdrop-blur-sm text-white font-bold",
+                "bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500",
+                "hover:from-fuchsia-700 hover:via-orange-600 hover:to-amber-600",
+                "transition-all duration-300 shadow-xl shadow-orange-500/30 rounded-xl py-5",
+                "border border-white/20"
               )}
               size="lg"
               data-testid={`contact-vendor-btn-${product.id}`}
@@ -463,8 +464,8 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               onClick={handleContactVendor}
               className={cn(
                 "mt-2 w-full rounded-xl py-4 font-semibold shadow-md",
-                "bg-gradient-to-r from-slate-700 to-slate-800 text-white",
-                "hover:from-slate-800 hover:to-slate-900",
+                "bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 text-white",
+                "hover:from-fuchsia-700 hover:via-orange-600 hover:to-amber-600",
                 "transition-all duration-300"
               )}
               size="sm"

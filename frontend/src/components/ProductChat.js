@@ -51,8 +51,7 @@ const ProductChat = ({
   return (
     <Button
       onClick={handleOpenChat}
-      variant="outline"
-      className="flex items-center gap-2 border-orange-200 text-orange-600 hover:bg-orange-50 animate-pulse"
+      className="flex items-center gap-2 text-white font-semibold bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 hover:from-fuchsia-700 hover:via-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/30 animate-pulse"
       data-testid="contact-seller-btn"
     >
       <MessageCircle className="w-4 h-4" />

@@ -668,8 +668,7 @@ const ProductPage = () => {
                 <Tag className="w-4 h-4 mr-2" /> Faire une offre
               </Button>
               <Button 
-                variant="secondary" 
-                className="flex-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                className="flex-1 text-white font-semibold bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 hover:from-fuchsia-700 hover:via-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/30"
                 onClick={handleContactSeller}
                 data-testid="contact-seller-btn"
               >

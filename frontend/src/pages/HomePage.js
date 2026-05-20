@@ -98,9 +98,9 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    if (featuredProducts.length <= 4) return;
+    if (featuredProducts.length <= 3) return;
     const interval = setInterval(() => {
-      setCarouselIndex(prev => (prev + 1) % Math.max(1, featuredProducts.length - 3));
+      setCarouselIndex(prev => (prev + 1) % Math.max(1, featuredProducts.length - 2));
     }, 5000);
     return () => clearInterval(interval);
   }, [featuredProducts.length]);
@@ -112,7 +112,7 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const nextSlide = () => setCarouselIndex(prev => Math.min(prev + 1, Math.max(0, featuredProducts.length - 4)));
+  const nextSlide = () => setCarouselIndex(prev => Math.min(prev + 1, Math.max(0, featuredProducts.length - 3)));
   const prevSlide = () => setCarouselIndex(prev => Math.max(prev - 1, 0));
 
   const toggleConditionFilter = (key) => {
@@ -284,7 +284,7 @@ const HomePage = () => {
                 <p className="text-muted-foreground mt-1">Les meilleures sélections de nos vendeurs</p>
               </div>
             </div>
-            {filteredFeaturedProducts.length > 4 && (
+            {filteredFeaturedProducts.length > 3 && (
               <div className="hidden md:flex items-center gap-3">
                 <Button variant="outline" size="icon" onClick={prevSlide} disabled={carouselIndex === 0}
                   className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50">
@@ -309,19 +309,19 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="relative overflow-hidden">
-              <div className="flex gap-6 transition-transform duration-700 ease-out"
-                style={{ transform: `translateX(-${carouselIndex * (100 / 4 + 1.5)}%)` }}>
+              <div className="flex gap-5 transition-transform duration-700 ease-out"
+                style={{ transform: `translateX(-${carouselIndex * 34}%)` }}>
                 {filteredFeaturedProducts.map((product, index) => (
                   <motion.div key={product.id}
-                    className="w-full md:w-[calc(25%-18px)] lg:w-[calc(20%-18px)] flex-shrink-0"
+                    className="w-full md:w-[calc(33.333%-14px)] lg:w-[calc(33.333%-14px)] flex-shrink-0"
                     variants={cardMotion} initial="hidden" animate="visible"
                     transition={{ duration: 0.7, delay: index * 0.08 }}
                     whileHover={{ y: -8, scale: 1.03 }}
                   >
                     <div className="transform transition-all duration-500"
                       style={{
-                        opacity: index >= carouselIndex && index < carouselIndex + 4 ? 1 : 0.3,
-                        transform: index >= carouselIndex && index < carouselIndex + 4 ? 'scale(1)' : 'scale(0.95)'
+                        opacity: index >= carouselIndex && index < carouselIndex + 3 ? 1 : 0.3,
+                        transform: index >= carouselIndex && index < carouselIndex + 3 ? 'scale(1)' : 'scale(0.95)'
                       }}>
                       <ProductCard product={product} className="scale-[0.94]" />
                     </div>
@@ -331,9 +331,9 @@ const HomePage = () => {
             </div>
           )}
 
-          {filteredFeaturedProducts.length > 4 && (
+          {filteredFeaturedProducts.length > 3 && (
             <div className="flex justify-center gap-2 mt-8">
-              {[...Array(Math.max(1, filteredFeaturedProducts.length - 3))].map((_, i) => (
+              {[...Array(Math.max(1, filteredFeaturedProducts.length - 2))].map((_, i) => (
                 <button key={i} onClick={() => setCarouselIndex(i)}
                   className={`h-2 rounded-full transition-all duration-300 ${i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'}`} />
               ))}
