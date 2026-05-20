@@ -1302,6 +1302,15 @@ async def admin_start_conversation(payload: dict, user: dict = Depends(get_curre
     return conversation
 
 
+@api.get("/admin/conversations")
+async def admin_get_conversations(user: dict = Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acces reserve a l'administrateur")
+
+    conversations = await db.conversations.find({}, {"_id": 0}).sort("updated_at", -1).to_list(500)
+    return {"conversations": conversations}
+
+
 @api.get("/offers/{offer_token}")
 async def get_offer(offer_token: str, user: Optional[dict] = Depends(get_current_user)):
     offer = await db.offers.find_one({"token": offer_token, "status": "active"}, {"_id": 0})

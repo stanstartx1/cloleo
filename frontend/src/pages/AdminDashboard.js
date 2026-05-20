@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
-  BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star,
+  BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star, MessageCircle,
   Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +27,7 @@ const SIDEBAR_ITEMS = [
   { id: 'drivers', label: 'Livreurs', icon: Truck, color: 'text-blue-400' },
   { id: 'revendeurs', label: 'Revendeurs', icon: Package, color: 'text-indigo-400' },
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
+  { id: 'messages', label: 'Messages', icon: MessageCircle, color: 'text-fuchsia-400' },
   { id: 'categories', label: 'Catégories', icon: Cog, color: 'text-teal-400' },
   { id: 'transactions', label: 'Transactions', icon: CreditCard, color: 'text-emerald-400' },
   { id: 'plans', label: 'Plans abonnement', icon: Crown, color: 'text-yellow-400' },
@@ -64,6 +65,7 @@ const AdminDashboard = () => {
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [productFilter, setProductFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [adminConversations, setAdminConversations] = useState([]);
 
   // ===== AUTO-APPROVE STATES =====
   const [autoApprove, setAutoApprove] = useState({
@@ -80,6 +82,11 @@ const AdminDashboard = () => {
     }
     fetchAllData();
   }, [isAdmin, navigate]);
+
+  useEffect(() => {
+    if (!isAdmin || !token) return;
+    fetchAdminConversations();
+  }, [isAdmin, token]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -396,6 +403,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleOpenConversation = (conversationId) => {
+    navigate(`/mes-messages?conversation=${conversationId}`);
+  };
+
+  const fetchAdminConversations = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/conversations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAdminConversations(response.data?.conversations || []);
+    } catch (error) {
+      toast.error('Erreur de chargement des messages admin');
+    }
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategory.name) { toast.error('Le nom est requis'); return; }
     try {
@@ -492,6 +514,8 @@ const AdminDashboard = () => {
         return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
       case 'products':
         return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
+      case 'messages':
+        return <AdminMessagesSection conversations={adminConversations} onRefresh={fetchAdminConversations} onOpenConversation={handleOpenConversation} />;
       case 'categories':
         return <CategoriesSection token={token} categories={categories} editingCategory={editingCategory} setEditingCategory={setEditingCategory} newCategory={newCategory} setNewCategory={setNewCategory} showNewForm={showNewCategoryForm} setShowNewForm={setShowNewCategoryForm} onCreate={handleCreateCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} onToggle={handleToggleCategory} onRefresh={fetchAllData} products={products} />;
       case 'transactions':
@@ -1736,6 +1760,66 @@ const CategoriesSection = ({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">Messages ({conversations.length})</h2>
+        <Button variant="outline" onClick={onRefresh}>
+          <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
+        </Button>
+      </div>
+
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-700/50">
+              <tr>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Conversation</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Dernier message</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Date</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Non lus</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {conversations.map((conv) => (
+                <tr key={conv.id} className="border-t border-slate-700 hover:bg-slate-700/20">
+                  <td className="p-4">
+                    <p className="font-medium">{conv.seller_name || 'Utilisateur'}</p>
+                    <p className="text-xs text-slate-400">{conv.product_name || 'Message direct'}</p>
+                  </td>
+                  <td className="p-4 text-sm text-slate-300">{conv.last_message || 'Aucun message'}</td>
+                  <td className="p-4 text-sm text-slate-400">
+                    {conv.updated_at ? new Date(conv.updated_at).toLocaleString('fr-FR') : '-'}
+                  </td>
+                  <td className="p-4">
+                    {(conv.unread_customer || 0) > 0 ? (
+                      <span className="px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold">
+                        {conv.unread_customer}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500">0</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <Button size="sm" onClick={() => onOpenConversation(conv.id)} className="bg-fuchsia-600 hover:bg-fuchsia-700">
+                      Ouvrir le chat
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {conversations.length === 0 && (
+          <div className="p-12 text-center text-slate-500">Aucune conversation pour le moment</div>
+        )}
       </div>
     </div>
   );
