@@ -32,6 +32,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const hasUserMenu = isAuthenticated;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -157,7 +158,11 @@ const Navbar = () => {
                 <Search className="w-5 h-5" />
               </Button>
 
-              <Link to="/panier" data-testid="cart-btn" className="mr-0.5">
+              <Link
+                to="/panier"
+                data-testid="cart-btn"
+                className={hasUserMenu ? "mr-2 sm:mr-3 lg:mr-4" : "mr-0.5"}
+              >
                 <Button variant="ghost" size="icon" className="relative group z-10">
                   <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
@@ -168,7 +173,7 @@ const Navbar = () => {
                 </Button>
               </Link>
 
-              <Button variant="ghost" size="icon" asChild className="hidden md:flex">
+              <Button variant="ghost" size="icon" asChild className="hidden md:flex mr-0.5">
                 <Link to="/favoris" data-testid="favorites-btn">
                   <Heart className="w-5 h-5" />
                 </Link>
@@ -178,7 +183,7 @@ const Navbar = () => {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative ml-1" data-testid="user-menu-btn">
+                    <Button variant="ghost" size="icon" className="relative ml-1 shrink-0 z-20" data-testid="user-menu-btn">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-sm font-bold">
                         {user?.profile_photo ? (
                           <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
