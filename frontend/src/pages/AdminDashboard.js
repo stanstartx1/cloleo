@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -491,6 +491,37 @@ const AdminDashboard = () => {
     return matchesRole && matchesSearch;
   });
 
+  const { vendorsWithCounts, revendeursWithCounts } = useMemo(() => {
+    const vendorCountById = new Map();
+    const revendeurCountByShopSlug = new Map();
+    const revendeurCountById = new Map();
+
+    for (const p of products || []) {
+      const sellerId = p?.seller_id;
+      const shopSlug = p?.shop_slug;
+
+      if (sellerId) {
+        vendorCountById.set(sellerId, (vendorCountById.get(sellerId) || 0) + 1);
+        revendeurCountById.set(sellerId, (revendeurCountById.get(sellerId) || 0) + 1);
+      }
+
+      if (shopSlug) {
+        revendeurCountByShopSlug.set(shopSlug, (revendeurCountByShopSlug.get(shopSlug) || 0) + 1);
+      }
+    }
+
+    return {
+      vendorsWithCounts: vendors.map((v) => ({
+        ...v,
+        product_count: vendorCountById.get(v.id) || 0,
+      })),
+      revendeursWithCounts: revendeurs.map((r) => ({
+        ...r,
+        product_count: revendeurCountByShopSlug.get(r.shop_slug) || revendeurCountById.get(r.id) || 0,
+      })),
+    };
+  }, [vendors, revendeurs, products]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex">
@@ -514,11 +545,11 @@ const AdminDashboard = () => {
       case 'users':
         return <UsersSection users={filteredUsers} roleFilter={userRoleFilter} setRoleFilter={setUserRoleFilter} search={userSearch} setSearch={setUserSearch} onDelete={handleDeleteUser} onToggleActive={handleToggleUserActive} />;
       case 'vendors':
-        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} onMessage={handleAdminWriteMessage} searchTerm={searchTerm} autoApprove={autoApprove.vendors} onToggleAutoApprove={() => handleToggleAutoApprove('vendors')} />;
+        return <VendorsSection vendors={vendorsWithCounts} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} onMessage={handleAdminWriteMessage} searchTerm={searchTerm} autoApprove={autoApprove.vendors} onToggleAutoApprove={() => handleToggleAutoApprove('vendors')} />;
       case 'drivers':
         return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.drivers} onToggleAutoApprove={() => handleToggleAutoApprove('drivers')} />;
       case 'revendeurs':
-        return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
+        return <RevendeursSection revendeurs={revendeursWithCounts} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
       case 'products':
         return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
       case 'messages':
@@ -1833,3 +1864,4 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
 };
 
 export default AdminDashboard;
+
