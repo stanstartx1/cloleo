@@ -88,9 +88,9 @@ const Navbar = () => {
           </div>
 
           {/* Main navbar */}
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center h-16 gap-3 lg:gap-4">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group" data-testid="logo">
+            <Link to="/" className="flex items-center gap-2 group shrink-0" data-testid="logo">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 group-hover:shadow-lg group-hover:shadow-orange-500/30">
                 C
               </div>
@@ -101,7 +101,7 @@ const Navbar = () => {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-5 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-1 font-medium hover:text-primary transition-all duration-300 nav-item">
@@ -129,14 +129,14 @@ const Navbar = () => {
             </div>
 
             {/* Search bar - Desktop */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-md mx-8">
+            <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 min-w-0 max-w-sm xl:max-w-md mx-2 lg:mx-4">
               <div className="relative w-full">
                 <Input
                   type="text"
                   placeholder="Rechercher un produit..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 bg-muted/50 border-0 focus:bg-white"
+                  className="pr-10 bg-muted/50 border-0 focus:bg-white h-9"
                   data-testid="search-input"
                 />
                 <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary">
@@ -146,7 +146,7 @@ const Navbar = () => {
             </form>
 
             {/* Actions */}
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -256,9 +256,11 @@ const Navbar = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button asChild variant="default" size="sm" className="hidden md:flex" data-testid="login-btn">
+                <Button asChild variant="default" size="sm" className="hidden md:inline-flex" data-testid="login-btn">
                   <Link to="/connexion">
-                    <User className="w-4 h-4 mr-2" /> Inscription / Connexion
+                    <User className="w-4 h-4 mr-2" />
+                    <span className="lg:hidden">Connexion</span>
+                    <span className="hidden lg:inline">Inscription / Connexion</span>
                   </Link>
                 </Button>
               )}
