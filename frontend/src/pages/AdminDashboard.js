@@ -389,9 +389,14 @@ const AdminDashboard = () => {
 
   const handleAdminWriteMessage = async (targetUser) => {
     try {
+      const targetUserId = targetUser?.id || targetUser?.user_id;
+      if (!targetUserId) {
+        toast.error("Utilisateur introuvable pour ouvrir le chat");
+        return;
+      }
       const response = await axios.post(
         `${API}/admin/conversations/start`,
-        { target_user_id: targetUser.id },
+        { target_user_id: targetUserId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const conversationId = response.data?.id;

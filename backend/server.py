@@ -1253,7 +1253,7 @@ async def create_offer(payload: dict, user: dict = Depends(get_current_user)):
 
 @api.post("/admin/conversations/start")
 async def admin_start_conversation(payload: dict, user: dict = Depends(get_current_user)):
-    if user.get("role") != "admin":
+    if user.get("role") not in {"admin", "super_admin"}:
         raise HTTPException(status_code=403, detail="Acces reserve a l'administrateur")
 
     target_user_id = payload.get("target_user_id")
@@ -1304,7 +1304,7 @@ async def admin_start_conversation(payload: dict, user: dict = Depends(get_curre
 
 @api.get("/admin/conversations")
 async def admin_get_conversations(user: dict = Depends(get_current_user)):
-    if user.get("role") != "admin":
+    if user.get("role") not in {"admin", "super_admin"}:
         raise HTTPException(status_code=403, detail="Acces reserve a l'administrateur")
 
     conversations = await db.conversations.find({}, {"_id": 0}).sort("updated_at", -1).to_list(500)
