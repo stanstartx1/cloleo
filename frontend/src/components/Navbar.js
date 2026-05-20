@@ -157,13 +157,7 @@ const Navbar = () => {
                 <Search className="w-5 h-5" />
               </Button>
 
-              <Button variant="ghost" size="icon" asChild className="hidden md:flex">
-                <Link to="/favoris" data-testid="favorites-btn">
-                  <Heart className="w-5 h-5" />
-                </Link>
-              </Button>
-
-              <Link to="/panier" data-testid="cart-btn" className="mr-1">
+              <Link to="/panier" data-testid="cart-btn" className="mr-0.5">
                 <Button variant="ghost" size="icon" className="relative group z-10">
                   <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
@@ -173,6 +167,12 @@ const Navbar = () => {
                   )}
                 </Button>
               </Link>
+
+              <Button variant="ghost" size="icon" asChild className="hidden md:flex">
+                <Link to="/favoris" data-testid="favorites-btn">
+                  <Heart className="w-5 h-5" />
+                </Link>
+              </Button>
 
               {/* User Menu */}
               {isAuthenticated ? (
