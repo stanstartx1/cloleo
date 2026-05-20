@@ -251,3 +251,73 @@
     animation: none !important;
   }
 }
+
+/* Second responsive pass: all screens consistency */
+@media (max-width: 768px) {
+  /* Safer containers */
+  .container {
+    max-width: 100%;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Generic cards/modals/forms */
+  .rounded-2xl {
+    border-radius: 0.9rem !important;
+  }
+  .rounded-xl {
+    border-radius: 0.75rem !important;
+  }
+  input, textarea, select, button {
+    font-size: 0.95rem;
+  }
+
+  /* Sticky mobile topbars in dashboards */
+  [data-testid="admin-dashboard"] .sticky,
+  [data-testid="vendor-dashboard"] .sticky,
+  [data-testid="driver-dashboard"] .sticky {
+    top: 0;
+  }
+
+  /* Dashboard sidebars and main panes */
+  [data-testid="admin-dashboard"] aside,
+  [data-testid="vendor-dashboard"] aside,
+  [data-testid="driver-dashboard"] aside {
+    width: min(86vw, 20rem) !important;
+  }
+  [data-testid="admin-dashboard"] main,
+  [data-testid="vendor-dashboard"] main,
+  [data-testid="driver-dashboard"] main {
+    padding: 0.75rem !important;
+  }
+
+  /* Large stat numbers */
+  [data-testid="admin-dashboard"] .text-3xl,
+  [data-testid="vendor-dashboard"] .text-3xl,
+  [data-testid="driver-dashboard"] .text-3xl,
+  .text-3xl {
+    font-size: 1.25rem !important;
+  }
+
+  /* Product and listing grids */
+  .grid-cols-2 {
+    gap: 0.65rem !important;
+  }
+  .min-w-\[220px\],
+  .min-w-\[250px\],
+  .min-w-\[270px\] {
+    min-width: 74vw !important;
+  }
+
+  /* Dialog/card max width on mobile */
+  .max-w-lg,
+  .max-w-xl,
+  .max-w-2xl {
+    max-width: 95vw !important;
+  }
+
+  /* Touch scroll containers */
+  .touch-scroll-x > * {
+    min-width: max-content;
+  }
+}

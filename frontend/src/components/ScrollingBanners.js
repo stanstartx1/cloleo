@@ -15,7 +15,7 @@ export const ScrollingBanner = ({
   const animationStyle = { animationDuration: `${speed}s` };
   
   return (
-    <div className={`overflow-hidden ${bgColor} ${className} ${pauseOnHover ? 'scroll-container' : ''}`}>
+    <div className={`overflow-hidden touch-scroll-x ${bgColor} ${className} ${pauseOnHover ? 'scroll-container' : ''}`}>
       <div className={`flex whitespace-nowrap ${animationClass}`} style={animationStyle}>
         {/* Duplicate content for seamless loop */}
         {[...items, ...items].map((item, index) => (
@@ -80,7 +80,7 @@ export const TrustBanner = () => {
 // Category pills scrolling
 export const CategoryScrollBanner = ({ categories }) => {
   return (
-    <div className="overflow-hidden scroll-container py-4">
+    <div className="overflow-hidden touch-scroll-x scroll-container py-4">
       <div className="flex whitespace-nowrap animate-scroll-left" style={{ animationDuration: '50s' }}>
         {[...categories, ...categories].map((cat, index) => (
           <a
@@ -100,7 +100,7 @@ export const CategoryScrollBanner = ({ categories }) => {
 // Brands/partners scrolling banner
 export const BrandsBanner = ({ brands }) => {
   return (
-    <div className="overflow-hidden bg-gray-50 py-8">
+    <div className="overflow-hidden touch-scroll-x bg-gray-50 py-8">
       <div className="flex items-center whitespace-nowrap animate-scroll-left" style={{ animationDuration: '40s' }}>
         {[...brands, ...brands].map((brand, index) => (
           <div key={index} className="mx-8 grayscale hover:grayscale-0 transition-all opacity-60 hover:opacity-100">
@@ -120,7 +120,7 @@ export const BrandsBanner = ({ brands }) => {
 // Testimonials scrolling
 export const TestimonialsBanner = ({ testimonials }) => {
   return (
-    <div className="overflow-hidden py-8 scroll-container">
+    <div className="overflow-hidden touch-scroll-x py-8 scroll-container">
       <div className="flex whitespace-nowrap animate-scroll-left" style={{ animationDuration: '60s' }}>
         {[...testimonials, ...testimonials].map((testimonial, index) => (
           <div 

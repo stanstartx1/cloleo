@@ -161,7 +161,7 @@ const FeaturedProducts = () => {
         </div>
 
         {/* Products Carousel */}
-        <div className="relative" ref={carouselRef}>
+        <div className="relative overflow-x-auto touch-scroll-x" ref={carouselRef}>
           <div 
             className="flex gap-6 transition-transform duration-700 ease-out"
             style={{ transform: `translateX(-${activeIndex * (100 / 4 + 1.5)}%)` }}
