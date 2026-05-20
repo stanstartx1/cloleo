@@ -1251,6 +1251,57 @@ async def create_offer(payload: dict, user: dict = Depends(get_current_user)):
     return {"offer": {k: v for k, v in offer.items() if k != "_id"}, "message": msg}
 
 
+@api.post("/admin/conversations/start")
+async def admin_start_conversation(payload: dict, user: dict = Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acces reserve a l'administrateur")
+
+    target_user_id = payload.get("target_user_id")
+    if not target_user_id:
+        raise HTTPException(status_code=400, detail="target_user_id requis")
+
+    target = await db.users.find_one({"id": target_user_id}, {"_id": 0, "password": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilisateur cible introuvable")
+
+    role = target.get("role") or "user"
+    seller_type = "vendor" if role == "vendor" else "dropshipper" if role == "dropshipper" else "driver" if role == "driver" else role
+    shop_name = target.get("shop_name") or target.get("name") or "Utilisateur"
+    product_id = f"admin-chat-{target_user_id}"
+
+    existing = await db.conversations.find_one(
+        {
+            "customer_id": user["id"],
+            "seller_id": target_user_id,
+            "product_id": product_id
+        },
+        {"_id": 0},
+    )
+    if existing:
+        return existing
+
+    conversation = {
+        "id": str(uuid.uuid4()),
+        "product_id": product_id,
+        "product_name": f"Support Admin - {shop_name}",
+        "product_image": None,
+        "customer_id": user["id"],
+        "customer_name": user.get("name") or "Admin",
+        "customer_email": user.get("email"),
+        "seller_id": target_user_id,
+        "seller_name": shop_name,
+        "seller_type": seller_type,
+        "last_message": None,
+        "last_message_at": None,
+        "unread_customer": 0,
+        "unread_seller": 0,
+        "created_at": _utc(),
+        "updated_at": _utc(),
+    }
+    await db.conversations.insert_one(conversation)
+    return conversation
+
+
 @api.get("/offers/{offer_token}")
 async def get_offer(offer_token: str, user: Optional[dict] = Depends(get_current_user)):
     offer = await db.offers.find_one({"token": offer_token, "status": "active"}, {"_id": 0})

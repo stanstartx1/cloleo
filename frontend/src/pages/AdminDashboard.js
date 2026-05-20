@@ -378,6 +378,24 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAdminWriteMessage = async (targetUser) => {
+    try {
+      const response = await axios.post(
+        `${API}/admin/conversations/start`,
+        { target_user_id: targetUser.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const conversationId = response.data?.id;
+      if (!conversationId) {
+        toast.error("Conversation non créée");
+        return;
+      }
+      navigate(`/mes-messages?conversation=${conversationId}`);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de l'ouverture du chat");
+    }
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategory.name) { toast.error('Le nom est requis'); return; }
     try {
@@ -467,11 +485,11 @@ const AdminDashboard = () => {
       case 'users':
         return <UsersSection users={filteredUsers} roleFilter={userRoleFilter} setRoleFilter={setUserRoleFilter} search={userSearch} setSearch={setUserSearch} onDelete={handleDeleteUser} onToggleActive={handleToggleUserActive} />;
       case 'vendors':
-        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} searchTerm={searchTerm} autoApprove={autoApprove.vendors} onToggleAutoApprove={() => handleToggleAutoApprove('vendors')} />;
+        return <VendorsSection vendors={vendors} onToggle={handleToggleVendorStatus} onVerify={handleVerifyVendor} onDelete={handleDeleteVendor} onMessage={handleAdminWriteMessage} searchTerm={searchTerm} autoApprove={autoApprove.vendors} onToggleAutoApprove={() => handleToggleAutoApprove('vendors')} />;
       case 'drivers':
-        return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} autoApprove={autoApprove.drivers} onToggleAutoApprove={() => handleToggleAutoApprove('drivers')} />;
+        return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.drivers} onToggleAutoApprove={() => handleToggleAutoApprove('drivers')} />;
       case 'revendeurs':
-        return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
+        return <RevendeursSection revendeurs={revendeurs} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
       case 'products':
         return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
       case 'categories':
@@ -701,7 +719,7 @@ const StatCard = ({ icon: Icon, color, value, label }) => (
   </div>
 );
 
-const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm, autoApprove, onToggleAutoApprove }) => {
+const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, onMessage, searchTerm, autoApprove, onToggleAutoApprove }) => {
   const filteredVendors = vendors.filter(v =>
     v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -783,6 +801,9 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm, aut
                           <Eye className="w-4 h-4 mr-1" /> Voir la boutique
                         </Link>
                       </Button>
+                      <Button size="sm" variant="outline" className="border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10" onClick={() => onMessage(vendor)}>
+                        Écrire
+                      </Button>
                       {!vendor.is_verified && (
                         <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onVerify(vendor.id)}>
                           <Check className="w-4 h-4 mr-1" /> Vérifier
@@ -807,7 +828,7 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm, aut
   );
 };
 
-const DriversSection = ({ drivers, onVerify, onToggle, onDelete, autoApprove, onToggleAutoApprove }) => (
+const DriversSection = ({ drivers, onVerify, onToggle, onDelete, onMessage, autoApprove, onToggleAutoApprove }) => (
   <div className="space-y-4">
     <AutoApproveToggle
       enabled={autoApprove}
@@ -873,6 +894,9 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete, autoApprove, on
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => onDelete(driver.id, driver.name)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10" data-testid={`delete-driver-${driver.id}`}>
                       <Trash2 className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" className="border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10" onClick={() => onMessage(driver)}>
+                      Écrire
                     </Button>
                   </div>
                 </td>
@@ -1221,7 +1245,7 @@ const SettingToggle = ({ label, value, onChange }) => (
   </div>
 );
 
-const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, onDelete, autoApprove, onToggleAutoApprove }) => {
+const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, onDelete, onMessage, autoApprove, onToggleAutoApprove }) => {
   const [loading, setLoading] = useState(false);
 
   const handleToggleRevendeur = async (revendeurId) => {
@@ -1286,6 +1310,9 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
                             </Link>
                           </Button>
                         )}
+                        <Button size="sm" variant="outline" className="border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10" onClick={() => onMessage(d)}>
+                          Écrire
+                        </Button>
                         <Button size="sm" variant={d.is_active ? 'destructive' : 'default'} onClick={() => handleToggleRevendeur(d.id)} disabled={loading}>
                           {d.is_active ? 'Désactiver' : 'Activer'}
                         </Button>
