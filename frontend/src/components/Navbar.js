@@ -166,7 +166,7 @@ const Navbar = () => {
                 <Button variant="ghost" size="icon" className="relative group z-10 w-11 h-11 overflow-visible">
                   <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-2 -right-2 z-30 min-w-[1.25rem] h-5 px-1 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold animate-pop-in cart-badge-bounce shadow">
+                    <span className="absolute top-0 right-0 translate-x-1 -translate-y-1 z-30 min-w-[1.1rem] h-[1.1rem] px-1 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none animate-pop-in cart-badge-bounce shadow">
                       {cart.item_count}
                     </span>
                   )}
