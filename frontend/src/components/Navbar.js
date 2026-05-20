@@ -161,12 +161,12 @@ const Navbar = () => {
               <Link
                 to="/panier"
                 data-testid="cart-btn"
-                className={hasUserMenu ? "mr-2 sm:mr-3 lg:mr-4" : "mr-0.5"}
+                className={hasUserMenu ? "mr-1" : "mr-0.5"}
               >
-                <Button variant="ghost" size="icon" className="relative group z-10 w-11 h-11 overflow-visible">
+                <Button variant="ghost" size="icon" className="relative group z-10 w-10 h-10 overflow-visible">
                   <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute top-0 right-0 translate-x-1 -translate-y-1 z-30 min-w-[1.1rem] h-[1.1rem] px-1 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none animate-pop-in cart-badge-bounce shadow">
+                    <span className="absolute top-[1px] right-[1px] z-30 min-w-[1rem] h-4 px-1 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none animate-pop-in cart-badge-bounce shadow">
                       {cart.item_count}
                     </span>
                   )}
