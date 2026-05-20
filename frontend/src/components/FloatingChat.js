@@ -4,17 +4,17 @@ import { MessageCircle, Send, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 
 const ChatContext = createContext(null);
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 
 export const ChatProvider = ({ children }) => {
+  const { token } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
-
-  const token = localStorage.getItem("cloleo_token");
 
   const startConversation = useCallback(async (productId, dropshippedProductId = null, metadata = {}) => {
     if (!token) return null;
@@ -27,7 +27,7 @@ export const ChatProvider = ({ children }) => {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const conversationId = response?.data?.id;
+    const conversationId = response?.data?.id || response?.data?.conversationId;
     if (conversationId) {
       setIsOpen(true);
       setActiveConversationId(conversationId);
@@ -107,12 +107,12 @@ export const useChat = () => {
 };
 
 const FloatingChat = () => {
+  const { token, isAuthenticated } = useAuth();
   const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations } = useChat();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
   const listEndRef = useRef(null);
-  const token = localStorage.getItem("cloleo_token");
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
 
@@ -169,7 +169,24 @@ const FloatingChat = () => {
   };
 
   if (!isOpen) {
-    if (!token) return null;
+    if (!isAuthenticated) {
+      return (
+        <button
+          onClick={() => toast.error("Connectez-vous pour ouvrir le chat")}
+          className="fixed bottom-4 right-4 z-[90] group"
+          aria-label="Ouvrir la messagerie"
+        >
+          <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 blur opacity-70 group-hover:opacity-100 animate-pulse" />
+          <span className="relative w-16 h-16 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 shadow-2xl flex items-center justify-center overflow-visible">
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/35 to-transparent group-hover:translate-x-full transition-transform duration-1000" />
+            <MessageCircle className="w-7 h-7 text-white relative z-10" />
+            <span className="absolute top-0 right-0 translate-x-1 -translate-y-1 px-1.5 py-0.5 rounded-full text-[10px] leading-none font-bold bg-slate-700 text-white border border-white shadow">
+              Chat
+            </span>
+          </span>
+        </button>
+      );
+    }
     return (
       <button
         onClick={openChat}
