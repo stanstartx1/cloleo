@@ -163,10 +163,10 @@ const Navbar = () => {
                 data-testid="cart-btn"
                 className={hasUserMenu ? "mr-2 sm:mr-3 lg:mr-4" : "mr-0.5"}
               >
-                <Button variant="ghost" size="icon" className="relative group z-10">
+                <Button variant="ghost" size="icon" className="relative group z-10 w-11 h-11 overflow-visible">
                   <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 z-30 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pop-in cart-badge-bounce shadow">
+                    <span className="absolute -top-2 -right-2 z-30 min-w-[1.25rem] h-5 px-1 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold animate-pop-in cart-badge-bounce shadow">
                       {cart.item_count}
                     </span>
                   )}
