@@ -17,7 +17,7 @@ import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
 import { cn } from '../lib/utils';
-import { getCountryByCode } from '../utils/countries';
+import { getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -267,6 +267,7 @@ const ProductPage = () => {
   const favorite = isFavorite(product.id);
   const originCountry = getCountryByCode(product.origin_country_code) || null;
   const originName = product.origin_country_name || originCountry?.name || null;
+  const originFlagUrl = getCountryFlagUrl(product.origin_country_code);
 
   return (
     <div className="min-h-screen py-8" data-testid="product-page">
@@ -333,7 +334,11 @@ const ProductPage = () => {
             <h1 className="text-2xl md:text-3xl font-bold mb-4" data-testid="product-title">{product.name}</h1>
             {(originCountry || originName) && (
               <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-sm">
-                <span>{originCountry?.flag || '🌍'}</span>
+                {originFlagUrl ? (
+                  <img src={originFlagUrl} alt="" className="w-4 h-3 rounded-sm object-cover" />
+                ) : (
+                  <span>🌍</span>
+                )}
                 <span className="font-medium text-slate-700">
                   {product.made_in_enabled ? `Made in ${originName}` : originName}
                 </span>

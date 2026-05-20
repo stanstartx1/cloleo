@@ -1,26 +1,31 @@
 export const COUNTRIES = [
-  { code: "CI", name: "Cote d'Ivoire", flag: "🇨🇮" },
-  { code: "SN", name: "Senegal", flag: "🇸🇳" },
-  { code: "NG", name: "Nigeria", flag: "🇳🇬" },
-  { code: "GH", name: "Ghana", flag: "🇬🇭" },
-  { code: "CM", name: "Cameroun", flag: "🇨🇲" },
-  { code: "ML", name: "Mali", flag: "🇲🇱" },
-  { code: "BF", name: "Burkina Faso", flag: "🇧🇫" },
-  { code: "BJ", name: "Benin", flag: "🇧🇯" },
-  { code: "TG", name: "Togo", flag: "🇹🇬" },
-  { code: "GN", name: "Guinee", flag: "🇬🇳" },
-  { code: "CD", name: "RDC", flag: "🇨🇩" },
-  { code: "MA", name: "Maroc", flag: "🇲🇦" },
-  { code: "TN", name: "Tunisie", flag: "🇹🇳" },
-  { code: "DZ", name: "Algerie", flag: "🇩🇿" },
-  { code: "ZA", name: "Afrique du Sud", flag: "🇿🇦" },
-  { code: "FR", name: "France", flag: "🇫🇷" },
-  { code: "IT", name: "Italie", flag: "🇮🇹" },
-  { code: "TR", name: "Turquie", flag: "🇹🇷" },
-  { code: "CN", name: "Chine", flag: "🇨🇳" },
-  { code: "IN", name: "Inde", flag: "🇮🇳" },
-  { code: "US", name: "Etats-Unis", flag: "🇺🇸" },
+  { code: "CI", name: "Cote d'Ivoire" },
+  { code: "SN", name: "Senegal" },
+  { code: "NG", name: "Nigeria" },
+  { code: "GH", name: "Ghana" },
+  { code: "CM", name: "Cameroun" },
+  { code: "ML", name: "Mali" },
+  { code: "BF", name: "Burkina Faso" },
+  { code: "BJ", name: "Benin" },
+  { code: "TG", name: "Togo" },
+  { code: "GN", name: "Guinee" },
+  { code: "CD", name: "RDC" },
+  { code: "MA", name: "Maroc" },
+  { code: "TN", name: "Tunisie" },
+  { code: "DZ", name: "Algerie" },
+  { code: "ZA", name: "Afrique du Sud" },
+  { code: "FR", name: "France" },
+  { code: "IT", name: "Italie" },
+  { code: "TR", name: "Turquie" },
+  { code: "CN", name: "Chine" },
+  { code: "IN", name: "Inde" },
+  { code: "US", name: "Etats-Unis" },
 ];
 
 export const getCountryByCode = (code) =>
   COUNTRIES.find((c) => c.code === code) || null;
+
+export const getCountryFlagUrl = (code) => {
+  if (!code) return "";
+  return `https://flagcdn.com/24x18/${String(code).toLowerCase()}.png`;
+};

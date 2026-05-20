@@ -10,7 +10,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import ImageUpload from '../components/ImageUpload';
-import { COUNTRIES, getCountryByCode } from '../utils/countries';
+import { COUNTRIES, getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -46,10 +46,10 @@ const VendorAddProduct = () => {
     made_in_enabled: false
   });
 
-  // CatÃ©gories parentes (sans parent_slug)
+  // Categories parentes (sans parent_slug)
   const parentCategories = categories.filter(c => !c.parent_slug);
 
-  // Sous-catÃ©gories de la catÃ©gorie sÃ©lectionnÃ©e
+  // Sous-categories de la categorie selectionnee
   const subCategories = categories.filter(
     c => c.parent_slug && c.parent_slug === formData.category_slug
   );
@@ -117,7 +117,7 @@ const VendorAddProduct = () => {
   };
 
   const handleCategoryChange = (value) => {
-    // RÃ©initialiser la sous-catÃ©gorie quand on change de catÃ©gorie
+    // Reinitialiser la sous-categorie quand on change de categorie
     setFormData(prev => ({ ...prev, category_slug: value, subcategory_slug: '' }));
   };
 
@@ -137,7 +137,7 @@ const VendorAddProduct = () => {
     setLoading(true);
 
     try {
-      // Le slug final = sous-catÃ©gorie si choisie, sinon catÃ©gorie principale
+      // Le slug final = sous-categorie si choisie, sinon categorie principale
       const finalCategorySlug = formData.subcategory_slug || formData.category_slug;
 
       const data = {
@@ -160,17 +160,17 @@ const VendorAddProduct = () => {
         await axios.put(`${API}/vendor/products/${id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success('Produit modifiÃ© avec succÃ¨s');
+        toast.success('Produit modifie avec succes');
       } else {
         await axios.post(`${API}/vendor/products`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success("Produit crÃ©Ã© ! En attente de validation par l'admin.");
+        toast.success("Produit cree ! En attente de validation par l'admin.");
       }
       navigate('/vendeur/produits');
     } catch (error) {
       console.error('Error creating product:', error);
-      toast.error(error.response?.data?.detail || 'Erreur lors de la crÃ©ation');
+      toast.error(error.response?.data?.detail || 'Erreur lors de la creation');
     } finally {
       setLoading(false);
     }
@@ -193,7 +193,7 @@ const VendorAddProduct = () => {
             <div>
               <h1 className="text-2xl font-bold">{isEditMode ? 'Modifier le produit' : 'Ajouter un produit'}</h1>
               <p className="text-muted-foreground">
-                {isEditMode ? 'Modifiez images, prix, stock et dÃ©tails du produit' : 'Votre produit sera soumis Ã  validation avant publication'}
+                {isEditMode ? 'Modifiez images, prix, stock et details du produit' : 'Votre produit sera soumis a validation avant publication'}
               </p>
             </div>
 
@@ -217,7 +217,10 @@ const VendorAddProduct = () => {
                   <SelectContent>
                     {COUNTRIES.map((country) => (
                       <SelectItem key={country.code} value={country.code}>
-                        {country.flag} {country.name}
+                        <span className="inline-flex items-center gap-2">
+                          <img src={getCountryFlagUrl(country.code)} alt="" className="w-4 h-3 rounded-sm object-cover" />
+                          <span>{country.name}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -237,7 +240,7 @@ const VendorAddProduct = () => {
             </div>
           </div>
           <Button variant="destructive" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" /> DÃ©connexion
+            <LogOut className="w-4 h-4 mr-2" /> Deconnexion
           </Button>
         </div>
 
@@ -245,7 +248,7 @@ const VendorAddProduct = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
           <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h2 className="font-bold text-lg">Informations gÃ©nÃ©rales</h2>
+            <h2 className="font-bold text-lg">Informations generales</h2>
 
             <div className="space-y-2">
               <Label htmlFor="name">Nom du produit *</Label>
@@ -256,20 +259,20 @@ const VendorAddProduct = () => {
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
               <Textarea id="description" name="description" value={formData.description}
-                onChange={handleInputChange} placeholder="DÃ©crivez votre produit en dÃ©tail..."
+                onChange={handleInputChange} placeholder="Decrivez votre produit en detail..."
                 rows={5} required data-testid="product-description" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* CatÃ©gorie principale */}
+              {/* Categorie principale */}
               <div className="space-y-2">
-                <Label htmlFor="category_slug">CatÃ©gorie *</Label>
+                <Label htmlFor="category_slug">Categorie *</Label>
                 <Select
                   value={formData.category_slug || undefined}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger data-testid="product-category">
-                    <SelectValue placeholder="SÃ©lectionner une catÃ©gorie..." />
+                    <SelectValue placeholder="Selectionner une categorie..." />
                   </SelectTrigger>
                   <SelectContent>
                     {parentCategories.filter(cat => cat.slug && cat.is_active !== false).map((cat) => (
@@ -281,10 +284,10 @@ const VendorAddProduct = () => {
                 </Select>
               </div>
 
-              {/* Sous-catÃ©gorie â€” affichÃ©e seulement si la catÃ©gorie sÃ©lectionnÃ©e a des sous-catÃ©gories */}
+              {/* Sous-categorie - affichee seulement si la categorie selectionnee a des sous-categories */}
               <div className="space-y-2">
                 <Label htmlFor="subcategory_slug">
-                  Sous-catÃ©gorie
+                  Sous-categorie
                   {subCategories.length === 0 && formData.category_slug && (
                     <span className="text-xs text-muted-foreground ml-1">(aucune disponible)</span>
                   )}
@@ -295,10 +298,10 @@ const VendorAddProduct = () => {
                   disabled={subCategories.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={subCategories.length === 0 ? 'Aucune sous-catÃ©gorie' : 'Optionnel...'} />
+                    <SelectValue placeholder={subCategories.length === 0 ? 'Aucune sous-categorie' : 'Optionnel...'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">â€” Aucune sous-catÃ©gorie â€”</SelectItem>
+                    <SelectItem value="none">— Aucune sous-categorie —</SelectItem>
                     {subCategories.filter(s => s.is_active !== false).map((sub) => (
                       <SelectItem key={sub.slug} value={sub.slug}>
                         {sub.name}
@@ -310,13 +313,13 @@ const VendorAddProduct = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="condition">Ã‰tat *</Label>
+              <Label htmlFor="condition">Etat *</Label>
               <Select
                 value={formData.condition || 'neuf'}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
               >
                 <SelectTrigger data-testid="product-condition">
-                  <SelectValue placeholder="SÃ©lectionner l'Ã©tat..." />
+                  <SelectValue placeholder="Selectionner l'etat..." />
                 </SelectTrigger>
                 <SelectContent>
                   {CONDITIONS.map((cond) => (
@@ -382,7 +385,7 @@ const VendorAddProduct = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="stock">QuantitÃ© en stock *</Label>
+              <Label htmlFor="stock">Quantite en stock *</Label>
               <Input id="stock" name="stock" type="number" value={formData.stock}
                 onChange={handleInputChange} placeholder="10" min="1" required data-testid="product-stock" />
             </div>
@@ -393,14 +396,14 @@ const VendorAddProduct = () => {
             <h2 className="font-bold text-lg">Images *</h2>
             <ImageUpload images={formData.images} onChange={handleImagesChange}
               maxImages={5} token={token} label=""
-              hint="Uploadez jusqu'Ã  5 images pour votre produit (JPG, PNG, WebP)" />
+              hint="Uploadez jusqu'a 5 images pour votre produit (JPG, PNG, WebP)" />
           </div>
 
           {/* Tags */}
           <div className="bg-white rounded-xl border p-6 space-y-4">
             <h2 className="font-bold text-lg">Tags</h2>
             <div className="space-y-2">
-              <Label htmlFor="tags">Tags (sÃ©parÃ©s par des virgules)</Label>
+              <Label htmlFor="tags">Tags (separes par des virgules)</Label>
               <Input id="tags" name="tags" value={formData.tags} onChange={handleInputChange}
                 placeholder="wax, tissu, mode africaine" data-testid="product-tags" />
             </div>
@@ -413,9 +416,9 @@ const VendorAddProduct = () => {
             </Button>
             <Button type="submit" disabled={loading} data-testid="submit-product">
               {loading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditMode ? 'Mise Ã  jour...' : 'CrÃ©ation...'}</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditMode ? 'Mise a jour...' : 'Creation...'}</>
               ) : (
-                <><Save className="w-4 h-4 mr-2" />{isEditMode ? 'Mettre Ã  jour le produit' : 'CrÃ©er le produit'}</>
+                <><Save className="w-4 h-4 mr-2" />{isEditMode ? 'Mettre a jour le produit' : 'Creer le produit'}</>
               )}
             </Button>
           </div>
