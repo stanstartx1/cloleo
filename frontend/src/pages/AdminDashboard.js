@@ -778,6 +778,11 @@ const VendorsSection = ({ vendors, onToggle, onVerify, onDelete, searchTerm, aut
                   </td>
                   <td className="p-4">
                     <div className="flex gap-2">
+                      <Button asChild size="sm" variant="outline" className="border-blue-500/40 text-blue-300 hover:bg-blue-500/10">
+                        <Link to={`/vendeur-boutique/${vendor.id}`} target="_blank" rel="noopener noreferrer">
+                          <Eye className="w-4 h-4 mr-1" /> Voir la boutique
+                        </Link>
+                      </Button>
                       {!vendor.is_verified && (
                         <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onVerify(vendor.id)}>
                           <Check className="w-4 h-4 mr-1" /> Vérifier
@@ -955,7 +960,29 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                       <span className="text-amber-400 font-bold">{formatPrice(product.price_fcfa)} FCFA</span>
                     )}
                     <span>{product.category_slug}</span>
-                    {product.seller && <span>Par : {product.seller.name}</span>}
+                    <span>
+                      Par : {product.shop_slug ? (
+                        <Link
+                          to={`/boutique/${product.shop_slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          {product.revendeur_name || product.shop_name || product.seller_name || product.seller?.name || 'Boutique revendeur'}
+                        </Link>
+                      ) : product.seller_id ? (
+                        <Link
+                          to={`/vendeur-boutique/${product.seller_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          {product.seller_name || product.seller?.name || 'Boutique vendeur'}
+                        </Link>
+                      ) : (
+                        product.seller_name || product.revendeur_name || product.shop_name || product.seller?.name || 'Inconnu'
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
@@ -1252,6 +1279,13 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
                     <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${d.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{d.is_active ? 'Actif' : 'Inactif'}</span></td>
                     <td className="p-4">
                       <div className="flex gap-2">
+                        {d.shop_slug && (
+                          <Button asChild size="sm" variant="outline" className="border-blue-500/40 text-blue-300 hover:bg-blue-500/10">
+                            <Link to={`/boutique/${d.shop_slug}`} target="_blank" rel="noopener noreferrer">
+                              <Eye className="w-4 h-4 mr-1" /> Voir la boutique
+                            </Link>
+                          </Button>
+                        )}
                         <Button size="sm" variant={d.is_active ? 'destructive' : 'default'} onClick={() => handleToggleRevendeur(d.id)} disabled={loading}>
                           {d.is_active ? 'Désactiver' : 'Activer'}
                         </Button>
