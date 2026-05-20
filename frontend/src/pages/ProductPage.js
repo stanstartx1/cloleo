@@ -17,6 +17,7 @@ import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
 import { cn } from '../lib/utils';
+import { getCountryByCode } from '../utils/countries';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -264,6 +265,8 @@ const ProductPage = () => {
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
   const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
   const favorite = isFavorite(product.id);
+  const originCountry = getCountryByCode(product.origin_country_code) || null;
+  const originName = product.origin_country_name || originCountry?.name || null;
 
   return (
     <div className="min-h-screen py-8" data-testid="product-page">
@@ -328,6 +331,14 @@ const ProductPage = () => {
 
             {/* Title */}
             <h1 className="text-2xl md:text-3xl font-bold mb-4" data-testid="product-title">{product.name}</h1>
+            {(originCountry || originName) && (
+              <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-sm">
+                <span>{originCountry?.flag || '🌍'}</span>
+                <span className="font-medium text-slate-700">
+                  {product.made_in_enabled ? `Made in ${originName}` : originName}
+                </span>
+              </div>
+            )}
 
             {/* Rating */}
             <div className="flex items-center gap-4 mb-4">

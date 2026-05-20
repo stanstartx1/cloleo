@@ -9,6 +9,7 @@ import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
+import { getCountryByCode } from '../utils/countries';
 
 const formatPrice = (price, currency = 'FCFA') => {
   if (currency === 'FCFA') {
@@ -30,6 +31,8 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const hasPromo = product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa;
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
   const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
+  const originCountry = getCountryByCode(product.origin_country_code) || null;
+  const originName = product.origin_country_name || originCountry?.name || null;
 
   const productUrl = `${window.location.origin}/produit/${product.id}`;
 
@@ -183,6 +186,14 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+          {(originCountry || originName) && (
+            <span className="bg-white/95 text-slate-800 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+              <span>{originCountry?.flag || '🌍'}</span>
+              <span className="truncate max-w-[140px]">
+                {product.made_in_enabled ? `Made in ${originName}` : originName}
+              </span>
+            </span>
+          )}
           {/* Badge EN PROMO — toujours visible */}
           {hasPromo && (
             <span className={cn(

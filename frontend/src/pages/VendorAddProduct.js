@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Save, Loader2, LogOut } from 'lucide-react';
@@ -10,6 +10,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import ImageUpload from '../components/ImageUpload';
+import { COUNTRIES, getCountryByCode } from '../utils/countries';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -39,13 +40,16 @@ const VendorAddProduct = () => {
     category_slug: '',
     subcategory_slug: '',
     images: [],
-    tags: ''
+    tags: '',
+    origin_country_code: 'CI',
+    origin_country_name: "Cote d'Ivoire",
+    made_in_enabled: false
   });
 
-  // Catégories parentes (sans parent_slug)
+  // CatÃ©gories parentes (sans parent_slug)
   const parentCategories = categories.filter(c => !c.parent_slug);
 
-  // Sous-catégories de la catégorie sélectionnée
+  // Sous-catÃ©gories de la catÃ©gorie sÃ©lectionnÃ©e
   const subCategories = categories.filter(
     c => c.parent_slug && c.parent_slug === formData.category_slug
   );
@@ -82,7 +86,10 @@ const VendorAddProduct = () => {
           category_slug: product.category_slug || '',
           subcategory_slug: product.subcategory_slug || '',
           images: product.images || [],
-          tags: Array.isArray(product.tags) ? product.tags.join(', ') : ''
+          tags: Array.isArray(product.tags) ? product.tags.join(', ') : '',
+          origin_country_code: product.origin_country_code || 'CI',
+          origin_country_name: product.origin_country_name || "Cote d'Ivoire",
+          made_in_enabled: Boolean(product.made_in_enabled)
         });
       } catch (error) {
         toast.error('Erreur chargement produit');
@@ -110,7 +117,7 @@ const VendorAddProduct = () => {
   };
 
   const handleCategoryChange = (value) => {
-    // Réinitialiser la sous-catégorie quand on change de catégorie
+    // RÃ©initialiser la sous-catÃ©gorie quand on change de catÃ©gorie
     setFormData(prev => ({ ...prev, category_slug: value, subcategory_slug: '' }));
   };
 
@@ -130,7 +137,7 @@ const VendorAddProduct = () => {
     setLoading(true);
 
     try {
-      // Le slug final = sous-catégorie si choisie, sinon catégorie principale
+      // Le slug final = sous-catÃ©gorie si choisie, sinon catÃ©gorie principale
       const finalCategorySlug = formData.subcategory_slug || formData.category_slug;
 
       const data = {
@@ -143,24 +150,27 @@ const VendorAddProduct = () => {
         category_slug: finalCategorySlug,
         subcategory_slug: formData.subcategory_slug || null,
         images: formData.images,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        origin_country_code: formData.origin_country_code,
+        origin_country_name: formData.origin_country_name,
+        made_in_enabled: Boolean(formData.made_in_enabled)
       };
 
       if (isEditMode) {
         await axios.put(`${API}/vendor/products/${id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success('Produit modifié avec succès');
+        toast.success('Produit modifiÃ© avec succÃ¨s');
       } else {
         await axios.post(`${API}/vendor/products`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success("Produit créé ! En attente de validation par l'admin.");
+        toast.success("Produit crÃ©Ã© ! En attente de validation par l'admin.");
       }
       navigate('/vendeur/produits');
     } catch (error) {
       console.error('Error creating product:', error);
-      toast.error(error.response?.data?.detail || 'Erreur lors de la création');
+      toast.error(error.response?.data?.detail || 'Erreur lors de la crÃ©ation');
     } finally {
       setLoading(false);
     }
@@ -183,12 +193,51 @@ const VendorAddProduct = () => {
             <div>
               <h1 className="text-2xl font-bold">{isEditMode ? 'Modifier le produit' : 'Ajouter un produit'}</h1>
               <p className="text-muted-foreground">
-                {isEditMode ? 'Modifiez images, prix, stock et détails du produit' : 'Votre produit sera soumis à validation avant publication'}
+                {isEditMode ? 'Modifiez images, prix, stock et dÃ©tails du produit' : 'Votre produit sera soumis Ã  validation avant publication'}
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Pays d'origine *</Label>
+                <Select
+                  value={formData.origin_country_code}
+                  onValueChange={(value) => {
+                    const country = getCountryByCode(value);
+                    setFormData(prev => ({
+                      ...prev,
+                      origin_country_code: value,
+                      origin_country_name: country?.name || prev.origin_country_name
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selectionner un pays..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.flag} {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Option d'affichage</Label>
+                <label className="h-10 px-3 rounded-md border border-input flex items-center gap-2 text-sm bg-background">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.made_in_enabled)}
+                    onChange={(e) => setFormData(prev => ({ ...prev, made_in_enabled: e.target.checked }))}
+                  />
+                  Afficher "Made in {formData.origin_country_name}"
+                </label>
+              </div>
             </div>
           </div>
           <Button variant="destructive" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            <LogOut className="w-4 h-4 mr-2" /> DÃ©connexion
           </Button>
         </div>
 
@@ -196,7 +245,7 @@ const VendorAddProduct = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
           <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h2 className="font-bold text-lg">Informations générales</h2>
+            <h2 className="font-bold text-lg">Informations gÃ©nÃ©rales</h2>
 
             <div className="space-y-2">
               <Label htmlFor="name">Nom du produit *</Label>
@@ -207,20 +256,20 @@ const VendorAddProduct = () => {
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
               <Textarea id="description" name="description" value={formData.description}
-                onChange={handleInputChange} placeholder="Décrivez votre produit en détail..."
+                onChange={handleInputChange} placeholder="DÃ©crivez votre produit en dÃ©tail..."
                 rows={5} required data-testid="product-description" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Catégorie principale */}
+              {/* CatÃ©gorie principale */}
               <div className="space-y-2">
-                <Label htmlFor="category_slug">Catégorie *</Label>
+                <Label htmlFor="category_slug">CatÃ©gorie *</Label>
                 <Select
                   value={formData.category_slug || undefined}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger data-testid="product-category">
-                    <SelectValue placeholder="Sélectionner une catégorie..." />
+                    <SelectValue placeholder="SÃ©lectionner une catÃ©gorie..." />
                   </SelectTrigger>
                   <SelectContent>
                     {parentCategories.filter(cat => cat.slug && cat.is_active !== false).map((cat) => (
@@ -232,10 +281,10 @@ const VendorAddProduct = () => {
                 </Select>
               </div>
 
-              {/* Sous-catégorie — affichée seulement si la catégorie sélectionnée a des sous-catégories */}
+              {/* Sous-catÃ©gorie â€” affichÃ©e seulement si la catÃ©gorie sÃ©lectionnÃ©e a des sous-catÃ©gories */}
               <div className="space-y-2">
                 <Label htmlFor="subcategory_slug">
-                  Sous-catégorie
+                  Sous-catÃ©gorie
                   {subCategories.length === 0 && formData.category_slug && (
                     <span className="text-xs text-muted-foreground ml-1">(aucune disponible)</span>
                   )}
@@ -246,10 +295,10 @@ const VendorAddProduct = () => {
                   disabled={subCategories.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={subCategories.length === 0 ? 'Aucune sous-catégorie' : 'Optionnel...'} />
+                    <SelectValue placeholder={subCategories.length === 0 ? 'Aucune sous-catÃ©gorie' : 'Optionnel...'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— Aucune sous-catégorie —</SelectItem>
+                    <SelectItem value="none">â€” Aucune sous-catÃ©gorie â€”</SelectItem>
                     {subCategories.filter(s => s.is_active !== false).map((sub) => (
                       <SelectItem key={sub.slug} value={sub.slug}>
                         {sub.name}
@@ -261,13 +310,13 @@ const VendorAddProduct = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="condition">État *</Label>
+              <Label htmlFor="condition">Ã‰tat *</Label>
               <Select
                 value={formData.condition || 'neuf'}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
               >
                 <SelectTrigger data-testid="product-condition">
-                  <SelectValue placeholder="Sélectionner l'état..." />
+                  <SelectValue placeholder="SÃ©lectionner l'Ã©tat..." />
                 </SelectTrigger>
                 <SelectContent>
                   {CONDITIONS.map((cond) => (
@@ -275,6 +324,45 @@ const VendorAddProduct = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Pays d'origine *</Label>
+                <Select
+                  value={formData.origin_country_code}
+                  onValueChange={(value) => {
+                    const country = getCountryByCode(value);
+                    setFormData(prev => ({
+                      ...prev,
+                      origin_country_code: value,
+                      origin_country_name: country?.name || prev.origin_country_name
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selectionner un pays..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.flag} {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Option d'affichage</Label>
+                <label className="h-10 px-3 rounded-md border border-input flex items-center gap-2 text-sm bg-background">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.made_in_enabled)}
+                    onChange={(e) => setFormData(prev => ({ ...prev, made_in_enabled: e.target.checked }))}
+                  />
+                  Afficher "Made in {formData.origin_country_name}"
+                </label>
+              </div>
             </div>
           </div>
 
@@ -294,7 +382,7 @@ const VendorAddProduct = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="stock">Quantité en stock *</Label>
+              <Label htmlFor="stock">QuantitÃ© en stock *</Label>
               <Input id="stock" name="stock" type="number" value={formData.stock}
                 onChange={handleInputChange} placeholder="10" min="1" required data-testid="product-stock" />
             </div>
@@ -305,14 +393,14 @@ const VendorAddProduct = () => {
             <h2 className="font-bold text-lg">Images *</h2>
             <ImageUpload images={formData.images} onChange={handleImagesChange}
               maxImages={5} token={token} label=""
-              hint="Uploadez jusqu'à 5 images pour votre produit (JPG, PNG, WebP)" />
+              hint="Uploadez jusqu'Ã  5 images pour votre produit (JPG, PNG, WebP)" />
           </div>
 
           {/* Tags */}
           <div className="bg-white rounded-xl border p-6 space-y-4">
             <h2 className="font-bold text-lg">Tags</h2>
             <div className="space-y-2">
-              <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
+              <Label htmlFor="tags">Tags (sÃ©parÃ©s par des virgules)</Label>
               <Input id="tags" name="tags" value={formData.tags} onChange={handleInputChange}
                 placeholder="wax, tissu, mode africaine" data-testid="product-tags" />
             </div>
@@ -325,9 +413,9 @@ const VendorAddProduct = () => {
             </Button>
             <Button type="submit" disabled={loading} data-testid="submit-product">
               {loading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditMode ? 'Mise à jour...' : 'Création...'}</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditMode ? 'Mise Ã  jour...' : 'CrÃ©ation...'}</>
               ) : (
-                <><Save className="w-4 h-4 mr-2" />{isEditMode ? 'Mettre à jour le produit' : 'Créer le produit'}</>
+                <><Save className="w-4 h-4 mr-2" />{isEditMode ? 'Mettre Ã  jour le produit' : 'CrÃ©er le produit'}</>
               )}
             </Button>
           </div>
@@ -338,3 +426,4 @@ const VendorAddProduct = () => {
 };
 
 export default VendorAddProduct;
+
