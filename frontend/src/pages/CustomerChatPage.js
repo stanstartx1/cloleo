@@ -41,7 +41,8 @@ const CustomerChatPage = () => {
       const response = await axios.get(`${API}/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setConversations(response.data || []);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.conversations || []);
+      setConversations(list);
     } catch (error) {
       console.error('Error fetching conversations:', error);
     } finally {
@@ -171,9 +172,8 @@ const CustomerChatPage = () => {
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      const response = await axios.post(`${API}/messages`, {
-        conversation_id: selectedConversation.id,
-        text: messageContent
+      const response = await axios.post(`${API}/conversations/${selectedConversation.id}/messages`, {
+        content: messageContent
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });

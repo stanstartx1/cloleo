@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from './FloatingChat';
 import { Button } from './ui/button';
@@ -15,7 +14,6 @@ const ProductChat = ({
   productImage,
   autoOpen = false
 }) => {
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { startConversation } = useChat();
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
@@ -33,10 +31,9 @@ const ProductChat = ({
       product_name: productName,
       product_image: productImage
     });
-    if (conversation?.conversationId) {
-      navigate(`/mes-messages?conversation=${conversation.conversationId}`);
-    } else {
-      navigate('/mes-messages');
+    if (!conversation?.conversationId) {
+      toast.error("Impossible d'ouvrir la conversation");
+      return;
     }
   };
 

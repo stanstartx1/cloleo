@@ -81,10 +81,9 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         product_name: product.name,
         product_image: product.images?.[0]
       });
-      if (conversation?.conversationId) {
-        navigate(`/mes-messages?conversation=${conversation.conversationId}`);
-      } else {
-        navigate('/mes-messages');
+      if (!conversation?.conversationId) {
+        toast.error("Impossible d'ouvrir la conversation");
+        return;
       }
       toast.success('Conversation ouverte !');
     } catch (error) {

@@ -8,6 +8,7 @@ import {
   Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from '../components/FloatingChat';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
@@ -40,6 +41,7 @@ const SIDEBAR_ITEMS = [
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, token, isAdmin, logout } = useAuth();
+  const { openConversation } = useChat();
   
   const [activeSection, setActiveSection] = useState('stats');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -397,14 +399,14 @@ const AdminDashboard = () => {
         toast.error("Conversation non créée");
         return;
       }
-      navigate(`/mes-messages?conversation=${conversationId}`);
+      openConversation(conversationId);
     } catch (error) {
       toast.error(error.response?.data?.detail || "Erreur lors de l'ouverture du chat");
     }
   };
 
   const handleOpenConversation = (conversationId) => {
-    navigate(`/mes-messages?conversation=${conversationId}`);
+    openConversation(conversationId);
   };
 
   const fetchAdminConversations = async () => {
