@@ -196,6 +196,12 @@ const HomePage = () => {
     [subCategories, buildLoopItems]
   );
 
+  const spotlightGridProducts = useMemo(() => {
+    const merged = [...featuredProducts, ...newProducts, ...trendingProducts];
+    const deduped = merged.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
+    return deduped.slice(0, 12);
+  }, [featuredProducts, newProducts, trendingProducts]);
+
   const renderCategoryItems = (keyPrefix = 'cat') => (
     <>
       {parentLoopItems.map((category, index) => {
@@ -207,9 +213,9 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${index}`}
             to={`/categories/${category.slug}`}
-            className="flex-shrink-0 w-52 group snap-start"
+            className="flex-shrink-0 w-64 md:w-72 group snap-start"
           >
-            <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
+            <div className="w-full h-40 md:h-44 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
               <img src={img} alt={category.name} className="w-full h-full object-cover" />
             </div>
             <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
@@ -232,10 +238,10 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${sub.slug}-${index}`}
             to={`/categories/${sub.slug}`}
-            className="flex-shrink-0 w-52 group snap-start"
+            className="flex-shrink-0 w-56 md:w-60 group snap-start"
           >
             <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-              <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img src={img} alt={sub.name} className="w-full h-36 md:h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="p-2">
                 <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
                 <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
@@ -300,6 +306,39 @@ const HomePage = () => {
           </div>
         </section>
       )}
+
+      <section className="py-8 bg-white border-b border-slate-100">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            {spotlightGridProducts.map((product) => {
+              const image = product.images?.[0] || product.main_image || 'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
+              const hasPromo = product.discount_price && Number(product.discount_price) < Number(product.price || 0);
+              const badge = hasPromo ? 'Promo' : product.is_featured ? 'Vedette' : 'Nouveau';
+              const badgeClass = hasPromo
+                ? 'bg-red-500 text-white'
+                : product.is_featured
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-emerald-500 text-white';
+              return (
+                <Link key={`spotlight-${product.id}`} to={`/products/${product.id}`} className="group block">
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm group-hover:shadow-md transition-all">
+                    <img src={image} alt={product.name} className="w-full h-44 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[11px] font-bold ${badgeClass}`}>
+                      {badge}
+                    </span>
+                    <div className="p-3 flex items-center justify-between">
+                      <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
+                      <p className="text-sm font-extrabold text-orange-600 whitespace-nowrap">
+                        {Number(product.discount_price || product.price || 0).toLocaleString()} FCFA
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* Notification Feed */}
       <NotificationFeed notifications={[
@@ -728,7 +767,7 @@ const HomePage = () => {
           display: flex;
           gap: 1.25rem;
           flex-shrink: 0;
-          animation: marquee-cats 58s linear infinite;
+          animation: marquee-cats 72s linear infinite;
           will-change: transform;
         }
         @media (min-width: 768px) {
