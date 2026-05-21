@@ -291,7 +291,7 @@ const HomePage = () => {
       blue: 'from-sky-500 via-cyan-500 to-blue-600',
     };
     return (
-      <div className={`inline-flex items-center rounded-full px-4 py-2 text-white font-bold text-sm md:text-base bg-gradient-to-r ${tones[tone]} shadow-md`}>
+      <div className={`w-full flex items-center px-4 py-3 md:px-5 md:py-3 text-white font-bold text-sm md:text-base bg-gradient-to-r ${tones[tone]} shadow-md rounded-xl`}>
         {title}
       </div>
     );
@@ -398,7 +398,7 @@ const HomePage = () => {
               <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 animate-pulse">
                 <Star className="w-7 h-7 text-white" />
               </div>
-              <div>
+              <div className="w-full">
                 <SectionBand title="Produits en Vedette" tone="orange" />
                 <p className="text-muted-foreground mt-1">Les meilleures sélections de nos vendeurs</p>
               </div>
@@ -474,10 +474,8 @@ const HomePage = () => {
         >
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl md:text-3xl font-bold text-slate-900">
-                  Sélection {section.category.name}
-                </h3>
+              <div className="w-full max-w-2xl">
+                <SectionBand title={`Sélection ${section.category.name}`} tone={sectionIndex % 2 === 0 ? 'orange' : 'blue'} />
                 <p className="text-slate-500 text-sm">
                   Produits de la catégorie et de ses sous-catégories
                 </p>
@@ -544,7 +542,7 @@ const HomePage = () => {
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
                 <TrendingUp className="w-7 h-7 text-white" />
               </div>
-              <div>
+              <div className="w-full">
                 <div className={`transition-all duration-700 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   <SectionBand title="Tendances du moment" tone="purple" />
                 </div>
@@ -604,7 +602,7 @@ const HomePage = () => {
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
-              <div>
+              <div className="w-full">
                 <div className={`transition-all duration-700 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   <SectionBand title="Nouveautés" tone="green" />
                 </div>
@@ -800,7 +798,7 @@ const HomePage = () => {
           display: flex;
           gap: 1.25rem;
           flex-shrink: 0;
-          animation: marquee-cats 110s linear infinite;
+          animation: marquee-cats 150s linear infinite;
           will-change: transform;
         }
         @media (min-width: 768px) {
