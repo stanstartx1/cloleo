@@ -152,6 +152,13 @@ const HomePage = () => {
     return grouped;
   }, [subCategories]);
 
+  const buildLoopItems = useCallback((items, minBaseCount = 12) => {
+    if (!items || items.length === 0) return [];
+    const repeats = Math.max(2, Math.ceil(minBaseCount / items.length));
+    const base = Array.from({ length: repeats }).flatMap(() => items);
+    return [...base, ...base];
+  }, []);
+
   const allVisibleProducts = useMemo(
     () => applyProductFilters([...featuredProducts, ...trendingProducts, ...newProducts]),
     [featuredProducts, trendingProducts, newProducts, selectedCategory, conditionFilters]
@@ -179,6 +186,16 @@ const HomePage = () => {
     return source.filter((s) => s.products.length > 0).slice(0, 1);
   }, [parentCategories, subCategoriesByParent, productByCategorySlug]);
 
+  const parentLoopItems = useMemo(
+    () => buildLoopItems(parentCategories, 14),
+    [parentCategories, buildLoopItems]
+  );
+
+  const subLoopItems = useMemo(
+    () => buildLoopItems(subCategories, 14),
+    [subCategories, buildLoopItems]
+  );
+
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -194,8 +211,8 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
-            {[...parentCategories, ...parentCategories].map((category, index) => {
+          <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+            {parentLoopItems.map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
                 ? banners[(categorySlideTick + index) % banners.length]
@@ -204,12 +221,12 @@ const HomePage = () => {
                 <Link
                   key={`cat-${index}`}
                   to={`/categories/${category.slug}`}
-                  className="flex-shrink-0 flex flex-col items-center gap-2 group"
+                  className="flex-shrink-0 w-52 group"
                 >
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-110">
+                  <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
                     <img src={img} alt={category.name} className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 group-hover:text-orange-600 transition-colors text-center w-20 truncate">
+                  <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
                     {category.name}
                   </span>
                 </Link>
@@ -222,13 +239,12 @@ const HomePage = () => {
       {/* Sous-catégories en carrousel */}
       {subCategories.length > 0 && (
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-          <div className="container mx-auto px-4 mb-3 flex items-center justify-between">
+          <div className="container mx-auto px-4 mb-3">
             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Sous-catégories</p>
-            <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
           </div>
           <div className="relative flex overflow-hidden">
-            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
-              {[...subCategories, ...subCategories].map((sub, index) => {
+            <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+              {subLoopItems.map((sub, index) => {
                 const banners = sub.banner_images || [];
                 const img = banners.length > 0
                   ? banners[(categorySlideTick + index) % banners.length]
@@ -237,12 +253,12 @@ const HomePage = () => {
                   <Link
                     key={`subcat-${sub.slug}-${index}`}
                     to={`/categories/${sub.slug}`}
-                    className="flex-shrink-0 w-44 group"
+                    className="flex-shrink-0 w-52 group"
                   >
                     <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-                      <img src={img} alt={sub.name} className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="p-2">
-                        <p className="text-xs font-semibold text-slate-700 truncate">{sub.name}</p>
+                        <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
                         <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
                       </div>
                     </div>
@@ -386,18 +402,18 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
-            {[...parentCategories, ...parentCategories].map((category, index) => {
+          <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+            {parentLoopItems.map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
                 ? banners[(categorySlideTick + index) % banners.length]
                 : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
               return (
-                <Link key={`cat-mid-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-110">
+                <Link key={`cat-mid-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 w-52 group">
+                  <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
                     <img src={img} alt={category.name} className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 group-hover:text-orange-600 transition-colors text-center w-20 truncate">
+                  <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
                     {category.name}
                   </span>
                 </Link>
@@ -410,23 +426,22 @@ const HomePage = () => {
       {/* Inter-bloc: carrousel sous-catégories */}
       {subCategories.length > 0 && (
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-          <div className="container mx-auto px-4 mb-3 flex items-center justify-between">
+          <div className="container mx-auto px-4 mb-3">
             <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Sous-catégories</p>
-            <span className="text-xs text-slate-400">{subCategories.length} disponibles</span>
           </div>
           <div className="relative flex overflow-hidden">
-            <div className="flex gap-4 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
-              {[...subCategories, ...subCategories].map((sub, index) => {
+            <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+              {subLoopItems.map((sub, index) => {
                 const banners = sub.banner_images || [];
                 const img = banners.length > 0
                   ? banners[(categorySlideTick + index) % banners.length]
                   : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
                 return (
-                  <Link key={`subcat-mid-${sub.slug}-${index}`} to={`/categories/${sub.slug}`} className="flex-shrink-0 w-44 group">
+                  <Link key={`subcat-mid-${sub.slug}-${index}`} to={`/categories/${sub.slug}`} className="flex-shrink-0 w-52 group">
                     <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-                      <img src={img} alt={sub.name} className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="p-2">
-                        <p className="text-xs font-semibold text-slate-700 truncate">{sub.name}</p>
+                        <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
                         <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
                       </div>
                     </div>
@@ -493,18 +508,18 @@ const HomePage = () => {
           <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
         </div>
         <div className="relative flex overflow-hidden">
-          <div className="flex gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
-            {[...parentCategories, ...parentCategories].map((category, index) => {
+          <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
+            {parentLoopItems.map((category, index) => {
               const banners = category.banner_images || [];
               const img = banners.length > 0
                 ? banners[(categorySlideTick + index) % banners.length]
                 : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
               return (
-                <Link key={`cat-bottom-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-110">
+                <Link key={`cat-bottom-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 w-52 group">
+                  <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
                     <img src={img} alt={category.name} className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 group-hover:text-orange-600 transition-colors text-center w-20 truncate">
+                  <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
                     {category.name}
                   </span>
                 </Link>
