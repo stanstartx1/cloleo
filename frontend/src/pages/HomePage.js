@@ -309,8 +309,8 @@ const HomePage = () => {
 
       <section className="py-8 bg-white border-b border-slate-100">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-            {spotlightGridProducts.map((product) => {
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4 auto-rows-[120px] md:auto-rows-[130px]">
+            {spotlightGridProducts.map((product, index) => {
               const image = product.images?.[0] || product.main_image || 'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
               const hasPromo = product.discount_price && Number(product.discount_price) < Number(product.price || 0);
               const badge = hasPromo ? 'Promo' : product.is_featured ? 'Vedette' : 'Nouveau';
@@ -319,16 +319,22 @@ const HomePage = () => {
                 : product.is_featured
                   ? 'bg-amber-500 text-white'
                   : 'bg-emerald-500 text-white';
+              const isTall = index % 5 === 0 || index % 5 === 3;
+              const isWide = index % 4 === 1;
+              const sizeClass = isTall
+                ? 'row-span-2 md:row-span-2 md:col-span-2'
+                : isWide
+                  ? 'row-span-1 md:col-span-2'
+                  : 'row-span-1 md:col-span-1';
               return (
-                <Link key={`spotlight-${product.id}`} to={`/products/${product.id}`} className="group block">
-                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm group-hover:shadow-md transition-all">
-                    <img src={image} alt={product.name} className="w-full h-44 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" />
+                <Link key={`spotlight-${product.id}`} to={`/products/${product.id}`} className={`group block ${sizeClass}`}>
+                  <div className="relative h-full rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm group-hover:shadow-md transition-all">
+                    <img src={image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[11px] font-bold ${badgeClass}`}>
                       {badge}
                     </span>
-                    <div className="p-3 flex items-center justify-between">
-                      <p className="text-sm font-bold text-slate-900 truncate">{product.name}</p>
-                      <p className="text-sm font-extrabold text-orange-600 whitespace-nowrap">
+                    <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
+                      <p className="text-sm md:text-base font-extrabold text-white whitespace-nowrap">
                         {Number(product.discount_price || product.price || 0).toLocaleString()} FCFA
                       </p>
                     </div>
