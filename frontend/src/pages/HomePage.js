@@ -804,7 +804,7 @@ const HomePage = () => {
           animation: marquee-cats 150s linear infinite;
         }
         .continuous-marquee-track-subs {
-          animation: marquee-cats 150s linear infinite;
+          animation: marquee-cats 190s linear infinite;
         }
         @media (min-width: 768px) {
           .continuous-marquee:hover .continuous-marquee-track {
