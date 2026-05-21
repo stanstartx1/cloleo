@@ -202,6 +202,18 @@ const HomePage = () => {
     return deduped.slice(0, 12);
   }, [featuredProducts, newProducts, trendingProducts]);
 
+  const getSpotlightPrice = (product) => {
+    const promoFcfa = Number(product.promo_price_fcfa || 0);
+    const priceFcfa = Number(product.price_fcfa || 0);
+    const discountPrice = Number(product.discount_price || 0);
+    const legacyPrice = Number(product.price || 0);
+    if (promoFcfa > 0 && priceFcfa > 0 && promoFcfa < priceFcfa) return promoFcfa;
+    if (priceFcfa > 0) return priceFcfa;
+    if (discountPrice > 0) return discountPrice;
+    if (legacyPrice > 0) return legacyPrice;
+    return 0;
+  };
+
   const renderCategoryItems = (keyPrefix = 'cat') => (
     <>
       {parentLoopItems.map((category, index) => {
@@ -271,6 +283,20 @@ const HomePage = () => {
     );
   };
 
+  const SectionBand = ({ title, tone = 'orange' }) => {
+    const tones = {
+      orange: 'from-orange-500 via-amber-500 to-orange-600',
+      purple: 'from-fuchsia-500 via-purple-500 to-indigo-600',
+      green: 'from-emerald-500 via-teal-500 to-green-600',
+      blue: 'from-sky-500 via-cyan-500 to-blue-600',
+    };
+    return (
+      <div className={`inline-flex items-center rounded-full px-4 py-2 text-white font-bold text-sm md:text-base bg-gradient-to-r ${tones[tone]} shadow-md`}>
+        {title}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -309,10 +335,13 @@ const HomePage = () => {
 
       <section className="py-8 bg-white border-b border-slate-100">
         <div className="container mx-auto px-4">
+          <div className="mb-4">
+            <SectionBand title="Inspiration Produits" tone="blue" />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4 auto-rows-[120px] md:auto-rows-[130px]">
             {spotlightGridProducts.map((product, index) => {
               const image = product.images?.[0] || product.main_image || 'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
-              const hasPromo = product.discount_price && Number(product.discount_price) < Number(product.price || 0);
+              const hasPromo = Number(product.promo_price_fcfa || product.discount_price || 0) > 0;
               const badge = hasPromo ? 'Promo' : product.is_featured ? 'Vedette' : 'Nouveau';
               const badgeClass = hasPromo
                 ? 'bg-red-500 text-white'
@@ -335,7 +364,7 @@ const HomePage = () => {
                     </span>
                     <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
                       <p className="text-sm md:text-base font-extrabold text-white whitespace-nowrap">
-                        {Number(product.discount_price || product.price || 0).toLocaleString()} FCFA
+                        {getSpotlightPrice(product).toLocaleString()} FCFA
                       </p>
                     </div>
                   </div>
@@ -370,9 +399,7 @@ const HomePage = () => {
                 <Star className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                  Produits en Vedette
-                </h2>
+                <SectionBand title="Produits en Vedette" tone="orange" />
                 <p className="text-muted-foreground mt-1">Les meilleures sélections de nos vendeurs</p>
               </div>
             </div>
@@ -518,9 +545,9 @@ const HomePage = () => {
                 <TrendingUp className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className={`text-3xl md:text-4xl font-bold text-white transition-all duration-700 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                  Tendances du moment
-                </h2>
+                <div className={`transition-all duration-700 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
+                  <SectionBand title="Tendances du moment" tone="purple" />
+                </div>
                 <p className={`text-slate-400 mt-1 transition-all duration-700 delay-100 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   Les produits les plus populaires
                 </p>
@@ -578,9 +605,9 @@ const HomePage = () => {
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className={`text-3xl md:text-4xl font-bold transition-all duration-700 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                  Nouveautés
-                </h2>
+                <div className={`transition-all duration-700 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
+                  <SectionBand title="Nouveautés" tone="green" />
+                </div>
                 <p className={`text-muted-foreground mt-1 transition-all duration-700 delay-100 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
                   Les dernières créations de nos artisans
                 </p>
@@ -773,7 +800,7 @@ const HomePage = () => {
           display: flex;
           gap: 1.25rem;
           flex-shrink: 0;
-          animation: marquee-cats 72s linear infinite;
+          animation: marquee-cats 110s linear infinite;
           will-change: transform;
         }
         @media (min-width: 768px) {
