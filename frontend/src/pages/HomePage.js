@@ -250,7 +250,7 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${sub.slug}-${index}`}
             to={`/categories/${sub.slug}`}
-            className="flex-shrink-0 w-56 md:w-60 group snap-start"
+            className="flex-shrink-0 w-60 md:w-64 group snap-start"
           >
             <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
               <img src={img} alt={sub.name} className="w-full h-36 md:h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
