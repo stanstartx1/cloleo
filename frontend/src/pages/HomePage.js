@@ -196,6 +196,57 @@ const HomePage = () => {
     [subCategories, buildLoopItems]
   );
 
+  const renderCategoryItems = (keyPrefix = 'cat') => (
+    <>
+      {parentLoopItems.map((category, index) => {
+        const banners = category.banner_images || [];
+        const img = banners.length > 0
+          ? banners[(categorySlideTick + index) % banners.length]
+          : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
+        return (
+          <Link
+            key={`${keyPrefix}-${index}`}
+            to={`/categories/${category.slug}`}
+            className="flex-shrink-0 w-52 group"
+          >
+            <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
+              <img src={img} alt={category.name} className="w-full h-full object-cover" />
+            </div>
+            <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
+              {category.name}
+            </span>
+          </Link>
+        );
+      })}
+    </>
+  );
+
+  const renderSubCategoryItems = (keyPrefix = 'subcat') => (
+    <>
+      {subLoopItems.map((sub, index) => {
+        const banners = sub.banner_images || [];
+        const img = banners.length > 0
+          ? banners[(categorySlideTick + index) % banners.length]
+          : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
+        return (
+          <Link
+            key={`${keyPrefix}-${sub.slug}-${index}`}
+            to={`/categories/${sub.slug}`}
+            className="flex-shrink-0 w-52 group"
+          >
+            <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
+              <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="p-2">
+                <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
+                <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
+              </div>
+            </div>
+          </Link>
+        );
+      })}
+    </>
+  );
+
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -207,31 +258,10 @@ const HomePage = () => {
 
       {/* Catégories principales défilantes */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
-        <div className="container mx-auto px-4 mb-3">
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
-        </div>
-        <div className="relative flex overflow-hidden">
-          <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
-            {parentLoopItems.map((category, index) => {
-              const banners = category.banner_images || [];
-              const img = banners.length > 0
-                ? banners[(categorySlideTick + index) % banners.length]
-                : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
-              return (
-                <Link
-                  key={`cat-${index}`}
-                  to={`/categories/${category.slug}`}
-                  className="flex-shrink-0 w-52 group"
-                >
-                  <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
-                    <img src={img} alt={category.name} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
-                    {category.name}
-                  </span>
-                </Link>
-              );
-            })}
+        <div className="relative overflow-hidden">
+          <div className="continuous-marquee">
+            <div className="continuous-marquee-track">{renderCategoryItems('cat-main-a')}</div>
+            <div className="continuous-marquee-track" aria-hidden="true">{renderCategoryItems('cat-main-b')}</div>
           </div>
         </div>
       </section>
@@ -239,32 +269,10 @@ const HomePage = () => {
       {/* Sous-catégories en carrousel */}
       {subCategories.length > 0 && (
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-          <div className="container mx-auto px-4 mb-3">
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Sous-catégories</p>
-          </div>
-          <div className="relative flex overflow-hidden">
-            <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
-              {subLoopItems.map((sub, index) => {
-                const banners = sub.banner_images || [];
-                const img = banners.length > 0
-                  ? banners[(categorySlideTick + index) % banners.length]
-                  : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
-                return (
-                  <Link
-                    key={`subcat-${sub.slug}-${index}`}
-                    to={`/categories/${sub.slug}`}
-                    className="flex-shrink-0 w-52 group"
-                  >
-                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-                      <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="p-2">
-                        <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+          <div className="relative overflow-hidden">
+            <div className="continuous-marquee">
+              <div className="continuous-marquee-track">{renderSubCategoryItems('sub-main-a')}</div>
+              <div className="continuous-marquee-track" aria-hidden="true">{renderSubCategoryItems('sub-main-b')}</div>
             </div>
           </div>
         </section>
@@ -398,27 +406,10 @@ const HomePage = () => {
 
       {/* Inter-bloc: carrousel catégories */}
       <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
-        <div className="container mx-auto px-4 mb-3">
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
-        </div>
-        <div className="relative flex overflow-hidden">
-          <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
-            {parentLoopItems.map((category, index) => {
-              const banners = category.banner_images || [];
-              const img = banners.length > 0
-                ? banners[(categorySlideTick + index) % banners.length]
-                : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
-              return (
-                <Link key={`cat-mid-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 w-52 group">
-                  <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
-                    <img src={img} alt={category.name} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
-                    {category.name}
-                  </span>
-                </Link>
-              );
-            })}
+        <div className="relative overflow-hidden">
+          <div className="continuous-marquee">
+            <div className="continuous-marquee-track">{renderCategoryItems('cat-mid-a')}</div>
+            <div className="continuous-marquee-track" aria-hidden="true">{renderCategoryItems('cat-mid-b')}</div>
           </div>
         </div>
       </section>
@@ -426,28 +417,10 @@ const HomePage = () => {
       {/* Inter-bloc: carrousel sous-catégories */}
       {subCategories.length > 0 && (
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-          <div className="container mx-auto px-4 mb-3">
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Sous-catégories</p>
-          </div>
-          <div className="relative flex overflow-hidden">
-            <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
-              {subLoopItems.map((sub, index) => {
-                const banners = sub.banner_images || [];
-                const img = banners.length > 0
-                  ? banners[(categorySlideTick + index) % banners.length]
-                  : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
-                return (
-                  <Link key={`subcat-mid-${sub.slug}-${index}`} to={`/categories/${sub.slug}`} className="flex-shrink-0 w-52 group">
-                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-                      <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="p-2">
-                        <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+          <div className="relative overflow-hidden">
+            <div className="continuous-marquee">
+              <div className="continuous-marquee-track">{renderSubCategoryItems('sub-mid-a')}</div>
+              <div className="continuous-marquee-track" aria-hidden="true">{renderSubCategoryItems('sub-mid-b')}</div>
             </div>
           </div>
         </section>
@@ -504,27 +477,10 @@ const HomePage = () => {
 
       {/* Inter-bloc: carrousel catégories */}
       <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
-        <div className="container mx-auto px-4 mb-3">
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Catégories principales</p>
-        </div>
-        <div className="relative flex overflow-hidden">
-          <div className="flex w-max gap-5 px-4 animate-marquee-cats whitespace-nowrap touch-scroll-x overflow-x-auto">
-            {parentLoopItems.map((category, index) => {
-              const banners = category.banner_images || [];
-              const img = banners.length > 0
-                ? banners[(categorySlideTick + index) % banners.length]
-                : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
-              return (
-                <Link key={`cat-bottom-${index}`} to={`/categories/${category.slug}`} className="flex-shrink-0 w-52 group">
-                  <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
-                    <img src={img} alt={category.name} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
-                    {category.name}
-                  </span>
-                </Link>
-              );
-            })}
+        <div className="relative overflow-hidden">
+          <div className="continuous-marquee">
+            <div className="continuous-marquee-track">{renderCategoryItems('cat-bottom-a')}</div>
+            <div className="continuous-marquee-track" aria-hidden="true">{renderCategoryItems('cat-bottom-b')}</div>
           </div>
         </div>
       </section>
@@ -726,10 +682,22 @@ const HomePage = () => {
         }
         .animate-marquee { animation: marquee 30s linear infinite; }
         @keyframes marquee-cats {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(calc(-100% - 1.25rem)); }
         }
-        .animate-marquee-cats { animation: marquee-cats 25s linear infinite; }
+        .continuous-marquee {
+          display: flex;
+          width: max-content;
+          gap: 1.25rem;
+          padding: 0 1rem;
+        }
+        .continuous-marquee-track {
+          display: flex;
+          gap: 1.25rem;
+          flex-shrink: 0;
+          animation: marquee-cats 22s linear infinite;
+          will-change: transform;
+        }
       `}</style>
     </div>
   );
