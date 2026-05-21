@@ -142,7 +142,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
     <Link 
       to={`/produit/${product.id}`}
       className={cn(
-        "group block bg-card rounded-2xl overflow-hidden border border-border/50",
+        "group flex h-full flex-col bg-card rounded-2xl overflow-hidden border border-border/50",
         "transition-all duration-500 ease-out transform-gpu",
         "hover:-translate-y-3 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40",
         "relative",
@@ -159,7 +159,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       )} />
       
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
+      <div className="relative h-52 md:h-56 lg:h-60 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
@@ -311,13 +311,13 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       </div>
 
       {/* Content */}
-      <div className="p-4 relative">
+      <div className="p-4 relative flex-1 min-h-0">
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent transition-opacity duration-500",
           isHovered ? "opacity-100" : "opacity-0"
         )} />
         
-        <div className="relative">
+        <div className="relative h-full flex flex-col min-h-0">
           <p className={cn(
             "text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-medium",
             "transform transition-all duration-300",
@@ -327,7 +327,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           </p>
 
           <h3 className={cn(
-            "font-semibold text-sm line-clamp-2 mb-2 transition-all duration-300",
+            "font-semibold text-sm line-clamp-2 min-h-[2.5rem] mb-2 transition-all duration-300",
             isHovered && "text-primary"
           )}>
             {product.name}
@@ -352,7 +352,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           {/* Seller Info */}
           {showSellerInfo && (product.seller_name || product.city) && (
             <div className={cn(
-              "mb-3 p-2 rounded-lg transition-all duration-300",
+              "mb-3 p-2 rounded-lg min-h-[3.25rem] transition-all duration-300",
               isHovered ? "bg-orange-50/80" : "bg-gray-50/80"
             )}>
               <div className="flex items-center justify-between gap-2">
@@ -441,7 +441,8 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           </p>
 
           {/* Boutons Acheter + Panier — toujours visibles */}
-          <div className="flex gap-2 mt-3">
+          <div className="mt-auto pt-3">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={handleBuyNow}
               className={cn(
@@ -490,6 +491,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               Contacter le vendeur
             </Button>
           )}
+          </div>
         </div>
       </div>
     </Link>
