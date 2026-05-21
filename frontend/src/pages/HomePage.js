@@ -310,8 +310,8 @@ const HomePage = () => {
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
-            <div className="continuous-marquee-track">{renderCategoryItems('cat-main-a')}</div>
-            <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-main-b')}</div>
+            <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-main-a')}</div>
+            <div className="continuous-marquee-track continuous-marquee-track-cats hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-main-b')}</div>
           </div>
         </div>
       </section>
@@ -326,8 +326,8 @@ const HomePage = () => {
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
           <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
             <div className="continuous-marquee">
-              <div className="continuous-marquee-track">{renderSubCategoryItems('sub-main-a')}</div>
-              <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-main-b')}</div>
+              <div className="continuous-marquee-track continuous-marquee-track-subs">{renderSubCategoryItems('sub-main-a')}</div>
+              <div className="continuous-marquee-track continuous-marquee-track-subs hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-main-b')}</div>
             </div>
           </div>
         </section>
@@ -501,8 +501,8 @@ const HomePage = () => {
       <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
-            <div className="continuous-marquee-track">{renderCategoryItems('cat-mid-a')}</div>
-            <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-mid-b')}</div>
+            <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-mid-a')}</div>
+            <div className="continuous-marquee-track continuous-marquee-track-cats hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-mid-b')}</div>
           </div>
         </div>
       </section>
@@ -517,8 +517,8 @@ const HomePage = () => {
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
           <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
             <div className="continuous-marquee">
-              <div className="continuous-marquee-track">{renderSubCategoryItems('sub-mid-a')}</div>
-              <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-mid-b')}</div>
+              <div className="continuous-marquee-track continuous-marquee-track-subs">{renderSubCategoryItems('sub-mid-a')}</div>
+              <div className="continuous-marquee-track continuous-marquee-track-subs hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-mid-b')}</div>
             </div>
           </div>
         </section>
@@ -577,8 +577,8 @@ const HomePage = () => {
       <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
-            <div className="continuous-marquee-track">{renderCategoryItems('cat-bottom-a')}</div>
-            <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-bottom-b')}</div>
+            <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-bottom-a')}</div>
+            <div className="continuous-marquee-track continuous-marquee-track-cats hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-bottom-b')}</div>
           </div>
         </div>
       </section>
@@ -798,8 +798,13 @@ const HomePage = () => {
           display: flex;
           gap: 1.25rem;
           flex-shrink: 0;
-          animation: marquee-cats 150s linear infinite;
           will-change: transform;
+        }
+        .continuous-marquee-track-cats {
+          animation: marquee-cats 150s linear infinite;
+        }
+        .continuous-marquee-track-subs {
+          animation: marquee-cats 150s linear infinite;
         }
         @media (min-width: 768px) {
           .continuous-marquee:hover .continuous-marquee-track {
