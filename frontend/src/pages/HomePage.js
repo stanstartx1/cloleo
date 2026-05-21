@@ -207,7 +207,7 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${index}`}
             to={`/categories/${category.slug}`}
-            className="flex-shrink-0 w-52 group"
+            className="flex-shrink-0 w-52 group snap-start"
           >
             <div className="w-full h-32 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
               <img src={img} alt={category.name} className="w-full h-full object-cover" />
@@ -232,7 +232,7 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${sub.slug}-${index}`}
             to={`/categories/${sub.slug}`}
-            className="flex-shrink-0 w-52 group"
+            className="flex-shrink-0 w-52 group snap-start"
           >
             <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
               <img src={img} alt={sub.name} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -247,6 +247,24 @@ const HomePage = () => {
     </>
   );
 
+  const AdStrip = ({ tone = 'orange', title, subtitle }) => {
+    const tones = {
+      orange: 'from-orange-50 via-amber-50 to-orange-100 border-orange-200',
+      blue: 'from-sky-50 via-cyan-50 to-blue-100 border-sky-200',
+      green: 'from-emerald-50 via-teal-50 to-green-100 border-emerald-200',
+    };
+    return (
+      <section className="py-3 bg-white">
+        <div className="container mx-auto px-4">
+          <div className={`rounded-2xl border bg-gradient-to-r ${tones[tone]} px-4 py-3 md:px-6 md:py-4`}>
+            <p className="text-sm md:text-base font-bold text-slate-800">{title}</p>
+            <p className="text-xs md:text-sm text-slate-600">{subtitle}</p>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -258,21 +276,26 @@ const HomePage = () => {
 
       {/* Catégories principales défilantes */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
             <div className="continuous-marquee-track">{renderCategoryItems('cat-main-a')}</div>
-            <div className="continuous-marquee-track" aria-hidden="true">{renderCategoryItems('cat-main-b')}</div>
+            <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-main-b')}</div>
           </div>
         </div>
       </section>
+      <AdStrip
+        tone="orange"
+        title="Espace Publicitaire - Offres du Jour"
+        subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées."
+      />
 
       {/* Sous-catégories en carrousel */}
       {subCategories.length > 0 && (
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
             <div className="continuous-marquee">
               <div className="continuous-marquee-track">{renderSubCategoryItems('sub-main-a')}</div>
-              <div className="continuous-marquee-track" aria-hidden="true">{renderSubCategoryItems('sub-main-b')}</div>
+              <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-main-b')}</div>
             </div>
           </div>
         </section>
@@ -406,21 +429,26 @@ const HomePage = () => {
 
       {/* Inter-bloc: carrousel catégories */}
       <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
             <div className="continuous-marquee-track">{renderCategoryItems('cat-mid-a')}</div>
-            <div className="continuous-marquee-track" aria-hidden="true">{renderCategoryItems('cat-mid-b')}</div>
+            <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-mid-b')}</div>
           </div>
         </div>
       </section>
+      <AdStrip
+        tone="blue"
+        title="Espace Publicitaire - Marques Partenaires"
+        subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans."
+      />
 
       {/* Inter-bloc: carrousel sous-catégories */}
       {subCategories.length > 0 && (
         <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
             <div className="continuous-marquee">
               <div className="continuous-marquee-track">{renderSubCategoryItems('sub-mid-a')}</div>
-              <div className="continuous-marquee-track" aria-hidden="true">{renderSubCategoryItems('sub-mid-b')}</div>
+              <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-mid-b')}</div>
             </div>
           </div>
         </section>
@@ -477,13 +505,18 @@ const HomePage = () => {
 
       {/* Inter-bloc: carrousel catégories */}
       <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
             <div className="continuous-marquee-track">{renderCategoryItems('cat-bottom-a')}</div>
-            <div className="continuous-marquee-track" aria-hidden="true">{renderCategoryItems('cat-bottom-b')}</div>
+            <div className="continuous-marquee-track hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-bottom-b')}</div>
           </div>
         </div>
       </section>
+      <AdStrip
+        tone="green"
+        title="Espace Publicitaire - Sélection Premium"
+        subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant."
+      />
 
       {/* New Products */}
       <motion.section
@@ -695,8 +728,21 @@ const HomePage = () => {
           display: flex;
           gap: 1.25rem;
           flex-shrink: 0;
-          animation: marquee-cats 22s linear infinite;
+          animation: marquee-cats 58s linear infinite;
           will-change: transform;
+        }
+        @media (min-width: 768px) {
+          .continuous-marquee:hover .continuous-marquee-track {
+            animation-play-state: paused;
+          }
+        }
+        @media (max-width: 767px) {
+          .continuous-marquee {
+            width: max-content;
+          }
+          .continuous-marquee-track {
+            animation: none;
+          }
         }
       `}</style>
     </div>
