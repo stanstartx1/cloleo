@@ -30,7 +30,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
 
   const hasPromo = product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa;
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
-  const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
   const originCountry = getCountryByCode(product.origin_country_code) || null;
   const originName = product.origin_country_name || originCountry?.name || null;
   const originFlagUrl = getCountryFlagUrl(product.origin_country_code);
@@ -159,7 +158,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       )} />
       
       {/* Image Container */}
-      <div className="relative h-52 md:h-56 lg:h-60 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
+      <div className="relative h-44 md:h-48 lg:h-52 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
@@ -311,7 +310,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       </div>
 
       {/* Content */}
-      <div className="p-4 relative flex-1 min-h-0">
+      <div className="p-3 relative flex-1 min-h-0">
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent transition-opacity duration-500",
           isHovered ? "opacity-100" : "opacity-0"
@@ -327,7 +326,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           </p>
 
           <h3 className={cn(
-            "font-semibold text-sm line-clamp-2 min-h-[2.5rem] mb-2 transition-all duration-300",
+            "font-semibold text-sm line-clamp-2 min-h-[2.25rem] mb-1.5 transition-all duration-300",
             isHovered && "text-primary"
           )}>
             {product.name}
@@ -352,7 +351,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           {/* Seller Info */}
           {showSellerInfo && (product.seller_name || product.city) && (
             <div className={cn(
-              "mb-3 p-2 rounded-lg min-h-[3.25rem] transition-all duration-300",
+              "mb-2 p-2 rounded-lg min-h-[3rem] transition-all duration-300",
               isHovered ? "bg-orange-50/80" : "bg-gray-50/80"
             )}>
               <div className="flex items-center justify-between gap-2">
@@ -420,7 +419,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             isHovered && "scale-105 origin-left"
           )}>
             <span className={cn(
-              "text-xl font-bold bg-clip-text text-transparent",
+              "text-lg font-bold bg-clip-text text-transparent",
               hasPromo 
                 ? "bg-gradient-to-r from-red-600 to-rose-600"
                 : "bg-gradient-to-r from-orange-600 to-amber-600"
@@ -433,15 +432,8 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               </span>
             )}
           </div>
-          <p className={cn(
-            "text-xs text-muted-foreground mt-0.5 transition-all duration-300",
-            isHovered && "opacity-70"
-          )}>
-            ≈ ${displayPriceUsd || (displayPrice * 0.00165).toFixed(2)}
-          </p>
-
           {/* Boutons Acheter + Panier — toujours visibles */}
-          <div className="mt-auto pt-3">
+          <div className="mt-auto pt-2">
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={handleBuyNow}
@@ -479,7 +471,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             <Button
               onClick={handleContactVendor}
               className={cn(
-                "mt-2 w-full rounded-xl py-4 font-semibold shadow-md",
+                "mt-2 w-full rounded-xl py-3 font-semibold shadow-md",
                 "bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 text-white",
                 "hover:from-fuchsia-700 hover:via-orange-600 hover:to-amber-600",
                 "transition-all duration-300"
@@ -499,3 +491,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
 };
 
 export default ProductCard;
+
+
+
