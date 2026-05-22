@@ -428,11 +428,11 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="relative overflow-hidden">
-              <div className="flex gap-5 transition-transform duration-700 ease-out"
+              <div className="flex gap-4 transition-transform duration-700 ease-out"
                 style={{ transform: `translateX(-${carouselIndex * 34}%)` }}>
                 {filteredFeaturedProducts.map((product, index) => (
                   <motion.div key={product.id}
-                    className="w-full md:w-[calc(30%-14px)] lg:w-[calc(30%-14px)] flex-shrink-0"
+                    className="w-full md:w-[calc(27%-12px)] lg:w-[calc(27%-12px)] flex-shrink-0"
                     variants={cardMotion} initial="hidden" animate="visible"
                     transition={{ duration: 0.7, delay: index * 0.08 }}
                     whileHover={{ y: -8, scale: 1.03 }}
@@ -442,7 +442,7 @@ const HomePage = () => {
                         opacity: index >= carouselIndex && index < carouselIndex + 3 ? 1 : 0.3,
                         transform: index >= carouselIndex && index < carouselIndex + 3 ? 'scale(1)' : 'scale(0.95)'
                       }}>
-                      <ProductCard product={product} className="scale-[0.88]" />
+                      <ProductCard product={product} className="scale-[0.82]" />
                     </div>
                   </motion.div>
                 ))}

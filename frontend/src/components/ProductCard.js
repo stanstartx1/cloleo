@@ -158,7 +158,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       )} />
       
       {/* Image Container */}
-      <div className="relative h-44 md:h-48 lg:h-52 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
+      <div className="relative h-36 md:h-40 lg:h-44 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
@@ -185,15 +185,15 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         )} />
         
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10">
           {(originCountry || originName) && (
-            <span className="bg-white/95 text-slate-800 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+            <span className="bg-white/95 text-slate-800 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
               {originFlagUrl ? (
                 <img src={originFlagUrl} alt="" className="w-4 h-3 rounded-sm object-cover" />
               ) : (
                 <span>🌍</span>
               )}
-              <span className="truncate max-w-[140px]">
+              <span className="truncate max-w-[110px]">
                 {product.made_in_enabled ? `Made in ${originName}` : originName}
               </span>
             </span>
@@ -310,7 +310,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       </div>
 
       {/* Content */}
-      <div className="p-3 relative flex-1 min-h-0">
+      <div className="p-2.5 relative flex-1 min-h-0">
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent transition-opacity duration-500",
           isHovered ? "opacity-100" : "opacity-0"
@@ -318,7 +318,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         
         <div className="relative h-full flex flex-col min-h-0">
           <p className={cn(
-            "text-xs text-muted-foreground mb-1.5 uppercase tracking-wider font-medium",
+            "text-[11px] text-muted-foreground mb-1 uppercase tracking-wider font-medium",
             "transform transition-all duration-300",
             isHovered && "text-primary/80 translate-x-1"
           )}>
@@ -326,24 +326,24 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           </p>
 
           <h3 className={cn(
-            "font-semibold text-sm line-clamp-2 min-h-[2.25rem] mb-1.5 transition-all duration-300",
+            "font-semibold text-[13px] line-clamp-2 min-h-[2rem] mb-1 transition-all duration-300",
             isHovered && "text-primary"
           )}>
             {product.name}
           </h3>
 
           <div className={cn(
-            "flex items-center gap-2 mb-2 transition-all duration-300",
+            "flex items-center gap-1.5 mb-1.5 transition-all duration-300",
             isHovered && "scale-105 origin-left"
           )}>
-            <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="text-sm font-semibold text-amber-700">{product.rating || '4.5'}</span>
+            <div className="flex items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <span className="text-xs font-semibold text-amber-700">{product.rating || '4.5'}</span>
             </div>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground">
               ({product.reviews_count || 0} avis)
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground">
               • {product.sales_count || 0} vendus
             </span>
           </div>
@@ -351,7 +351,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           {/* Seller Info */}
           {showSellerInfo && (product.seller_name || product.city) && (
             <div className={cn(
-              "mb-2 p-2 rounded-lg min-h-[3rem] transition-all duration-300",
+              "mb-1.5 p-1.5 rounded-lg min-h-[2.5rem] transition-all duration-300",
               isHovered ? "bg-orange-50/80" : "bg-gray-50/80"
             )}>
               <div className="flex items-center justify-between gap-2">
@@ -370,7 +370,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
-                      <p className="text-xs font-medium text-gray-900 truncate">
+                      <p className="text-[11px] font-medium text-gray-900 truncate">
                         {product.seller_name || 'Boutique Cloléo'}
                       </p>
                       {isRealVendor && (
@@ -433,7 +433,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             )}
           </div>
           {/* Boutons Acheter + Panier — toujours visibles */}
-          <div className="mt-auto pt-2">
+          <div className="mt-auto pt-1.5">
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={handleBuyNow}
@@ -491,6 +491,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
 };
 
 export default ProductCard;
+
 
 
 
