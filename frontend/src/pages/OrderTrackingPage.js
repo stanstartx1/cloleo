@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import UserAvatar from '../components/UserAvatar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const toWsUrl = (url) => {
@@ -360,9 +361,13 @@ const OrderTrackingPage = () => {
               {/* Driver Info */}
               {order.driver_id && (
                 <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Truck className="w-6 h-6 text-blue-600" />
-                  </div>
+                  <UserAvatar
+                    photo={order.driver?.profile_photo}
+                    name={order.driver_name || order.driver?.name}
+                    size="w-12 h-12"
+                    textSize="text-lg"
+                    className="ring-2 ring-blue-100"
+                  />
                   <div className="flex-1">
                     <p className="font-medium">{order.driver_name}</p>
                     <p className="text-sm text-muted-foreground">Votre livreur</p>

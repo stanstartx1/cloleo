@@ -11,6 +11,7 @@ import ProductCard from '../components/ProductCard';
 import ReviewSection from '../components/ReviewSection';
 import QuickCheckoutModal from '../components/QuickCheckoutModal';
 import ProductLocationMap from '../components/ProductLocationMap';
+import UserAvatar from '../components/UserAvatar';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -386,9 +387,13 @@ const ProductPage = () => {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   {/* Seller Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-md">
-                    <span className="text-lg font-bold">{product.seller_name?.[0]?.toUpperCase() || 'V'}</span>
-                  </div>
+                  <UserAvatar
+                    photo={product.seller_profile_photo || product.seller?.profile_photo}
+                    name={product.seller_name || product.seller?.name}
+                    size="w-12 h-12"
+                    textSize="text-lg"
+                    className="shadow-md"
+                  />
                   
                   {/* Seller Info */}
                   <div>

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
 import { getCountryByCode, getCountryFlagUrl } from '../utils/countries';
+import UserAvatar from './UserAvatar';
 
 const formatPrice = (price, currency = 'FCFA') => {
   if (currency === 'FCFA') {
@@ -356,18 +357,19 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             )}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300",
-                    isRealVendor 
-                      ? "bg-gradient-to-br from-orange-500 to-amber-500 text-white" 
-                      : "bg-gray-200 text-gray-500"
-                  )}>
-                    {isRealVendor ? (
-                      <span className="text-xs font-bold">{product.seller_name?.charAt(0)?.toUpperCase() || 'V'}</span>
-                    ) : (
+                  {isRealVendor ? (
+                    <UserAvatar
+                      photo={product.seller_profile_photo || product.seller?.profile_photo}
+                      name={product.seller_name || product.seller?.name}
+                      size="w-7 h-7"
+                      textSize="text-xs"
+                      className="flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center flex-shrink-0">
                       <Store className="w-3.5 h-3.5" />
-                    )}
-                  </div>
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
                       <p className="text-[11px] font-medium text-gray-900 truncate">

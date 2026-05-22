@@ -1,4 +1,4 @@
-# Products routes - Public API for browsing products
+﻿# Products routes - Public API for browsing products
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timezone
@@ -7,6 +7,21 @@ from core.database import db
 from models.schemas import UserRole
 
 router = APIRouter(prefix="/products", tags=["Products"])
+
+
+async def _inject_seller_profile_photo(products):
+    seller_ids = list({p.get("seller_id") for p in products if p.get("seller_id")})
+    if not seller_ids:
+        return
+
+    users = await db.users.find(
+        {"id": {"$in": seller_ids}},
+        {"_id": 0, "id": 1, "profile_photo": 1}
+    ).to_list(len(seller_ids) + 10)
+    photo_by_id = {u.get("id"): u.get("profile_photo") for u in users}
+
+    for p in products:
+        p["seller_profile_photo"] = photo_by_id.get(p.get("seller_id"))
 
 
 @router.get("")
@@ -42,13 +57,14 @@ async def get_products(
         query.setdefault("price_fcfa", {})["$lte"] = max_price
     if featured is not None:
         query["is_featured"] = featured
-    
+
     skip = (page - 1) * limit
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).sort(
         sort_by, -1 if sort_order == "desc" else 1
     ).skip(skip).limit(limit).to_list(limit)
-    
+    await _inject_seller_profile_photo(products)
+
     return {
         "products": products,
         "total": total,
@@ -60,13 +76,11 @@ async def get_products(
 @router.get("/featured")
 async def get_featured_products_public(limit: int = 12):
     """Get featured products for homepage animations"""
-    # Get manually featured products
     manual_featured = await db.products.find(
         {"is_featured": True, "status": "approved"},
         {"_id": 0}
     ).sort([("featured_at", -1), ("created_at", -1)]).limit(limit).to_list(limit)
-    
-    # If not enough, get products from premium vendors
+
     remaining = limit - len(manual_featured)
     if remaining > 0:
         premium_vendors = await db.users.find(
@@ -77,11 +91,11 @@ async def get_featured_products_public(limit: int = 12):
             },
             {"_id": 0, "id": 1, "subscription_plan": 1}
         ).to_list(100)
-        
+
         plan_order = {"entreprise": 0, "commercant": 1, "artisan": 2}
         premium_vendors.sort(key=lambda v: plan_order.get(v.get("subscription_plan"), 3))
         vendor_ids = [v["id"] for v in premium_vendors]
-        
+
         if vendor_ids:
             featured_ids = [p["id"] for p in manual_featured]
             auto_featured = await db.products.find(
@@ -93,15 +107,15 @@ async def get_featured_products_public(limit: int = 12):
                 {"_id": 0}
             ).limit(remaining).to_list(remaining)
             manual_featured.extend(auto_featured)
-    
-    # Enrich with seller info
+
     for product in manual_featured:
         seller = await db.users.find_one(
             {"id": product.get("seller_id")},
             {"_id": 0, "password": 0}
         )
         product["seller"] = seller
-    
+        product["seller_profile_photo"] = (seller or {}).get("profile_photo")
+
     return manual_featured
 
 
@@ -114,6 +128,9 @@ async def get_product(product_id: str):
     )
     if not p:
         raise HTTPException(status_code=404, detail="Non trouvé")
+
+    seller = await db.users.find_one({"id": p.get("seller_id")}, {"_id": 0, "id": 1, "profile_photo": 1})
+    p["seller_profile_photo"] = (seller or {}).get("profile_photo")
     return p
 
 
@@ -126,11 +143,13 @@ async def get_similar_products(product_id: str, limit: int = 6):
     )
     if not p:
         raise HTTPException(status_code=404, detail="Non trouvé")
-    
-    return await db.products.find(
+
+    products = await db.products.find(
         {"category_slug": p["category_slug"], "id": {"$ne": p["id"]}, "status": "approved"},
         {"_id": 0}
     ).limit(limit).to_list(limit)
+    await _inject_seller_profile_photo(products)
+    return products
 
 
 @router.get("/{product_id}/also-bought")
@@ -142,13 +161,12 @@ async def get_also_bought(product_id: str, limit: int = 6):
     )
     if not p:
         return []
-    
-    # Return products from similar price range
+
     price = p.get("price_fcfa", 10000)
     min_price = int(price * 0.5)
     max_price = int(price * 2)
-    
-    return await db.products.find(
+
+    products = await db.products.find(
         {
             "id": {"$ne": p["id"]},
             "status": "approved",
@@ -156,3 +174,5 @@ async def get_also_bought(product_id: str, limit: int = 6):
         },
         {"_id": 0}
     ).limit(limit).to_list(limit)
+    await _inject_seller_profile_photo(products)
+    return products
