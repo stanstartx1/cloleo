@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, Send, User, Clock, Search, ChevronLeft, 
-  Loader2, Package, Store, Check, CheckCheck, Bell, Tag
+  Loader2, Package, Store, Check, CheckCheck, Bell, Tag, Trash2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -28,6 +28,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [offerPrice, setOfferPrice] = useState('');
   const [offerNote, setOfferNote] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
   
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -138,6 +139,9 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
               c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c
             ));
           }
+          if (data.type === 'message_deleted' && data.message_id) {
+            setMessages(prev => prev.filter(m => m.id !== data.message_id));
+          }
         } catch (e) {
           console.error('WS parse error:', e);
         }
@@ -215,6 +219,25 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       toast.error('Erreur lors de l\'envoi');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!selectedConversation || deletingMessageId) return;
+    setDeletingMessageId(messageId);
+    try {
+      await axios.delete(
+        `${API}/conversations/${selectedConversation.id}/messages/${messageId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      fetchConversations();
+      toast.success('Message supprimé');
+    } catch (error) {
+      const detail = error.response?.data?.detail || 'Erreur lors de la suppression';
+      toast.error(detail);
+    } finally {
+      setDeletingMessageId(null);
     }
   };
 
@@ -424,8 +447,18 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         return (
                           <div
                             key={message.id}
-                            className={`flex mb-3 ${isSeller ? 'justify-end' : 'justify-start'}`}
+                            className={`group flex mb-3 items-end gap-1 ${isSeller ? 'justify-end' : 'justify-start'}`}
                           >
+                            {isSeller && (
+                              <button
+                                onClick={() => handleDeleteMessage(message.id)}
+                                disabled={deletingMessageId === message.id}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 flex-shrink-0 mb-1"
+                                title="Supprimer ce message"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <div className={`max-w-[80%] ${isSeller ? 'order-2' : ''}`}>
                               <div
                                 className={`px-4 py-2 rounded-2xl ${
@@ -463,6 +496,16 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                                 )}
                               </div>
                             </div>
+                            {!isSeller && (
+                              <button
+                                onClick={() => handleDeleteMessage(message.id)}
+                                disabled={deletingMessageId === message.id}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 flex-shrink-0 mb-1"
+                                title="Supprimer ce message"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         );
                       })}

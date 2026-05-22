@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
@@ -114,6 +114,7 @@ const FloatingChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
   const listEndRef = useRef(null);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
@@ -155,6 +156,24 @@ const FloatingChat = () => {
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!token || !activeConversationId || deletingMessageId) return;
+    setDeletingMessageId(messageId);
+    try {
+      await axios.delete(
+        `${API}/conversations/${activeConversationId}/messages/${messageId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      await refreshConversations();
+    } catch (error) {
+      const detail = error.response?.data?.detail || "Erreur lors de la suppression";
+      toast.error(detail);
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -295,11 +314,37 @@ const FloatingChat = () => {
               messages.map((m) => (
                 <div
                   key={m.id}
-                  className={`max-w-[85%] px-3 py-2 rounded-xl text-xs ${
-                    m.sender_type === "customer" ? "ml-0 bg-slate-100 text-slate-800" : "ml-auto bg-fuchsia-600 text-white"
+                  className={`group flex items-end gap-1 ${
+                    m.sender_type === "customer" ? "justify-start" : "justify-end"
                   }`}
                 >
-                  {m.content || m.text}
+                  {m.sender_type !== "customer" && (
+                    <button
+                      onClick={() => handleDeleteMessage(m.id)}
+                      disabled={deletingMessageId === m.id}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-500 flex-shrink-0"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                  <div
+                    className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${
+                      m.sender_type === "customer" ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
+                    }`}
+                  >
+                    {m.content || m.text}
+                  </div>
+                  {m.sender_type === "customer" && (
+                    <button
+                      onClick={() => handleDeleteMessage(m.id)}
+                      disabled={deletingMessageId === m.id}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-500 flex-shrink-0"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               ))
             )}
