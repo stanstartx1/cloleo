@@ -241,9 +241,6 @@ async def delete_message(conversation_id: str, message_id: str, user: dict = Dep
     if not message:
         raise HTTPException(status_code=404, detail="Message non trouvé")
 
-    if message["sender_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres messages")
-
     await db.messages.delete_one({"id": message_id})
 
     last_msg = await db.messages.find(
@@ -276,6 +273,22 @@ async def delete_message(conversation_id: str, message_id: str, user: dict = Dep
         })
 
     return {"detail": "Message supprimé"}
+
+
+@router.delete("/{conversation_id}")
+async def delete_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
+    """Delete a conversation and all its messages"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+
+    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+
+    await db.messages.delete_many({"conversation_id": conversation_id})
+    await db.conversations.delete_one({"id": conversation_id})
+
+    return {"detail": "Conversation supprimée"}
 
 
 # Vendor-specific routes

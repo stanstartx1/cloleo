@@ -29,6 +29,8 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [offerNote, setOfferNote] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState(null);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
+  const [deletingConversation, setDeletingConversation] = useState(false);
   
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -231,6 +233,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMessages(prev => prev.filter(m => m.id !== messageId));
+      setSelectedMessageId(null);
       fetchConversations();
       toast.success('Message supprimé');
     } catch (error) {
@@ -239,6 +242,30 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     } finally {
       setDeletingMessageId(null);
     }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!selectedConversation || deletingConversation) return;
+    setDeletingConversation(true);
+    try {
+      await axios.delete(
+        `${API}/conversations/${selectedConversation.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages([]);
+      setSelectedMessageId(null);
+      setSelectedConversation(null);
+      toast.success('Conversation supprimée');
+      fetchConversations();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
+
+  const toggleSelectMessage = (messageId) => {
+    setSelectedMessageId(prev => prev === messageId ? null : messageId);
   };
 
   const handleSendOffer = async () => {
@@ -420,6 +447,15 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                       </span>
                     </div>
                   )}
+
+                  <button
+                    onClick={handleDeleteConversation}
+                    disabled={deletingConversation}
+                    className="ml-2 p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 flex-shrink-0"
+                    title="Supprimer la conversation"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -447,19 +483,14 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         return (
                           <div
                             key={message.id}
-                            className={`group flex mb-3 items-end gap-1 ${isSeller ? 'justify-end' : 'justify-start'}`}
+                            className={`flex flex-col mb-3 ${isSeller ? 'items-end' : 'items-start'}`}
                           >
-                            {isSeller && (
-                              <button
-                                onClick={() => handleDeleteMessage(message.id)}
-                                disabled={deletingMessageId === message.id}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 flex-shrink-0 mb-1"
-                                title="Supprimer ce message"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            <div className={`max-w-[80%] ${isSeller ? 'order-2' : ''}`}>
+                            <div
+                              onClick={() => toggleSelectMessage(message.id)}
+                              className={`max-w-[80%] cursor-pointer transition-all ${
+                                selectedMessageId === message.id ? 'ring-2 ring-red-400 rounded-2xl' : ''
+                              }`}
+                            >
                               <div
                                 className={`px-4 py-2 rounded-2xl ${
                                   isSeller
@@ -496,14 +527,14 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                                 )}
                               </div>
                             </div>
-                            {!isSeller && (
+                            {selectedMessageId === message.id && (
                               <button
                                 onClick={() => handleDeleteMessage(message.id)}
                                 disabled={deletingMessageId === message.id}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 flex-shrink-0 mb-1"
-                                title="Supprimer ce message"
+                                className="mt-1 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium active:bg-red-100"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
+                                {deletingMessageId === message.id ? 'Suppression...' : 'Supprimer'}
                               </button>
                             )}
                           </div>
