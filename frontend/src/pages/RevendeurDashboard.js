@@ -46,6 +46,8 @@ const RevendeurDashboard = () => {
   
   // Catalog state
   const [catalogProducts, setCatalogProducts] = useState([]);
+  const [catalogCategories, setCatalogCategories] = useState([]);
+  const [catalogCategory, setCatalogCategory] = useState('');
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -112,12 +114,14 @@ const RevendeurDashboard = () => {
     try {
       const params = new URLSearchParams({ page, limit: 12 });
       if (search) params.append('search', search);
+      if (catalogCategory) params.append('category_slug', catalogCategory);
       
       const response = await axios.get(`${API}/revendeur/catalog?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCatalogProducts(response.data.products);
       setCatalogTotal(response.data.total);
+      setCatalogCategories(response.data.categories || []);
     } catch (error) {
       toast.error('Erreur lors du chargement du catalogue');
     } finally {
@@ -175,7 +179,7 @@ const RevendeurDashboard = () => {
     if (activeTab === 'products') fetchMyProducts();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'earnings') fetchEarnings();
-  }, [activeTab]);
+  }, [activeTab, catalogCategory]);
 
   // Add product to my catalog
   const handleAddProduct = (product) => {
@@ -747,23 +751,41 @@ const RevendeurDashboard = () => {
                   </h1>
                   <p className="text-gray-500">Sélectionnez des produits à ajouter à votre boutique</p>
                 </div>
-                <motion.div 
-                  className="relative w-full sm:w-64"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={catalogSearch}
+                <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+                  <motion.div 
+                    className="relative w-full sm:w-64"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Rechercher..."
+                      value={catalogSearch}
+                      onChange={(e) => {
+                        setCatalogSearch(e.target.value);
+                        fetchCatalog(1, e.target.value);
+                      }}
+                      className="pl-10 border-purple-200 focus:border-purple-400"
+                    />
+                  </motion.div>
+                  <select
+                    value={catalogCategory}
                     onChange={(e) => {
-                      setCatalogSearch(e.target.value);
-                      fetchCatalog(1, e.target.value);
+                      setCatalogCategory(e.target.value);
+                      setCatalogPage(1);
                     }}
-                    className="pl-10 border-purple-200 focus:border-purple-400"
-                  />
-                </motion.div>
+                    className="h-10 rounded-md border border-purple-200 px-3 text-sm bg-white min-w-[220px]"
+                  >
+                    <option value="">Toutes les catégories</option>
+                    {catalogCategories
+                      .map((cat) => (
+                        <option key={cat.slug} value={cat.slug}>
+                          {cat.parent_slug ? `↳ ${cat.name}` : cat.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </motion.div>
 
               {catalogLoading ? (
@@ -925,12 +947,16 @@ const RevendeurDashboard = () => {
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ type: "spring", stiffness: 500 }}
+                                    className="mt-1 flex flex-wrap items-center gap-2"
                                   >
                                     <Badge 
                                       variant={product.is_active ? 'default' : 'secondary'} 
-                                      className={`mt-1 ${product.is_active ? 'bg-green-500' : ''}`}
+                                      className={`${product.is_active ? 'bg-green-500' : ''}`}
                                     >
                                       {product.is_active ? 'Actif' : 'Inactif'}
+                                    </Badge>
+                                    <Badge variant="outline" className="capitalize">
+                                      {product.publication_status === 'approved' ? 'Publié' : (product.publication_status || 'En attente')}
                                     </Badge>
                                   </motion.div>
                                 </div>

@@ -417,8 +417,16 @@ async def revendeur_dashboard(user: dict = Depends(require_dropshipper)):
 
 
 @api.get("/revendeur/catalog")
-async def revendeur_catalog(page: int = 1, limit: int = 12, search: str = "", user: dict = Depends(require_dropshipper)):
+async def revendeur_catalog(
+    page: int = 1,
+    limit: int = 48,
+    search: str = "",
+    category_slug: str = "",
+    user: dict = Depends(require_dropshipper)
+):
     query = {"status": "approved"}
+    if category_slug:
+        query["category_slug"] = category_slug
     if search:
         query["$or"] = [{"name": {"$regex": search, "$options": "i"}}, {"description": {"$regex": search, "$options": "i"}}]
     skip = (page - 1) * limit
@@ -428,12 +436,32 @@ async def revendeur_catalog(page: int = 1, limit: int = 12, search: str = "", us
     existing_ids = {e.get("original_product_id") for e in existing}
     for p in products:
         p["is_dropshipped"] = p.get("id") in existing_ids
-    return {"products": products, "total": total, "page": page}
+    categories = await db.categories.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "slug": 1, "name": 1, "parent_slug": 1},
+    ).sort("name", 1).to_list(500)
+    return {"products": products, "total": total, "page": page, "categories": categories}
 
 
 @api.get("/revendeur/products")
 async def revendeur_products(user: dict = Depends(require_dropshipper)):
-    return await db.dropshipped_products.find({"dropshipper_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    revendeur_products = await db.dropshipped_products.find(
+        {"dropshipper_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+
+    public_products = await db.products.find(
+        {"seller_id": user["id"], "seller_type": "dropshipper"},
+        {"_id": 0, "id": 1, "status": 1, "is_active": 1, "updated_at": 1}
+    ).to_list(1000)
+    by_id = {p.get("id"): p for p in public_products}
+
+    for p in revendeur_products:
+        pub = by_id.get(p.get("id")) or {}
+        p["publication_status"] = pub.get("status", "pending")
+        p["published_is_active"] = pub.get("is_active", p.get("is_active", True))
+
+    return revendeur_products
 
 
 @api.post("/revendeur/products")
@@ -533,6 +561,8 @@ async def update_revendeur_product(product_id: str, payload: DropshippedProductU
     if "custom_images" in update:
         imgs = update.get("custom_images") or doc.get("original_images") or []
         public_update["images"] = imgs
+    if "is_active" in update:
+        public_update["is_active"] = bool(update.get("is_active"))
     await db.products.update_one(
         {"id": product_id, "seller_id": user["id"], "seller_type": "dropshipper"},
         {"$set": public_update},
