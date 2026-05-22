@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
+import { COUNTRIES, getCountryFlagUrl } from '../utils/countries';
 
 const envBackend = (process.env.REACT_APP_BACKEND_URL || '').trim();
 const browserOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
@@ -305,6 +306,33 @@ const HomePage = () => {
 
       {/* Hero avec vraies catégories */}
       <HeroSection categories={categories} />
+
+      {/* Carrousel de drapeaux des pays */}
+      <section className="py-4 bg-gradient-to-r from-amber-50 via-white to-amber-50 border-b border-slate-100 overflow-hidden">
+        <div className="container mx-auto px-4 mb-3">
+          <p className="text-center text-sm font-bold text-slate-700">Nous livrons partout dans le monde</p>
+        </div>
+        <div className="relative overflow-hidden">
+          <div className="flex animate-scroll-flags gap-6 w-max">
+            {[...COUNTRIES, ...COUNTRIES, ...COUNTRIES].map((country, index) => (
+              <div
+                key={`flag-${index}`}
+                className="flex-shrink-0 flex flex-col items-center gap-1.5 px-2"
+              >
+                <div className="w-12 h-8 rounded-md overflow-hidden shadow-sm border border-slate-200 hover:scale-110 transition-transform">
+                  <img
+                    src={getCountryFlagUrl(country.code)}
+                    alt={country.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <span className="text-[10px] font-medium text-slate-600 whitespace-nowrap">{country.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Catégories principales défilantes */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
@@ -818,6 +846,13 @@ const HomePage = () => {
           .continuous-marquee-track {
             animation: none;
           }
+        }
+        @keyframes scroll-flags {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
+        }
+        .animate-scroll-flags {
+          animation: scroll-flags 40s linear infinite;
         }
       `}</style>
     </div>
