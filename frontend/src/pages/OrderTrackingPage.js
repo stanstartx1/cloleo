@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
+import { loadGoogleMaps } from '../utils/googleMapsLoader';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const toWsUrl = (url) => {
@@ -128,21 +129,10 @@ const OrderTrackingPage = () => {
   // Initialize map
   useEffect(() => {
     if (!order || !mapRef.current) return;
-    
-    const loadMap = () => {
-      if (!window.google) {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = initMap;
-        document.head.appendChild(script);
-      } else {
-        initMap();
-      }
-    };
-    
-    loadMap();
+
+    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
+      .then(() => initMap())
+      .catch(() => toast.error('Erreur chargement Google Maps'));
   }, [order]);
 
   // Update map when driver location changes

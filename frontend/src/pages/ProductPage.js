@@ -10,6 +10,7 @@ import { useChat } from '../components/FloatingChat';
 import ProductCard from '../components/ProductCard';
 import ReviewSection from '../components/ReviewSection';
 import QuickCheckoutModal from '../components/QuickCheckoutModal';
+import ProductLocationMap from '../components/ProductLocationMap';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -690,6 +691,10 @@ const ProductPage = () => {
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Contacter le vendeur
               </Button>
+            </div>
+
+            <div className="mb-6">
+              <ProductLocationMap product={product} />
             </div>
 
             {/* Features */}
