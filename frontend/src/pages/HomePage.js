@@ -226,14 +226,11 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${index}`}
             to={`/categories/${category.slug}`}
-            className="flex-shrink-0 w-64 md:w-72 group snap-start"
+            className="flex-shrink-0 w-56 md:w-64 group snap-start"
           >
-            <div className="w-full h-40 md:h-44 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
+            <div className="w-full h-32 md:h-36 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
               <img src={img} alt={category.name} className="w-full h-full object-cover" />
             </div>
-            <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
-              {category.name}
-            </span>
           </Link>
         );
       })}
@@ -251,14 +248,10 @@ const HomePage = () => {
           <Link
             key={`${keyPrefix}-${sub.slug}-${index}`}
             to={`/categories/${sub.slug}`}
-            className="flex-shrink-0 w-60 md:w-64 group snap-start"
+            className="flex-shrink-0 w-52 md:w-56 group snap-start"
           >
             <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-              <img src={img} alt={sub.name} className="w-full h-36 md:h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="p-2">
-                <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
-                <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
-              </div>
+              <img src={img} alt={sub.name} className="w-full h-28 md:h-32 object-cover group-hover:scale-105 transition-transform duration-500" />
             </div>
           </Link>
         );
@@ -335,7 +328,7 @@ const HomePage = () => {
       </section>
 
       {/* Catégories principales défilantes */}
-      <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
+      <section className="py-3 bg-white border-b border-slate-100 overflow-hidden">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
             <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-main-a')}</div>
@@ -351,7 +344,7 @@ const HomePage = () => {
 
       {/* Sous-catégories en carrousel */}
       {subCategories.length > 0 && (
-        <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
+        <section className="py-3 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
           <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
             <div className="continuous-marquee">
               <div className="continuous-marquee-track continuous-marquee-track-subs">{renderSubCategoryItems('sub-main-a')}</div>
@@ -366,7 +359,7 @@ const HomePage = () => {
           <div className="mb-4">
             <SectionBand title="Inspiration Produits" tone="blue" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4 auto-rows-[120px] md:auto-rows-[130px]">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-3 auto-rows-[100px] md:auto-rows-[110px]">
             {spotlightGridProducts.map((product, index) => {
               const image = product.images?.[0] || product.main_image || 'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
               const hasPromo = Number(product.promo_price_fcfa || product.discount_price || 0) > 0;
@@ -542,7 +535,7 @@ const HomePage = () => {
 
       {/* Inter-bloc: carrousel sous-catégories */}
       {subCategories.length > 0 && (
-        <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
+        <section className="py-3 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
           <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
             <div className="continuous-marquee">
               <div className="continuous-marquee-track continuous-marquee-track-subs">{renderSubCategoryItems('sub-mid-a')}</div>

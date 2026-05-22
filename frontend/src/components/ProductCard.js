@@ -159,7 +159,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       )} />
       
       {/* Image Container */}
-      <div className="relative h-36 md:h-40 lg:h-44 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
+      <div className="relative h-28 md:h-32 lg:h-36 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
