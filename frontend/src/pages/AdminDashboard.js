@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -76,6 +76,17 @@ const AdminDashboard = () => {
     products: false,
     revendeurs: false,
   });
+  
+  const autoSweepRef = useRef(false);
+
+  const loadAutoApproveFromPlatform = (platformSettings) => {
+    setAutoApprove({
+      vendors: Boolean(platformSettings?.auto_approve_vendors),
+      drivers: Boolean(platformSettings?.auto_approve_drivers),
+      products: Boolean(platformSettings?.auto_approve_products),
+      revendeurs: Boolean(platformSettings?.auto_approve_revendeurs),
+    });
+  };
 
   useEffect(() => {
     if (!isAdmin) {
@@ -128,11 +139,13 @@ const AdminDashboard = () => {
         axios.get(`${API}/admin/settings/platform`, { headers })
       ]);
       
-      setSettings({
+      const nextSettings = {
         vendor: vendorSettings.data,
         delivery: driverSettings.data,
         platform: platformSettings.data
-      });
+      };
+      setSettings(nextSettings);
+      loadAutoApproveFromPlatform(nextSettings.platform || {});
       
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -143,21 +156,50 @@ const AdminDashboard = () => {
   };
 
   // ===== AUTO-APPROVE LOGIC =====
+  const persistAutoApprove = async (nextAutoApprove) => {
+    const headers = { Authorization: `Bearer ${token}` };
+    const platform = settings.platform || {};
+    const mergedPlatform = {
+      ...platform,
+      auto_approve_vendors: Boolean(nextAutoApprove.vendors),
+      auto_approve_drivers: Boolean(nextAutoApprove.drivers),
+      auto_approve_products: Boolean(nextAutoApprove.products),
+      auto_approve_revendeurs: Boolean(nextAutoApprove.revendeurs),
+    };
+
+    await axios.put(
+      `${API}/admin/settings/platform`,
+      { settings: mergedPlatform },
+      { headers }
+    );
+
+    setSettings((prev) => ({ ...prev, platform: mergedPlatform }));
+  };
+
   const handleToggleAutoApprove = async (type) => {
     const newValue = !autoApprove[type];
-    setAutoApprove(prev => ({ ...prev, [type]: newValue }));
+    const nextAutoApprove = { ...autoApprove, [type]: newValue };
+    setAutoApprove(nextAutoApprove);
+
+    try {
+      await persistAutoApprove(nextAutoApprove);
+    } catch (error) {
+      toast.error("Erreur sauvegarde du mode automatique");
+      setAutoApprove(autoApprove);
+      return;
+    }
 
     if (newValue) {
-      // Approuver automatiquement tous les éléments en attente
       try {
         const headers = { Authorization: `Bearer ${token}` };
+        // Approuver immédiatement les éléments déjà en attente
         if (type === 'products') {
           await Promise.all(
             pendingProducts.map(p =>
               axios.post(`${API}/admin/products/${p.id}/approve`, {}, { headers })
             )
           );
-          toast.success(`✅ ${pendingProducts.length} produit(s) approuvé(s) automatiquement`);
+          toast.success(`? ${pendingProducts.length} produit(s) approuvé(s) automatiquement`);
         } else if (type === 'vendors') {
           const pending = vendors.filter(v => !v.is_verified);
           await Promise.all(
@@ -165,7 +207,7 @@ const AdminDashboard = () => {
               axios.put(`${API}/admin/vendors/${v.id}/verify`, {}, { headers })
             )
           );
-          toast.success(`✅ ${pending.length} vendeur(s) approuvé(s) automatiquement`);
+          toast.success(`? ${pending.length} vendeur(s) approuvé(s) automatiquement`);
         } else if (type === 'drivers') {
           const pending = drivers.filter(d => !d.is_verified);
           await Promise.all(
@@ -173,25 +215,72 @@ const AdminDashboard = () => {
               axios.put(`${API}/admin/drivers/${d.id}/verify`, {}, { headers })
             )
           );
-          toast.success(`✅ ${pending.length} livreur(s) approuvé(s) automatiquement`);
+          toast.success(`? ${pending.length} livreur(s) approuvé(s) automatiquement`);
         } else if (type === 'revendeurs') {
           const pending = revendeurs.filter(r => !r.is_active);
           await Promise.all(
             pending.map(r =>
-              axios.put(`${API}/admin/revendeurs/${r.id}/toggle`, {}, { headers })
+              axios.put(`${API}/admin/revendeurs/${r.id}/verify`, {}, { headers })
             )
           );
-          toast.success(`✅ ${pending.length} revendeur(s) activé(s) automatiquement`);
+          toast.success(`? ${pending.length} revendeur(s) approuvé(s) automatiquement`);
         }
         fetchAllData();
       } catch (error) {
         toast.error("Erreur lors de l'approbation automatique");
-        setAutoApprove(prev => ({ ...prev, [type]: false }));
+        const rollback = { ...nextAutoApprove, [type]: false };
+        setAutoApprove(rollback);
+        try {
+          await persistAutoApprove(rollback);
+        } catch {}
       }
     } else {
       toast.info(`Approbation automatique désactivée pour les ${type}`);
     }
   };
+
+  useEffect(() => {
+    if (!token || autoSweepRef.current) return;
+
+    const shouldRun =
+      (autoApprove.products && pendingProducts.length > 0) ||
+      (autoApprove.vendors && vendors.some(v => !v.is_verified)) ||
+      (autoApprove.drivers && drivers.some(d => !d.is_verified)) ||
+      (autoApprove.revendeurs && revendeurs.some(r => !r.is_active));
+
+    if (!shouldRun) return;
+
+    const runAutoSweep = async () => {
+      autoSweepRef.current = true;
+      const headers = { Authorization: `Bearer ${token}` };
+      try {
+        if (autoApprove.products && pendingProducts.length > 0) {
+          await Promise.all(
+            pendingProducts.map(p => axios.post(`${API}/admin/products/${p.id}/approve`, {}, { headers }))
+          );
+        }
+        if (autoApprove.vendors) {
+          const pending = vendors.filter(v => !v.is_verified);
+          await Promise.all(pending.map(v => axios.put(`${API}/admin/vendors/${v.id}/verify`, {}, { headers })));
+        }
+        if (autoApprove.drivers) {
+          const pending = drivers.filter(d => !d.is_verified);
+          await Promise.all(pending.map(d => axios.put(`${API}/admin/drivers/${d.id}/verify`, {}, { headers })));
+        }
+        if (autoApprove.revendeurs) {
+          const pending = revendeurs.filter(r => !r.is_active);
+          await Promise.all(pending.map(r => axios.put(`${API}/admin/revendeurs/${r.id}/verify`, {}, { headers })));
+        }
+        await fetchAllData();
+      } catch (e) {
+        console.error('Auto-sweep error:', e);
+      } finally {
+        autoSweepRef.current = false;
+      }
+    };
+
+    runAutoSweep();
+  }, [token, autoApprove, pendingProducts, vendors, drivers, revendeurs]);
 
   const handleLogout = () => {
     logout();
@@ -999,7 +1088,7 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
           { key: 'all', label: `Tous (${products.length})` },
           { key: 'pending', label: `En attente (${pendingProducts.length})` },
           { key: 'approved', label: `Approuvés (${products.filter(p => p.status === 'approved').length})` },
-          { key: 'featured', label: `⭐ En vedette (${featuredCount})` },
+          { key: 'featured', label: `? En vedette (${featuredCount})` },
           { key: 'rejected', label: `Rejetés (${products.filter(p => p.status === 'rejected').length})` },
         ].map(({ key, label }) => (
           <Button key={key} variant={filter === key ? 'default' : 'outline'} size="sm" onClick={() => setFilter(key)}
@@ -1033,7 +1122,7 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-medium truncate">{product.name}</h4>
-                    {product.is_featured && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">⭐ En vedette</span>}
+                    {product.is_featured && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">? En vedette</span>}
                   </div>
                   <p className="text-sm text-slate-400 truncate">{product.description}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
@@ -1556,7 +1645,7 @@ const CategoriesSection = ({
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      toast.success('✅ Sous-catégorie créée avec succès !');
+      toast.success('? Sous-catégorie créée avec succès !');
       
       // Reset form
       setNewSubCategory({ name: '', description: '', parent_slug: '', banner_images: [] });
@@ -1782,7 +1871,7 @@ const CategoriesSection = ({
                   {subCats.map(sub => (
                     <div key={sub.id} className="flex justify-between items-center p-3 hover:bg-slate-700/50 rounded-lg mb-1">
                       <div className="flex items-center gap-3">
-                        <span className="text-purple-300">↳ {sub.name}</span>
+                        <span className="text-purple-300">? {sub.name}</span>
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => setEditingCategory(sub)}><Edit className="w-4 h-4" /></Button>
@@ -1864,3 +1953,4 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
 };
 
 export default AdminDashboard;
+
