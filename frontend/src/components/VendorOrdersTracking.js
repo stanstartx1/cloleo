@@ -65,7 +65,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
     if (!selectedOrder) return;
     
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${selectedOrder.id}`);
+      const ws = new WebSocket(`${WS_URL}/api/ws/orders/order_${selectedOrder.id}`);
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);

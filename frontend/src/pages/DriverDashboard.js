@@ -117,7 +117,7 @@ const DriverDashboard = () => {
     if (!user?.id) return;
     
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/driver/${user.id}`);
+      const ws = new WebSocket(`${WS_URL}/api/ws/driver/${user.id}`);
       
       ws.onopen = () => {
         toast.success('Connecté au système');

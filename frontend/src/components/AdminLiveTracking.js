@@ -158,7 +158,7 @@ const AdminLiveTracking = ({ token }) => {
   // WebSocket for real-time updates
   useEffect(() => {
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/orders/admin_tracking`);
+      const ws = new WebSocket(`${WS_URL}/api/ws/orders/admin_tracking`);
       
       ws.onopen = () => {
         console.log('Admin tracking WebSocket connected');

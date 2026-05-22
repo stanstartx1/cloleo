@@ -108,7 +108,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     const connectWs = () => {
       if (!isMounted) return;
       
-      ws = new WebSocket(`${WS_URL}/ws/chat/${selectedConversation.id}`);
+      ws = new WebSocket(`${WS_URL}/api/ws/chat/${selectedConversation.id}`);
       
       ws.onopen = () => {
         console.log('Vendor Chat WebSocket connected');

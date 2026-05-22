@@ -72,7 +72,7 @@ const OrderTrackingPage = () => {
     
     // Connect to WebSocket for real-time updates
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${orderId}`);
+      const ws = new WebSocket(`${WS_URL}/api/ws/orders/order_${orderId}`);
       
       ws.onopen = () => {
         console.log('WebSocket connected for order tracking');
