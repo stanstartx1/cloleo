@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, Send, User, Clock, Search, ChevronLeft, 
-  Loader2, Package, Store, Check, CheckCheck, Bell, Tag
+  Loader2, Package, Store, Check, CheckCheck, Bell, Tag, Trash2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -28,6 +28,9 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [offerPrice, setOfferPrice] = useState('');
   const [offerNote, setOfferNote] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
+  const [deletingConversation, setDeletingConversation] = useState(false);
   
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -138,6 +141,9 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
               c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c
             ));
           }
+          if (data.type === 'message_deleted' && data.message_id) {
+            setMessages(prev => prev.filter(m => m.id !== data.message_id));
+          }
         } catch (e) {
           console.error('WS parse error:', e);
         }
@@ -216,6 +222,50 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!selectedConversation || deletingMessageId) return;
+    setDeletingMessageId(messageId);
+    try {
+      await axios.delete(
+        `${API}/conversations/${selectedConversation.id}/messages/${messageId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      setSelectedMessageId(null);
+      fetchConversations();
+      toast.success('Message supprimé');
+    } catch (error) {
+      const detail = error.response?.data?.detail || 'Erreur lors de la suppression';
+      toast.error(detail);
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!selectedConversation || deletingConversation) return;
+    setDeletingConversation(true);
+    try {
+      await axios.delete(
+        `${API}/conversations/${selectedConversation.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages([]);
+      setSelectedMessageId(null);
+      setSelectedConversation(null);
+      toast.success('Conversation supprimée');
+      fetchConversations();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
+
+  const toggleSelectMessage = (messageId) => {
+    setSelectedMessageId(prev => prev === messageId ? null : messageId);
   };
 
   const handleSendOffer = async () => {
@@ -397,6 +447,15 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                       </span>
                     </div>
                   )}
+
+                  <button
+                    onClick={handleDeleteConversation}
+                    disabled={deletingConversation}
+                    className="ml-2 p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 flex-shrink-0"
+                    title="Supprimer la conversation"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -424,9 +483,14 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         return (
                           <div
                             key={message.id}
-                            className={`flex mb-3 ${isSeller ? 'justify-end' : 'justify-start'}`}
+                            className={`flex flex-col mb-3 ${isSeller ? 'items-end' : 'items-start'}`}
                           >
-                            <div className={`max-w-[80%] ${isSeller ? 'order-2' : ''}`}>
+                            <div
+                              onClick={() => toggleSelectMessage(message.id)}
+                              className={`max-w-[80%] cursor-pointer transition-all ${
+                                selectedMessageId === message.id ? 'ring-2 ring-red-400 rounded-2xl' : ''
+                              }`}
+                            >
                               <div
                                 className={`px-4 py-2 rounded-2xl ${
                                   isSeller
@@ -463,6 +527,16 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                                 )}
                               </div>
                             </div>
+                            {selectedMessageId === message.id && (
+                              <button
+                                onClick={() => handleDeleteMessage(message.id)}
+                                disabled={deletingMessageId === message.id}
+                                className="mt-1 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium active:bg-red-100"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                {deletingMessageId === message.id ? 'Suppression...' : 'Supprimer'}
+                              </button>
+                            )}
                           </div>
                         );
                       })}

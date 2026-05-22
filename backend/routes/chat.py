@@ -227,6 +227,70 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
     return {k: v for k, v in message.items() if k != "_id"}
 
 
+@router.delete("/{conversation_id}/messages/{message_id}")
+async def delete_message(conversation_id: str, message_id: str, user: dict = Depends(get_current_user)):
+    """Delete a message from a conversation"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+
+    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+
+    message = await db.messages.find_one({"id": message_id, "conversation_id": conversation_id}, {"_id": 0})
+    if not message:
+        raise HTTPException(status_code=404, detail="Message non trouvé")
+
+    await db.messages.delete_one({"id": message_id})
+
+    last_msg = await db.messages.find(
+        {"conversation_id": conversation_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(1)
+
+    if last_msg:
+        await db.conversations.update_one(
+            {"id": conversation_id},
+            {"$set": {
+                "last_message": last_msg[0].get("content", "")[:100],
+                "last_message_at": last_msg[0].get("created_at"),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    else:
+        await db.conversations.update_one(
+            {"id": conversation_id},
+            {"$set": {
+                "last_message": None,
+                "last_message_at": None,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+    if manager:
+        await manager.broadcast_to_room(f"chat_{conversation_id}", {
+            "type": "message_deleted",
+            "message_id": message_id
+        })
+
+    return {"detail": "Message supprimé"}
+
+
+@router.delete("/{conversation_id}")
+async def delete_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
+    """Delete a conversation and all its messages"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+
+    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+
+    await db.messages.delete_many({"conversation_id": conversation_id})
+    await db.conversations.delete_one({"id": conversation_id})
+
+    return {"detail": "Conversation supprimée"}
+
+
 # Vendor-specific routes
 vendor_chat_router = APIRouter(prefix="/vendor/conversations", tags=["Vendor Chat"])
 

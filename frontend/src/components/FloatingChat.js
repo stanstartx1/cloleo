@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
@@ -114,6 +114,9 @@ const FloatingChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
+  const [deletingConversation, setDeletingConversation] = useState(false);
   const listEndRef = useRef(null);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
@@ -155,6 +158,48 @@ const FloatingChat = () => {
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!token || !activeConversationId || deletingMessageId) return;
+    setDeletingMessageId(messageId);
+    try {
+      await axios.delete(
+        `${API}/conversations/${activeConversationId}/messages/${messageId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      setSelectedMessageId(null);
+      await refreshConversations();
+    } catch (error) {
+      const detail = error.response?.data?.detail || "Erreur lors de la suppression";
+      toast.error(detail);
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!token || !activeConversationId || deletingConversation) return;
+    setDeletingConversation(true);
+    try {
+      await axios.delete(
+        `${API}/conversations/${activeConversationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessages([]);
+      setSelectedMessageId(null);
+      toast.success("Conversation supprimée");
+      await refreshConversations();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la suppression");
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
+
+  const toggleSelectMessage = (messageId) => {
+    setSelectedMessageId((prev) => (prev === messageId ? null : messageId));
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -242,8 +287,18 @@ const FloatingChat = () => {
         </div>
 
         <div className="flex-1 flex flex-col">
-          <div className="h-10 px-3 border-b border-slate-200 flex items-center text-xs font-medium text-slate-700 truncate">
-            {activeConversation?.product_name || "Choisir une conversation"}
+          <div className="h-10 px-3 border-b border-slate-200 flex items-center justify-between text-xs font-medium text-slate-700">
+            <span className="truncate">{activeConversation?.product_name || "Choisir une conversation"}</span>
+            {activeConversation && (
+              <button
+                onClick={handleDeleteConversation}
+                disabled={deletingConversation}
+                className="ml-2 p-1.5 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 flex-shrink-0"
+                title="Supprimer la conversation"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {canOpenProduct && (
@@ -293,13 +348,25 @@ const FloatingChat = () => {
               <p className="text-xs text-slate-500">Aucun message</p>
             ) : (
               messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`max-w-[85%] px-3 py-2 rounded-xl text-xs ${
-                    m.sender_type === "customer" ? "ml-0 bg-slate-100 text-slate-800" : "ml-auto bg-fuchsia-600 text-white"
-                  }`}
-                >
-                  {m.content || m.text}
+                <div key={m.id} className={`flex flex-col ${m.sender_type === "customer" ? "items-start" : "items-end"}`}>
+                  <div
+                    onClick={() => toggleSelectMessage(m.id)}
+                    className={`max-w-[85%] px-3 py-2 rounded-xl text-xs cursor-pointer transition-all ${
+                      m.sender_type === "customer" ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
+                    } ${selectedMessageId === m.id ? "ring-2 ring-red-400" : ""}`}
+                  >
+                    {m.content || m.text}
+                  </div>
+                  {selectedMessageId === m.id && (
+                    <button
+                      onClick={() => handleDeleteMessage(m.id)}
+                      disabled={deletingMessageId === m.id}
+                      className="mt-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-medium active:bg-red-100"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      {deletingMessageId === m.id ? "Suppression..." : "Supprimer"}
+                    </button>
+                  )}
                 </div>
               ))
             )}
