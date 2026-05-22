@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
+import { loadGoogleMaps } from '../utils/googleMapsLoader';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -51,21 +52,11 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
   // Load Google Maps
   useEffect(() => {
     if (step === 2) {
-      const loadGoogleMaps = () => {
-        if (window.google) {
-          initMap();
-          return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = initMap;
-        document.head.appendChild(script);
-      };
-      
-      setTimeout(loadGoogleMaps, 100);
+      setTimeout(() => {
+        loadGoogleMaps(GOOGLE_MAPS_API_KEY)
+          .then(() => initMap())
+          .catch(() => toast.error('Erreur chargement Google Maps'));
+      }, 100);
     }
   }, [step]);
 

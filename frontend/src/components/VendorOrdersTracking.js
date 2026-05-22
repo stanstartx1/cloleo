@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
+import { loadGoogleMaps } from '../utils/googleMapsLoader';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const WS_URL = BACKEND_URL
@@ -96,21 +97,10 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
   // Initialize map when order is selected
   useEffect(() => {
     if (!selectedOrder || !mapRef.current) return;
-    
-    const initMap = () => {
-      if (!window.google) {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => createMap();
-        document.head.appendChild(script);
-      } else {
-        createMap();
-      }
-    };
-    
-    initMap();
+
+    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
+      .then(() => createMap())
+      .catch(() => toast.error('Erreur chargement Google Maps'));
   }, [selectedOrder]);
 
   const createMap = () => {

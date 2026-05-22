@@ -13,6 +13,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
+import { loadGoogleMaps } from '../utils/googleMapsLoader';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { copyToClipboard } from '../utils/share';
 import axios from 'axios';
@@ -1806,21 +1807,10 @@ const RevendeurOrderTracking = ({ token }) => {
   // Initialize Google Map
   useEffect(() => {
     if (!selectedOrder || !mapRef.current) return;
-    
-    const initMap = () => {
-      if (!window.google) {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => createMap();
-        document.head.appendChild(script);
-      } else {
-        createMap();
-      }
-    };
-    
-    initMap();
+
+    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
+      .then(() => createMap())
+      .catch(() => toast.error('Erreur chargement Google Maps'));
   }, [selectedOrder]);
 
   const createMap = () => {
