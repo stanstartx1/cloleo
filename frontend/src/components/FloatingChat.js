@@ -17,6 +17,12 @@ export const ChatProvider = ({ children }) => {
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
 
+  useEffect(() => {
+    setConversations([]);
+    setActiveConversationId(null);
+    setIsOpen(false);
+  }, [token]);
+
   const startConversation = useCallback(async (productId, dropshippedProductId = null, metadata = {}) => {
     if (!token) return null;
 
@@ -118,6 +124,12 @@ const FloatingChat = () => {
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [deletingConversation, setDeletingConversation] = useState(false);
   const listEndRef = useRef(null);
+
+  useEffect(() => {
+    setMessages([]);
+    setNewMessage("");
+    setSelectedMessageId(null);
+  }, [token]);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
   const canOpenProduct =

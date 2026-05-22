@@ -45,6 +45,14 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    setConversations([]);
+    setSelectedConversation(null);
+    setMessages([]);
+    setSelectedMessageId(null);
+    setLoading(true);
+  }, [token]);
+
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
     try {
