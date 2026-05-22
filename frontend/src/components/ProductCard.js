@@ -159,7 +159,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       )} />
       
       {/* Image Container */}
-      <div className="relative h-28 md:h-32 lg:h-36 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
+      <div className="relative h-36 md:h-40 lg:h-44 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
@@ -311,21 +311,13 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       </div>
 
       {/* Content */}
-      <div className="p-2.5 relative flex-1 min-h-0">
+      <div className="p-2 relative flex-1 min-h-0">
         <div className={cn(
           "absolute inset-0 bg-gradient-to-t from-orange-50/50 to-transparent transition-opacity duration-500",
           isHovered ? "opacity-100" : "opacity-0"
         )} />
         
         <div className="relative h-full flex flex-col min-h-0">
-          <p className={cn(
-            "text-[11px] text-muted-foreground mb-1 uppercase tracking-wider font-medium",
-            "transform transition-all duration-300",
-            isHovered && "text-primary/80 translate-x-1"
-          )}>
-            {product.category_slug?.replace(/-/g, ' ')}
-          </p>
-
           <h3 className={cn(
             "font-semibold text-[13px] line-clamp-2 min-h-[2rem] mb-1 transition-all duration-300",
             isHovered && "text-primary"
@@ -334,7 +326,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           </h3>
 
           <div className={cn(
-            "flex items-center gap-1.5 mb-1.5 transition-all duration-300",
+            "flex items-center gap-1.5 mb-1 transition-all duration-300",
             isHovered && "scale-105 origin-left"
           )}>
             <div className="flex items-center gap-1 bg-amber-50 px-1.5 py-0.5 rounded-full">
@@ -352,7 +344,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
           {/* Seller Info */}
           {showSellerInfo && (product.seller_name || product.city) && (
             <div className={cn(
-              "mb-1.5 p-1.5 rounded-lg min-h-[2.5rem] transition-all duration-300",
+              "mb-1 p-1.5 rounded-lg min-h-[2rem] transition-all duration-300",
               isHovered ? "bg-orange-50/80" : "bg-gray-50/80"
             )}>
               <div className="flex items-center justify-between gap-2">
@@ -435,7 +427,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             )}
           </div>
           {/* Boutons Acheter + Panier — toujours visibles */}
-          <div className="mt-auto pt-1.5">
+          <div className="mt-auto pt-1">
           <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={handleBuyNow}
