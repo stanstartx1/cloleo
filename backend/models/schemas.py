@@ -153,6 +153,21 @@ class ReviewUpdate(BaseModel):
     comment: Optional[str] = None
 
 
+# Custom field definition for categories
+class CustomFieldOption(BaseModel):
+    label: str
+    value: str
+
+
+class CustomFieldDefinition(BaseModel):
+    key: str
+    label: str
+    field_type: str  # text, number, select, multiselect, color
+    options: List[CustomFieldOption] = []
+    required: bool = False
+    placeholder: Optional[str] = None
+
+
 # Category models — avec support sous-catégories
 class CategoryCreate(BaseModel):
     name: str
@@ -160,6 +175,7 @@ class CategoryCreate(BaseModel):
     icon: str
     description: Optional[str] = None
     parent_slug: Optional[str] = None  # None = catégorie principale
+    custom_fields: List[CustomFieldDefinition] = []
 
 
 class CategoryUpdate(BaseModel):
@@ -169,3 +185,4 @@ class CategoryUpdate(BaseModel):
     description: Optional[str] = None
     is_active: Optional[bool] = None
     parent_slug: Optional[str] = None
+    custom_fields: Optional[List[CustomFieldDefinition]] = None

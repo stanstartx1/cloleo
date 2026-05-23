@@ -321,6 +321,10 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
     if exists_slug:
         slug = f"{slug}-{product_id[:6]}"
 
+    custom_attributes = payload.get("custom_attributes") or {}
+    if not isinstance(custom_attributes, dict):
+        custom_attributes = {}
+
     product = {
         "id": product_id,
         "slug": slug,
@@ -329,6 +333,7 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "name": name,
         "description": payload.get("description"),
         "category_slug": payload.get("category_slug"),
+        "subcategory_slug": payload.get("subcategory_slug") or None,
         "condition": payload.get("condition", "neuf"),
         "origin_country_code": payload.get("origin_country_code") or "CI",
         "origin_country_name": payload.get("origin_country_name") or "Cote d'Ivoire",
@@ -338,6 +343,7 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "stock": int(payload.get("stock") or 0),
         "images": payload.get("images") or [],
         "tags": payload.get("tags") or [],
+        "custom_attributes": custom_attributes,
         "is_active": True,
         "status": "pending",
         "is_featured": False,
@@ -955,6 +961,10 @@ async def admin_create_category(payload: dict, user: dict = Depends(require_admi
         if existing:
             final_slug = f"{final_slug}-{str(uuid.uuid4())[:6]}"
 
+        custom_fields = payload.get("custom_fields") or []
+        if not isinstance(custom_fields, list):
+            custom_fields = []
+
         category = {
             "id": str(uuid.uuid4()),
             "name": name,
@@ -964,6 +974,7 @@ async def admin_create_category(payload: dict, user: dict = Depends(require_admi
             "banner_images": banner_images,
             "image": banner_images[0] if banner_images else None,
             "parent_slug": parent_slug,
+            "custom_fields": custom_fields,
             "is_active": True,
             "created_at": _utc(),
             "updated_at": _utc(),
@@ -983,6 +994,9 @@ async def admin_create_category(payload: dict, user: dict = Depends(require_admi
 @api.put("/admin/categories/{category_id}")
 async def admin_update_category(category_id: str, payload: dict, user: dict = Depends(require_admin)):
     update = {k: v for k, v in payload.items() if v is not None}
+    if "custom_fields" in payload:
+        cf = payload["custom_fields"]
+        update["custom_fields"] = cf if isinstance(cf, list) else []
     if "banner_images" in update:
         if not isinstance(update["banner_images"], list):
             raise HTTPException(status_code=400, detail="banner_images doit etre une liste")

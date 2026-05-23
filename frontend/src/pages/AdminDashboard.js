@@ -5,7 +5,7 @@ import {
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
   BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star, MessageCircle,
-  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../components/FloatingChat';
@@ -63,7 +63,7 @@ const AdminDashboard = () => {
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [userSearch, setUserSearch] = useState('');
   const [editingCategory, setEditingCategory] = useState(null);
-  const [newCategory, setNewCategory] = useState({ name: '', description: '', banner_images: [] });
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', banner_images: [], custom_fields: [] });
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [productFilter, setProductFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -518,11 +518,11 @@ const AdminDashboard = () => {
     if (!newCategory.name) { toast.error('Le nom est requis'); return; }
     try {
       const slug = newCategory.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      await axios.post(`${API}/admin/categories`, { ...newCategory, slug, icon: 'Package' }, {
+      await axios.post(`${API}/admin/categories`, { ...newCategory, slug, icon: 'Package', custom_fields: newCategory.custom_fields || [] }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Catégorie créée');
-      setNewCategory({ name: '', description: '', banner_images: [] });
+      setNewCategory({ name: '', description: '', banner_images: [], custom_fields: [] });
       setShowNewCategoryForm(false);
       fetchAllData();
     } catch (error) {
@@ -536,7 +536,7 @@ const AdminDashboard = () => {
       const slug = (editingCategory.slug && editingCategory.slug.trim())
         ? editingCategory.slug
         : editingCategory.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      await axios.put(`${API}/admin/categories/${categoryId}`, { ...editingCategory, slug, icon: editingCategory.icon || 'Package' }, {
+      await axios.put(`${API}/admin/categories/${categoryId}`, { ...editingCategory, slug, icon: editingCategory.icon || 'Package', custom_fields: editingCategory.custom_fields || [] }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Catégorie mise à jour');
@@ -1569,9 +1569,337 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
   );
 };
 // ============================================================
-// REMPLACE uniquement la fonction CategoriesSection dans AdminDashboard.js
-// (cherche "const CategoriesSection" et remplace toute la fonction)
 // ============================================================
+// PREDEFINED FIELD TEMPLATES for category custom fields
+// ============================================================
+const PREDEFINED_FIELD_TEMPLATES = [
+  {
+    key: 'tailles',
+    label: 'Tailles',
+    icon: Ruler,
+    color: 'text-blue-400',
+    field_type: 'multiselect',
+    options: [
+      { label: 'XS', value: 'xs' }, { label: 'S', value: 's' }, { label: 'M', value: 'm' },
+      { label: 'L', value: 'l' }, { label: 'XL', value: 'xl' }, { label: 'XXL', value: 'xxl' },
+      { label: '3XL', value: '3xl' }, { label: '4XL', value: '4xl' },
+    ],
+    placeholder: 'Sélectionner les tailles disponibles',
+  },
+  {
+    key: 'pointures',
+    label: 'Pointures',
+    icon: Footprints,
+    color: 'text-orange-400',
+    field_type: 'multiselect',
+    options: Array.from({ length: 16 }, (_, i) => ({ label: String(35 + i), value: String(35 + i) })),
+    placeholder: 'Sélectionner les pointures disponibles',
+  },
+  {
+    key: 'couleurs',
+    label: 'Couleurs',
+    icon: Palette,
+    color: 'text-pink-400',
+    field_type: 'multiselect',
+    options: [
+      { label: 'Noir', value: 'noir' }, { label: 'Blanc', value: 'blanc' }, { label: 'Rouge', value: 'rouge' },
+      { label: 'Bleu', value: 'bleu' }, { label: 'Vert', value: 'vert' }, { label: 'Jaune', value: 'jaune' },
+      { label: 'Rose', value: 'rose' }, { label: 'Orange', value: 'orange' }, { label: 'Violet', value: 'violet' },
+      { label: 'Gris', value: 'gris' }, { label: 'Marron', value: 'marron' }, { label: 'Beige', value: 'beige' },
+      { label: 'Doré', value: 'dore' }, { label: 'Argenté', value: 'argente' }, { label: 'Multicolore', value: 'multicolore' },
+    ],
+    placeholder: 'Sélectionner les couleurs disponibles',
+  },
+  {
+    key: 'matiere',
+    label: 'Matière',
+    icon: Shirt,
+    color: 'text-emerald-400',
+    field_type: 'select',
+    options: [
+      { label: 'Coton', value: 'coton' }, { label: 'Polyester', value: 'polyester' }, { label: 'Soie', value: 'soie' },
+      { label: 'Lin', value: 'lin' }, { label: 'Laine', value: 'laine' }, { label: 'Cuir', value: 'cuir' },
+      { label: 'Cuir synthétique', value: 'cuir-synthetique' }, { label: 'Jean/Denim', value: 'denim' },
+      { label: 'Satin', value: 'satin' }, { label: 'Velours', value: 'velours' }, { label: 'Wax', value: 'wax' },
+      { label: 'Bazin', value: 'bazin' }, { label: 'Kente', value: 'kente' }, { label: 'Autre', value: 'autre' },
+    ],
+    placeholder: 'Sélectionner la matière',
+  },
+  {
+    key: 'genre',
+    label: 'Genre',
+    icon: Users,
+    color: 'text-violet-400',
+    field_type: 'select',
+    options: [
+      { label: 'Homme', value: 'homme' }, { label: 'Femme', value: 'femme' },
+      { label: 'Enfant', value: 'enfant' }, { label: 'Mixte / Unisexe', value: 'mixte' },
+    ],
+    placeholder: 'Sélectionner le genre',
+  },
+  {
+    key: 'poids',
+    label: 'Poids (kg)',
+    icon: Weight,
+    color: 'text-amber-400',
+    field_type: 'number',
+    options: [],
+    placeholder: 'Ex: 0.5',
+  },
+  {
+    key: 'dimensions',
+    label: 'Dimensions (L x l x H)',
+    icon: Box,
+    color: 'text-cyan-400',
+    field_type: 'text',
+    options: [],
+    placeholder: 'Ex: 30 x 20 x 10 cm',
+  },
+  {
+    key: 'marque',
+    label: 'Marque',
+    icon: Tag,
+    color: 'text-rose-400',
+    field_type: 'text',
+    options: [],
+    placeholder: 'Ex: Nike, Adidas...',
+  },
+  {
+    key: 'capacite',
+    label: 'Capacité / Volume',
+    icon: Box,
+    color: 'text-teal-400',
+    field_type: 'text',
+    options: [],
+    placeholder: 'Ex: 500ml, 1L, 32GB...',
+  },
+];
+
+// ============================================================
+// CustomFieldsBuilder - Premium UI component
+// ============================================================
+const CustomFieldsBuilder = ({ fields, onChange, compact = false }) => {
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customFieldName, setCustomFieldName] = useState('');
+  const [customFieldType, setCustomFieldType] = useState('text');
+  const [customFieldOptions, setCustomFieldOptions] = useState('');
+  const [expandedField, setExpandedField] = useState(null);
+
+  const activeKeys = new Set((fields || []).map(f => f.key));
+
+  const togglePredefined = (template) => {
+    const current = fields || [];
+    if (activeKeys.has(template.key)) {
+      onChange(current.filter(f => f.key !== template.key));
+    } else {
+      onChange([...current, {
+        key: template.key,
+        label: template.label,
+        field_type: template.field_type,
+        options: template.options,
+        required: false,
+        placeholder: template.placeholder || '',
+      }]);
+    }
+  };
+
+  const addCustomField = () => {
+    if (!customFieldName.trim()) return;
+    const key = customFieldName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (activeKeys.has(key)) { toast.error('Ce champ existe déjà'); return; }
+
+    const options = (customFieldType === 'select' || customFieldType === 'multiselect')
+      ? customFieldOptions.split(',').map(o => o.trim()).filter(Boolean).map(o => ({ label: o, value: o.toLowerCase().replace(/\s+/g, '-') }))
+      : [];
+
+    onChange([...(fields || []), {
+      key,
+      label: customFieldName.trim(),
+      field_type: customFieldType,
+      options,
+      required: false,
+      placeholder: '',
+    }]);
+    setCustomFieldName('');
+    setCustomFieldType('text');
+    setCustomFieldOptions('');
+    setShowAddCustom(false);
+  };
+
+  const removeField = (key) => {
+    onChange((fields || []).filter(f => f.key !== key));
+  };
+
+  const toggleRequired = (key) => {
+    onChange((fields || []).map(f => f.key === key ? { ...f, required: !f.required } : f));
+  };
+
+  const updateFieldOptions = (key, newOptions) => {
+    onChange((fields || []).map(f => f.key === key ? { ...f, options: newOptions } : f));
+  };
+
+  const addOptionToField = (key, optionLabel) => {
+    if (!optionLabel.trim()) return;
+    const current = (fields || []).find(f => f.key === key);
+    if (!current) return;
+    const newOpt = { label: optionLabel.trim(), value: optionLabel.trim().toLowerCase().replace(/\s+/g, '-') };
+    updateFieldOptions(key, [...(current.options || []), newOpt]);
+  };
+
+  const removeOptionFromField = (key, optionValue) => {
+    const current = (fields || []).find(f => f.key === key);
+    if (!current) return;
+    updateFieldOptions(key, (current.options || []).filter(o => o.value !== optionValue));
+  };
+
+  return (
+    <div className={`mt-${compact ? '3' : '6'} space-y-4`}>
+      <div className="flex items-center gap-2 mb-3">
+        <Settings className="w-5 h-5 text-teal-400" />
+        <h4 className="font-semibold text-sm text-slate-200">Champs personnalisés</h4>
+        <span className="text-xs text-slate-500 ml-auto">{(fields || []).length} champ(s) activé(s)</span>
+      </div>
+
+      {/* Predefined field templates as toggleable cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        {PREDEFINED_FIELD_TEMPLATES.map((tpl) => {
+          const isActive = activeKeys.has(tpl.key);
+          const Icon = tpl.icon;
+          return (
+            <button
+              key={tpl.key}
+              type="button"
+              onClick={() => togglePredefined(tpl)}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-left transition-all text-sm ${
+                isActive
+                  ? 'bg-teal-900/50 border-teal-500/60 text-teal-300 shadow-lg shadow-teal-500/10'
+                  : 'bg-slate-800/50 border-slate-600/40 text-slate-400 hover:border-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-teal-400' : tpl.color}`} />
+              <span className="truncate">{tpl.label}</span>
+              {isActive && <Check className="w-3.5 h-3.5 ml-auto text-teal-400 flex-shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Active fields detail list */}
+      {(fields || []).length > 0 && (
+        <div className="space-y-2 mt-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">Champs activés</p>
+          {(fields || []).map((field) => {
+            const isExpanded = expandedField === field.key;
+            const predefined = PREDEFINED_FIELD_TEMPLATES.find(t => t.key === field.key);
+            const Icon = predefined?.icon || Tag;
+            return (
+              <div key={field.key} className="bg-slate-900/60 rounded-lg border border-slate-700/50 overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${predefined?.color || 'text-slate-400'}`} />
+                  <span className="font-medium text-sm text-slate-200 flex-1">{field.label}</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400">{field.field_type}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleRequired(field.key)}
+                    className={`text-xs px-2 py-0.5 rounded transition-colors ${field.required ? 'bg-red-900/50 text-red-400 border border-red-500/30' : 'bg-slate-700/50 text-slate-500 hover:text-slate-300'}`}
+                  >
+                    {field.required ? 'Requis' : 'Optionnel'}
+                  </button>
+                  {(field.field_type === 'select' || field.field_type === 'multiselect') && (
+                    <button type="button" onClick={() => setExpandedField(isExpanded ? null : field.key)} className="text-slate-400 hover:text-slate-200">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  )}
+                  <button type="button" onClick={() => removeField(field.key)} className="text-red-400/60 hover:text-red-400 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Expandable options editor */}
+                {isExpanded && (field.field_type === 'select' || field.field_type === 'multiselect') && (
+                  <div className="px-4 pb-3 border-t border-slate-700/30 pt-3">
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {(field.options || []).map((opt) => (
+                        <span key={opt.value} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-700/50 rounded text-xs text-slate-300">
+                          {opt.label}
+                          <button type="button" onClick={() => removeOptionFromField(field.key, opt.value)} className="text-red-400/50 hover:text-red-400">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ajouter une option..."
+                        className="h-8 text-xs bg-slate-800"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addOptionToField(field.key, e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add custom field button & form */}
+      {!showAddCustom ? (
+        <button
+          type="button"
+          onClick={() => setShowAddCustom(true)}
+          className="flex items-center gap-2 text-sm text-slate-400 hover:text-teal-400 transition-colors mt-2"
+        >
+          <Plus className="w-4 h-4" /> Ajouter un champ personnalisé
+        </button>
+      ) : (
+        <div className="bg-slate-900/60 rounded-lg border border-teal-500/20 p-4 space-y-3">
+          <h5 className="text-sm font-medium text-teal-400">Nouveau champ personnalisé</h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Input
+              value={customFieldName}
+              onChange={(e) => setCustomFieldName(e.target.value)}
+              placeholder="Nom du champ"
+              className="bg-slate-800 text-sm"
+            />
+            <select
+              value={customFieldType}
+              onChange={(e) => setCustomFieldType(e.target.value)}
+              className="bg-slate-800 border border-slate-600 rounded-md p-2 text-white text-sm"
+            >
+              <option value="text">Texte libre</option>
+              <option value="number">Nombre</option>
+              <option value="select">Liste déroulante</option>
+              <option value="multiselect">Sélection multiple</option>
+            </select>
+            {(customFieldType === 'select' || customFieldType === 'multiselect') && (
+              <Input
+                value={customFieldOptions}
+                onChange={(e) => setCustomFieldOptions(e.target.value)}
+                placeholder="Options (séparées par des virgules)"
+                className="bg-slate-800 text-sm"
+              />
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={addCustomField} className="bg-teal-600 hover:bg-teal-700 text-sm">
+              Ajouter
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowAddCustom(false)} className="text-sm">
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 const CategoriesSection = ({ 
@@ -1590,26 +1918,19 @@ const CategoriesSection = ({
   onRefresh
 }) => {
   const [showSubForm, setShowSubForm] = useState(false);
-  const [selectedParent, setSelectedParent] = useState(null);
   const [expandedCategory, setExpandedCategory] = useState(null);
 
   const [newSubCategory, setNewSubCategory] = useState({ 
     name: '', 
     description: '', 
     parent_slug: '', 
-    banner_images: [] 
+    banner_images: [],
+    custom_fields: [],
   });
 
   const parentCategories = categories.filter(c => !c.parent_slug);
   const getSubCategories = (parentSlug) => categories.filter(c => c.parent_slug === parentSlug);
 
-  // Debug: log pour voir la structure des catégories
-  console.log('=== DEBUG CATEGORIES ===');
-  console.log('Total catégories:', categories.length);
-  console.log('Catégories parentes:', parentCategories.map(c => ({ name: c.name, slug: c.slug, hasParent: !!c.parent_slug })));
-  console.log('Toutes les catégories avec parent_slug:', categories.filter(c => c.parent_slug).map(c => ({ name: c.name, slug: c.slug, parent_slug: c.parent_slug })));
-
-  // ==================== CRÉATION SOUS-CATÉGORIE ====================
   const handleCreateSubCategory = async () => {
     if (!newSubCategory.name || !newSubCategory.parent_slug) {
       toast.error('Le nom et la catégorie parente sont obligatoires');
@@ -1625,7 +1946,6 @@ const CategoriesSection = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 
-      // Slug unique pour sous-catégorie : parent-slug-sous-slug
       const finalSlug = parent ? `${parent.slug}-${baseSlug}` : baseSlug;
 
       const payload = {
@@ -1635,23 +1955,18 @@ const CategoriesSection = ({
         banner_images: newSubCategory.banner_images || [],
         parent_slug: newSubCategory.parent_slug,
         icon: 'Package',
+        custom_fields: newSubCategory.custom_fields || [],
       };
-
-      console.log('=== DEBUG PAYLOAD SOUS-CATÉGORIE ===');
-      console.log('Payload envoyé:', payload);
-      console.log('newSubCategory.parent_slug:', newSubCategory.parent_slug);
 
       await axios.post(`${API}/admin/categories`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      toast.success('? Sous-catégorie créée avec succès !');
+      toast.success('Sous-catégorie créée avec succès !');
       
-      // Reset form
-      setNewSubCategory({ name: '', description: '', parent_slug: '', banner_images: [] });
+      setNewSubCategory({ name: '', description: '', parent_slug: '', banner_images: [], custom_fields: [] });
       setShowSubForm(false);
       
-      // Rafraîchissement des données
       if (onRefresh) {
         onRefresh();
       }
@@ -1711,6 +2026,12 @@ const CategoriesSection = ({
             />
           </div>
 
+          {/* Custom Fields Builder */}
+          <CustomFieldsBuilder
+            fields={newCategory.custom_fields || []}
+            onChange={(fields) => setNewCategory({ ...newCategory, custom_fields: fields })}
+          />
+
           <div className="flex gap-3 mt-6">
             <Button onClick={onCreate} className="bg-teal-600 hover:bg-teal-700">
               Créer la catégorie
@@ -1766,6 +2087,12 @@ const CategoriesSection = ({
             />
           </div>
 
+          {/* Custom Fields Builder for sub-category */}
+          <CustomFieldsBuilder
+            fields={newSubCategory.custom_fields || []}
+            onChange={(fields) => setNewSubCategory({ ...newSubCategory, custom_fields: fields })}
+          />
+
           <div className="flex gap-3 mt-6">
             <Button onClick={handleCreateSubCategory} className="bg-purple-600 hover:bg-purple-700">
               Créer la sous-catégorie
@@ -1775,7 +2102,7 @@ const CategoriesSection = ({
         </div>
       )}
 
-      {/* Formulaire d'édition (réutilisable pour catégorie et sous-catégorie) */}
+      {/* Formulaire d'édition */}
       {editingCategory && (
         <div className="bg-slate-800 rounded-xl border border-amber-500/30 p-6">
           <h3 className="font-semibold mb-4 text-amber-400">
@@ -1824,6 +2151,12 @@ const CategoriesSection = ({
             />
           </div>
 
+          {/* Custom Fields Builder for editing */}
+          <CustomFieldsBuilder
+            fields={editingCategory.custom_fields || []}
+            onChange={(fields) => setEditingCategory({ ...editingCategory, custom_fields: fields })}
+          />
+
           <div className="flex gap-3 mt-6">
             <Button onClick={() => onUpdate(editingCategory.id)} className="bg-amber-600 hover:bg-amber-700">
               Mettre à jour
@@ -1838,6 +2171,7 @@ const CategoriesSection = ({
         {parentCategories.map((cat) => {
           const subCats = getSubCategories(cat.slug);
           const isExpanded = expandedCategory === cat.id;
+          const fieldCount = (cat.custom_fields || []).length;
           return (
             <div key={cat.id} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
               <div 
@@ -1848,7 +2182,14 @@ const CategoriesSection = ({
                   <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                   <div>
                     <h3 className="font-bold text-lg">{cat.name}</h3>
-                    <p className="text-sm text-slate-400">{subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}</p>
+                    <div className="flex items-center gap-3 text-sm text-slate-400">
+                      <span>{subCats.length} sous-catégorie{subCats.length > 1 ? 's' : ''}</span>
+                      {fieldCount > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-900/30 text-teal-400 text-xs">
+                          <Settings className="w-3 h-3" /> {fieldCount} champ{fieldCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -1856,7 +2197,7 @@ const CategoriesSection = ({
                     <img key={i} src={img} className="w-12 h-12 object-cover rounded" alt="" />
                   ))}
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button size="sm" variant="outline" onClick={() => setEditingCategory(cat)}><Edit className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingCategory({...cat, custom_fields: cat.custom_fields || []})}><Edit className="w-4 h-4" /></Button>
                     <Button size="sm" variant="outline" onClick={() => onToggle(cat.id)}>
                       {cat.is_active !== false ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                     </Button>
@@ -1866,22 +2207,51 @@ const CategoriesSection = ({
               </div>
 
               {/* Sous-catégories */}
-              {isExpanded && subCats.length > 0 && (
+              {isExpanded && (
                 <div className="p-4 pl-8 bg-slate-900/30">
-                  {subCats.map(sub => (
-                    <div key={sub.id} className="flex justify-between items-center p-3 hover:bg-slate-700/50 rounded-lg mb-1">
-                      <div className="flex items-center gap-3">
-                        <span className="text-purple-300">? {sub.name}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditingCategory(sub)}><Edit className="w-4 h-4" /></Button>
-                        <Button size="sm" variant="outline" onClick={() => onToggle(sub.id)}>
-                          {sub.is_active !== false ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => onDelete(sub.id, sub.name)}><Trash2 className="w-4 h-4" /></Button>
+                  {/* Show parent custom fields summary */}
+                  {fieldCount > 0 && (
+                    <div className="mb-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/30">
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Champs de la catégorie</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(cat.custom_fields || []).map(f => {
+                          const tpl = PREDEFINED_FIELD_TEMPLATES.find(t => t.key === f.key);
+                          const Icon = tpl?.icon || Tag;
+                          return (
+                            <span key={f.key} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-700/60 text-xs text-slate-300">
+                              <Icon className={`w-3 h-3 ${tpl?.color || 'text-slate-400'}`} /> {f.label}
+                              {f.required && <span className="text-red-400">*</span>}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {subCats.length > 0 ? subCats.map(sub => {
+                    const subFieldCount = (sub.custom_fields || []).length;
+                    return (
+                      <div key={sub.id} className="flex justify-between items-center p-3 hover:bg-slate-700/50 rounded-lg mb-1">
+                        <div className="flex items-center gap-3">
+                          <span className="text-purple-300">{sub.name}</span>
+                          {subFieldCount > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-400 text-xs">
+                              <Settings className="w-3 h-3" /> {subFieldCount} champ{subFieldCount > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditingCategory({...sub, custom_fields: sub.custom_fields || []})}><Edit className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => onToggle(sub.id)}>
+                            {sub.is_active !== false ? <Ban className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => onDelete(sub.id, sub.name)}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <p className="text-sm text-slate-500 italic py-2">Aucune sous-catégorie</p>
+                  )}
                 </div>
               )}
             </div>
