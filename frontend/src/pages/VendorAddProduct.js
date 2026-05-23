@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Save, Loader2, LogOut, Settings, Tag, Palette, Ruler, Footprints, Shirt, Weight, Box, Users, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, LogOut, Settings, Tag, Palette, Ruler, Footprints, Shirt, Weight, Box, Users, ChevronDown, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -294,33 +294,29 @@ const VendorAddProduct = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
-          <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h2 className="font-bold text-lg">Informations generales</h2>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom du produit *</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleInputChange}
-                placeholder="Ex: Tissu Wax Hollandais 6 yards" required data-testid="product-name" />
+          {/* Step 1: Category Selection - FIRST */}
+          <div className="bg-white rounded-xl border p-6 space-y-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500" />
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold text-sm flex-shrink-0 mt-0.5">1</div>
+              <div>
+                <h2 className="font-bold text-lg">Catégorie du produit</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Commencez par sélectionner la catégorie et la sous-catégorie de votre produit. Les champs spécifiques (tailles, couleurs, pointures...) s'afficheront automatiquement en fonction de votre choix.
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea id="description" name="description" value={formData.description}
-                onChange={handleInputChange} placeholder="Decrivez votre produit en detail..."
-                rows={5} required data-testid="product-description" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 mt-4">
               {/* Categorie principale */}
               <div className="space-y-2">
-                <Label htmlFor="category_slug">Categorie *</Label>
+                <Label htmlFor="category_slug">Catégorie *</Label>
                 <Select
                   value={formData.category_slug || undefined}
                   onValueChange={handleCategoryChange}
                 >
-                  <SelectTrigger data-testid="product-category">
-                    <SelectValue placeholder="Selectionner une categorie..." />
+                  <SelectTrigger data-testid="product-category" className={!formData.category_slug ? 'border-blue-300 ring-1 ring-blue-100' : ''}>
+                    <SelectValue placeholder="Sélectionner une catégorie..." />
                   </SelectTrigger>
                   <SelectContent>
                     {parentCategories.filter(cat => cat.slug && cat.is_active !== false).map((cat) => (
@@ -332,10 +328,10 @@ const VendorAddProduct = () => {
                 </Select>
               </div>
 
-              {/* Sous-categorie - affichee seulement si la categorie selectionnee a des sous-categories */}
+              {/* Sous-categorie */}
               <div className="space-y-2">
                 <Label htmlFor="subcategory_slug">
-                  Sous-categorie
+                  Sous-catégorie
                   {subCategories.length === 0 && formData.category_slug && (
                     <span className="text-xs text-muted-foreground ml-1">(aucune disponible)</span>
                   )}
@@ -350,10 +346,10 @@ const VendorAddProduct = () => {
                   disabled={subCategories.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={subCategories.length === 0 ? 'Aucune sous-categorie' : 'Optionnel...'} />
+                    <SelectValue placeholder={subCategories.length === 0 ? 'Aucune sous-catégorie' : 'Optionnel...'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— Aucune sous-categorie —</SelectItem>
+                    <SelectItem value="none">— Aucune sous-catégorie —</SelectItem>
                     {subCategories.filter(s => s.is_active !== false).map((sub) => (
                       <SelectItem key={sub.slug} value={sub.slug}>
                         {sub.name}
@@ -362,23 +358,6 @@ const VendorAddProduct = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="condition">Etat *</Label>
-              <Select
-                value={formData.condition || 'neuf'}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
-              >
-                <SelectTrigger data-testid="product-condition">
-                  <SelectValue placeholder="Selectionner l'etat..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONDITIONS.map((cond) => (
-                    <SelectItem key={cond.value} value={cond.value}>{cond.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Dynamic Custom Fields based on category */}
@@ -467,6 +446,52 @@ const VendorAddProduct = () => {
                 <Loader2 className="w-4 h-4 animate-spin" /> Chargement des champs...
               </div>
             )}
+
+            {!formData.category_slug && (
+              <div className="mt-3 flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>Veuillez sélectionner une catégorie pour continuer</span>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Basic Info */}
+          <div className="bg-white rounded-xl border p-6 space-y-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-teal-500" />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 font-bold text-sm flex-shrink-0">2</div>
+              <h2 className="font-bold text-lg">Informations du produit</h2>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom du produit *</Label>
+              <Input id="name" name="name" value={formData.name} onChange={handleInputChange}
+                placeholder="Ex: Tissu Wax Hollandais 6 yards" required data-testid="product-name" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea id="description" name="description" value={formData.description}
+                onChange={handleInputChange} placeholder="Décrivez votre produit en détail..."
+                rows={5} required data-testid="product-description" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="condition">État *</Label>
+              <Select
+                value={formData.condition || 'neuf'}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}
+              >
+                <SelectTrigger data-testid="product-condition">
+                  <SelectValue placeholder="Selectionner l'etat..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONDITIONS.map((cond) => (
+                    <SelectItem key={cond.value} value={cond.value}>{cond.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
