@@ -30,4 +30,31 @@ async def get_category(slug: str):
     cat["subcategories"] = subcategories
     return cat
 
+
+@router.get("/{slug}/custom-fields")
+async def get_category_custom_fields(slug: str):
+    """Get merged custom fields for a category (parent + subcategory combined)"""
+    cat = await db.categories.find_one({"slug": slug}, {"_id": 0})
+    if not cat:
+        raise HTTPException(status_code=404, detail="Non trouvé")
+
+    fields = []
+    seen_keys = set()
+
+    if cat.get("parent_slug"):
+        parent = await db.categories.find_one({"slug": cat["parent_slug"]}, {"_id": 0})
+        if parent:
+            for f in parent.get("custom_fields") or []:
+                if f.get("key") not in seen_keys:
+                    fields.append(f)
+                    seen_keys.add(f["key"])
+
+    for f in cat.get("custom_fields") or []:
+        if f.get("key") not in seen_keys:
+            fields.append(f)
+            seen_keys.add(f["key"])
+
+    return {"slug": slug, "category_name": cat.get("name"), "custom_fields": fields}
+
+
 __all__ = ['router']
