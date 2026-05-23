@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Save, Loader2, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, LogOut, Settings, Tag, Palette, Ruler, Footprints, Shirt, Weight, Box, Users, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -29,6 +29,9 @@ const VendorAddProduct = () => {
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [customFields, setCustomFields] = useState([]);
+  const [customAttributes, setCustomAttributes] = useState({});
+  const [loadingFields, setLoadingFields] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -91,6 +94,9 @@ const VendorAddProduct = () => {
           origin_country_name: product.origin_country_name || "Cote d'Ivoire",
           made_in_enabled: Boolean(product.made_in_enabled)
         });
+        if (product.custom_attributes) {
+          setCustomAttributes(product.custom_attributes);
+        }
       } catch (error) {
         toast.error('Erreur chargement produit');
       }
@@ -116,9 +122,45 @@ const VendorAddProduct = () => {
     setFormData(prev => ({ ...prev, images }));
   };
 
+  const fetchCustomFields = useCallback(async (slug) => {
+    if (!slug) { setCustomFields([]); return; }
+    setLoadingFields(true);
+    try {
+      const response = await axios.get(`${API}/categories/${slug}/custom-fields`);
+      setCustomFields(response.data.custom_fields || []);
+    } catch (error) {
+      console.error('Error fetching custom fields:', error);
+      setCustomFields([]);
+    } finally {
+      setLoadingFields(false);
+    }
+  }, []);
+
   const handleCategoryChange = (value) => {
-    // Reinitialiser la sous-categorie quand on change de categorie
     setFormData(prev => ({ ...prev, category_slug: value, subcategory_slug: '' }));
+    setCustomAttributes({});
+    fetchCustomFields(value);
+  };
+
+  useEffect(() => {
+    const activeSlug = formData.subcategory_slug || formData.category_slug;
+    if (activeSlug) {
+      fetchCustomFields(activeSlug);
+    }
+  }, [formData.subcategory_slug, fetchCustomFields]);
+
+  const handleCustomAttributeChange = (key, value) => {
+    setCustomAttributes(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleMultiSelectToggle = (key, optionValue) => {
+    setCustomAttributes(prev => {
+      const current = Array.isArray(prev[key]) ? prev[key] : [];
+      const next = current.includes(optionValue)
+        ? current.filter(v => v !== optionValue)
+        : [...current, optionValue];
+      return { ...prev, [key]: next };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -134,10 +176,15 @@ const VendorAddProduct = () => {
       return;
     }
 
+    const missingRequired = customFields.filter(f => f.required && !customAttributes[f.key]);
+    if (missingRequired.length > 0) {
+      toast.error(`Champs requis manquants : ${missingRequired.map(f => f.label).join(', ')}`);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Le slug final = sous-categorie si choisie, sinon categorie principale
       const finalCategorySlug = formData.subcategory_slug || formData.category_slug;
 
       const data = {
@@ -153,7 +200,8 @@ const VendorAddProduct = () => {
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
         origin_country_code: formData.origin_country_code,
         origin_country_name: formData.origin_country_name,
-        made_in_enabled: Boolean(formData.made_in_enabled)
+        made_in_enabled: Boolean(formData.made_in_enabled),
+        custom_attributes: customAttributes,
       };
 
       if (isEditMode) {
@@ -294,7 +342,11 @@ const VendorAddProduct = () => {
                 </Label>
                 <Select
                   value={formData.subcategory_slug || 'none'}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory_slug: value === 'none' ? '' : value }))}
+                  onValueChange={(value) => {
+                    const newSlug = value === 'none' ? '' : value;
+                    setFormData(prev => ({ ...prev, subcategory_slug: newSlug }));
+                    setCustomAttributes({});
+                  }}
                   disabled={subCategories.length === 0}
                 >
                   <SelectTrigger>
@@ -328,6 +380,93 @@ const VendorAddProduct = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Dynamic Custom Fields based on category */}
+            {customFields.length > 0 && (
+              <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-blue-50/50 border border-blue-100 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
+                  <Settings className="w-5 h-5 text-blue-500" />
+                  <h3 className="font-semibold text-sm text-slate-700">Caractéristiques du produit</h3>
+                  <span className="text-xs text-slate-400 ml-auto">{customFields.filter(f => f.required).length} requis</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {customFields.map((field) => (
+                    <div key={field.key} className="space-y-1.5">
+                      <Label className="text-sm flex items-center gap-1.5">
+                        {field.label}
+                        {field.required && <span className="text-red-500 text-xs">*</span>}
+                      </Label>
+
+                      {field.field_type === 'text' && (
+                        <Input
+                          value={customAttributes[field.key] || ''}
+                          onChange={(e) => handleCustomAttributeChange(field.key, e.target.value)}
+                          placeholder={field.placeholder || ''}
+                          className="bg-white"
+                        />
+                      )}
+
+                      {field.field_type === 'number' && (
+                        <Input
+                          type="number"
+                          value={customAttributes[field.key] || ''}
+                          onChange={(e) => handleCustomAttributeChange(field.key, e.target.value)}
+                          placeholder={field.placeholder || ''}
+                          className="bg-white"
+                          step="any"
+                        />
+                      )}
+
+                      {field.field_type === 'select' && (
+                        <Select
+                          value={customAttributes[field.key] || 'none'}
+                          onValueChange={(value) => handleCustomAttributeChange(field.key, value === 'none' ? '' : value)}
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder={field.placeholder || 'Sélectionner...'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">-- Aucun --</SelectItem>
+                            {(field.options || []).map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      {field.field_type === 'multiselect' && (
+                        <div className="flex flex-wrap gap-1.5 p-2 bg-white rounded-md border min-h-[40px]">
+                          {(field.options || []).map((opt) => {
+                            const selected = Array.isArray(customAttributes[field.key]) && customAttributes[field.key].includes(opt.value);
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => handleMultiSelectToggle(field.key, opt.value)}
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                  selected
+                                    ? 'bg-blue-500 text-white shadow-sm'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loadingFields && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Chargement des champs...
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
