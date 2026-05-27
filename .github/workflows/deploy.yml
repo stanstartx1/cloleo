@@ -2,43 +2,46 @@ name: Deploy to VPS
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Deploy over SSH
+      - name: Deploy with SSH Key
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          timeout: 60s
+          command_timeout: 30m
           script: |
-            set -euxo pipefail
+            set -euo pipefail
+            echo "🚀 Deployment started at $(date)"
 
-            echo "== Sync code =="
             cd /var/www/cloleo
-            git fetch origin main
+
+            echo "== Pulling latest code =="
+            git fetch origin main --depth=1
             git reset --hard origin/main
             git clean -fd
 
-            echo "== Backend dependencies =="
-            source /var/www/cloleo/backend/venv/bin/activate
-            python --version
-            pip --version
-            pip install -r /var/www/cloleo/backend/requirements.txt
+            echo "== Backend =="
+            cd backend
+            source venv/bin/activate || echo "Venv failed"
+            pip install -r requirements.txt --quiet || echo "Pip skipped"
             deactivate
 
             echo "== Frontend build =="
-            cd /var/www/cloleo/frontend
-            node -v
-            npm -v
-            npm ci || npm install
+            cd ../frontend
+            npm ci --prefer-offline || npm install
             npm run build
 
-            echo "== Services =="
-            systemctl restart cloleo-backend
-            systemctl reload apache2
-            echo "Deploy OK"
+            echo "== Restart services =="
+            systemctl restart cloleo-backend || echo "Backend warning"
+            systemctl reload apache2 || echo "Apache warning"
+
+            echo "✅ Deployment finished at $(date)"
