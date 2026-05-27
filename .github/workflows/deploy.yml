@@ -1,32 +1,44 @@
-with:
-  host: ${{ secrets.SSH_HOST }}
-  username: ${{ secrets.SSH_USER }}
-  password: ${{ secrets.SSH_PASSWORD }}
-  port: 22
-  script: |
-    set -euxo pipefail
+name: Deploy to VPS
 
-    echo "== Sync code =="
-    cd /var/www/cloleo
-    git fetch origin main
-    git reset --hard origin/main
-    git clean -fd
+on:
+  push:
+    branches: [main]
 
-    echo "== Backend dependencies =="
-    source /var/www/cloleo/backend/venv/bin/activate
-    python --version
-    pip --version
-    pip install -r /var/www/cloleo/backend/requirements.txt
-    deactivate
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: |
+            set -euxo pipefail
 
-    echo "== Frontend build =="
-    cd /var/www/cloleo/frontend
-    node -v
-    npm -v
-    npm ci || npm install
-    npm run build
+            echo "== Sync code =="
+            cd /var/www/cloleo
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
 
-    echo "== Services =="
-    systemctl restart cloleo-backend
-    systemctl reload apache2
-    echo "Deploy OK"
+            echo "== Backend dependencies =="
+            source /var/www/cloleo/backend/venv/bin/activate
+            python --version
+            pip --version
+            pip install -r /var/www/cloleo/backend/requirements.txt
+            deactivate
+
+            echo "== Frontend build =="
+            cd /var/www/cloleo/frontend
+            node -v
+            npm -v
+            npm ci || npm install
+            npm run build
+
+            echo "== Services =="
+            systemctl restart cloleo-backend
+            systemctl reload apache2
+            echo "Deploy OK"
