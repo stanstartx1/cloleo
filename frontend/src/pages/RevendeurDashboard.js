@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
   ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle,
-  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles, Users
+  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles, Users, FolderOpen, Tag
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -103,6 +103,15 @@ const RevendeurDashboard = () => {
   const [editImages, setEditImages] = useState([]);
   const [savingEdit, setSavingEdit] = useState(false);
   const editImageInputRef = useRef(null);
+
+  // Categories state
+  const [siteCategories, setSiteCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [catEditDesc, setCatEditDesc] = useState('');
+  const [catEditSaving, setCatEditSaving] = useState(false);
+  const [catSearch, setCatSearch] = useState('');
+  const [catView, setCatView] = useState('grid'); // 'grid' | 'list'
 
   // Fetch dashboard data
   useEffect(() => {
@@ -208,11 +217,27 @@ const RevendeurDashboard = () => {
     }
   };
 
+  // Fetch site categories for revendeur
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const response = await axios.get(`${API}/revendeur/categories`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSiteCategories(Array.isArray(response.data?.categories) ? response.data.categories : []);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des catégories');
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'catalog') fetchCatalog(catalogPage, catalogSearch);
     if (activeTab === 'products') fetchMyProducts();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'earnings') fetchEarnings();
+    if (activeTab === 'categories') fetchCategories();
   }, [activeTab, catalogCategory]);
 
   // Add product to my catalog
@@ -442,6 +467,7 @@ const RevendeurDashboard = () => {
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'catalog', label: 'Catalogue produits', icon: Package2 },
     { id: 'products', label: 'Mes produits', icon: Package },
+    { id: 'categories', label: 'Catégories', icon: FolderOpen },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
     { id: 'messages', label: 'Messages', icon: MessageCircle },
     { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
@@ -1339,6 +1365,402 @@ const RevendeurDashboard = () => {
                       <p className="text-gray-500">Pas encore de gains</p>
                     </CardContent>
                   </Card>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+
+
+          {/* Categories Tab */}
+          {activeTab === 'categories' && (
+            <motion.div
+              key="categories"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              {/* Header */}
+              <motion.div
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <FolderOpen className="w-6 h-6 text-purple-500" />
+                    Catégories du site
+                  </h1>
+                  <p className="text-gray-500">Toutes les catégories disponibles sur la marketplace</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher une catégorie..."
+                      value={catSearch}
+                      onChange={(e) => setCatSearch(e.target.value)}
+                      className="pl-10 pr-4 py-2 rounded-md border border-purple-200 focus:border-purple-400 focus:outline-none text-sm w-64"
+                    />
+                  </div>
+                  <div className="flex rounded-md border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => setCatView('grid')}
+                      className={`px-3 py-2 text-sm flex items-center gap-1 transition-colors ${catView === 'grid' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    >
+                      <span className="grid grid-cols-2 gap-0.5 w-3 h-3">
+                        <span className="bg-current rounded-sm" /><span className="bg-current rounded-sm" />
+                        <span className="bg-current rounded-sm" /><span className="bg-current rounded-sm" />
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setCatView('list')}
+                      className={`px-3 py-2 text-sm flex items-center gap-1 transition-colors ${catView === 'list' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    >
+                      <span className="flex flex-col gap-0.5 w-3 h-3 justify-center">
+                        <span className="bg-current h-0.5 rounded" /><span className="bg-current h-0.5 rounded" /><span className="bg-current h-0.5 rounded" />
+                      </span>
+                    </button>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={fetchCategories}
+                    className="flex items-center gap-2 px-4 py-2 rounded-md border border-purple-200 text-purple-600 text-sm hover:bg-purple-50 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Rafraîchir
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              {/* Loading */}
+              {categoriesLoading ? (
+                <div className="flex justify-center py-16">
+                  <motion.div
+                    className="rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-600"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+              ) : (() => {
+                const parentCats = siteCategories.filter(c => !c.parent_slug);
+                const childCats = siteCategories.filter(c => c.parent_slug);
+                const filtered = parentCats.filter(c =>
+                  !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase()) ||
+                  (c.description || '').toLowerCase().includes(catSearch.toLowerCase())
+                );
+
+                if (filtered.length === 0) return (
+                  <motion.div
+                    className="text-center py-16"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <FolderOpen className="w-14 h-14 mx-auto text-gray-200 mb-4" />
+                    <p className="text-gray-500 text-lg">Aucune catégorie trouvée</p>
+                    <p className="text-gray-400 text-sm mt-1">Essayez un autre terme de recherche</p>
+                  </motion.div>
+                );
+
+                return catView === 'grid' ? (
+                  <motion.div
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {filtered.map((cat, index) => {
+                      const subs = childCats.filter(c => c.parent_slug === cat.slug);
+                      const isEditing = editingCategory?.id === cat.id;
+                      return (
+                        <motion.div
+                          key={cat.id}
+                          variants={productCardVariant}
+                          whileHover={{ y: -4, boxShadow: '0 12px 40px -10px rgba(139,92,246,0.25)' }}
+                          transition={{ delay: index * 0.04 }}
+                        >
+                          <Card className="overflow-hidden border border-purple-100 hover:border-purple-300 transition-all duration-300">
+                            {/* Banner image */}
+                            {(cat.banner_images?.[0] || cat.image) && (
+                              <div className="h-28 overflow-hidden bg-gradient-to-br from-purple-100 to-indigo-100">
+                                <img
+                                  src={cat.banner_images?.[0] || cat.image}
+                                  alt={cat.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            {!cat.banner_images?.[0] && !cat.image && (
+                              <div className="h-28 bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+                                <FolderOpen className="w-10 h-10 text-purple-300" />
+                              </div>
+                            )}
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h3 className="font-semibold text-gray-900">{cat.name}</h3>
+                                  <span className="text-xs text-purple-500 font-mono">{cat.slug}</span>
+                                </div>
+                                <Badge className={`text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                  {cat.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </div>
+
+                              {!isEditing ? (
+                                <>
+                                  <p className="text-sm text-gray-500 line-clamp-2 min-h-[2.5rem]">
+                                    {cat.description || <span className="italic text-gray-300">Pas de description</span>}
+                                  </p>
+                                  {subs.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-1">
+                                      {subs.slice(0, 4).map(sub => (
+                                        <span key={sub.id} className="text-xs bg-purple-50 text-purple-600 border border-purple-100 rounded-full px-2 py-0.5 flex items-center gap-1">
+                                          <Tag className="w-2.5 h-2.5" />
+                                          {sub.name}
+                                        </span>
+                                      ))}
+                                      {subs.length > 4 && (
+                                        <span className="text-xs text-gray-400">+{subs.length - 4} autres</span>
+                                      )}
+                                    </div>
+                                  )}
+                                  <div className="mt-4 flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-700"
+                                      onClick={() => {
+                                        setEditingCategory(cat);
+                                        setCatEditDesc(cat.description || '');
+                                      }}
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5 mr-1" />
+                                      Modifier description
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                                      onClick={() => {
+                                        setCatalogCategory(cat.slug);
+                                        setActiveTab('catalog');
+                                        toast.success(`Catalogue filtré sur "${cat.name}"`);
+                                      }}
+                                    >
+                                      <Eye className="w-3.5 h-3.5 mr-1" />
+                                      Voir produits
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="space-y-3">
+                                  <textarea
+                                    value={catEditDesc}
+                                    onChange={(e) => setCatEditDesc(e.target.value)}
+                                    rows={3}
+                                    placeholder="Décrivez cette catégorie pour votre boutique..."
+                                    className="w-full text-sm border border-purple-200 rounded-md px-3 py-2 focus:border-purple-400 focus:outline-none resize-none"
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1"
+                                      onClick={() => { setEditingCategory(null); setCatEditDesc(''); }}
+                                    >
+                                      Annuler
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600"
+                                      disabled={catEditSaving}
+                                      onClick={async () => {
+                                        setCatEditSaving(true);
+                                        try {
+                                          await axios.put(`${API}/admin/categories/${cat.id}`,
+                                            { description: catEditDesc },
+                                            { headers: { Authorization: `Bearer ${token}` } }
+                                          );
+                                          setSiteCategories(prev => prev.map(c =>
+                                            c.id === cat.id ? { ...c, description: catEditDesc } : c
+                                          ));
+                                          toast.success(`Catégorie "${cat.name}" mise à jour`);
+                                          setEditingCategory(null);
+                                          setCatEditDesc('');
+                                        } catch {
+                                          toast.error('Erreur lors de la mise à jour');
+                                        } finally {
+                                          setCatEditSaving(false);
+                                        }
+                                      }}
+                                    >
+                                      {catEditSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
+                                      Sauvegarder
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                ) : (
+                  /* List View */
+                  <motion.div
+                    className="space-y-3"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {filtered.map((cat, index) => {
+                      const subs = childCats.filter(c => c.parent_slug === cat.slug);
+                      const isEditing = editingCategory?.id === cat.id;
+                      return (
+                        <motion.div
+                          key={cat.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ x: 4 }}
+                        >
+                          <Card className="border border-purple-100 hover:border-purple-300 transition-all">
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-4">
+                                {(cat.banner_images?.[0] || cat.image) ? (
+                                  <img
+                                    src={cat.banner_images?.[0] || cat.image}
+                                    alt={cat.name}
+                                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center flex-shrink-0">
+                                    <FolderOpen className="w-7 h-7 text-purple-300" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-semibold text-gray-900">{cat.name}</h3>
+                                    <Badge className={`text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      {cat.is_active ? 'Active' : 'Inactive'}
+                                    </Badge>
+                                    {subs.length > 0 && (
+                                      <span className="text-xs text-purple-500">{subs.length} sous-catégorie{subs.length > 1 ? 's' : ''}</span>
+                                    )}
+                                  </div>
+                                  {!isEditing ? (
+                                    <>
+                                      <p className="text-sm text-gray-500 truncate">
+                                        {cat.description || <span className="italic text-gray-300">Pas de description</span>}
+                                      </p>
+                                      {subs.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                          {subs.slice(0, 6).map(sub => (
+                                            <span key={sub.id} className="text-xs bg-purple-50 text-purple-600 rounded-full px-2 py-0.5 flex items-center gap-1">
+                                              <Tag className="w-2.5 h-2.5" />{sub.name}
+                                            </span>
+                                          ))}
+                                          {subs.length > 6 && <span className="text-xs text-gray-400">+{subs.length - 6}</span>}
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <div className="flex gap-2 mt-1">
+                                      <input
+                                        type="text"
+                                        value={catEditDesc}
+                                        onChange={(e) => setCatEditDesc(e.target.value)}
+                                        placeholder="Description de la catégorie..."
+                                        className="flex-1 text-sm border border-purple-200 rounded-md px-3 py-1.5 focus:border-purple-400 focus:outline-none"
+                                        autoFocus
+                                      />
+                                      <Button size="sm" variant="outline" onClick={() => { setEditingCategory(null); setCatEditDesc(''); }}>
+                                        <X className="w-3.5 h-3.5" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        className="bg-purple-600 hover:bg-purple-700"
+                                        disabled={catEditSaving}
+                                        onClick={async () => {
+                                          setCatEditSaving(true);
+                                          try {
+                                            await axios.put(`${API}/admin/categories/${cat.id}`,
+                                              { description: catEditDesc },
+                                              { headers: { Authorization: `Bearer ${token}` } }
+                                            );
+                                            setSiteCategories(prev => prev.map(c =>
+                                              c.id === cat.id ? { ...c, description: catEditDesc } : c
+                                            ));
+                                            toast.success(`"${cat.name}" mis à jour`);
+                                            setEditingCategory(null);
+                                            setCatEditDesc('');
+                                          } catch {
+                                            toast.error('Erreur lors de la mise à jour');
+                                          } finally {
+                                            setCatEditSaving(false);
+                                          }
+                                        }}
+                                      >
+                                        {catEditSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                                {!isEditing && (
+                                  <div className="flex gap-2 flex-shrink-0">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="hover:bg-purple-50 hover:border-purple-300"
+                                      onClick={() => {
+                                        setEditingCategory(cat);
+                                        setCatEditDesc(cat.description || '');
+                                      }}
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5 mr-1" />
+                                      Modifier
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="bg-gradient-to-r from-purple-600 to-indigo-600"
+                                      onClick={() => {
+                                        setCatalogCategory(cat.slug);
+                                        setActiveTab('catalog');
+                                        toast.success(`Catalogue filtré sur "${cat.name}"`);
+                                      }}
+                                    >
+                                      <Eye className="w-3.5 h-3.5 mr-1" />
+                                      Voir produits
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                );
+              })()}
+
+              {/* Summary stats */}
+              {!categoriesLoading && siteCategories.length > 0 && (
+                <motion.div
+                  className="flex items-center gap-4 text-sm text-gray-500 pt-2 border-t border-gray-100"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <span><strong className="text-gray-700">{siteCategories.filter(c => !c.parent_slug).length}</strong> catégories principales</span>
+                  <span>·</span>
+                  <span><strong className="text-gray-700">{siteCategories.filter(c => c.parent_slug).length}</strong> sous-catégories</span>
+                  <span>·</span>
+                  <span><strong className="text-green-600">{siteCategories.filter(c => c.is_active).length}</strong> actives</span>
                 </motion.div>
               )}
             </motion.div>

@@ -596,6 +596,16 @@ async def revendeur_earnings(user: dict = Depends(require_dropshipper)):
     return {"earnings": []}
 
 
+@api.get("/revendeur/categories")
+async def revendeur_categories(user: dict = Depends(require_dropshipper)):
+    """Retourne toutes les catégories actives du site pour le revendeur"""
+    cats = await db.categories.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0}
+    ).sort("name", 1).to_list(500)
+    return {"categories": cats}
+
+
 async def _follower_count(seller_id: str) -> int:
     return await db.subscriptions.count_documents(
         {
