@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { MessageCircle, Send, X, Trash2 } from "lucide-react";
+import { MessageCircle, Send, X } from "lucide-react";
+import ChatMessageDeleteButton from "./ChatMessageDeleteButton";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
@@ -16,12 +17,6 @@ export const ChatProvider = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
-
-  useEffect(() => {
-    setConversations([]);
-    setActiveConversationId(null);
-    setIsOpen(false);
-  }, [token]);
 
   const startConversation = useCallback(async (productId, dropshippedProductId = null, metadata = {}) => {
     if (!token) return null;
@@ -115,27 +110,27 @@ export const useChat = () => {
 
 const FloatingChat = () => {
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
   const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations } = useChat();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [deletingMessageId, setDeletingMessageId] = useState(null);
-  const [selectedMessageId, setSelectedMessageId] = useState(null);
-  const [deletingConversation, setDeletingConversation] = useState(false);
   const listEndRef = useRef(null);
-
-  useEffect(() => {
-    setMessages([]);
-    setNewMessage("");
-    setSelectedMessageId(null);
-  }, [token]);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
   const canOpenProduct =
     activeConversation?.product_id &&
     typeof activeConversation.product_id === "string" &&
     !activeConversation.product_id.startsWith("admin-chat-");
+
+  const sellerShopPath = (() => {
+    if (!activeConversation?.seller_id) return null;
+    if (activeConversation.seller_type === "dropshipper") {
+      const slug = activeConversation.seller_shop_slug;
+      return slug ? `/boutique/${slug}` : null;
+    }
+    return `/vendeur-boutique/${activeConversation.seller_id}`;
+  })();
 
   const loadMessages = useCallback(async () => {
     if (!token || !activeConversationId) return;
@@ -171,47 +166,10 @@ const FloatingChat = () => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleDeleteMessage = async (messageId) => {
-    if (!token || !activeConversationId || deletingMessageId) return;
-    setDeletingMessageId(messageId);
-    try {
-      await axios.delete(
-        `${API}/conversations/${activeConversationId}/messages/${messageId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMessages((prev) => prev.filter((m) => m.id !== messageId));
-      setSelectedMessageId(null);
-      await refreshConversations();
-    } catch (error) {
-      const detail = error.response?.data?.detail || "Erreur lors de la suppression";
-      toast.error(detail);
-    } finally {
-      setDeletingMessageId(null);
-    }
-  };
-
-  const handleDeleteConversation = async () => {
-    if (!token || !activeConversationId || deletingConversation) return;
-    setDeletingConversation(true);
-    try {
-      await axios.delete(
-        `${API}/conversations/${activeConversationId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMessages([]);
-      setSelectedMessageId(null);
-      toast.success("Conversation supprimée");
-      await refreshConversations();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Erreur lors de la suppression");
-    } finally {
-      setDeletingConversation(false);
-    }
-  };
-
-  const toggleSelectMessage = (messageId) => {
-    setSelectedMessageId((prev) => (prev === messageId ? null : messageId));
-  };
+  const handleMessageDeleted = useCallback((messageId) => {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    refreshConversations();
+  }, [refreshConversations]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -299,17 +257,25 @@ const FloatingChat = () => {
         </div>
 
         <div className="flex-1 flex flex-col">
-          <div className="h-10 px-3 border-b border-slate-200 flex items-center justify-between text-xs font-medium text-slate-700">
-            <span className="truncate">{activeConversation?.product_name || "Choisir une conversation"}</span>
-            {activeConversation && (
+          <div className="h-10 px-3 border-b border-slate-200 flex items-center justify-between gap-2 min-w-0">
+            {activeConversation?.seller_name && sellerShopPath ? (
               <button
-                onClick={handleDeleteConversation}
-                disabled={deletingConversation}
-                className="ml-2 p-1.5 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 flex-shrink-0"
-                title="Supprimer la conversation"
+                type="button"
+                onClick={() => navigate(sellerShopPath)}
+                className="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-700 truncate"
+                title="Voir la boutique"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                {activeConversation.seller_name}
               </button>
+            ) : (
+              <span className="text-xs font-medium text-slate-700 truncate">
+                {activeConversation?.seller_name || activeConversation?.product_name || "Choisir une conversation"}
+              </span>
+            )}
+            {activeConversation?.product_name && (
+              <span className="text-[10px] text-slate-500 truncate max-w-[45%]">
+                {activeConversation.product_name}
+              </span>
             )}
           </div>
 
@@ -359,28 +325,40 @@ const FloatingChat = () => {
             ) : messages.length === 0 ? (
               <p className="text-xs text-slate-500">Aucun message</p>
             ) : (
-              messages.map((m) => (
-                <div key={m.id} className={`flex flex-col ${m.sender_type === "customer" ? "items-start" : "items-end"}`}>
+              messages.map((m) => {
+                const isOwn = m.sender_id === user?.id;
+                const isCustomerBubble = m.sender_type === "customer";
+                return (
                   <div
-                    onClick={() => toggleSelectMessage(m.id)}
-                    className={`max-w-[85%] px-3 py-2 rounded-xl text-xs cursor-pointer transition-all ${
-                      m.sender_type === "customer" ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
-                    } ${selectedMessageId === m.id ? "ring-2 ring-red-400" : ""}`}
+                    key={m.id}
+                    className={`flex items-end gap-1 max-w-[85%] ${
+                      isCustomerBubble ? "ml-0" : "ml-auto flex-row-reverse"
+                    }`}
                   >
-                    {m.content || m.text}
-                  </div>
-                  {selectedMessageId === m.id && (
-                    <button
-                      onClick={() => handleDeleteMessage(m.id)}
-                      disabled={deletingMessageId === m.id}
-                      className="mt-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-medium active:bg-red-100"
+                    <div
+                      className={`px-3 py-2 rounded-xl text-xs ${
+                        isCustomerBubble ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
+                      }`}
                     >
-                      <Trash2 className="w-3 h-3" />
-                      {deletingMessageId === m.id ? "Suppression..." : "Supprimer"}
-                    </button>
-                  )}
-                </div>
-              ))
+                      {m.content || m.text}
+                    </div>
+                    {isOwn && activeConversationId && (
+                      <ChatMessageDeleteButton
+                        token={token}
+                        conversationId={activeConversationId}
+                        messageId={m.id}
+                        onDeleted={handleMessageDeleted}
+                        className={
+                          isCustomerBubble
+                            ? "text-slate-400 hover:text-red-500"
+                            : "text-fuchsia-200 hover:text-white"
+                        }
+                        disabled={String(m.id).startsWith("temp-")}
+                      />
+                    )}
+                  </div>
+                );
+              })
             )}
             <div ref={listEndRef} />
           </div>

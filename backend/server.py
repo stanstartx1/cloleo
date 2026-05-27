@@ -596,6 +596,16 @@ async def revendeur_earnings(user: dict = Depends(require_dropshipper)):
     return {"earnings": []}
 
 
+async def _follower_count(seller_id: str) -> int:
+    return await db.subscriptions.count_documents(
+        {
+            "seller_id": seller_id,
+            "subscriber_id": {"$exists": True, "$ne": None},
+            "status": "active",
+        }
+    )
+
+
 @api.get("/shop/{shop_slug}")
 async def public_revendeur_shop(shop_slug: str, page: int = 1):
     shop_user = await db.users.find_one({"shop_slug": shop_slug, "role": "dropshipper"}, {"_id": 0, "password": 0})
@@ -605,6 +615,7 @@ async def public_revendeur_shop(shop_slug: str, page: int = 1):
     for p in products:
         if not p.get("original_images"):
             p["original_images"] = p.get("custom_images") or []
+    subscriber_count = await _follower_count(shop_user["id"])
     return {
         "shop": {
             "revendeur_id": shop_user["id"],
@@ -616,6 +627,7 @@ async def public_revendeur_shop(shop_slug: str, page: int = 1):
             "country": shop_user.get("country"),
             "created_at": shop_user.get("created_at"),
             "is_verified": bool(shop_user.get("is_verified")),
+            "subscriber_count": subscriber_count,
         },
         "products": products,
         "page": page,
@@ -631,6 +643,7 @@ async def public_vendor_shop(seller_id: str, page: int = 1, limit: int = 12):
     query = {"seller_id": seller_id, "status": "approved"}
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    subscriber_count = await _follower_count(seller_id)
     return {
         "shop": {
             "seller_id": seller_id,
@@ -641,6 +654,7 @@ async def public_vendor_shop(seller_id: str, page: int = 1, limit: int = 12):
             "country": shop_user.get("country"),
             "created_at": shop_user.get("created_at"),
             "is_verified": bool(shop_user.get("is_verified")),
+            "subscriber_count": subscriber_count,
         },
         "products": products,
         "total": total,
@@ -1110,10 +1124,45 @@ async def unsubscribe_seller(seller_id: str, user: dict = Depends(get_current_us
 
 @api.get("/subscriptions/my-subscriptions")
 async def my_subscriptions(user: dict = Depends(get_current_user)):
-    if user.get("role") != "vendor":
-        return {"subscriptions": []}
-    subscriptions = await db.subscriptions.find({"seller_id": user["id"]}, {"_id": 0}).to_list(300)
-    return {"subscriptions": subscriptions}
+    """Boutiques suivies par l'utilisateur (followers), pas les plans vendeur."""
+    subs = await db.subscriptions.find(
+        {"subscriber_id": user["id"], "status": "active"},
+        {"_id": 0},
+    ).to_list(300)
+    sellers = []
+    seen = set()
+    for sub in subs:
+        seller_id = sub.get("seller_id")
+        if not seller_id or seller_id in seen:
+            continue
+        seen.add(seller_id)
+        seller = await db.users.find_one({"id": seller_id}, {"_id": 0, "password": 0})
+        if not seller:
+            continue
+        sellers.append(
+            {
+                "id": seller["id"],
+                "name": seller.get("name"),
+                "shop_name": seller.get("shop_name"),
+                "shop_slug": seller.get("shop_slug"),
+                "role": seller.get("role"),
+            }
+        )
+    return {"subscriptions": sellers}
+
+
+@api.get("/subscriptions/my-followers")
+async def my_followers(user: dict = Depends(get_current_user)):
+    if user.get("role") not in ("vendor", "dropshipper"):
+        return {"count": 0, "followers": []}
+    query = {
+        "seller_id": user["id"],
+        "subscriber_id": {"$exists": True, "$ne": None},
+        "status": "active",
+    }
+    count = await db.subscriptions.count_documents(query)
+    followers = await db.subscriptions.find(query, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    return {"count": count, "followers": followers}
 
 
 @api.put("/users/profile")

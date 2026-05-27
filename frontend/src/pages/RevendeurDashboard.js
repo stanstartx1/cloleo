@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
   ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle,
-  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles
+  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles, Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -35,6 +35,25 @@ const WS_URL = BACKEND_URL
 const API = `${BACKEND_URL}/api`;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
+const withDropshipperFallback = (path) => {
+  if (!path.startsWith('/revendeur/')) return [path];
+  return [path, path.replace('/revendeur/', '/dropshipper/')];
+};
+
+const apiGetWithFallback = async (path, config = {}) => {
+  const candidates = withDropshipperFallback(path);
+  let lastError;
+  for (const candidate of candidates) {
+    try {
+      return await axios.get(`${API}${candidate}`, config);
+    } catch (error) {
+      lastError = error;
+      if (error?.response?.status !== 404) throw error;
+    }
+  }
+  throw lastError;
+};
+
 const RevendeurDashboard = () => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
@@ -43,6 +62,7 @@ const RevendeurDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dashboardData, setDashboardData] = useState(null);
+  const [followerCount, setFollowerCount] = useState(0);
   
   // Catalog state
   const [catalogProducts, setCatalogProducts] = useState([]);
@@ -92,6 +112,14 @@ const RevendeurDashboard = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setDashboardData(response.data);
+        try {
+          const followersRes = await axios.get(`${API}/subscriptions/my-followers`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setFollowerCount(followersRes.data?.count ?? 0);
+        } catch {
+          setFollowerCount(0);
+        }
       } catch (error) {
         console.error('Error fetching dashboard:', error);
         toast.error(error.response?.data?.detail || 'Erreur lors du chargement du tableau de bord');
@@ -116,14 +144,14 @@ const RevendeurDashboard = () => {
       if (search) params.append('search', search);
       if (catalogCategory) params.append('category_slug', catalogCategory);
       
-      const response = await axios.get(`${API}/revendeur/catalog?${params}`, {
+      const response = await apiGetWithFallback(`/revendeur/catalog?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCatalogProducts(response.data.products);
-      setCatalogTotal(response.data.total);
-      setCatalogCategories(response.data.categories || []);
+      setCatalogProducts(Array.isArray(response.data?.products) ? response.data.products : []);
+      setCatalogTotal(Number(response.data?.total || 0));
+      setCatalogCategories(Array.isArray(response.data?.categories) ? response.data.categories : []);
     } catch (error) {
-      toast.error('Erreur lors du chargement du catalogue');
+      toast.error(error.response?.data?.detail || 'Erreur lors du chargement du catalogue');
     } finally {
       setCatalogLoading(false);
     }
@@ -133,12 +161,18 @@ const RevendeurDashboard = () => {
   const fetchMyProducts = async () => {
     setMyProductsLoading(true);
     try {
-      const response = await axios.get(`${API}/revendeur/products`, {
+      const response = await apiGetWithFallback('/revendeur/products', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMyProducts(response.data);
+      if (Array.isArray(response.data)) {
+        setMyProducts(response.data);
+      } else if (Array.isArray(response.data?.products)) {
+        setMyProducts(response.data.products);
+      } else {
+        setMyProducts([]);
+      }
     } catch (error) {
-      toast.error('Erreur lors du chargement de vos produits');
+      toast.error(error.response?.data?.detail || 'Erreur lors du chargement de vos produits');
     } finally {
       setMyProductsLoading(false);
     }
@@ -540,7 +574,7 @@ const RevendeurDashboard = () => {
 
               {/* Stats Cards - Animated */}
               <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
                 variants={staggerContainer}
                 initial="initial"
                 animate="animate"
@@ -625,6 +659,27 @@ const RevendeurDashboard = () => {
                           transition={{ duration: 2, repeat: Infinity }}
                         >
                           <DollarSign className="w-6 h-6 text-green-600" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={statCardVariant} whileHover={{ y: -5, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gradient-to-br from-fuchsia-50 to-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Abonnés</p>
+                          <p className="text-3xl font-bold text-gray-900">
+                            <AnimatedNumber value={followerCount} />
+                          </p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 rounded-full bg-fuchsia-100 flex items-center justify-center"
+                          whileHover={{ rotate: 15, scale: 1.1 }}
+                        >
+                          <Users className="w-6 h-6 text-fuchsia-600" />
                         </motion.div>
                       </div>
                     </CardContent>

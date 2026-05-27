@@ -6,7 +6,7 @@ import {
   Package, ShoppingBag, DollarSign, TrendingUp, Clock, CheckCircle, XCircle,
   Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles, AlertCircle,
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
-  LogOut, Edit, X, MessageCircle, Trash2
+  LogOut, Edit, X, MessageCircle, Trash2, Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -78,6 +78,7 @@ const VendorDashboard = () => {
     condition: 'new'
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
   
   const wsRef = React.useRef(null);
 
@@ -102,6 +103,14 @@ const VendorDashboard = () => {
       setDashboard(response.data);
       fetchOrders();
       fetchProducts();
+      try {
+        const followersRes = await axios.get(`${API}/subscriptions/my-followers`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setFollowerCount(followersRes.data?.count ?? 0);
+      } catch {
+        setFollowerCount(0);
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur de chargement');
@@ -459,7 +468,7 @@ const VendorDashboard = () => {
               )}
 
               <motion.div 
-                className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
                 variants={staggerContainer}
                 initial="initial"
                 animate="animate"
@@ -511,6 +520,17 @@ const VendorDashboard = () => {
                   </motion.div>
                   <p className="text-2xl font-bold text-white"><AnimatedNumber value={computedStats.total_revenue_fcfa} /></p>
                   <p className="text-sm text-slate-400">Revenus FCFA</p>
+                </motion.div>
+                <motion.div 
+                  variants={statCardVariant} 
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 border border-slate-700 shadow-lg hover:shadow-xl transition-shadow col-span-2 md:col-span-1"
+                >
+                  <motion.div whileHover={{ rotate: 10, scale: 1.1 }}>
+                    <Users className="w-7 h-7 text-fuchsia-400 mb-3" />
+                  </motion.div>
+                  <p className="text-3xl font-bold text-white"><AnimatedNumber value={followerCount} /></p>
+                  <p className="text-sm text-slate-400">Abonnés</p>
                 </motion.div>
               </motion.div>
 

@@ -147,3 +147,7 @@ credentials.json
 .credentials
 frontend/node_modules/.cache/default-development/0.pack
 backend/uploads/
+
+# Modèles d'environnement (sans secrets) — à versionner
+!.env.example
+!**/.env.example

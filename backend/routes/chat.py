@@ -26,6 +26,42 @@ def set_manager(mgr):
     manager = mgr
 
 
+def _message_not_deleted_filter():
+    return {"$or": [{"deleted_at": None}, {"deleted_at": {"$exists": False}}]}
+
+
+async def _refresh_conversation_last_message(conversation_id: str):
+    """Update conversation preview from latest non-deleted message."""
+    last = await db.messages.find_one(
+        {"conversation_id": conversation_id, **_message_not_deleted_filter()},
+        {"_id": 0},
+        sort=[("created_at", -1)],
+    )
+    if last:
+        preview = (last.get("content") or last.get("text") or "")[:100]
+        await db.conversations.update_one(
+            {"id": conversation_id},
+            {
+                "$set": {
+                    "last_message": preview,
+                    "last_message_at": last.get("created_at"),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            },
+        )
+    else:
+        await db.conversations.update_one(
+            {"id": conversation_id},
+            {
+                "$set": {
+                    "last_message": None,
+                    "last_message_at": None,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            },
+        )
+
+
 @router.post("/start")
 async def start_conversation(
     data: ConversationCreate,
@@ -104,6 +140,7 @@ async def start_conversation(
         "customer_email": user.get("email"),
         "seller_id": seller_id,
         "seller_name": seller.get("shop_name") or seller.get("name") if seller else "Vendeur",
+        "seller_shop_slug": seller.get("shop_slug") if seller else None,
         "seller_type": seller_type,
         "last_message": None,
         "last_message_at": None,
@@ -152,7 +189,8 @@ async def get_conversation(conversation_id: str, user: dict = Depends(get_curren
         raise HTTPException(status_code=403, detail="Accès non autorisé")
     
     messages = await db.messages.find(
-        {"conversation_id": conversation_id}, {"_id": 0}
+        {"conversation_id": conversation_id, **_message_not_deleted_filter()},
+        {"_id": 0},
     ).sort("created_at", 1).to_list(500)
     
     # Mark messages as read
@@ -228,8 +266,12 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
 
 
 @router.delete("/{conversation_id}/messages/{message_id}")
-async def delete_message(conversation_id: str, message_id: str, user: dict = Depends(get_current_user)):
-    """Delete a message from a conversation"""
+async def delete_message(
+    conversation_id: str,
+    message_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """Soft-delete a message (author only, conversation participant)."""
     conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation non trouvée")
@@ -237,58 +279,34 @@ async def delete_message(conversation_id: str, message_id: str, user: dict = Dep
     if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Accès non autorisé")
 
-    message = await db.messages.find_one({"id": message_id, "conversation_id": conversation_id}, {"_id": 0})
+    message = await db.messages.find_one(
+        {"id": message_id, "conversation_id": conversation_id},
+        {"_id": 0},
+    )
     if not message:
         raise HTTPException(status_code=404, detail="Message non trouvé")
 
-    await db.messages.delete_one({"id": message_id})
+    if message.get("deleted_at"):
+        return {"ok": True, "message_id": message_id}
 
-    last_msg = await db.messages.find(
-        {"conversation_id": conversation_id}, {"_id": 0}
-    ).sort("created_at", -1).to_list(1)
+    if message.get("sender_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez supprimer que vos propres messages")
 
-    if last_msg:
-        await db.conversations.update_one(
-            {"id": conversation_id},
-            {"$set": {
-                "last_message": last_msg[0].get("content", "")[:100],
-                "last_message_at": last_msg[0].get("created_at"),
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-    else:
-        await db.conversations.update_one(
-            {"id": conversation_id},
-            {"$set": {
-                "last_message": None,
-                "last_message_at": None,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
+    deleted_at = datetime.now(timezone.utc).isoformat()
+    await db.messages.update_one(
+        {"id": message_id, "conversation_id": conversation_id},
+        {"$set": {"deleted_at": deleted_at}},
+    )
+
+    await _refresh_conversation_last_message(conversation_id)
 
     if manager:
-        await manager.broadcast_to_room(f"chat_{conversation_id}", {
-            "type": "message_deleted",
-            "message_id": message_id
-        })
+        await manager.broadcast_to_room(
+            f"chat_{conversation_id}",
+            {"type": "message_deleted", "message_id": message_id, "conversation_id": conversation_id},
+        )
 
-    return {"detail": "Message supprimé"}
-
-
-@router.delete("/{conversation_id}")
-async def delete_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
-    """Delete a conversation and all its messages"""
-    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation non trouvée")
-
-    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Accès non autorisé")
-
-    await db.messages.delete_many({"conversation_id": conversation_id})
-    await db.conversations.delete_one({"id": conversation_id})
-
-    return {"detail": "Conversation supprimée"}
+    return {"ok": True, "message_id": message_id, "deleted_at": deleted_at}
 
 
 # Vendor-specific routes

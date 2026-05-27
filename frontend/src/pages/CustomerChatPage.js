@@ -10,6 +10,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
+import ChatMessageDeleteButton from '../components/ChatMessageDeleteButton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -107,7 +108,10 @@ const CustomerChatPage = () => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'new_message' && data.message.sender_id !== user?.id) {
+          if (data.type === 'message_deleted' && data.message_id) {
+            setMessages(prev => prev.filter(m => m.id !== data.message_id));
+            fetchConversations();
+          } else if (data.type === 'new_message' && data.message.sender_id !== user?.id) {
             setMessages(prev => [...prev, data.message]);
             // Play notification sound
             const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleUMOOpO5IAVNEW7h1o5wPAdE0+UBC1FiDtDNiXFGDEzO');
@@ -151,6 +155,11 @@ const CustomerChatPage = () => {
   }, [messages]);
 
   // Send message
+  const handleMessageDeleted = useCallback((messageId) => {
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+    fetchConversations();
+  }, [fetchConversations]);
+
   const handleSend = async (e) => {
     e?.preventDefault();
     if (!newMessage.trim() || !selectedConversation || sending) return;
@@ -433,14 +442,26 @@ const CustomerChatPage = () => {
                             {date}
                           </span>
                         </div>
-                        {dateMessages.map((message) => (
+                        {dateMessages.map((message) => {
+                          const isOwn = message.sender_id === user?.id;
+                          return (
                           <div
                             key={message.id}
-                            className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}
+                            className={`flex items-end gap-1 ${isOwn ? 'justify-end' : 'justify-start'} mb-3`}
                           >
+                            {isOwn && selectedConversation && (
+                              <ChatMessageDeleteButton
+                                token={token}
+                                conversationId={selectedConversation.id}
+                                messageId={message.id}
+                                onDeleted={handleMessageDeleted}
+                                className="text-purple-200 hover:text-white"
+                                disabled={message.status === 'sending' || String(message.id).startsWith('temp-')}
+                              />
+                            )}
                             <div
                               className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${
-                                message.sender_id === user?.id
+                                isOwn
                                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-md'
                                   : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
                               } ${message.status === 'sending' ? 'opacity-70' : ''}`}
@@ -462,10 +483,10 @@ const CustomerChatPage = () => {
                                 <p className="text-sm whitespace-pre-wrap">{message.text || message.content}</p>
                               )}
                               <div className={`flex items-center justify-end gap-1 mt-1 ${
-                                message.sender_id === user?.id ? 'text-purple-200' : 'text-gray-400'
+                                isOwn ? 'text-purple-200' : 'text-gray-400'
                               }`}>
                                 <span className="text-[10px]">{formatTime(message.created_at)}</span>
-                                {message.sender_id === user?.id && (
+                                {isOwn && (
                                   message.status === 'sending' ? (
                                     <Clock className="w-3 h-3" />
                                   ) : message.is_read ? (
@@ -477,7 +498,8 @@ const CustomerChatPage = () => {
                               </div>
                             </div>
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
