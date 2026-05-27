@@ -810,7 +810,7 @@ const RevendeurDashboard = () => {
             </motion.div>
           )}
 
-          {/* Catalog Tab */}
+{/* Catalog Tab */}
           {activeTab === 'catalog' && (
             <motion.div 
               key="catalog"
@@ -859,105 +859,74 @@ const RevendeurDashboard = () => {
                     className="h-10 rounded-md border border-purple-200 px-3 text-sm bg-white min-w-[220px]"
                   >
                     <option value="">Toutes les catégories</option>
+                    {/* Grouper catégories parentes puis leurs sous-catégories */}
                     {catalogCategories
-                      .map((cat) => (
-                        <option key={cat.slug} value={cat.slug}>
-                          {cat.parent_slug ? `↳ ${cat.name}` : cat.name}
-                        </option>
-                      ))}
+                      .filter(cat => !cat.parent_slug)
+                      .map((parent) => {
+                        const children = catalogCategories.filter(c => c.parent_slug === parent.slug);
+                        return (
+                          <React.Fragment key={parent.slug}>
+                            <option value={parent.slug}>{parent.name}</option>
+                            {children.map(child => (
+                              <option key={child.slug} value={child.slug}>
+                                &nbsp;&nbsp;↳ {child.name}
+                              </option>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
                   </select>
                 </div>
               </motion.div>
 
+              {/* Affichage en catégories/sous-catégories quand pas de filtre actif */}
               {catalogLoading ? (
                 <div className="flex justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
                 </div>
-              ) : (
-                <motion.div 
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
-                >
-                  {catalogProducts.map((product, index) => (
-                    <motion.div
-                      key={product.id}
-                      variants={productCardVariant}
-                      whileHover={{ y: -8, scale: 1.02 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-                        <div className="aspect-square relative group">
-                          <motion.img
-                            src={product.images?.[0] || '/placeholder.jpg'}
-                            alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                          {product.is_dropshipped && (
-                            <motion.div 
-                              className="absolute top-2 right-2"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ type: "spring", stiffness: 300 }}
-                            >
-                              <Badge className="bg-green-500 shadow-lg">
-                                <Check className="w-3 h-3 mr-1" />
-                                Ajouté
-                              </Badge>
-                            </motion.div>
-                          )}
-                        </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
-                          {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
-                            <div className="space-y-1">
-                              <p className="text-xs text-gray-400 line-through">{product.price_fcfa?.toLocaleString()} FCFA</p>
-                              <p className="text-lg font-bold text-green-600">{product.promo_price_fcfa?.toLocaleString()} FCFA</p>
-                              <Badge className="bg-green-100 text-green-700 text-xs">
-                                -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
-                              </Badge>
-                            </div>
-                          ) : (
-                            <p className="text-lg font-bold text-purple-600">{product.price_fcfa?.toLocaleString()} FCFA</p>
-                          )}
-                          <p className="text-xs text-gray-500 mb-3">Prix d'achat minimum</p>
-                          {product.is_dropshipped ? (
-                            <Button variant="outline" className="w-full opacity-60" disabled>
-                              Déjà ajouté
-                            </Button>
-                          ) : (
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                              <Button 
-                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md"
-                                onClick={() => handleAddProduct(product)}
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Ajouter
-                              </Button>
-                            </motion.div>
-                          )}
-                        </CardContent>
-                      </Card>
+              ) : catalogCategory || catalogSearch ? (
+                /* Vue filtrée : grille plate */
+                <>
+                  {catalogCategory && (
+                    <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2 w-fit">
+                      <Tag className="w-4 h-4" />
+                      <span>Filtré par : <strong>{catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory}</strong></span>
+                      <button
+                        onClick={() => { setCatalogCategory(''); setCatalogPage(1); }}
+                        className="ml-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <motion.div 
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {catalogProducts.map((product, index) => (
+                      <CatalogProductCard key={product.id} product={product} index={index} onAdd={handleAddProduct} />
+                    ))}
+                  </motion.div>
+                  {catalogProducts.length === 0 && (
+                    <motion.div className="text-center py-12" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+                      <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">Aucun produit trouvé</p>
                     </motion.div>
-                  ))}
-                </motion.div>
-              )}
-
-              {catalogProducts.length === 0 && !catalogLoading && (
-                <motion.div 
-                  className="text-center py-12"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">Aucun produit trouvé</p>
-                </motion.div>
+                  )}
+                </>
+              ) : (
+                /* Vue par catégories/sous-catégories */
+                <CatalogByCategoryView
+                  products={catalogProducts}
+                  categories={catalogCategories}
+                  onAdd={handleAddProduct}
+                  onFilterCategory={(slug) => { setCatalogCategory(slug); setCatalogPage(1); }}
+                />
               )}
             </motion.div>
           )}
-
           {/* My Products Tab */}
           {activeTab === 'products' && (
             <motion.div 
@@ -2622,6 +2591,229 @@ const RevendeurOrderTracking = ({ token }) => {
             </table>
           </div>
         </Card>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// COMPOSANT : Carte produit catalogue (réutilisable)
+// ============================================================
+const CatalogProductCard = ({ product, index, onAdd }) => (
+  <motion.div
+    key={product.id}
+    variants={productCardVariant}
+    whileHover={{ y: -8, scale: 1.02 }}
+    transition={{ delay: index * 0.05 }}
+  >
+    <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
+      <div className="aspect-square relative group">
+        <motion.img
+          src={product.images?.[0] || '/placeholder.jpg'}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {product.is_dropshipped && (
+          <motion.div className="absolute top-2 right-2" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+            <Badge className="bg-green-500 shadow-lg">
+              <Check className="w-3 h-3 mr-1" />
+              Ajouté
+            </Badge>
+          </motion.div>
+        )}
+      </div>
+      <CardContent className="p-4">
+        <h3 className="font-medium text-sm line-clamp-2 mb-2">{product.name}</h3>
+        {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? (
+          <div className="space-y-1">
+            <p className="text-xs text-gray-400 line-through">{product.price_fcfa?.toLocaleString()} FCFA</p>
+            <p className="text-lg font-bold text-green-600">{product.promo_price_fcfa?.toLocaleString()} FCFA</p>
+            <Badge className="bg-green-100 text-green-700 text-xs">
+              -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
+            </Badge>
+          </div>
+        ) : (
+          <p className="text-lg font-bold text-purple-600">{product.price_fcfa?.toLocaleString()} FCFA</p>
+        )}
+        <p className="text-xs text-gray-500 mb-3">Prix d'achat minimum</p>
+        {product.is_dropshipped ? (
+          <Button variant="outline" className="w-full opacity-60" disabled>Déjà ajouté</Button>
+        ) : (
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md" onClick={() => onAdd(product)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter
+            </Button>
+          </motion.div>
+        )}
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
+// ============================================================
+// COMPOSANT : Vue catalogue groupé par catégorie + sous-catégorie
+// ============================================================
+const CatalogByCategoryView = ({ products, categories, onAdd, onFilterCategory }) => {
+  const [expandedCats, setExpandedCats] = React.useState({});
+
+  const parentCats = categories.filter(c => !c.parent_slug);
+  const childCats = categories.filter(c => c.parent_slug);
+
+  const toggleCat = (slug) => setExpandedCats(prev => ({ ...prev, [slug]: !prev[slug] }));
+
+  if (products.length === 0) {
+    return (
+      <motion.div className="text-center py-12" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+        <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+        <p className="text-gray-500">Aucun produit dans le catalogue</p>
+      </motion.div>
+    );
+  }
+
+  // Regrouper produits par category_slug
+  const productsByCategory = {};
+  products.forEach(p => {
+    const slug = p.category_slug || '__sans_categorie__';
+    if (!productsByCategory[slug]) productsByCategory[slug] = [];
+    productsByCategory[slug].push(p);
+  });
+
+  return (
+    <div className="space-y-8">
+      {parentCats.map((parent, pIdx) => {
+        const subs = childCats.filter(c => c.parent_slug === parent.slug);
+        
+        // Produits directement sous la catégorie parente
+        const directProducts = productsByCategory[parent.slug] || [];
+        
+        // Produits dans les sous-catégories
+        const subProductGroups = subs
+          .map(sub => ({ sub, prods: productsByCategory[sub.slug] || [] }))
+          .filter(g => g.prods.length > 0);
+        
+        const totalProducts = directProducts.length + subProductGroups.reduce((s, g) => s + g.prods.length, 0);
+        
+        if (totalProducts === 0) return null;
+        
+        const isExpanded = expandedCats[parent.slug] !== false; // ouvert par défaut
+
+        return (
+          <motion.div
+            key={parent.slug}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: pIdx * 0.08 }}
+            className="space-y-4"
+          >
+            {/* En-tête catégorie parente */}
+            <button
+              onClick={() => toggleCat(parent.slug)}
+              className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100 hover:border-purple-300 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                {parent.image || parent.banner_images?.[0] ? (
+                  <img src={parent.image || parent.banner_images[0]} alt={parent.name} className="w-10 h-10 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-purple-200 flex items-center justify-center">
+                    <FolderOpen className="w-5 h-5 text-purple-600" />
+                  </div>
+                )}
+                <div className="text-left">
+                  <h2 className="text-lg font-bold text-gray-900">{parent.name}</h2>
+                  <p className="text-xs text-gray-500">
+                    {totalProducts} produit{totalProducts > 1 ? 's' : ''}
+                    {subs.length > 0 && ` · ${subs.length} sous-catégorie${subs.length > 1 ? 's' : ''}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-purple-600 border-purple-200 hover:bg-purple-100 text-xs"
+                  onClick={(e) => { e.stopPropagation(); onFilterCategory(parent.slug); }}
+                >
+                  Voir tout
+                </Button>
+                <ChevronRight className={`w-5 h-5 text-purple-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-6 pl-2"
+              >
+                {/* Produits directs (sans sous-catégorie) */}
+                {directProducts.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-medium text-gray-600">Général — {parent.name}</span>
+                      <span className="text-xs text-gray-400">({directProducts.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {directProducts.slice(0, 8).map((product, index) => (
+                        <CatalogProductCard key={product.id} product={product} index={index} onAdd={onAdd} />
+                      ))}
+                    </div>
+                    {directProducts.length > 8 && (
+                      <button onClick={() => onFilterCategory(parent.slug)} className="text-sm text-purple-600 hover:underline">
+                        + {directProducts.length - 8} autres produits dans {parent.name}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Sous-catégories */}
+                {subProductGroups.map(({ sub, prods }, sIdx) => (
+                  <div key={sub.slug} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-6 bg-purple-300 rounded-full" />
+                        <Tag className="w-4 h-4 text-indigo-400" />
+                        <span className="text-sm font-semibold text-gray-700">{sub.name}</span>
+                        <Badge variant="outline" className="text-xs text-indigo-600 border-indigo-200">
+                          {prods.length} produit{prods.length > 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      {prods.length > 4 && (
+                        <button onClick={() => onFilterCategory(sub.slug)} className="text-xs text-purple-600 hover:underline">
+                          Voir tout →
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {prods.slice(0, 4).map((product, index) => (
+                        <CatalogProductCard key={product.id} product={product} index={index + sIdx * 4} onAdd={onAdd} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </motion.div>
+        );
+      })}
+
+      {/* Produits sans catégorie */}
+      {(productsByCategory['__sans_categorie__'] || []).length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Package className="w-4 h-4" />
+            <span>Autres produits</span>
+            <span className="text-xs text-gray-400">({productsByCategory['__sans_categorie__'].length})</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {productsByCategory['__sans_categorie__'].map((product, index) => (
+              <CatalogProductCard key={product.id} product={product} index={index} onAdd={onAdd} />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

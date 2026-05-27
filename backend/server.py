@@ -453,7 +453,6 @@ async def revendeur_catalog(
     ).sort("name", 1).to_list(500)
     return {"products": products, "total": total, "page": page, "categories": categories}
 
-
 @api.get("/revendeur/products")
 async def revendeur_products(user: dict = Depends(require_dropshipper)):
     revendeur_products = await db.dropshipped_products.find(

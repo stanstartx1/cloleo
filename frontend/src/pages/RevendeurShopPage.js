@@ -269,46 +269,59 @@ const RevendeurShopPage = () => {
 
         {products.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <Card key={product.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
-                  <div className="aspect-square relative overflow-hidden">
-                    <img
-                      src={product.original_images?.[0] || '/placeholder.jpg'}
-                      alt={product.original_name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-gray-900 line-clamp-2 mb-2">{product.original_name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-3">{product.custom_description}</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xl font-bold text-purple-600">{product.selling_price_fcfa?.toLocaleString()} FCFA</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          className="border-purple-200 text-purple-600 hover:bg-purple-50"
-                          onClick={() => setChatProduct(product)}
-                          data-testid={`chat-btn-${product.id}`}
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm"
-                          className="bg-purple-600 hover:bg-purple-700"
-                          onClick={() => handleOrder(product)}
-                        >
-                          <ShoppingCart className="w-4 h-4 mr-1" />
-                          Commander
-                        </Button>
-                      </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product) => {
+                // Priorité aux données customisées par le revendeur
+                const displayName = product.original_name || product.name;
+                const displayImages = (product.custom_images?.length > 0 ? product.custom_images : null)
+                  || (product.custom_image_url ? [product.custom_image_url] : null)
+                  || product.original_images
+                  || product.images
+                  || [];
+                const displayDescription = product.custom_description || product.description;
+
+                return (
+                  <Card key={product.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
+                    <div className="aspect-square relative overflow-hidden">
+                      <img
+                        src={displayImages[0] || '/placeholder.jpg'}
+                        alt={displayName}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="p-4">
+                      <h3 className="font-medium text-gray-900 line-clamp-2 mb-2">{displayName}</h3>
+                      {displayDescription && (
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">{displayDescription}</p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xl font-bold text-purple-600">{product.selling_price_fcfa?.toLocaleString()} FCFA</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                            onClick={() => setChatProduct(product)}
+                            data-testid={`chat-btn-${product.id}`}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="bg-purple-600 hover:bg-purple-700"
+                            onClick={() => handleOrder(product)}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-1" />
+                            Commander
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Pagination */}
