@@ -100,6 +100,20 @@ async def require_driver(user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.DRIVER:
         raise HTTPException(status_code=403, detail="Acces reserve aux livreurs")
     if not user.get("is_active", False) or not user.get("is_verified", False):
+        # Check if auto-approve is enabled — if so, approve on-the-fly
+        try:
+            platform = await db.settings.find_one({"type": "platform"}, {"_id": 0}) or {}
+            if platform.get("auto_approve_drivers"):
+                from datetime import datetime, timezone
+                await db.users.update_one(
+                    {"id": user["id"]},
+                    {"$set": {"is_active": True, "is_verified": True,
+                              "approval_status": "approved",
+                              "updated_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                return {**user, "is_active": True, "is_verified": True}
+        except Exception:
+            pass
         raise HTTPException(status_code=403, detail="Compte livreur en attente d'approbation")
     return user
 
@@ -108,5 +122,19 @@ async def require_dropshipper(user: dict = Depends(get_current_user)):
     if user["role"] != UserRole.DROPSHIPPER:
         raise HTTPException(status_code=403, detail="Acces reserve aux dropshippers")
     if not user.get("is_active", False) or not user.get("is_verified", False):
+        # Check if auto-approve is enabled — if so, approve on-the-fly
+        try:
+            platform = await db.settings.find_one({"type": "platform"}, {"_id": 0}) or {}
+            if platform.get("auto_approve_revendeurs"):
+                from datetime import datetime, timezone
+                await db.users.update_one(
+                    {"id": user["id"]},
+                    {"$set": {"is_active": True, "is_verified": True,
+                              "approval_status": "approved",
+                              "updated_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                return {**user, "is_active": True, "is_verified": True}
+        except Exception:
+            pass
         raise HTTPException(status_code=403, detail="Compte revendeur en attente d'approbation")
     return user

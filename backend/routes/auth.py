@@ -61,6 +61,15 @@ def normalize_role(raw_role: str | None) -> str:
     return aliases.get(role, role)
 
 
+async def _get_platform_settings() -> dict:
+    """Fetch platform settings from DB (auto-approve flags)."""
+    try:
+        doc = await db.settings.find_one({"type": "platform"}, {"_id": 0})
+        return doc or {}
+    except Exception:
+        return {}
+
+
 @router.post("/register")
 async def register(data: UserRegister):
     """Register a new user."""
@@ -77,8 +86,12 @@ async def register(data: UserRegister):
     if await db.users.find_one({"email": data.email}):
         raise HTTPException(status_code=400, detail="Email deja utilise")
 
-    # Vendors are created as pending (approval flow) but they can still log in.
+    platform = await _get_platform_settings()
     is_vendor = normalized_role == UserRole.VENDOR
+    auto_approve_vendor = bool(platform.get("auto_approve_vendors", False))
+
+    # If auto-approve is ON for vendors, activate immediately; otherwise pending.
+    vendor_approved = is_vendor and auto_approve_vendor
 
     user = {
         "id": str(uuid.uuid4()),
@@ -88,8 +101,9 @@ async def register(data: UserRegister):
         "role": normalized_role,
         "phone": data.phone,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "is_active": not is_vendor,
-        "is_verified": not is_vendor,
+        "is_active": (not is_vendor) or vendor_approved,
+        "is_verified": (not is_vendor) or vendor_approved,
+        "approval_status": "approved" if (not is_vendor or vendor_approved) else "pending",
         "subscription_plan": "free" if is_vendor else None,
         "subscription_expires": None,
         "shop_name": data.name if is_vendor else None,
@@ -128,7 +142,29 @@ async def login(data: UserLogin):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
 
     if not user.get("is_active", True):
-        raise HTTPException(status_code=401, detail="Compte en attente d'approbation administrateur")
+        # Check if auto-approve is enabled for this user's role
+        try:
+            platform = await db.settings.find_one({"type": "platform"}, {"_id": 0}) or {}
+            role = user.get("role", "")
+            auto = (
+                (role == "vendor" and platform.get("auto_approve_vendors")) or
+                (role == "dropshipper" and platform.get("auto_approve_revendeurs")) or
+                (role == "driver" and platform.get("auto_approve_drivers"))
+            )
+            if auto:
+                await db.users.update_one(
+                    {"id": user["id"]},
+                    {"$set": {"is_active": True, "is_verified": True,
+                              "approval_status": "approved",
+                              "updated_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                user = {**user, "is_active": True, "is_verified": True}
+            else:
+                raise HTTPException(status_code=401, detail="Compte en attente d'approbation administrateur")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=401, detail="Compte en attente d'approbation administrateur")
 
     return {
         "token": create_token(user["id"], user["role"]),
@@ -148,6 +184,9 @@ async def register_revendeur(data: DropshipperRegister):
     if existing_slug:
         shop_slug = f"{shop_slug}-{str(uuid.uuid4())[:6]}"
 
+    platform = await _get_platform_settings()
+    auto_approve = bool(platform.get("auto_approve_revendeurs", False))
+
     user = {
         "id": str(uuid.uuid4()),
         "email": data.email,
@@ -158,9 +197,9 @@ async def register_revendeur(data: DropshipperRegister):
         "shop_name": shop_name,
         "shop_slug": shop_slug,
         "shop_description": data.shop_description,
-        "is_active": False,
-        "is_verified": False,
-        "approval_status": "pending",
+        "is_active": auto_approve,
+        "is_verified": auto_approve,
+        "approval_status": "approved" if auto_approve else "pending",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(user)
@@ -176,6 +215,9 @@ async def register_driver(data: DriverRegister):
     if await db.users.find_one({"email": data.email}):
         raise HTTPException(status_code=400, detail="Email deja utilise")
 
+    platform = await _get_platform_settings()
+    auto_approve = bool(platform.get("auto_approve_drivers", False))
+
     user = {
         "id": str(uuid.uuid4()),
         "email": data.email,
@@ -188,9 +230,9 @@ async def register_driver(data: DriverRegister):
         "city": data.city,
         "country": data.country or "Cote d'Ivoire",
         "driver_status": "offline",
-        "is_active": False,
-        "is_verified": False,
-        "approval_status": "pending",
+        "is_active": auto_approve,
+        "is_verified": auto_approve,
+        "approval_status": "approved" if auto_approve else "pending",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(user)

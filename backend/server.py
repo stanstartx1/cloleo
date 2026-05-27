@@ -350,6 +350,11 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "created_at": _utc(),
         "updated_at": _utc(),
     }
+    # Auto-approve if platform setting is enabled
+    platform = await db.settings.find_one({"type": "platform"}, {"_id": 0}) or {}
+    if platform.get("auto_approve_products"):
+        product["status"] = "approved"
+
     await db.products.insert_one(product)
     product.pop("_id", None)
     return product
@@ -534,6 +539,11 @@ async def create_revendeur_product(payload: DropshippedProductCreate, user: dict
         "created_at": _utc(),
         "updated_at": _utc(),
     }
+    # Auto-approve revendeur product if platform setting is enabled
+    platform_cfg = await db.settings.find_one({"type": "platform"}, {"_id": 0}) or {}
+    if platform_cfg.get("auto_approve_products"):
+        public_product["status"] = "approved"
+
     await db.products.insert_one(public_product)
     doc.pop("_id", None)
     return doc
