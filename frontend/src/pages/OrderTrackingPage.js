@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  Package, Truck, MapPin, Phone, CheckCircle, Clock, 
+import {
+  Package, Truck, MapPin, Phone, CheckCircle, Clock,
   User, Navigation, Home, XCircle, Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -11,22 +11,23 @@ import { toast } from 'sonner';
 import { loadGoogleMaps } from '../utils/googleMapsLoader';
 import UserAvatar from '../components/UserAvatar';
 
-import { WS_URL } from '../config/api';
+// Import centralisé
+import BACKEND_URL, { API_BASE, API_URL, WS_URL } from '../config/api';
 
 const toWsUrl = (url) => {
   const safeUrl = typeof url === 'string' ? url.trim() : '';
-  
+ 
   if (!safeUrl) {
     return WS_URL;
   }
-
   // Conversion intelligente http → ws et https → wss
   return safeUrl
     .replace(/^https:\/\//i, 'wss://')
     .replace(/^http:\/\//i, 'ws://');
 };
-const WS_URL = toWsUrl(BACKEND_URL);
-const API = `${BACKEND_URL}/api`;
+
+// Si tu as besoin d'une URL WebSocket calculée à partir de BACKEND_URL
+const calculatedWS_URL = toWsUrl(BACKEND_URL);
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
