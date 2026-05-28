@@ -963,7 +963,7 @@ const HomePage = () => {
         }
       `}</style>
   </div>
-
+  ();
 };
 
 export default HomePage;
