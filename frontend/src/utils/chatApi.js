@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+import { API_BASE, API_URL } from '../config/api';
 const API = `${BACKEND_URL}/api`;
 
 export async function deleteChatMessage(token, conversationId, messageId) {

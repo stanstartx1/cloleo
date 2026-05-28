@@ -24,7 +24,7 @@ import {
   tabContentVariant
 } from '../components/AnimatedComponents';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+import { API_BASE, API_URL } from '../config/api';
 const WS_URL = BACKEND_URL
   .replace(/^https:\/\//, 'wss://')
   .replace(/^http:\/\//, 'ws://');

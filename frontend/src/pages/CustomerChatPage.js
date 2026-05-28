@@ -12,7 +12,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import ChatMessageDeleteButton from '../components/ChatMessageDeleteButton';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+import { API_BASE, API_URL } from '../config/api';
 const API = `${BACKEND_URL}/api`;
 const WS_URL = BACKEND_URL
   .replace(/^https:\/\//, 'wss://')

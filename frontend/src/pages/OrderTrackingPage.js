@@ -11,13 +11,19 @@ import { toast } from 'sonner';
 import { loadGoogleMaps } from '../utils/googleMapsLoader';
 import UserAvatar from '../components/UserAvatar';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+import { WS_URL } from '../config/api';
+
 const toWsUrl = (url) => {
-  const safeUrl = typeof url === 'string' ? url : '';
-  if (!safeUrl) return 'ws://localhost:8000';
+  const safeUrl = typeof url === 'string' ? url.trim() : '';
+  
+  if (!safeUrl) {
+    return WS_URL;
+  }
+
+  // Conversion intelligente http → ws et https → wss
   return safeUrl
-    .replace(/^https:\/\//, 'wss://')
-    .replace(/^http:\/\//, 'ws://');
+    .replace(/^https:\/\//i, 'wss://')
+    .replace(/^http:\/\//i, 'ws://');
 };
 const WS_URL = toWsUrl(BACKEND_URL);
 const API = `${BACKEND_URL}/api`;

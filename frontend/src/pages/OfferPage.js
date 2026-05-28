@@ -5,7 +5,7 @@ import { Tag, ArrowLeft, Store, ShoppingBag } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+import { API_BASE, API_URL } from '../config/api';
 const API = `${BACKEND_URL}/api`;
 
 const formatPrice = (v) => new Intl.NumberFormat('fr-FR').format(v || 0);

@@ -9,7 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const ChatContext = createContext(null);
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+import BACKEND_URL, { API_BASE, API_URL } from '../config/api';
 const API = `${BACKEND_URL}/api`;
 
 export const ChatProvider = ({ children }) => {
