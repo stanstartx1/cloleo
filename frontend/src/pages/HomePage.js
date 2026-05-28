@@ -43,9 +43,6 @@ const useInView = () => {
   return [ref, isInView];
 };
 
-// ─── Sidebar décorative gauche ou droite ──────────────────────────────────
-// position: sticky dans son conteneur flex → elle apparaît UNIQUEMENT
-// dans la zone centrée (après hero + 2 carousels), jamais au-dessus.
 const PageSidebar = ({ side = 'left', layoutSettings }) => {
   const width = layoutSettings?.sidebar_width || 160;
   const type = layoutSettings?.sidebar_type || 'color';
@@ -56,7 +53,6 @@ const PageSidebar = ({ side = 'left', layoutSettings }) => {
     ? (layoutSettings?.sidebar_image_left || '')
     : (layoutSettings?.sidebar_image_right || '');
 
-  // Construire l'URL complète si l'image est un chemin relatif /uploads/...
   const image = imageRaw && imageRaw.startsWith('/')
     ? `${BACKEND_URL.replace(/\/$/, '')}${imageRaw}`
     : imageRaw;
@@ -65,7 +61,6 @@ const PageSidebar = ({ side = 'left', layoutSettings }) => {
     width,
     minWidth: width,
     flexShrink: 0,
-    alignSelf: 'stretch',   // s'étire sur toute la hauteur du conteneur flex parent
     pointerEvents: 'none',
     position: 'sticky',
     top: 0,
@@ -114,7 +109,6 @@ const HomePage = () => {
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
 
-  // Charger les settings layout (publics)
   useEffect(() => {
     axios.get(`${API}/layout-settings`)
       .then(res => setLayoutSettings(res.data))
@@ -364,7 +358,6 @@ const HomePage = () => {
     );
   };
 
-  // Largeur sidebar pour masquer sur petits écrans
   const sidebarW = layoutSettings?.sidebar_width || 0;
   const showSidebars = layoutSettings !== null && sidebarW > 0;
 
@@ -374,16 +367,8 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* ══════════════════════════════════════════════
-          ZONE PLEINE LARGEUR : Hero + 2 carousels
-          Pas de sidebars ici — elles ne commencent
-          qu'après ce bloc.
-          ══════════════════════════════════════════════ */}
-
-      {/* Hero : pleine largeur */}
       <HeroSection categories={categories} />
 
-      {/* Carrousel drapeaux : pleine largeur */}
       <section className="py-4 bg-gradient-to-r from-amber-50 via-white to-amber-50 border-b border-slate-100 overflow-hidden">
         <div className="max-w-screen-xl mx-auto px-4 mb-3">
           <p className="text-center text-sm font-bold text-slate-700">Nous livrons partout dans le monde</p>
@@ -391,17 +376,9 @@ const HomePage = () => {
         <div className="relative overflow-hidden">
           <div className="flex animate-scroll-flags gap-6 w-max">
             {[...COUNTRIES, ...COUNTRIES, ...COUNTRIES].map((country, index) => (
-              <div
-                key={`flag-${index}`}
-                className="flex-shrink-0 flex flex-col items-center gap-1.5 px-2"
-              >
+              <div key={`flag-${index}`} className="flex-shrink-0 flex flex-col items-center gap-1.5 px-2">
                 <div className="w-12 h-8 rounded-md overflow-hidden shadow-sm border border-slate-200 hover:scale-110 transition-transform">
-                  <img
-                    src={getCountryFlagUrl(country.code)}
-                    alt={country.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
+                  <img src={getCountryFlagUrl(country.code)} alt={country.name} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <span className="text-[10px] font-medium text-slate-600 whitespace-nowrap">{country.name}</span>
               </div>
@@ -410,7 +387,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Catégories principales défilantes : pleine largeur */}
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
@@ -420,33 +396,18 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          ZONE CENTRÉE AVEC SIDEBARS
-          Conteneur flex : [sidebar gauche][contenu][sidebar droite]
-          Les sidebars sont position:sticky → elles
-          restent visibles en scrollant mais ne débordent
-          jamais au-dessus du hero ni des carousels.
-          Sur mobile (< xl) les sidebars sont masquées.
-          ══════════════════════════════════════════════ */}
       <div className="flex items-stretch w-full">
 
-        {/* Sidebar gauche — visible uniquement xl+ */}
         {showSidebars && (
           <div className="hidden xl:block flex-shrink-0" style={{ width: sidebarW }}>
             <PageSidebar side="left" layoutSettings={layoutSettings} />
           </div>
         )}
 
-        {/* ── Contenu principal centré ── */}
         <div className="flex-1 min-w-0">
 
-          <AdStrip
-            tone="orange"
-            title="Espace Publicitaire - Offres du Jour"
-            subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées."
-          />
+          <AdStrip tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
 
-          {/* Sous-catégories en carrousel */}
           {subCategories.length > 0 && (
             <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
               <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
@@ -468,25 +429,15 @@ const HomePage = () => {
                   const image = product.images?.[0] || product.main_image || 'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
                   const hasPromo = Number(product.promo_price_fcfa || product.discount_price || 0) > 0;
                   const badge = hasPromo ? 'Promo' : product.is_featured ? 'Vedette' : 'Nouveau';
-                  const badgeClass = hasPromo
-                    ? 'bg-red-500 text-white'
-                    : product.is_featured
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-emerald-500 text-white';
+                  const badgeClass = hasPromo ? 'bg-red-500 text-white' : product.is_featured ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white';
                   const isTall = index % 5 === 0 || index % 5 === 3;
                   const isWide = index % 4 === 1;
-                  const sizeClass = isTall
-                    ? 'row-span-2 md:row-span-2 md:col-span-2'
-                    : isWide
-                      ? 'row-span-1 md:col-span-2'
-                      : 'row-span-1 md:col-span-1';
+                  const sizeClass = isTall ? 'row-span-2 md:row-span-2 md:col-span-2' : isWide ? 'row-span-1 md:col-span-2' : 'row-span-1 md:col-span-1';
                   return (
                     <Link key={`spotlight-${product.id}`} to={`/products/${product.id}`} className={`group block ${sizeClass}`}>
                       <div className="relative h-full rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm group-hover:shadow-md transition-all">
                         <img src={image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[11px] font-bold ${badgeClass}`}>
-                          {badge}
-                        </span>
+                        <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[11px] font-bold ${badgeClass}`}>{badge}</span>
                         <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
                           <p className="text-sm md:text-base font-extrabold text-white whitespace-nowrap">
                             {getSpotlightPrice(product).toLocaleString()} FCFA
@@ -500,7 +451,6 @@ const HomePage = () => {
             </div>
           </section>
 
-          {/* Notification Feed */}
           <NotificationFeed notifications={[
             { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
             { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
@@ -508,7 +458,6 @@ const HomePage = () => {
             { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
           ]} />
 
-          {/* Featured Products */}
           <motion.section
             className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative"
             initial="hidden" whileInView="visible"
@@ -586,16 +535,13 @@ const HomePage = () => {
             </div>
           </motion.section>
 
-          {/* Sections thématiques */}
           {themeSections.map((section, sectionIndex) => (
             <motion.section
               key={`theme-${section.category.slug}`}
               className={`py-14 ${sectionIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
-              initial="hidden"
-              whileInView="visible"
+              initial="hidden" whileInView="visible"
               viewport={{ once: true, amount: 0.2 }}
-              variants={sectionMotion}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              variants={sectionMotion} transition={{ duration: 0.6, ease: 'easeOut' }}
             >
               <div className="max-w-screen-xl mx-auto px-4">
                 <div className="flex items-center justify-between mb-6">
@@ -620,7 +566,6 @@ const HomePage = () => {
             </motion.section>
           ))}
 
-          {/* Inter-bloc: carrousel catégories */}
           <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
             <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
               <div className="continuous-marquee">
@@ -630,13 +575,8 @@ const HomePage = () => {
             </div>
           </section>
 
-          <AdStrip
-            tone="blue"
-            title="Espace Publicitaire - Marques Partenaires"
-            subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans."
-          />
+          <AdStrip tone="blue" title="Espace Publicitaire - Marques Partenaires" subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans." />
 
-          {/* Inter-bloc: carrousel sous-catégories */}
           {subCategories.length > 0 && (
             <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
               <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
@@ -648,7 +588,6 @@ const HomePage = () => {
             </section>
           )}
 
-          {/* Trending Products */}
           <motion.section
             ref={trendingRef}
             className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
@@ -697,7 +636,6 @@ const HomePage = () => {
             </div>
           </motion.section>
 
-          {/* Inter-bloc: carrousel catégories bas */}
           <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
             <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
               <div className="continuous-marquee">
@@ -707,13 +645,8 @@ const HomePage = () => {
             </div>
           </section>
 
-          <AdStrip
-            tone="green"
-            title="Espace Publicitaire - Sélection Premium"
-            subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant."
-          />
+          <AdStrip tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
 
-          {/* New Products */}
           <motion.section
             ref={newProductsRef}
             className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
@@ -763,7 +696,6 @@ const HomePage = () => {
             </div>
           </motion.section>
 
-          {/* CTA */}
           <motion.section
             className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
             initial="hidden" whileInView="visible"
@@ -790,10 +722,9 @@ const HomePage = () => {
             </div>
           </motion.section>
 
-          {/* Marquee */}
           <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
             <div className="relative flex overflow-hidden">
-              <div className="animate-marquee flex items-center whitespace-nowrap touch-scroll-x overflow-x-auto touch-scroll-x">
+              <div className="animate-marquee flex items-center whitespace-nowrap">
                 {[...Array(2)].map((_, setIndex) => (
                   <div key={setIndex} className="flex items-center">
                     {[
@@ -818,7 +749,6 @@ const HomePage = () => {
             </div>
           </section>
 
-          {/* Testimonials */}
           <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
             <div className="max-w-screen-xl mx-auto px-4 mb-8">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Ce que disent nos clients</h2>
@@ -835,18 +765,16 @@ const HomePage = () => {
 
           <TrustBanner />
 
-        </div>{/* fin contenu principal */}
+        </div>
 
-        {/* Sidebar droite — visible uniquement xl+ */}
         {showSidebars && (
           <div className="hidden xl:block flex-shrink-0" style={{ width: sidebarW }}>
             <PageSidebar side="right" layoutSettings={layoutSettings} />
           </div>
         )}
 
-      </div>{/* fin flex row sidebars + contenu */}
+      </div>
 
-      {/* Floating Categories desktop */}
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
         onMouseEnter={() => setIsCategoryMenuOpen(true)}
         onMouseLeave={() => setIsCategoryMenuOpen(false)}
@@ -908,7 +836,8 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-    <style>{`
+
+      <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(5deg); }
@@ -962,8 +891,8 @@ const HomePage = () => {
           animation: scroll-flags 40s linear infinite;
         }
       `}</style>
-  </div>
-  ();
+    </div>
+  );
 };
 
 export default HomePage;
