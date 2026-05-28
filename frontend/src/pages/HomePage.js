@@ -43,7 +43,7 @@ const useInView = () => {
   return [ref, isInView];
 };
 
-const PageSidebar = ({ side = 'left', layoutSettings }) => {
+const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   const width = layoutSettings?.sidebar_width || 160;
   const type = layoutSettings?.sidebar_type || 'color';
   const color = side === 'left'
@@ -58,14 +58,13 @@ const PageSidebar = ({ side = 'left', layoutSettings }) => {
     : imageRaw;
 
   const baseStyle = {
+    position: 'fixed',
+    top: topOffset,
+    bottom: 0,
+    [side]: 0,
     width,
-    minWidth: width,
-    flexShrink: 0,
+    zIndex: 20,
     pointerEvents: 'none',
-    position: 'sticky',
-    top: 0,
-    alignSelf: 'flex-start',
-    height: '100vh',
   };
 
   if (type === 'image' && image) {
@@ -361,6 +360,21 @@ const HomePage = () => {
   const sidebarW = layoutSettings?.sidebar_width || 0;
   const showSidebars = layoutSettings !== null && sidebarW > 0;
 
+  // Ref sur le début de la zone centrée pour calculer le top des sidebars fixed
+  const centeredZoneRef = useRef(null);
+  const [sidebarTop, setSidebarTop] = React.useState(0);
+  useEffect(() => {
+    const updateTop = () => {
+      if (!centeredZoneRef.current) return;
+      const rect = centeredZoneRef.current.getBoundingClientRect();
+      setSidebarTop(rect.top + window.scrollY);
+    };
+    // Délai court pour laisser le DOM se stabiliser
+    const t = setTimeout(updateTop, 100);
+    window.addEventListener('resize', updateTop);
+    return () => { clearTimeout(t); window.removeEventListener('resize', updateTop); };
+  }, [layoutSettings, loading]);
+
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
       <ScrollProgress />
@@ -396,15 +410,25 @@ const HomePage = () => {
         </div>
       </section>
 
-      <div className="flex items-stretch w-full">
-
-        {showSidebars && (
-          <div className="hidden xl:block flex-shrink-0" style={{ width: sidebarW }}>
-            <PageSidebar side="left" layoutSettings={layoutSettings} />
+      {/* Sidebars fixed — démarrent après le hero + 2 carousels */}
+      {showSidebars && (
+        <>
+          <div className="hidden xl:block">
+            <PageSidebar side="left" layoutSettings={layoutSettings} topOffset={sidebarTop} />
           </div>
-        )}
+          <div className="hidden xl:block">
+            <PageSidebar side="right" layoutSettings={layoutSettings} topOffset={sidebarTop} />
+          </div>
+        </>
+      )}
 
-        <div className="flex-1 min-w-0">
+      {/* Zone centrée : padding latéral = largeur des sidebars sur xl+ */}
+      <div
+        ref={centeredZoneRef}
+        style={showSidebars ? { paddingLeft: sidebarW, paddingRight: sidebarW } : {}}
+        className="w-full transition-all duration-300"
+      >
+        <div className="w-full">
 
           <AdStrip tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
 
@@ -766,13 +790,6 @@ const HomePage = () => {
           <TrustBanner />
 
         </div>
-
-        {showSidebars && (
-          <div className="hidden xl:block flex-shrink-0" style={{ width: sidebarW }}>
-            <PageSidebar side="right" layoutSettings={layoutSettings} />
-          </div>
-        )}
-
       </div>
 
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
