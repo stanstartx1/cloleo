@@ -837,19 +837,6 @@ async def admin_layout_settings(user: dict = Depends(require_admin)):
         "sidebar_width": 160
     }
 
-@api.get("/api/layout-settings")
-async def public_layout_settings():
-    """Route publique pour que le frontend puisse lire les settings layout sans auth"""
-    settings = await db.settings.find_one({"type": "layout"}, {"_id": 0})
-    return settings or {
-        "type": "layout",
-        "sidebar_type": "color",
-        "sidebar_color_left": "#f97316",
-        "sidebar_color_right": "#f97316",
-        "sidebar_image_left": "",
-        "sidebar_image_right": "",
-        "sidebar_width": 160
-    }
 
 
 @api.get("/layout-settings")
