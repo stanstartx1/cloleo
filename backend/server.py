@@ -824,6 +824,49 @@ async def admin_delivery_settings(user: dict = Depends(require_admin)):
     return settings or {"type": "delivery", "max_active_orders": 5, "auto_assign": False}
 
 
+@api.get("/admin/settings/layout")
+async def admin_layout_settings(user: dict = Depends(require_admin)):
+    settings = await db.settings.find_one({"type": "layout"}, {"_id": 0})
+    return settings or {
+        "type": "layout",
+        "sidebar_type": "color",
+        "sidebar_color_left": "#f97316",
+        "sidebar_color_right": "#f97316",
+        "sidebar_image_left": "",
+        "sidebar_image_right": "",
+        "sidebar_width": 160
+    }
+
+@api.get("/api/layout-settings")
+async def public_layout_settings():
+    """Route publique pour que le frontend puisse lire les settings layout sans auth"""
+    settings = await db.settings.find_one({"type": "layout"}, {"_id": 0})
+    return settings or {
+        "type": "layout",
+        "sidebar_type": "color",
+        "sidebar_color_left": "#f97316",
+        "sidebar_color_right": "#f97316",
+        "sidebar_image_left": "",
+        "sidebar_image_right": "",
+        "sidebar_width": 160
+    }
+
+
+@api.get("/layout-settings")
+async def public_layout_settings():
+    """Route publique — settings d'apparence du layout pour la HomePage"""
+    doc = await db.settings.find_one({"type": "layout"}, {"_id": 0})
+    return doc or {
+        "type": "layout",
+        "sidebar_type": "color",
+        "sidebar_color_left": "#f97316",
+        "sidebar_color_right": "#f97316",
+        "sidebar_image_left": "",
+        "sidebar_image_right": "",
+        "sidebar_width": 160
+    }
+
+
 @api.get("/admin/settings/platform")
 async def admin_platform_settings(user: dict = Depends(require_admin)):
     settings = await db.settings.find_one({"type": "platform"}, {"_id": 0})

@@ -36,6 +36,7 @@ const SIDEBAR_ITEMS = [
   { id: 'settings-vendors', label: 'Paramètres vendeurs', icon: UserCog, color: 'text-orange-400' },
   { id: 'settings-drivers', label: 'Paramètres livreurs', icon: Settings, color: 'text-pink-400' },
   { id: 'settings-general', label: 'Paramètre général', icon: Cog, color: 'text-slate-400' },
+  { id: 'settings-layout', label: 'Apparence du site', icon: Cog, color: 'text-pink-400' },
 ];
 
 const AdminDashboard = () => {
@@ -657,6 +658,8 @@ const AdminDashboard = () => {
         return <SettingsSection type="delivery" settings={settings.delivery} onUpdate={(k, v) => updateSetting('delivery', k, v)} onSave={() => handleSaveSettings('delivery')} />;
       case 'settings-general':
         return <SettingsSection type="platform" settings={settings.platform} onUpdate={(k, v) => updateSetting('platform', k, v)} onSave={() => handleSaveSettings('platform')} />;
+      case 'settings-layout':
+        return <LayoutAppearanceSection token={token} API={API} />;
       default:
         return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} categories={categories} products={products} />;
     }
@@ -2322,5 +2325,248 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
+// ─── Composant Apparence du site (sidebars) ────────────────────────────────
+const LayoutAppearanceSection = ({ token, API }) => {
+  const [settings, setSettings] = React.useState({
+    sidebar_type: 'color',
+    sidebar_color_left: '#f97316',
+    sidebar_color_right: '#f97316',
+    sidebar_image_left: '',
+    sidebar_image_right: '',
+    sidebar_width: 160,
+  });
+  const [saving, setSaving] = React.useState(false);
+  const [uploadingLeft, setUploadingLeft] = React.useState(false);
+  const [uploadingRight, setUploadingRight] = React.useState(false);
+  const inputLeftRef = React.useRef(null);
+  const inputRightRef = React.useRef(null);
+
+  React.useEffect(() => {
+    axios.get(`${API}/admin/settings/layout`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => setSettings(s => ({ ...s, ...res.data }))).catch(() => {});
+  }, [token, API]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/layout`, { settings }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Apparence sauvegardée !');
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const uploadImage = async (file, side) => {
+    const setUploading = side === 'left' ? setUploadingLeft : setUploadingRight;
+    const field = side === 'left' ? 'sidebar_image_left' : 'sidebar_image_right';
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('files', file);
+      const res = await axios.post(`${API}/upload/multiple`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      });
+      const url = res.data.urls?.[0] || '';
+      setSettings(s => ({ ...s, [field]: url }));
+      toast.success('Image uploadée !');
+    } catch {
+      toast.error('Erreur upload');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const SidePreview = ({ side }) => {
+    const color = side === 'left' ? settings.sidebar_color_left : settings.sidebar_color_right;
+    const image = side === 'left' ? settings.sidebar_image_left : settings.sidebar_image_right;
+    const isUploading = side === 'left' ? uploadingLeft : uploadingRight;
+    const inputRef = side === 'left' ? inputLeftRef : inputRightRef;
+    const label = side === 'left' ? 'Gauche' : 'Droite';
+
+    return (
+      <div className="space-y-3">
+        <h4 className="font-semibold text-slate-200">Sidebar {label}</h4>
+        {/* Prévisualisation */}
+        <div
+          className="w-full h-48 rounded-xl border border-slate-600 overflow-hidden flex items-center justify-center"
+          style={settings.sidebar_type === 'image' && image
+            ? { backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { backgroundColor: color }
+          }
+        >
+          {settings.sidebar_type === 'image' && !image && (
+            <span className="text-slate-400 text-sm">Aucune image</span>
+          )}
+        </div>
+
+        {settings.sidebar_type === 'color' && (
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-slate-300">Couleur :</label>
+            <input
+              type="color"
+              value={color}
+              onChange={e => setSettings(s => ({
+                ...s,
+                [side === 'left' ? 'sidebar_color_left' : 'sidebar_color_right']: e.target.value
+              }))}
+              className="w-12 h-10 rounded cursor-pointer border-0 bg-transparent"
+            />
+            <input
+              type="text"
+              value={color}
+              onChange={e => setSettings(s => ({
+                ...s,
+                [side === 'left' ? 'sidebar_color_left' : 'sidebar_color_right']: e.target.value
+              }))}
+              className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 text-sm font-mono"
+              placeholder="#f97316"
+            />
+          </div>
+        )}
+
+        {settings.sidebar_type === 'image' && (
+          <div className="space-y-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0], side)}
+            />
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full py-2 px-4 rounded-lg border-2 border-dashed border-slate-500 text-slate-300 hover:border-orange-400 hover:text-orange-300 transition text-sm flex items-center justify-center gap-2"
+            >
+              {isUploading ? '⏳ Upload...' : '📁 Choisir une image (PNG, JPG, GIF, WEBP)'}
+            </button>
+            {image && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={image}
+                  onChange={e => setSettings(s => ({
+                    ...s,
+                    [side === 'left' ? 'sidebar_image_left' : 'sidebar_image_right']: e.target.value
+                  }))}
+                  className="flex-1 px-3 py-1.5 rounded-lg bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono truncate"
+                  placeholder="URL de l'image"
+                />
+                <button
+                  onClick={() => setSettings(s => ({
+                    ...s,
+                    [side === 'left' ? 'sidebar_image_left' : 'sidebar_image_right']: ''
+                  }))}
+                  className="text-red-400 hover:text-red-300 text-sm px-2"
+                >✕</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-100">Apparence du site</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez les marges latérales de la page d'accueil (hors hero et carrousels).
+          Les sidebars sont visibles uniquement sur écrans larges (&gt;1280px).
+        </p>
+      </div>
+
+      {/* Type de sidebar */}
+      <div className="bg-slate-800 rounded-xl p-5 space-y-4 border border-slate-700">
+        <h3 className="font-semibold text-slate-200">Type de décoration</h3>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="sidebar_type"
+              value="color"
+              checked={settings.sidebar_type === 'color'}
+              onChange={() => setSettings(s => ({ ...s, sidebar_type: 'color' }))}
+            />
+            <span className="text-slate-200">🎨 Couleur unie</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="sidebar_type"
+              value="image"
+              checked={settings.sidebar_type === 'image'}
+              onChange={() => setSettings(s => ({ ...s, sidebar_type: 'image' }))}
+            />
+            <span className="text-slate-200">🖼️ Image / GIF</span>
+          </label>
+        </div>
+
+        {/* Largeur */}
+        <div className="flex items-center gap-4">
+          <label className="text-sm text-slate-300 whitespace-nowrap">Largeur sidebar :</label>
+          <input
+            type="range"
+            min={80}
+            max={300}
+            value={settings.sidebar_width}
+            onChange={e => setSettings(s => ({ ...s, sidebar_width: Number(e.target.value) }))}
+            className="flex-1"
+          />
+          <span className="text-slate-200 font-mono text-sm w-16 text-right">{settings.sidebar_width}px</span>
+        </div>
+      </div>
+
+      {/* Prévisualisations gauche / droite */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
+          <SidePreview side="left" />
+        </div>
+        <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
+          <SidePreview side="right" />
+        </div>
+      </div>
+
+      {/* Option : même config des deux côtés */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setSettings(s => ({
+            ...s,
+            sidebar_color_right: s.sidebar_color_left,
+            sidebar_image_right: s.sidebar_image_left,
+          }))}
+          className="text-sm text-orange-400 hover:text-orange-300 underline"
+        >
+          ← Copier gauche → droite
+        </button>
+        <button
+          onClick={() => setSettings(s => ({
+            ...s,
+            sidebar_color_left: s.sidebar_color_right,
+            sidebar_image_left: s.sidebar_image_right,
+          }))}
+          className="text-sm text-orange-400 hover:text-orange-300 underline"
+        >
+          ← Copier droite → gauche
+        </button>
+      </div>
+
+      {/* Bouton save */}
+      <button
+        onClick={save}
+        disabled={saving}
+        className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-base hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-60"
+      >
+        {saving ? '⏳ Sauvegarde...' : '💾 Sauvegarder l\'apparence'}
+      </button>
+    </div>
+  );
+};
 export default AdminDashboard;
 
