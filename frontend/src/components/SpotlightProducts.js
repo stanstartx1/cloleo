@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Star, Heart, ShoppingCart, Zap, Crown, TrendingUp, Award } from 'lucide-react';

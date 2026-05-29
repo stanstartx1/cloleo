@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Store, Package, ArrowLeft, ArrowRight, Star, MapPin, ShoppingBag, Calendar, BadgeCheck, MessageCircle, Share2, Copy, Bell, BellOff, Heart } from 'lucide-react';
 import { Button } from '../components/ui/button';

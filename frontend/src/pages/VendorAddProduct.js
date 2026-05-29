@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Save, Loader2, LogOut, Settings, Tag, Palette, Ruler, Footprints, Shirt, Weight, Box, Users, ChevronDown, AlertTriangle } from 'lucide-react';

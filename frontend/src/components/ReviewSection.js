@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import React, { useState, useEffect } from 'react';
 import { Star, ThumbsUp, Flag, ChevronDown, MessageSquare, CheckCircle, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';

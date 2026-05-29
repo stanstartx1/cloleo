@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Star, Heart, ShoppingCart, Sparkles, Crown, ArrowRight, ChevronLeft, ChevronRight, Zap, Tag } from 'lucide-react';
