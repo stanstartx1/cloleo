@@ -1,3 +1,4 @@
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,11 +29,8 @@ import {
   tabContentVariant
 } from '../components/AnimatedComponents';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || window.location.origin;
-const WS_URL = BACKEND_URL
-  .replace(/^https:\/\//, 'wss://')
-  .replace(/^http:\/\//, 'ws://');
-const API = `${BACKEND_URL}/api`;
+
+const API = API_URL;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const withDropshipperFallback = (path) => {
@@ -309,7 +307,7 @@ const RevendeurDashboard = () => {
       });
       
       const newUrl = response.data.urls[0];
-      const fullUrl = newUrl.startsWith('http') ? newUrl : `${BACKEND_URL}${newUrl}`;
+      const fullUrl = newUrl.startsWith('http') ? newUrl : `${API_BASE}${newUrl}`;
       setEditImages([fullUrl]);
       toast.success('Image mise à jour !');
     } catch (error) {
@@ -340,7 +338,7 @@ const RevendeurDashboard = () => {
       });
       
       const newUrls = response.data.urls.map(url => 
-        url.startsWith('http') ? url : `${BACKEND_URL}${url}`
+        url.startsWith('http') ? url : `${API_BASE}${url}`
       );
       
       setCustomImages(prev => [...prev, ...newUrls]);

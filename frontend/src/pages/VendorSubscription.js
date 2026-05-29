@@ -8,8 +8,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 

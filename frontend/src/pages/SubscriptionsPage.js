@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Store, Package, Users, ExternalLink, BellOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -7,8 +7,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const SubscriptionsPage = () => {
   const { isAuthenticated, token } = useAuth();

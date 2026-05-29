@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,8 +21,7 @@ import { copyToClipboard, shareOrCopy } from '../utils/share';
 import { cn } from '../lib/utils';
 import { getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const formatPrice = (price, currency = 'FCFA') => {
   if (currency === 'FCFA') {

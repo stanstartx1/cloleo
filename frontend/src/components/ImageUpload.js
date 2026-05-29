@@ -1,10 +1,10 @@
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const ImageUpload = ({ 
   images = [], 
@@ -43,7 +43,7 @@ const ImageUpload = ({
         }
       });
 
-      const newUrls = response.data.urls.map(url => `${BACKEND_URL}${url}`);
+      const newUrls = response.data.urls.map(url => `${API_BASE}${url}`);
       onChange([...images, ...newUrls]);
       toast.success(`${newUrls.length} image(s) uploadée(s)`);
     } catch (error) {

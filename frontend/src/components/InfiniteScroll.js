@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL + '/api';
+const API = API_URL;
 
 /**
  * Hook for infinite scroll with intersection observer

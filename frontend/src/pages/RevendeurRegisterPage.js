@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, User, Mail, Lock, Phone, Store, FileText, ArrowRight, Package, TrendingUp, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -9,8 +9,7 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const RevendeurRegisterPage = () => {
   const navigate = useNavigate();

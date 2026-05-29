@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { toAbsoluteMediaUrl } from '../utils/media';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = API_URL;
 
 const ProfileSettingsPage = () => {
   const navigate = useNavigate();

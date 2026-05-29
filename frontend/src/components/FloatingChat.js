@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { MessageCircle, Send, X } from "lucide-react";
 import ChatMessageDeleteButton from "./ChatMessageDeleteButton";
@@ -9,8 +9,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const ChatContext = createContext(null);
-import BACKEND_URL, { API_BASE, API_URL } from '../config/api';
-const API = `${BACKEND_URL}/api`;
+import { API_URL, WS_URL } from '../config/api';
+const API = API_URL;
 
 export const ChatProvider = ({ children }) => {
   const { token } = useAuth();

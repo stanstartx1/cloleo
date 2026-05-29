@@ -11,7 +11,7 @@ import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
 import { COUNTRIES, getCountryFlagUrl } from '../utils/countries';
 // Import depuis notre configuration centralisée
-import BACKEND_URL, { API_BASE, API_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 
 // Optionnel : garder la détection locale si tu en as besoin ailleurs
 const isLocalEnvironment = typeof window !== 'undefined' &&
@@ -50,10 +50,9 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
     ? (layoutSettings?.sidebar_image_left || '')
     : (layoutSettings?.sidebar_image_right || '');
 
-  const image = imageRaw && imageRaw.startsWith('/')
-    ? `${BACKEND_URL.replace(/\/$/, '')}${imageRaw}`
-    : imageRaw;
-
+const image = imageRaw && imageRaw.startsWith('/')
+  ? `${API_BASE}${imageRaw}`
+  : imageRaw;
   const baseStyle = {
     position: 'fixed',
     top: topOffset,

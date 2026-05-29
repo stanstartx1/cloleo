@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -14,10 +14,8 @@ import { toast } from 'sonner';
 import GoogleMap from '../components/GoogleMap';
 
 import { API_BASE, API_URL } from '../config/api';
-const WS_URL = BACKEND_URL
-  .replace(/^https:\/\//, 'wss://')
-  .replace(/^http:\/\//, 'ws://');
-const API = `${BACKEND_URL}/api`;
+
+const API = API_URL;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 

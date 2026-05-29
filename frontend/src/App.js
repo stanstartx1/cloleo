@@ -57,8 +57,7 @@ import VendorShopPage from "./pages/VendorShopPage";
 // Settings
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false, requireDropshipper = false }) => {

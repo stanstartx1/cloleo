@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Star, ThumbsUp, Flag, ChevronDown, MessageSquare, CheckCircle, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const API = process.env.REACT_APP_BACKEND_URL + '/api';
+const API = API_URL;
 
 const StarRating = ({ rating, onRatingChange, size = 'md', interactive = false }) => {
   const [hoverRating, setHoverRating] = useState(0);

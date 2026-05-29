@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -13,10 +13,8 @@ import { toast } from 'sonner';
 import ChatMessageDeleteButton from '../components/ChatMessageDeleteButton';
 
 import { API_BASE, API_URL } from '../config/api';
-const API = `${BACKEND_URL}/api`;
-const WS_URL = BACKEND_URL
-  .replace(/^https:\/\//, 'wss://')
-  .replace(/^http:\/\//, 'ws://');
+const API = API_URL;
+
 
 const CustomerChatPage = () => {
   const navigate = useNavigate();

@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -16,8 +17,7 @@ import ImageUpload from '../components/ImageUpload';
 import { toast } from 'sonner';
 import AdminLiveTracking from '../components/AdminLiveTracking';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
@@ -1021,7 +1021,7 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete, onMessage, auto
                 <td className="p-4">{driver.city}</td>
                 <td className="p-4">
                   {driver.license_image ? (
-                    <a href={`${BACKEND_URL}${driver.license_image}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm">Voir le permis</a>
+                    <a href={`${API_BASE}${driver.license_image}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm">Voir le permis</a>
                   ) : (
                     <span className="text-slate-500 text-sm">Non uploadé</span>
                   )}

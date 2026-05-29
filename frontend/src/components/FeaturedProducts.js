@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Star, Heart, ShoppingCart, Sparkles, Crown, ArrowRight, ChevronLeft, ChevronRight, Zap, Tag } from 'lucide-react';
@@ -7,8 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 

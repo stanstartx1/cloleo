@@ -1,9 +1,10 @@
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
 // src/utils/chatApi.js
 import axios from 'axios';
-import BACKEND_URL, { API_BASE, API_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 
 // Utilise API_BASE ou API_URL (recommandé)
-const API = API_BASE ? `${API_BASE}/api` : `${BACKEND_URL}/api`;
+const API = API_BASE ? `${API_BASE}/api` : `${API_BASE}/api`;
 
 export async function deleteChatMessage(token, conversationId, messageId) {
   const response = await axios.delete(

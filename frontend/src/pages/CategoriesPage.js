@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowRight, Sparkles, Grid3X3, ChevronDown } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const CategoriesPage = () => {
   const [categories, setCategories] = useState([]);

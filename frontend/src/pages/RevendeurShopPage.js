@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Store, Package, ShoppingCart, ArrowLeft, ArrowRight, Star, MessageCircle, Share2, Copy, Bell, BellOff, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -11,8 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const RevendeurShopPage = () => {
   const { shopSlug } = useParams();

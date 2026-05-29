@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, Send, User, Clock, Search, ChevronLeft, 
   Loader2, Package, Store, Check, CheckCheck, Bell, Tag
@@ -12,10 +12,8 @@ import axios from 'axios';
 import ChatMessageDeleteButton from './ChatMessageDeleteButton';
 
 import { API_BASE, API_URL } from '../config/api';
-const WS_URL = BACKEND_URL
-  .replace(/^https:\/\//, 'wss://')
-  .replace(/^http:\/\//, 'ws://');
-const API = `${BACKEND_URL}/api`;
+
+const API = API_URL;
 
 const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [conversations, setConversations] = useState([]);

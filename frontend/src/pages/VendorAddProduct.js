@@ -12,8 +12,7 @@ import { toast } from 'sonner';
 import ImageUpload from '../components/ImageUpload';
 import { COUNTRIES, getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const CONDITIONS = [
   { value: 'neuf', label: 'Neuf' },

@@ -1,3 +1,4 @@
+﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -9,8 +10,7 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || window.location.origin;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const RevendeurEditProduct = () => {
   const navigate = useNavigate();
@@ -76,7 +76,7 @@ const RevendeurEditProduct = () => {
         }
       });
       const url = response.data?.urls?.[0];
-      const fullUrl = url?.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+      const fullUrl = url?.startsWith('http') ? url : `${API_BASE}${url}`;
       setFormData((prev) => ({ ...prev, custom_image_url: fullUrl }));
       toast.success('Image mise à jour');
     } catch (error) {

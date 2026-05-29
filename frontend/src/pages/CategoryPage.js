@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Filter, ChevronDown, Grid3X3, List, SlidersHorizontal, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,8 +11,7 @@ import { Slider } from '../components/ui/slider';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
 import { useInfiniteScroll } from '../components/InfiniteScroll';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 const CONDITIONS = [
   { value: 'neuf', label: 'Neuf' },

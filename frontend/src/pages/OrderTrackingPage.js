@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -12,7 +12,7 @@ import { loadGoogleMaps } from '../utils/googleMapsLoader';
 import UserAvatar from '../components/UserAvatar';
 
 // Import centralisé
-import BACKEND_URL, { API_BASE, API_URL, WS_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 
 const toWsUrl = (url) => {
   const safeUrl = typeof url === 'string' ? url.trim() : '';
@@ -26,8 +26,7 @@ const toWsUrl = (url) => {
     .replace(/^http:\/\//i, 'ws://');
 };
 
-// Si tu as besoin d'une URL WebSocket calculée à partir de BACKEND_URL
-const calculatedWS_URL = toWsUrl(BACKEND_URL);
+const calculatedWS_URL = WS_URL;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
