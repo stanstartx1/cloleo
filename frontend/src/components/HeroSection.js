@@ -35,7 +35,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
   const prev = () => setIdx(i => Math.max(0, i - 1));
   const next = () => setIdx(i => Math.min(maxIdx, i + 1));
 
-  // Auto-scroll
   useEffect(() => {
     if (items.length <= perPage) return;
     const t = setInterval(() => setIdx(i => (i >= maxIdx ? 0 : i + 1)), 3500);
@@ -46,7 +45,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header card */}
       <div className={`flex items-center justify-between mb-3 px-1`}>
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
@@ -66,7 +64,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
         </div>
       </div>
 
-      {/* Items */}
       <div className="grid grid-cols-3 gap-2 flex-1">
         <AnimatePresence mode="wait">
           {visible.map((item, i) => (
@@ -79,7 +76,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
         </AnimatePresence>
       </div>
 
-      {/* Footer link */}
       <Link to={viewAllLink}
         className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 transition">
         Voir tout <ArrowRight className="w-3 h-3" />
@@ -129,7 +125,6 @@ const HeroSection = ({ categories = [] }) => {
         setProducts(list.slice(0, 9));
       }).catch(() => {});
 
-    // Vendeurs actifs (on utilise les catégories avec des vendeurs)
     axios.get(`${API}/products?limit=50`)
       .then(res => {
         const list = Array.isArray(res.data) ? res.data : (res.data?.products || []);
@@ -151,16 +146,22 @@ const HeroSection = ({ categories = [] }) => {
   }, []);
 
   const activeCategories = categories.filter(c => c.is_active !== false);
-  const bgUrl = heroImages[bgIdx]
-    ? (heroImages[bgIdx].startsWith('/') ? `${API_BASE}${heroImages[bgIdx]}` : heroImages[bgIdx])
-    : '';
+  
+  // Construction de l'URL complète de l'image
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('/')) return `${API_BASE}${img}`;
+    return img;
+  };
+  
+  const currentBgUrl = getImageUrl(heroImages[bgIdx]);
 
   // Render item catégorie
   const renderCategory = (cat) => {
     const banners = cat.banner_images || [];
     const img = banners[0] || cat.image
       || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(cat.name)}`;
-    const imgUrl = img.startsWith('/') ? `${API_BASE}${img}` : img;
+    const imgUrl = getImageUrl(img);
     return (
       <Link to={`/categories/${cat.slug}`}
         className="group flex flex-col items-center gap-1">
@@ -177,7 +178,7 @@ const HeroSection = ({ categories = [] }) => {
   // Render item boutique
   const renderShop = (shop) => {
     const imgUrl = shop.image
-      ? (shop.image.startsWith('/') ? `${API_BASE}${shop.image}` : shop.image)
+      ? getImageUrl(shop.image)
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name)}&background=f97316&color=fff&size=80`;
     return (
       <Link to={`/vendor-shop/${shop.id}`}
@@ -198,19 +199,29 @@ const HeroSection = ({ categories = [] }) => {
   return (
     <section className="relative w-full overflow-hidden" style={{ minHeight: 420 }}>
 
-      {/* ── Fond diaporama ── */}
+      {/* ── Fond diaporama ── AVEC IMAGES NETTES ET COMPLÈTES */}
       <div className="absolute inset-0 z-0">
         <AnimatePresence>
           <motion.div key={bgIdx}
             className="absolute inset-0"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 1.2 }}>
-            {bgUrl && (
-              <img src={bgUrl} alt="hero" className="w-full h-full object-cover" />
+            {currentBgUrl && (
+              <div 
+                className="w-full h-full bg-black"
+                style={{
+                  backgroundImage: `url(${currentBgUrl})`,
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+            {/* Dégradé plus fort pour meilleure lisibilité du texte */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
           </motion.div>
         </AnimatePresence>
+        
         {/* Points de navigation fond */}
         {heroImages.length > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
