@@ -854,6 +854,79 @@ async def public_layout_settings():
     }
 
 
+
+# ═══════════════════════════════════════════════════════════════
+# HERO SECTION — à coller dans server.py juste après la route /layout-settings
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/hero-settings")
+async def public_hero_settings():
+    """Route publique — images du diaporama hero"""
+    doc = await db.settings.find_one({"type": "hero"}, {"_id": 0})
+    return doc or {"type": "hero", "images": []}
+
+
+@api.get("/admin/settings/hero")
+async def admin_hero_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère les images hero"""
+    doc = await db.settings.find_one({"type": "hero"}, {"_id": 0})
+    return doc or {"type": "hero", "images": []}
+
+
+@api.put("/admin/settings/hero")
+async def admin_save_hero_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde la liste des images hero"""
+    images = payload.get("images", [])
+    if not isinstance(images, list):
+        raise HTTPException(status_code=400, detail="images doit être une liste")
+    # Filtrer les URLs vides et limiter à 10 images
+    images = [img for img in images if isinstance(img, str) and img.strip()][:10]
+    doc = {"type": "hero", "images": images, "updated_at": _utc()}
+    await db.settings.update_one({"type": "hero"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "images": images}
+
+
+@api.post("/admin/upload/hero-image")
+async def admin_upload_hero_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'une image hero (GIF, PNG, JPEG, JPG)"""
+    allowed_extensions = {".gif", ".png", ".jpeg", ".jpg", ".webp"}
+    allowed_mimetypes = {"image/gif", "image/png", "image/jpeg", "image/jpg", "image/webp"}
+
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporté. Formats acceptés : GIF, PNG, JPEG, JPG, WEBP"
+        )
+    
+    # Certains clients n'envoient pas content_type, on ignore si absent
+    if file.content_type and file.content_type not in allowed_mimetypes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type MIME non supporté : {file.content_type}"
+        )
+
+    # Générer un nom unique
+    filename = f"hero_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    
+    content = await file.read()
+
+    # Limite 10 Mo
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 10 Mo)")
+
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    
+    print(f"✅ Hero image uploaded: {url}")  # Debug
+    return {"url": url, "filename": filename}
+
+
+
 @api.get("/admin/settings/platform")
 async def admin_platform_settings(user: dict = Depends(require_admin)):
     settings = await db.settings.find_one({"type": "platform"}, {"_id": 0})
