@@ -2347,26 +2347,42 @@ const LayoutAppearanceSection = ({ token, API }) => {
 
   // Charger les images du hero
   const fetchHeroImages = async () => {
+    setHeroLoading(true);
     try {
-      const response = await axios.get(`${API}/api/admin/settings/hero`, {
+      // ✅ CORRECTION: plus de /api en double
+      const response = await axios.get(`${API}/admin/settings/hero`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHeroImages(response.data.images || []);
     } catch (error) {
       console.error('Erreur chargement hero images:', error);
+      toast.error('Impossible de charger les images du hero');
+    } finally {
+      setHeroLoading(false);
     }
   };
 
   // Upload d'une image hero
   const uploadHeroImage = async (file) => {
     if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('image', file);
 
     setHeroUploading(true);
     try {
-      const response = await axios.post(`${API}/api/admin/upload/hero-image`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      // ✅ CORRECTION: plus de /api en double
+      const response = await axios.post(`${API}/admin/upload/hero-image`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
       });
       const newImageUrl = response.data.url;
       const updatedImages = [...heroImages, newImageUrl];
@@ -2375,7 +2391,8 @@ const LayoutAppearanceSection = ({ token, API }) => {
       toast.success('Image ajoutée au carrousel !');
     } catch (error) {
       console.error('Erreur upload hero:', error);
-      toast.error('Erreur lors de l\'upload');
+      const errorMsg = error.response?.data?.detail || "Erreur lors de l'upload";
+      toast.error(errorMsg);
     } finally {
       setHeroUploading(false);
     }
@@ -2384,12 +2401,14 @@ const LayoutAppearanceSection = ({ token, API }) => {
   // Sauvegarder la liste des images hero
   const saveHeroImages = async (images) => {
     try {
-      await axios.put(`${API}/api/admin/settings/hero`, { images }, {
+      // ✅ CORRECTION: plus de /api en double
+      await axios.put(`${API}/admin/settings/hero`, { images }, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (error) {
       console.error('Erreur sauvegarde hero:', error);
       toast.error('Erreur lors de la sauvegarde');
+      throw error;
     }
   };
 
@@ -2427,6 +2446,14 @@ const LayoutAppearanceSection = ({ token, API }) => {
     setDragOverIndex(null);
     await saveHeroImages(newImages);
     toast.success('Ordre mis à jour');
+  };
+
+  const handleHeroFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadHeroImage(file);
+    }
+    e.target.value = '';
   };
 
   React.useEffect(() => {
@@ -2471,16 +2498,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     } finally {
       setUploading(false);
     }
-  };
-
-  const handleHeroFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file && ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      uploadHeroImage(file);
-    } else if (file) {
-      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
-    }
-    e.target.value = '';
   };
 
   const SidePreview = ({ side }) => {
@@ -2744,5 +2761,4 @@ const LayoutAppearanceSection = ({ token, API }) => {
     </div>
   );
 };
-
 export default AdminDashboard;
