@@ -407,7 +407,7 @@ const HomePage = () => {
         </div>
       </section>
 
-
+<div className="w-full">
         <div className="w-full">
 
           <AdStrip tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
