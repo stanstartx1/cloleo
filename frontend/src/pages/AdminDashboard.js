@@ -2362,41 +2362,43 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
-  // Upload d'une image hero
-  const uploadHeroImage = async (file) => {
-    if (!file) return;
-    
-    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
-      return;
-    }
+// Upload d'une image hero
+const uploadHeroImage = async (file) => {
+  if (!file) return;
+  
+  const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'];
+  if (!allowedTypes.includes(file.type)) {
+    toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append('image', file);
+  const formData = new FormData();
+  // ⚠️ IMPORTANT: le nom du champ doit être "files" (pas "image")
+  // car ton backend utilise "files" dans upload/multiple
+  formData.append('files', file);
 
-    setHeroUploading(true);
-    try {
-      // ✅ CORRECTION: plus de /api en double
-      const response = await axios.post(`${API}/admin/upload/hero-image`, formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`, 
-          'Content-Type': 'multipart/form-data' 
-        }
-      });
-      const newImageUrl = response.data.url;
-      const updatedImages = [...heroImages, newImageUrl];
-      setHeroImages(updatedImages);
-      await saveHeroImages(updatedImages);
-      toast.success('Image ajoutée au carrousel !');
-    } catch (error) {
-      console.error('Erreur upload hero:', error);
-      const errorMsg = error.response?.data?.detail || "Erreur lors de l'upload";
-      toast.error(errorMsg);
-    } finally {
-      setHeroUploading(false);
-    }
-  };
+  setHeroUploading(true);
+  try {
+    // Utiliser le même endpoint que les autres uploads
+    const response = await axios.post(`${API}/upload/multiple`, formData, {
+      headers: { 
+        Authorization: `Bearer ${token}`, 
+        'Content-Type': 'multipart/form-data' 
+      }
+    });
+    const newImageUrl = response.data.urls?.[0] || '';
+    const updatedImages = [...heroImages, newImageUrl];
+    setHeroImages(updatedImages);
+    await saveHeroImages(updatedImages);
+    toast.success('Image ajoutée au carrousel !');
+  } catch (error) {
+    console.error('Erreur upload hero:', error);
+    const errorMsg = error.response?.data?.detail || "Erreur lors de l'upload";
+    toast.error(errorMsg);
+  } finally {
+    setHeroUploading(false);
+  }
+};
 
   // Sauvegarder la liste des images hero
   const saveHeroImages = async (images) => {
