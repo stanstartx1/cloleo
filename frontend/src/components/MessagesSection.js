@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import MediaImg from '../components/MediaImg';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, Send, User, Clock, Search, ChevronLeft, 
   Loader2, Package, Store, Check, CheckCheck, Bell, Tag
@@ -394,7 +395,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                   
                   {selectedConversation.product_image && (
                     <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <img 
+                      <MediaImg 
                         src={selectedConversation.product_image} 
                         alt="" 
                         className="w-8 h-8 rounded object-cover"

@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import MediaImg from '../components/MediaImg';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -337,7 +338,7 @@ const CustomerChatPage = () => {
                       {/* Product Image */}
                       <div className="relative flex-shrink-0">
                         {conv.product_image ? (
-                          <img 
+                          <MediaImg 
                             src={conv.product_image} 
                             alt="" 
                             className="w-14 h-14 rounded-xl object-cover border border-gray-200"
@@ -395,7 +396,7 @@ const CustomerChatPage = () => {
                       title="Voir le produit"
                     >
                       {selectedConversation.product_image ? (
-                        <img 
+                        <MediaImg 
                           src={selectedConversation.product_image} 
                           alt="" 
                           className="w-12 h-12 rounded-xl object-cover border-2 border-purple-200 hover:border-purple-400 transition-colors"

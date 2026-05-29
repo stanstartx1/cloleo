@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import MediaImg from '../components/MediaImg';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -424,7 +425,7 @@ const OrderTrackingPage = () => {
               <div className="space-y-3">
                 {order.items?.map((item, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <img 
+                    <MediaImg 
                       src={item.product_image || 'https://via.placeholder.com/50'} 
                       alt={item.product_name}
                       className="w-12 h-12 rounded-lg object-cover"

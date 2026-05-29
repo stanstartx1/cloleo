@@ -1,4 +1,5 @@
-﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+﻿import MediaImg from '../components/MediaImg';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { MessageCircle, Send, X } from "lucide-react";
 import ChatMessageDeleteButton from "./ChatMessageDeleteButton";
@@ -286,7 +287,7 @@ const FloatingChat = () => {
               className="px-3 py-2 border-b border-slate-200 hover:bg-slate-50 flex items-center gap-2 text-left"
             >
               {activeConversation?.product_image ? (
-                <img
+                <MediaImg
                   src={activeConversation.product_image}
                   alt={activeConversation.product_name || "Produit"}
                   className="w-10 h-10 rounded object-cover border border-slate-200"
