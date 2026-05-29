@@ -407,24 +407,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Sidebars fixed — démarrent après le hero + 2 carousels */}
-      {showSidebars && (
-        <>
-          <div className="hidden xl:block">
-            <PageSidebar side="left" layoutSettings={layoutSettings} topOffset={sidebarTop} />
-          </div>
-          <div className="hidden xl:block">
-            <PageSidebar side="right" layoutSettings={layoutSettings} topOffset={sidebarTop} />
-          </div>
-        </>
-      )}
 
-      {/* Zone centrée : padding latéral = largeur des sidebars sur xl+ */}
-      <div
-        ref={centeredZoneRef}
-        style={showSidebars ? { paddingLeft: sidebarW, paddingRight: sidebarW } : {}}
-        className="w-full transition-all duration-300"
-      >
         <div className="w-full">
 
           <AdStrip tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
