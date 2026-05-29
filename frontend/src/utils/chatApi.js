@@ -1,10 +1,8 @@
-﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
-// src/utils/chatApi.js
+﻿// src/utils/chatApi.js
 import axios from 'axios';
-import { API_URL, WS_URL } from '../config/api';
+import { API_URL } from '../config/api';
 
-// Utilise API_BASE ou API_URL (recommandé)
-const API = API_BASE ? `${API_BASE}/api` : `${API_BASE}/api`;
+const API = API_URL;
 
 export async function deleteChatMessage(token, conversationId, messageId) {
   const response = await axios.delete(
@@ -17,5 +15,3 @@ export async function deleteChatMessage(token, conversationId, messageId) {
   );
   return response.data;
 }
-
-// Tu peux ajouter d'autres fonctions ici plus tard...
