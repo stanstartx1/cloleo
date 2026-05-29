@@ -11,7 +11,7 @@ import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
 import { COUNTRIES, getCountryFlagUrl } from '../utils/countries';
 // Import depuis notre configuration centralisée
-import { API_URL, WS_URL } from '../config/api';
+import { API_URL, API_BASE, WS_URL } from '../config/api';
 const API = API_URL;
 
 // Optionnel : garder la détection locale si tu en as besoin ailleurs
