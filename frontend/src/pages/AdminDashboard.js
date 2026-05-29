@@ -6,7 +6,7 @@ import {
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
   BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star, MessageCircle,
-  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp, Image, Upload, GripVertical
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../components/FloatingChat';
@@ -193,14 +193,13 @@ const AdminDashboard = () => {
     if (newValue) {
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        // Approuver immédiatement les éléments déjà en attente
         if (type === 'products') {
           await Promise.all(
             pendingProducts.map(p =>
               axios.post(`${API}/admin/products/${p.id}/approve`, {}, { headers })
             )
           );
-          toast.success(`? ${pendingProducts.length} produit(s) approuvé(s) automatiquement`);
+          toast.success(`✅ ${pendingProducts.length} produit(s) approuvé(s) automatiquement`);
         } else if (type === 'vendors') {
           const pending = vendors.filter(v => !v.is_verified);
           await Promise.all(
@@ -208,7 +207,7 @@ const AdminDashboard = () => {
               axios.put(`${API}/admin/vendors/${v.id}/verify`, {}, { headers })
             )
           );
-          toast.success(`? ${pending.length} vendeur(s) approuvé(s) automatiquement`);
+          toast.success(`✅ ${pending.length} vendeur(s) approuvé(s) automatiquement`);
         } else if (type === 'drivers') {
           const pending = drivers.filter(d => !d.is_verified);
           await Promise.all(
@@ -216,7 +215,7 @@ const AdminDashboard = () => {
               axios.put(`${API}/admin/drivers/${d.id}/verify`, {}, { headers })
             )
           );
-          toast.success(`? ${pending.length} livreur(s) approuvé(s) automatiquement`);
+          toast.success(`✅ ${pending.length} livreur(s) approuvé(s) automatiquement`);
         } else if (type === 'revendeurs') {
           const pending = revendeurs.filter(r => !r.is_active);
           await Promise.all(
@@ -224,7 +223,7 @@ const AdminDashboard = () => {
               axios.put(`${API}/admin/revendeurs/${r.id}/verify`, {}, { headers })
             )
           );
-          toast.success(`? ${pending.length} revendeur(s) approuvé(s) automatiquement`);
+          toast.success(`✅ ${pending.length} revendeur(s) approuvé(s) automatiquement`);
         }
         fetchAllData();
       } catch (error) {
@@ -738,7 +737,7 @@ const AdminDashboard = () => {
   );
 };
 
-// ===== COMPOSANT AUTO-APPROVE TOGGLE =====
+// ===== AUTO-APPROVE TOGGLE =====
 const AutoApproveToggle = ({ enabled, onToggle, label }) => (
   <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${enabled ? 'bg-green-500/10 border-green-500/40' : 'bg-slate-700/50 border-slate-600'} transition-all`}>
     <Zap className={`w-5 h-5 ${enabled ? 'text-green-400' : 'text-slate-400'}`} />
@@ -1091,7 +1090,7 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
           { key: 'all', label: `Tous (${products.length})` },
           { key: 'pending', label: `En attente (${pendingProducts.length})` },
           { key: 'approved', label: `Approuvés (${products.filter(p => p.status === 'approved').length})` },
-          { key: 'featured', label: `? En vedette (${featuredCount})` },
+          { key: 'featured', label: `⭐ En vedette (${featuredCount})` },
           { key: 'rejected', label: `Rejetés (${products.filter(p => p.status === 'rejected').length})` },
         ].map(({ key, label }) => (
           <Button key={key} variant={filter === key ? 'default' : 'outline'} size="sm" onClick={() => setFilter(key)}
@@ -1125,7 +1124,7 @@ const ProductsSection = ({ products, pendingProducts, filter, setFilter, onAppro
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-medium truncate">{product.name}</h4>
-                    {product.is_featured && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">? En vedette</span>}
+                    {product.is_featured && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full font-semibold">⭐ En vedette</span>}
                   </div>
                   <p className="text-sm text-slate-400 truncate">{product.description}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
@@ -1318,7 +1317,7 @@ const PlansSection = ({ plans, vendors }) => {
                 <td className="p-3" colSpan={3}>Total</td>
                 <td className="p-3 text-green-400">
                   {formatPrice(plans.filter(p => p.price_fcfa > 0).reduce((sum, plan) => sum + ((planCounts[plan.id] || 0) * plan.price_fcfa), 0))} FCFA
-                </td>
+                 </td>
               </tr>
             </tbody>
           </table>
@@ -1474,7 +1473,7 @@ const RevendeursSection = ({ revendeurs, stats, transactions, token, onRefresh, 
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    </td>
+                     </td>
                   </tr>
                 ))
               )}
@@ -1547,7 +1546,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold">{u.name?.[0]?.toUpperCase() || '?'}</div>
                         <div><p className="font-medium">{u.name}</p><p className="text-sm text-slate-400">{u.email}</p></div>
                       </div>
-                    </td>
+                     </td>
                     <td className="p-4"><span className={`px-2 py-1 rounded text-xs ${getRoleColor(u.role)}`}>{roleLabels[u.role] || u.role}</span></td>
                     <td className="p-4 text-slate-300">{u.phone || '-'}</td>
                     <td className="p-4">{u.product_count || 0}</td>
@@ -1560,7 +1559,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
                           <Button size="sm" variant="destructive" onClick={() => onDelete(u.id, u.name)} className="text-xs"><Trash2 className="w-3 h-3" /></Button>
                         </div>
                       )}
-                    </td>
+                     </td>
                   </tr>
                 ))
               )}
@@ -1571,7 +1570,7 @@ const UsersSection = ({ users, roleFilter, setRoleFilter, search, setSearch, onD
     </div>
   );
 };
-// ============================================================
+
 // ============================================================
 // PREDEFINED FIELD TEMPLATES for category custom fields
 // ============================================================
@@ -1903,7 +1902,6 @@ const CustomFieldsBuilder = ({ fields, onChange, compact = false }) => {
     </div>
   );
 };
-
 
 const CategoriesSection = ({ 
   token, 
@@ -2325,7 +2323,7 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
-// ─── Composant Apparence du site (sidebars) ────────────────────────────────
+// ─── Composant Apparence du site (sidebars + HERO CAROUSEL) ────────────────
 const LayoutAppearanceSection = ({ token, API }) => {
   const [settings, setSettings] = React.useState({
     sidebar_type: 'color',
@@ -2341,10 +2339,104 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const inputLeftRef = React.useRef(null);
   const inputRightRef = React.useRef(null);
 
+  // ===== HERO CAROUSEL STATES =====
+  const [heroImages, setHeroImages] = React.useState([]);
+  const [heroLoading, setHeroLoading] = React.useState(false);
+  const [heroUploading, setHeroUploading] = React.useState(false);
+  const [dragOverIndex, setDragOverIndex] = React.useState(null);
+
+  // Charger les images du hero
+  const fetchHeroImages = async () => {
+    try {
+      const response = await axios.get(`${API}/api/admin/settings/hero`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setHeroImages(response.data.images || []);
+    } catch (error) {
+      console.error('Erreur chargement hero images:', error);
+    }
+  };
+
+  // Upload d'une image hero
+  const uploadHeroImage = async (file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+
+    setHeroUploading(true);
+    try {
+      const response = await axios.post(`${API}/api/admin/upload/hero-image`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      });
+      const newImageUrl = response.data.url;
+      const updatedImages = [...heroImages, newImageUrl];
+      setHeroImages(updatedImages);
+      await saveHeroImages(updatedImages);
+      toast.success('Image ajoutée au carrousel !');
+    } catch (error) {
+      console.error('Erreur upload hero:', error);
+      toast.error('Erreur lors de l\'upload');
+    } finally {
+      setHeroUploading(false);
+    }
+  };
+
+  // Sauvegarder la liste des images hero
+  const saveHeroImages = async (images) => {
+    try {
+      await axios.put(`${API}/api/admin/settings/hero`, { images }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error('Erreur sauvegarde hero:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    }
+  };
+
+  // Supprimer une image hero
+  const removeHeroImage = async (indexToRemove) => {
+    const updatedImages = heroImages.filter((_, idx) => idx !== indexToRemove);
+    setHeroImages(updatedImages);
+    await saveHeroImages(updatedImages);
+    toast.success('Image supprimée');
+  };
+
+  // Réordonner par glisser-déposer
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.setData('text/plain', index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = async (e, targetIndex) => {
+    e.preventDefault();
+    const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (isNaN(sourceIndex) || sourceIndex === targetIndex) {
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newImages = [...heroImages];
+    const [removed] = newImages.splice(sourceIndex, 1);
+    newImages.splice(targetIndex, 0, removed);
+    setHeroImages(newImages);
+    setDragOverIndex(null);
+    await saveHeroImages(newImages);
+    toast.success('Ordre mis à jour');
+  };
+
   React.useEffect(() => {
+    // Charger layout settings
     axios.get(`${API}/admin/settings/layout`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setSettings(s => ({ ...s, ...res.data }))).catch(() => {});
+    
+    // Charger hero images
+    fetchHeroImages();
   }, [token, API]);
 
   const save = async () => {
@@ -2381,6 +2473,16 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
+  const handleHeroFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      uploadHeroImage(file);
+    } else if (file) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
+    }
+    e.target.value = '';
+  };
+
   const SidePreview = ({ side }) => {
     const color = side === 'left' ? settings.sidebar_color_left : settings.sidebar_color_right;
     const image = side === 'left' ? settings.sidebar_image_left : settings.sidebar_image_right;
@@ -2391,7 +2493,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     return (
       <div className="space-y-3">
         <h4 className="font-semibold text-slate-200">Sidebar {label}</h4>
-        {/* Prévisualisation */}
         <div
           className="w-full h-48 rounded-xl border border-slate-600 overflow-hidden flex items-center justify-center"
           style={settings.sidebar_type === 'image' && image
@@ -2477,14 +2578,89 @@ const LayoutAppearanceSection = ({ token, API }) => {
       <div>
         <h2 className="text-xl font-bold text-slate-100">Apparence du site</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez les marges latérales de la page d'accueil (hors hero et carrousels).
-          Les sidebars sont visibles uniquement sur écrans larges (&gt;1280px).
+          Configurez les marges latérales de la page d'accueil et le carrousel hero (diaporama).
         </p>
+      </div>
+
+      {/* ===== SECTION CARROUSEL HERO ===== */}
+      <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-5 border border-purple-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-purple-300">
+          <Image className="w-5 h-5" /> 🎠 Carrousel Hero (Diaporama)
+        </h3>
+        <p className="text-slate-400 text-sm mb-4">
+          Gérez les images qui défileront en haut de la page d'accueil. Vous pouvez ajouter des images (GIF, PNG, JPEG, JPG), les réordonner par glisser-déposer, ou les supprimer.
+        </p>
+
+        {/* Upload zone */}
+        <div className="mb-5 p-4 border-2 border-dashed border-purple-500/40 rounded-lg text-center bg-slate-800/30">
+          <input
+            type="file"
+            accept="image/gif,image/jpeg,image/png,image/jpg"
+            onChange={handleHeroFileChange}
+            disabled={heroUploading}
+            id="hero-upload-input"
+            className="hidden"
+          />
+          <label
+            htmlFor="hero-upload-input"
+            className="inline-flex items-center gap-2 cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg transition"
+          >
+            <Upload className="w-4 h-4" />
+            {heroUploading ? 'Upload en cours...' : '+ Ajouter une image (GIF, PNG, JPEG, JPG)'}
+          </label>
+          <p className="text-xs text-slate-500 mt-2">Glissez les images pour les réordonner</p>
+        </div>
+
+        {/* Liste des images */}
+        {heroLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : heroImages.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 bg-slate-800/30 rounded-lg">
+            <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>Aucune image pour le moment. Ajoutez-en une !</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {heroImages.map((img, idx) => (
+              <div
+                key={idx}
+                draggable
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDrop={(e) => handleDrop(e, idx)}
+                className={`relative group rounded-lg overflow-hidden border-2 transition-all ${
+                  dragOverIndex === idx ? 'border-purple-400 scale-105 shadow-lg shadow-purple-500/30' : 'border-slate-600 hover:border-slate-500'
+                }`}
+              >
+                <img
+                  src={img}
+                  alt={`Hero ${idx + 1}`}
+                  className="w-full h-28 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => removeHeroImage(idx)}
+                    className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                  {idx + 1}
+                </div>
+                <div className="absolute bottom-1 right-1 text-white text-xs bg-black/50 px-1 rounded">
+                  <GripVertical className="w-3 h-3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Type de sidebar */}
       <div className="bg-slate-800 rounded-xl p-5 space-y-4 border border-slate-700">
-        <h3 className="font-semibold text-slate-200">Type de décoration</h3>
+        <h3 className="font-semibold text-slate-200">Type de décoration latérale</h3>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -2568,5 +2744,5 @@ const LayoutAppearanceSection = ({ token, API }) => {
     </div>
   );
 };
-export default AdminDashboard;
 
+export default AdminDashboard;
