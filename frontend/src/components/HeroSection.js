@@ -149,15 +149,9 @@ const HeroSection = ({ categories = [] }) => {
     axios.get(`${API}/hero-settings`)
       .then(res => {
         const imgs = res.data?.images || [];
-        setHeroImages(imgs.length > 0 ? imgs : [
-          'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1400&q=80',
-          'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80',
-        ]);
+        setHeroImages(imgs);
       })
-      .catch(() => setHeroImages([
-        'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1400&q=80',
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80',
-      ]));
+      .catch(() => setHeroImages([]));
   }, []);
 
   useEffect(() => {
@@ -206,13 +200,50 @@ const HeroSection = ({ categories = [] }) => {
 
   const getImageUrl = (img) => {
     if (!img) return '';
+    if (typeof img === 'object') img = img.url || '';
     if (img.startsWith('/')) return `${API_BASE}${img}`;
     return img;
   };
   
-  const currentBgUrl = getImageUrl(heroImages[bgIdx]);
+  const getImageLink = (img) => {
+    if (!img) return '';
+    if (typeof img === 'object' && img.link) return img.link;
+    return '';
+  };
+  
+  const getImageTitle = (img) => {
+    if (!img) return '';
+    if (typeof img === 'object' && img.title) return img.title;
+    return 'Hero image';
+  };
+  
+  const currentImage = heroImages[bgIdx];
+  const currentBgUrl = getImageUrl(currentImage);
+  const currentBgLink = getImageLink(currentImage);
+  const currentBgTitle = getImageTitle(currentImage);
+  
   const visibleCategories = showAllCategories ? parentCategories : parentCategories.slice(0, MAX_VISIBLE_CATEGORIES);
   const hasMoreCategories = parentCategories.length > MAX_VISIBLE_CATEGORIES;
+
+  // Rendu de l'image avec lien optionnel
+  const renderHeroImage = () => {
+    const imageElement = (
+      <img 
+        src={currentBgUrl} 
+        alt={currentBgTitle}
+        className="w-full h-full object-cover"
+      />
+    );
+    
+    if (currentBgLink) {
+      return (
+        <a href={currentBgLink} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+          {imageElement}
+        </a>
+      );
+    }
+    return imageElement;
+  };
 
   return (
     <section className="relative w-full bg-slate-50">
@@ -238,8 +269,6 @@ const HeroSection = ({ categories = [] }) => {
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/20" />
           </motion.div>
         </AnimatePresence>
-        
-        {/* Points de navigation - SUPPRIMÉS (barre de progression enlevée) */}
       </div>
 
       {/* Contenu principal */}
@@ -282,21 +311,36 @@ const HeroSection = ({ categories = [] }) => {
             )}
           </div>
 
-          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO ===== */}
+          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO (AVEC LIEN OPTIONNEL) ===== */}
           <div className="relative bg-black/20 h-full">
             {currentBgUrl && (
-              <img 
-                src={currentBgUrl} 
-                alt="Hero" 
-                className="w-full h-full object-cover"
-              />
+              currentBgLink ? (
+                <a 
+                  href={currentBgLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="block w-full h-full cursor-pointer"
+                >
+                  <img 
+                    src={currentBgUrl} 
+                    alt={currentBgTitle}
+                    className="w-full h-full object-cover"
+                  />
+                </a>
+              ) : (
+                <img 
+                  src={currentBgUrl} 
+                  alt={currentBgTitle}
+                  className="w-full h-full object-cover"
+                />
+              )
             )}
-            <div className="absolute inset-0 flex flex-col justify-center px-6 bg-gradient-to-r from-black/40 to-transparent">
+            <div className="absolute inset-0 flex flex-col justify-center px-6 bg-gradient-to-r from-black/40 to-transparent pointer-events-none">
               <h1 className="text-white text-xl md:text-2xl lg:text-3xl font-black leading-tight max-w-[180px]">
                 L'Afrique à portée<br />
                 <span className="text-orange-400">de clic</span>
               </h1>
-              <Button asChild size="sm" className="mt-3 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-xs">
+              <Button asChild size="sm" className="mt-3 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-xs pointer-events-auto">
                 <Link to="/produits">Explorer <ArrowRight className="w-3 h-3 ml-1" /></Link>
               </Button>
             </div>
