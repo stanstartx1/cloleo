@@ -2326,7 +2326,7 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
 // ─── Composant Apparence du site (carrousel Hero + Bloc publicitaire droite + Logo) ───
 const LayoutAppearanceSection = ({ token, API }) => {
   // ===== HERO CAROUSEL STATES =====
-  const [heroImages, setHeroImages] = React.useState([]);
+  const [heroImages, setHeroImages] = React.useState([]); // [{url: "...", link: "", title: ""}]
   const [heroLoading, setHeroLoading] = React.useState(false);
   const [heroUploading, setHeroUploading] = React.useState(false);
   const [dragOverIndex, setDragOverIndex] = React.useState(null);
@@ -2353,7 +2353,12 @@ const LayoutAppearanceSection = ({ token, API }) => {
       const response = await axios.get(`${API}/admin/settings/hero`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setHeroImages(response.data.images || []);
+      const images = response.data.images || [];
+      if (images.length > 0 && typeof images[0] === 'string') {
+        setHeroImages(images.map(url => ({ url, link: '', title: '' })));
+      } else {
+        setHeroImages(images);
+      }
     } catch (error) {
       console.error('Erreur chargement hero images:', error);
       toast.error('Impossible de charger les images du hero');
@@ -2395,7 +2400,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
         }
       });
       const newImageUrl = response.data.urls?.[0] || '';
-      const updatedImages = [...heroImages, newImageUrl];
+      const updatedImages = [...heroImages, { url: newImageUrl, link: '', title: '' }];
       setHeroImages(updatedImages);
       await saveHeroImages(updatedImages);
       toast.success('Image ajoutée au carrousel !');
@@ -2440,6 +2445,20 @@ const LayoutAppearanceSection = ({ token, API }) => {
     setDragOverIndex(null);
     await saveHeroImages(newImages);
     toast.success('Ordre mis à jour');
+  };
+
+  const updateHeroImageLink = (index, link) => {
+    const updatedImages = [...heroImages];
+    updatedImages[index] = { ...updatedImages[index], link };
+    setHeroImages(updatedImages);
+    saveHeroImages(updatedImages);
+  };
+
+  const updateHeroImageTitle = (index, title) => {
+    const updatedImages = [...heroImages];
+    updatedImages[index] = { ...updatedImages[index], title };
+    setHeroImages(updatedImages);
+    saveHeroImages(updatedImages);
   };
 
   const handleHeroFileChange = (e) => {
@@ -2599,6 +2618,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
 
   const getImageUrl = (img) => {
     if (!img) return '';
+    if (typeof img === 'object') img = img.url || '';
     if (img.startsWith('/')) return `${API_BASE}${img}`;
     return img;
   };
@@ -2624,7 +2644,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
           <Image className="w-5 h-5" /> 🎠 Images du diaporama
         </h3>
         <p className="text-slate-400 text-sm mb-4">
-          Ajoutez des images (GIF, PNG, JPEG, JPG). Glissez-déposez pour les réordonner.
+          Ajoutez des images (GIF, PNG, JPEG, JPG). Glissez-déposez pour les réordonner. Cliquez sur une image pour modifier son lien et son titre.
         </p>
 
         <div className="mb-5 p-4 border-2 border-dashed border-purple-500/40 rounded-lg text-center bg-slate-800/30">
@@ -2646,6 +2666,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
           <p className="text-xs text-slate-500 mt-2">Glissez les images pour les réordonner</p>
         </div>
 
+        {/* Liste des images avec liens et titres */}
         {heroLoading ? (
           <p className="text-slate-400 text-center py-4">Chargement...</p>
         ) : heroImages.length === 0 ? (
@@ -2654,40 +2675,81 @@ const LayoutAppearanceSection = ({ token, API }) => {
             <p>Aucune image pour le moment. Ajoutez-en une !</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {heroImages.map((img, idx) => (
-              <div
-                key={idx}
-                draggable
-                onDragStart={(e) => handleDragStart(e, idx)}
-                onDragOver={(e) => handleDragOver(e, idx)}
-                onDrop={(e) => handleDrop(e, idx)}
-                className={`relative group rounded-lg overflow-hidden border-2 transition-all bg-slate-800 ${
-                  dragOverIndex === idx ? 'border-purple-400 scale-105 shadow-lg shadow-purple-500/30' : 'border-slate-600 hover:border-slate-500'
-                }`}
-              >
-                <img
-                  src={getImageUrl(img)}
-                  alt={`Hero ${idx + 1}`}
-                  className="w-full h-40 object-contain bg-slate-900"
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {heroImages.map((item, idx) => {
+              const imageUrl = typeof item === 'string' ? item : item.url;
+              const imageLink = typeof item === 'string' ? '' : (item.link || '');
+              const imageTitle = typeof item === 'string' ? '' : (item.title || '');
+              return (
+                <div
+                  key={idx}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  className={`relative group rounded-lg overflow-hidden border-2 transition-all bg-slate-800 ${
+                    dragOverIndex === idx ? 'border-purple-400 scale-[1.02] shadow-lg shadow-purple-500/30' : 'border-slate-600 hover:border-slate-500'
+                  }`}
+                >
+                  {/* Image */}
+                  <img
+                    src={getImageUrl(imageUrl)}
+                    alt={imageTitle || `Hero ${idx + 1}`}
+                    className="w-full h-32 object-cover bg-slate-900"
+                  />
+                  
+                  {/* Overlay au survol - Champs lien et titre */}
+                  <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between">
+                    <div>
+                      <label className="text-[10px] text-white/70 block mb-1">Lien de redirection</label>
+                      <input
+                        type="text"
+                        value={imageLink}
+                        onChange={(e) => updateHeroImageLink(idx, e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-2 py-1 text-xs rounded bg-slate-700 text-white border border-slate-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div className="mt-2">
+                      <label className="text-[10px] text-white/70 block mb-1">Titre (alt)</label>
+                      <input
+                        type="text"
+                        value={imageTitle}
+                        onChange={(e) => updateHeroImageTitle(idx, e.target.value)}
+                        placeholder="Titre de l'image"
+                        className="w-full px-2 py-1 text-xs rounded bg-slate-700 text-white border border-slate-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Bouton supprimer */}
                   <button
                     onClick={() => removeHeroImage(idx)}
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
+                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     title="Supprimer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3" />
                   </button>
+                  
+                  {/* Numéro */}
+                  <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                    {idx + 1}
+                  </div>
+                  
+                  {/* Indicateur de lien */}
+                  {imageLink && (
+                    <div className="absolute bottom-1 left-1 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded-full">
+                      🔗 Lié
+                    </div>
+                  )}
+                  
+                  {/* Icône glisser */}
+                  <div className="absolute bottom-1 right-1 text-white/40 text-xs">
+                    <GripVertical className="w-3 h-3" />
+                  </div>
                 </div>
-                <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-                  {idx + 1}
-                </div>
-                <div className="absolute bottom-1 right-1 text-white text-xs bg-black/50 px-1 rounded">
-                  <GripVertical className="w-3 h-3" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -2819,5 +2881,4 @@ const LayoutAppearanceSection = ({ token, API }) => {
     </div>
   );
 };
-
 export default AdminDashboard;
