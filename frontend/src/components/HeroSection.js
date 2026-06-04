@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   ChevronLeft, ChevronRight, ShoppingBag, Store,
-  ArrowRight, Shield, Truck, Star, Zap, Menu as MenuIcon
+  ArrowRight, Shield, Truck, Star, Zap, ChevronDown
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Trust badges (pour le bas du menu ou ailleurs)
+// Trust badges
 const TRUST_ITEMS = [
   { icon: Truck, label: 'Livraison rapide', sub: 'Partout en Afrique' },
   { icon: Shield, label: 'Paiement sécurisé', sub: 'Transactions protégées' },
@@ -32,7 +32,7 @@ const CategoryMenuItem = ({ category, subcategories }) => {
     >
       <Link 
         to={`/categories/${category.slug}`}
-        className="flex items-center justify-between py-2 px-3 rounded-lg text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+        className="flex items-center justify-between py-2.5 px-3 rounded-lg text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
       >
         <span className="truncate">{category.name}</span>
         {hasSub && <ChevronRight className="w-3 h-3 flex-shrink-0 ml-2" />}
@@ -72,7 +72,7 @@ const ShopCarousel = ({ shops }) => {
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1">
           <Store className="w-4 h-4 text-amber-500" /> Boutiques Officielles
         </h3>
@@ -113,7 +113,11 @@ const HeroSection = ({ categories = [] }) => {
   const [shops, setShops] = useState([]);
   const [rightBlockImage, setRightBlockImage] = useState('');
   const [rightBlockVideo, setRightBlockVideo] = useState('');
-  const [rightBlockType, setRightBlockType] = useState('image'); // 'image' ou 'video'
+  const [rightBlockType, setRightBlockType] = useState('image');
+  const [rightBlockTitle, setRightBlockTitle] = useState('');
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  
+  const MAX_VISIBLE_CATEGORIES = 8;
 
   // Chargement des settings hero
   useEffect(() => {
@@ -133,11 +137,12 @@ const HeroSection = ({ categories = [] }) => {
 
   // Chargement du bloc droit (image/vidéo)
   useEffect(() => {
-    axios.get(`${API}/admin/settings/right-block`)
+    axios.get(`${API}/right-block-settings`)
       .then(res => {
         setRightBlockImage(res.data?.image || '');
         setRightBlockVideo(res.data?.video || '');
-        setRightBlockType(res.data?.type || 'image');
+        setRightBlockType(res.data?.type_content || 'image');
+        setRightBlockTitle(res.data?.title || '');
       })
       .catch(() => {});
   }, []);
@@ -184,9 +189,13 @@ const HeroSection = ({ categories = [] }) => {
   };
   
   const currentBgUrl = getImageUrl(heroImages[bgIdx]);
+  
+  // Catégories visibles (avec limite + bouton voir plus)
+  const visibleCategories = showAllCategories ? parentCategories : parentCategories.slice(0, MAX_VISIBLE_CATEGORIES);
+  const hasMoreCategories = parentCategories.length > MAX_VISIBLE_CATEGORIES;
 
   return (
-    <section className="relative w-full overflow-hidden bg-slate-50" style={{ minHeight: 480 }}>
+    <section className="relative w-full overflow-hidden bg-slate-50">
       
       {/* Fond diaporama */}
       <div className="absolute inset-0 z-0">
@@ -221,34 +230,49 @@ const HeroSection = ({ categories = [] }) => {
         )}
       </div>
 
-      {/* Contenu principal */}
+      {/* Contenu principal - HAUTEUR ALIGNÉE */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-5 items-stretch">
           
-          {/* ===== COLONNE GAUCHE : MENU CATÉGORIES ===== */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 flex items-center gap-2">
-              <MenuIcon className="w-5 h-5 text-white" />
+          {/* ===== COLONNE GAUCHE : MENU CATÉGORIES AVEC SCROLL ===== */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 flex flex-col h-full">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 flex items-center gap-2 flex-shrink-0">
+              <ShoppingBag className="w-5 h-5 text-white" />
               <span className="font-bold text-white text-sm">Toutes les catégories</span>
             </div>
-            <div className="p-2 max-h-[400px] overflow-y-auto">
-              {parentCategories.map(cat => {
-                const subCats = getSubCategories(cat.slug);
-                return (
-                  <CategoryMenuItem 
-                    key={cat.id} 
-                    category={cat} 
-                    subcategories={subCats}
-                  />
-                );
-              })}
-              {parentCategories.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-4">Chargement...</p>
-              )}
+            
+            {/* Liste des catégories avec scroll */}
+            <div className={`flex-1 overflow-y-auto ${hasMoreCategories ? 'max-h-[320px]' : ''}`}>
+              <div className="p-2">
+                {visibleCategories.map(cat => {
+                  const subCats = getSubCategories(cat.slug);
+                  return (
+                    <CategoryMenuItem 
+                      key={cat.id} 
+                      category={cat} 
+                      subcategories={subCats}
+                    />
+                  );
+                })}
+              </div>
             </div>
             
-            {/* Trust badges en bas du menu */}
-            <div className="border-t border-slate-100 p-3 grid grid-cols-2 gap-2">
+            {/* Bouton voir plus/voir moins */}
+            {hasMoreCategories && (
+              <button
+                onClick={() => setShowAllCategories(!showAllCategories)}
+                className="flex items-center justify-center gap-2 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-colors border-t border-slate-100 flex-shrink-0"
+              >
+                {showAllCategories ? (
+                  <>Voir moins <ChevronRight className="w-4 h-4 rotate-90" /></>
+                ) : (
+                  <>Voir plus <ChevronDown className="w-4 h-4" /></>
+                )}
+              </button>
+            )}
+            
+            {/* Trust badges en bas */}
+            <div className="border-t border-slate-100 p-3 grid grid-cols-2 gap-2 flex-shrink-0">
               {TRUST_ITEMS.slice(0, 4).map(f => (
                 <div key={f.label} className="flex items-center gap-2">
                   <f.icon className="w-3 h-3 text-amber-500" />
@@ -267,7 +291,6 @@ const HeroSection = ({ categories = [] }) => {
                 className="w-full h-full object-cover"
               />
             )}
-            {/* Texte overlay sur le hero */}
             <div className="absolute inset-0 flex flex-col justify-center px-8 bg-gradient-to-r from-black/50 to-transparent">
               <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-xs">
                 L'Afrique à portée<br />
@@ -282,8 +305,8 @@ const HeroSection = ({ categories = [] }) => {
             </div>
           </div>
 
-          {/* ===== COLONNE DROITE : BOUTIQUES + BLOC IMAGE/VIDÉO ===== */}
-          <div className="space-y-4">
+          {/* ===== COLONNE DROITE ===== */}
+          <div className="flex flex-col gap-4 h-full">
             {/* Bloc Boutiques */}
             <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-100">
               {shops.length > 0 ? (
@@ -297,7 +320,7 @@ const HeroSection = ({ categories = [] }) => {
             </div>
 
             {/* Bloc Image/Vidéo (configurable par l'admin) */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 flex-1">
               {rightBlockType === 'video' && rightBlockVideo ? (
                 <div className="aspect-video">
                   <iframe 
@@ -311,8 +334,8 @@ const HeroSection = ({ categories = [] }) => {
               ) : rightBlockImage ? (
                 <img 
                   src={getImageUrl(rightBlockImage)} 
-                  alt="Promotion" 
-                  className="w-full h-auto object-cover"
+                  alt={rightBlockTitle || "Publicité"}
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="aspect-video bg-gradient-to-br from-orange-100 to-amber-100 flex flex-col items-center justify-center p-4 text-center">
