@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { Input } from './ui/input';
-import { API_BASE } from '../config/api';
+import { API_BASE, API_URL } from '../config/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,14 +42,34 @@ const Navbar = () => {
   useEffect(() => {
     const fetchLogo = async () => {
       try {
+        // Essayer d'abord avec API_BASE (sans /api)
         const response = await fetch(`${API_BASE}/logo-settings`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
         if (data.logo_url && data.logo_url.trim()) {
           const logo = data.logo_url.startsWith('/') ? `${API_BASE}${data.logo_url}` : data.logo_url;
           setLogoUrl(logo);
+          console.log('✅ Logo chargé:', logo);
+        } else {
+          console.log('ℹ️ Aucun logo configuré');
         }
       } catch (error) {
         console.error('Erreur chargement logo:', error);
+        // Fallback: essayer avec API_URL
+        try {
+          const response2 = await fetch(`${API_URL}/logo-settings`);
+          if (response2.ok) {
+            const data2 = await response2.json();
+            if (data2.logo_url && data2.logo_url.trim()) {
+              const logo = data2.logo_url.startsWith('/') ? `${API_BASE}${data2.logo_url}` : data2.logo_url;
+              setLogoUrl(logo);
+            }
+          }
+        } catch (e) {
+          console.error('Fallback échoué:', e);
+        }
       } finally {
         setLogoLoading(false);
       }
@@ -84,6 +104,11 @@ const Navbar = () => {
                   src={logoUrl} 
                   alt="Cloléo" 
                   className="h-8 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    console.error('Erreur chargement image logo:', logoUrl);
+                    e.target.style.display = 'none';
+                    setLogoUrl('');
+                  }}
                 />
               ) : (
                 <>
