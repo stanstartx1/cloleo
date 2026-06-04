@@ -2323,7 +2323,7 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
-// ─── Composant Apparence du site (carrousel Hero + Bloc publicitaire droite) ───
+// ─── Composant Apparence du site (carrousel Hero + Bloc publicitaire droite + Logo) ───
 const LayoutAppearanceSection = ({ token, API }) => {
   // ===== HERO CAROUSEL STATES =====
   const [heroImages, setHeroImages] = React.useState([]);
@@ -2339,6 +2339,12 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [rightBlockLoading, setRightBlockLoading] = React.useState(false);
   const [rightBlockSaving, setRightBlockSaving] = React.useState(false);
   const [rightBlockUploading, setRightBlockUploading] = React.useState(false);
+
+  // ===== LOGO STATES =====
+  const [logoUrl, setLogoUrl] = React.useState('');
+  const [logoLoading, setLogoLoading] = React.useState(false);
+  const [logoSaving, setLogoSaving] = React.useState(false);
+  const [logoUploading, setLogoUploading] = React.useState(false);
 
   // ===== HERO FUNCTIONS =====
   const fetchHeroImages = async () => {
@@ -2522,6 +2528,75 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
+  // ===== LOGO FUNCTIONS =====
+  const fetchLogoSettings = async () => {
+    setLogoLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/logo`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLogoUrl(response.data?.logo_url || '');
+    } catch (error) {
+      console.error('Erreur chargement logo:', error);
+    } finally {
+      setLogoLoading(false);
+    }
+  };
+
+  const saveLogoSettings = async () => {
+    setLogoSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/logo`, { logo_url: logoUrl }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Logo sauvegardé !');
+    } catch (error) {
+      console.error('Erreur sauvegarde logo:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setLogoSaving(false);
+    }
+  };
+
+  const uploadLogo = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setLogoUploading(true);
+    try {
+      const response = await axios.post(`${API}/admin/upload/logo`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.url;
+      setLogoUrl(newImageUrl);
+      toast.success('Logo uploadé !');
+    } catch (error) {
+      console.error('Erreur upload logo:', error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadLogo(file);
+    }
+    e.target.value = '';
+  };
+
   const getImageUrl = (img) => {
     if (!img) return '';
     if (img.startsWith('/')) return `${API_BASE}${img}`;
@@ -2531,6 +2606,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
   React.useEffect(() => {
     fetchHeroImages();
     fetchRightBlockSettings();
+    fetchLogoSettings();
   }, [token, API]);
 
   return (
@@ -2642,125 +2718,106 @@ const LayoutAppearanceSection = ({ token, API }) => {
           <p className="text-slate-400 text-center py-4">Chargement...</p>
         ) : (
           <div className="space-y-4">
-            {/* Type de contenu */}
             <div>
               <label className="text-sm text-slate-300 block mb-2">Type de contenu</label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="right_block_type"
-                    value="image"
-                    checked={rightBlockType === 'image'}
-                    onChange={() => setRightBlockType('image')}
-                  />
+                  <input type="radio" name="right_block_type" value="image" checked={rightBlockType === 'image'} onChange={() => setRightBlockType('image')} />
                   <span className="text-slate-200">🖼️ Image</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="right_block_type"
-                    value="video"
-                    checked={rightBlockType === 'video'}
-                    onChange={() => setRightBlockType('video')}
-                  />
+                  <input type="radio" name="right_block_type" value="video" checked={rightBlockType === 'video'} onChange={() => setRightBlockType('video')} />
                   <span className="text-slate-200">🎬 Vidéo YouTube</span>
                 </label>
               </div>
             </div>
 
-            {/* Upload image */}
             {rightBlockType === 'image' && (
               <div>
                 <label className="text-sm text-slate-300 block mb-2">Image publicitaire</label>
                 <div className="flex gap-4 items-start flex-wrap">
-                  {rightBlockImage && (
-                    <img src={getImageUrl(rightBlockImage)} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
-                  )}
+                  {rightBlockImage && <img src={getImageUrl(rightBlockImage)} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />}
                   <div className="flex-1 min-w-[200px]">
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                      onChange={handleRightBlockImageChange}
-                      disabled={rightBlockUploading}
-                      className="hidden"
-                      id="right-block-upload"
-                    />
-                    <label
-                      htmlFor="right-block-upload"
-                      className="inline-flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {rightBlockUploading ? 'Upload en cours...' : '📁 Choisir une image'}
-                    </label>
-                    {rightBlockImage && (
-                      <button
-                        onClick={() => setRightBlockImage('')}
-                        className="ml-2 text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Supprimer
-                      </button>
-                    )}
-                    <input
-                      type="text"
-                      value={rightBlockImage}
-                      onChange={(e) => setRightBlockImage(e.target.value)}
-                      placeholder="Ou URL de l'image"
-                      className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
-                    />
+                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={handleRightBlockImageChange} disabled={rightBlockUploading} className="hidden" id="right-block-upload" />
+                    <label htmlFor="right-block-upload" className="inline-flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"><Upload className="w-4 h-4" />{rightBlockUploading ? 'Upload en cours...' : '📁 Choisir une image'}</label>
+                    {rightBlockImage && <button onClick={() => setRightBlockImage('')} className="ml-2 text-red-400 hover:text-red-300 text-sm">Supprimer</button>}
+                    <input type="text" value={rightBlockImage} onChange={(e) => setRightBlockImage(e.target.value)} placeholder="Ou URL de l'image" className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Vidéo YouTube */}
             {rightBlockType === 'video' && (
               <div>
                 <label className="text-sm text-slate-300 block mb-2">URL YouTube</label>
-                <input
-                  type="text"
-                  value={rightBlockVideo}
-                  onChange={(e) => setRightBlockVideo(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..."
-                  className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
-                />
+                <input type="text" value={rightBlockVideo} onChange={(e) => setRightBlockVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..." className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
                 {rightBlockVideo && (
                   <div className="mt-3 aspect-video bg-slate-800 rounded-lg overflow-hidden">
-                    <iframe
-                      src={rightBlockVideo.includes('youtube.com/embed') ? rightBlockVideo : rightBlockVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allowFullScreen
-                    />
+                    <iframe src={rightBlockVideo.includes('youtube.com/embed') ? rightBlockVideo : rightBlockVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} className="w-full h-full" frameBorder="0" allowFullScreen />
                   </div>
                 )}
               </div>
             )}
 
-            {/* Titre */}
             <div>
               <label className="text-sm text-slate-300 block mb-2">Titre (optionnel)</label>
-              <input
-                type="text"
-                value={rightBlockTitle}
-                onChange={(e) => setRightBlockTitle(e.target.value)}
-                placeholder="Espace publicitaire"
-                className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
-              />
+              <input type="text" value={rightBlockTitle} onChange={(e) => setRightBlockTitle(e.target.value)} placeholder="Espace publicitaire" className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
             </div>
 
-            {/* Bouton sauvegarde */}
-            <button
-              onClick={saveRightBlockSettings}
-              disabled={rightBlockSaving}
-              className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition disabled:opacity-50"
-            >
+            <button onClick={saveRightBlockSettings} disabled={rightBlockSaving} className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition disabled:opacity-50">
               {rightBlockSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le bloc publicitaire'}
             </button>
           </div>
         )}
       </div>
+
+      {/* ===== SECTION LOGO DU SITE ===== */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">Logo du site</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Gérez le logo qui apparaît dans la barre de navigation. Formats acceptés : GIF, PNG, JPEG, JPG, WEBP (max 2 Mo).
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-amber-900/30 to-orange-900/30 rounded-xl p-5 border border-amber-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-amber-300">
+          <Image className="w-5 h-5" /> 🖼️ Logo du site
+        </h3>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-center p-4 bg-slate-800/50 rounded-lg">
+            {logoLoading ? (
+              <div className="w-32 h-12 bg-slate-700 animate-pulse rounded"></div>
+            ) : logoUrl ? (
+              <img src={getImageUrl(logoUrl)} alt="Logo du site" className="h-12 w-auto object-contain" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl">C</div>
+                <span className="text-2xl font-bold"><span className="text-orange-500">Clo</span><span className="text-amber-600">léo</span></span>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm text-slate-300 block mb-2">Logo (remplace le texte "Cloléo")</label>
+            <div className="flex gap-4 items-start flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={handleLogoChange} disabled={logoUploading} className="hidden" id="logo-upload" />
+                <label htmlFor="logo-upload" className="inline-flex items-center gap-2 cursor-pointer bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition"><Upload className="w-4 h-4" />{logoUploading ? 'Upload en cours...' : '📁 Choisir un logo'}</label>
+                {logoUrl && <button onClick={() => setLogoUrl('')} className="ml-2 text-red-400 hover:text-red-300 text-sm">Supprimer</button>}
+                <input type="text" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="Ou URL du logo" className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+                <p className="text-xs text-slate-500 mt-2">Le logo sera affiché dans la barre de navigation à la place du texte "Cloléo".</p>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={saveLogoSettings} disabled={logoSaving} className="w-full py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium transition disabled:opacity-50">
+            {logoSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le logo'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
+
 export default AdminDashboard;
