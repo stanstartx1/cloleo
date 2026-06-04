@@ -239,17 +239,10 @@ const HeroSection = ({ categories = [] }) => {
           </motion.div>
         </AnimatePresence>
         
-        {heroImages.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-            {heroImages.map((_, i) => (
-              <button key={i} onClick={() => setBgIdx(i)}
-                className={`h-2 rounded-full transition-all duration-300 ${i === bgIdx ? 'w-8 bg-orange-500' : 'w-2 bg-white/50 hover:bg-white/80'}`} />
-            ))}
-          </div>
-        )}
+        {/* Points de navigation - SUPPRIMÉS (barre de progression enlevée) */}
       </div>
 
-      {/* Contenu principal - GRILLE COLLÉE */}
+      {/* Contenu principal */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-0 items-stretch">
           
@@ -289,7 +282,7 @@ const HeroSection = ({ categories = [] }) => {
             )}
           </div>
 
-          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO (plus petit) ===== */}
+          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO ===== */}
           <div className="relative bg-black/20 h-full">
             {currentBgUrl && (
               <img 
@@ -312,7 +305,6 @@ const HeroSection = ({ categories = [] }) => {
           {/* ===== COLONNE DROITE : BOUTIQUES + PUB ===== */}
           <div className="bg-white rounded-r-2xl shadow-lg overflow-hidden border border-slate-100 flex flex-col h-full">
             <div className="p-4 flex-1 flex flex-col gap-4">
-              {/* Bloc Boutiques */}
               <div className="flex-1">
                 {shops.length > 0 ? (
                   <ShopCarousel shops={shops} />
@@ -321,7 +313,6 @@ const HeroSection = ({ categories = [] }) => {
                 )}
               </div>
 
-              {/* Bloc Image/Vidéo */}
               <div>
                 {rightBlockType === 'video' && rightBlockVideo ? (
                   <div className="aspect-video rounded-xl overflow-hidden">
