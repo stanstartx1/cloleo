@@ -2323,23 +2323,8 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
-// ─── Composant Apparence du site (sidebars + HERO CAROUSEL) ────────────────
+// ─── Composant Apparence du site (uniquement carrousel Hero) ────────────────
 const LayoutAppearanceSection = ({ token, API }) => {
-  const [settings, setSettings] = React.useState({
-    sidebar_type: 'color',
-    sidebar_color_left: '#f97316',
-    sidebar_color_right: '#f97316',
-    sidebar_image_left: '',
-    sidebar_image_right: '',
-    sidebar_width: 160,
-  });
-  const [saving, setSaving] = React.useState(false);
-  const [uploadingLeft, setUploadingLeft] = React.useState(false);
-  const [uploadingRight, setUploadingRight] = React.useState(false);
-  const inputLeftRef = React.useRef(null);
-  const inputRightRef = React.useRef(null);
-
-  // ===== HERO CAROUSEL STATES =====
   const [heroImages, setHeroImages] = React.useState([]);
   const [heroLoading, setHeroLoading] = React.useState(false);
   const [heroUploading, setHeroUploading] = React.useState(false);
@@ -2347,49 +2332,65 @@ const LayoutAppearanceSection = ({ token, API }) => {
 
   // Charger les images du hero
   const fetchHeroImages = async () => {
+    setHeroLoading(true);
     try {
-      const response = await axios.get(`${API}/api/admin/settings/hero`, {
+      const response = await axios.get(`${API}/admin/settings/hero`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHeroImages(response.data.images || []);
     } catch (error) {
       console.error('Erreur chargement hero images:', error);
-    }
-  };
-
-  // Upload d'une image hero
-  const uploadHeroImage = async (file) => {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('image', file);
-
-    setHeroUploading(true);
-    try {
-      const response = await axios.post(`${API}/api/admin/upload/hero-image`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-      });
-      const newImageUrl = response.data.url;
-      const updatedImages = [...heroImages, newImageUrl];
-      setHeroImages(updatedImages);
-      await saveHeroImages(updatedImages);
-      toast.success('Image ajoutée au carrousel !');
-    } catch (error) {
-      console.error('Erreur upload hero:', error);
-      toast.error('Erreur lors de l\'upload');
+      toast.error('Impossible de charger les images du hero');
     } finally {
-      setHeroUploading(false);
+      setHeroLoading(false);
     }
   };
 
   // Sauvegarder la liste des images hero
   const saveHeroImages = async (images) => {
     try {
-      await axios.put(`${API}/api/admin/settings/hero`, { images }, {
+      await axios.put(`${API}/admin/settings/hero`, { images }, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (error) {
       console.error('Erreur sauvegarde hero:', error);
       toast.error('Erreur lors de la sauvegarde');
+      throw error;
+    }
+  };
+
+  // Upload d'une image hero via /upload/multiple
+  const uploadHeroImage = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('files', file);
+
+    setHeroUploading(true);
+    try {
+      const response = await axios.post(`${API}/upload/multiple`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.urls?.[0] || '';
+      const updatedImages = [...heroImages, newImageUrl];
+      setHeroImages(updatedImages);
+      await saveHeroImages(updatedImages);
+      toast.success('Image ajoutée au carrousel !');
+    } catch (error) {
+      console.error('Erreur upload hero:', error);
+      const errorMsg = error.response?.data?.detail || "Erreur lors de l'upload";
+      toast.error(errorMsg);
+    } finally {
+      setHeroUploading(false);
     }
   };
 
@@ -2429,166 +2430,34 @@ const LayoutAppearanceSection = ({ token, API }) => {
     toast.success('Ordre mis à jour');
   };
 
-  React.useEffect(() => {
-    // Charger layout settings
-    axios.get(`${API}/admin/settings/layout`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => setSettings(s => ({ ...s, ...res.data }))).catch(() => {});
-    
-    // Charger hero images
-    fetchHeroImages();
-  }, [token, API]);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await axios.put(`${API}/admin/settings/layout`, { settings }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success('Apparence sauvegardée !');
-    } catch {
-      toast.error('Erreur lors de la sauvegarde');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const uploadImage = async (file, side) => {
-    const setUploading = side === 'left' ? setUploadingLeft : setUploadingRight;
-    const field = side === 'left' ? 'sidebar_image_left' : 'sidebar_image_right';
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('files', file);
-      const res = await axios.post(`${API}/upload/multiple`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-      });
-      const url = res.data.urls?.[0] || '';
-      setSettings(s => ({ ...s, [field]: url }));
-      toast.success('Image uploadée !');
-    } catch {
-      toast.error('Erreur upload');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleHeroFileChange = (e) => {
     const file = e.target.files?.[0];
-    if (file && ['image/gif', 'image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+    if (file) {
       uploadHeroImage(file);
-    } else if (file) {
-      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG ou JPG');
     }
     e.target.value = '';
   };
 
-  const SidePreview = ({ side }) => {
-    const color = side === 'left' ? settings.sidebar_color_left : settings.sidebar_color_right;
-    const image = side === 'left' ? settings.sidebar_image_left : settings.sidebar_image_right;
-    const isUploading = side === 'left' ? uploadingLeft : uploadingRight;
-    const inputRef = side === 'left' ? inputLeftRef : inputRightRef;
-    const label = side === 'left' ? 'Gauche' : 'Droite';
-
-    return (
-      <div className="space-y-3">
-        <h4 className="font-semibold text-slate-200">Sidebar {label}</h4>
-        <div
-          className="w-full h-48 rounded-xl border border-slate-600 overflow-hidden flex items-center justify-center"
-          style={settings.sidebar_type === 'image' && image
-            ? { backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-            : { backgroundColor: color }
-          }
-        >
-          {settings.sidebar_type === 'image' && !image && (
-            <span className="text-slate-400 text-sm">Aucune image</span>
-          )}
-        </div>
-
-        {settings.sidebar_type === 'color' && (
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-slate-300">Couleur :</label>
-            <input
-              type="color"
-              value={color}
-              onChange={e => setSettings(s => ({
-                ...s,
-                [side === 'left' ? 'sidebar_color_left' : 'sidebar_color_right']: e.target.value
-              }))}
-              className="w-12 h-10 rounded cursor-pointer border-0 bg-transparent"
-            />
-            <input
-              type="text"
-              value={color}
-              onChange={e => setSettings(s => ({
-                ...s,
-                [side === 'left' ? 'sidebar_color_left' : 'sidebar_color_right']: e.target.value
-              }))}
-              className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 text-sm font-mono"
-              placeholder="#f97316"
-            />
-          </div>
-        )}
-
-        {settings.sidebar_type === 'image' && (
-          <div className="space-y-2">
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-              className="hidden"
-              onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0], side)}
-            />
-            <button
-              onClick={() => inputRef.current?.click()}
-              disabled={isUploading}
-              className="w-full py-2 px-4 rounded-lg border-2 border-dashed border-slate-500 text-slate-300 hover:border-orange-400 hover:text-orange-300 transition text-sm flex items-center justify-center gap-2"
-            >
-              {isUploading ? '⏳ Upload...' : '📁 Choisir une image (PNG, JPG, GIF, WEBP)'}
-            </button>
-            {image && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={image}
-                  onChange={e => setSettings(s => ({
-                    ...s,
-                    [side === 'left' ? 'sidebar_image_left' : 'sidebar_image_right']: e.target.value
-                  }))}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-slate-700 border border-slate-600 text-slate-300 text-xs font-mono truncate"
-                  placeholder="URL de l'image"
-                />
-                <button
-                  onClick={() => setSettings(s => ({
-                    ...s,
-                    [side === 'left' ? 'sidebar_image_left' : 'sidebar_image_right']: ''
-                  }))}
-                  className="text-red-400 hover:text-red-300 text-sm px-2"
-                >✕</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
+  React.useEffect(() => {
+    fetchHeroImages();
+  }, [token, API]);
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-100">Apparence du site</h2>
+        <h2 className="text-xl font-bold text-slate-100">Carrousel Hero (Diaporama)</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez les marges latérales de la page d'accueil et le carrousel hero (diaporama).
+          Gérez les images qui défileront en haut de la page d'accueil.
         </p>
       </div>
 
-      {/* ===== SECTION CARROUSEL HERO ===== */}
+      {/* SECTION CARROUSEL HERO */}
       <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-5 border border-purple-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-purple-300">
-          <Image className="w-5 h-5" /> 🎠 Carrousel Hero (Diaporama)
+          <Image className="w-5 h-5" /> 🎠 Images du diaporama
         </h3>
         <p className="text-slate-400 text-sm mb-4">
-          Gérez les images qui défileront en haut de la page d'accueil. Vous pouvez ajouter des images (GIF, PNG, JPEG, JPG), les réordonner par glisser-déposer, ou les supprimer.
+          Ajoutez des images (GIF, PNG, JPEG, JPG). Glissez-déposez pour les réordonner.
         </p>
 
         {/* Upload zone */}
@@ -2628,19 +2497,19 @@ const LayoutAppearanceSection = ({ token, API }) => {
                 onDragStart={(e) => handleDragStart(e, idx)}
                 onDragOver={(e) => handleDragOver(e, idx)}
                 onDrop={(e) => handleDrop(e, idx)}
-                className={`relative group rounded-lg overflow-hidden border-2 transition-all ${
+                className={`relative group rounded-lg overflow-hidden border-2 transition-all bg-slate-800 ${
                   dragOverIndex === idx ? 'border-purple-400 scale-105 shadow-lg shadow-purple-500/30' : 'border-slate-600 hover:border-slate-500'
                 }`}
               >
                 <img
                   src={img}
                   alt={`Hero ${idx + 1}`}
-                  className="w-full h-28 object-cover"
+                  className="w-full h-40 object-contain bg-slate-900"
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button
                     onClick={() => removeHeroImage(idx)}
-                    className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full"
+                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
                     title="Supprimer"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -2658,91 +2527,16 @@ const LayoutAppearanceSection = ({ token, API }) => {
         )}
       </div>
 
-      {/* Type de sidebar */}
-      <div className="bg-slate-800 rounded-xl p-5 space-y-4 border border-slate-700">
-        <h3 className="font-semibold text-slate-200">Type de décoration latérale</h3>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sidebar_type"
-              value="color"
-              checked={settings.sidebar_type === 'color'}
-              onChange={() => setSettings(s => ({ ...s, sidebar_type: 'color' }))}
-            />
-            <span className="text-slate-200">🎨 Couleur unie</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sidebar_type"
-              value="image"
-              checked={settings.sidebar_type === 'image'}
-              onChange={() => setSettings(s => ({ ...s, sidebar_type: 'image' }))}
-            />
-            <span className="text-slate-200">🖼️ Image / GIF</span>
-          </label>
-        </div>
-
-        {/* Largeur */}
-        <div className="flex items-center gap-4">
-          <label className="text-sm text-slate-300 whitespace-nowrap">Largeur sidebar :</label>
-          <input
-            type="range"
-            min={80}
-            max={300}
-            value={settings.sidebar_width}
-            onChange={e => setSettings(s => ({ ...s, sidebar_width: Number(e.target.value) }))}
-            className="flex-1"
-          />
-          <span className="text-slate-200 font-mono text-sm w-16 text-right">{settings.sidebar_width}px</span>
-        </div>
-      </div>
-
-      {/* Prévisualisations gauche / droite */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-          <SidePreview side="left" />
-        </div>
-        <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-          <SidePreview side="right" />
-        </div>
-      </div>
-
-      {/* Option : même config des deux côtés */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setSettings(s => ({
-            ...s,
-            sidebar_color_right: s.sidebar_color_left,
-            sidebar_image_right: s.sidebar_image_left,
-          }))}
-          className="text-sm text-orange-400 hover:text-orange-300 underline"
-        >
-          ← Copier gauche → droite
-        </button>
-        <button
-          onClick={() => setSettings(s => ({
-            ...s,
-            sidebar_color_left: s.sidebar_color_right,
-            sidebar_image_left: s.sidebar_image_right,
-          }))}
-          className="text-sm text-orange-400 hover:text-orange-300 underline"
-        >
-          ← Copier droite → gauche
-        </button>
-      </div>
-
-      {/* Bouton save */}
+      {/* Bouton de rafraîchissement */}
       <button
-        onClick={save}
-        disabled={saving}
-        className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-base hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-60"
+        onClick={fetchHeroImages}
+        disabled={heroLoading}
+        className="w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-medium text-sm transition disabled:opacity-50"
       >
-        {saving ? '⏳ Sauvegarde...' : '💾 Sauvegarder l\'apparence'}
+        <RefreshCw className={`w-4 h-4 inline mr-2 ${heroLoading ? 'animate-spin' : ''}`} />
+        Rafraîchir les images
       </button>
     </div>
   );
 };
-
 export default AdminDashboard;
