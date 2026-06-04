@@ -4,13 +4,14 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   ChevronLeft, ChevronRight, ShoppingBag, Store,
-  ArrowRight, Shield, Truck, Star, Zap
+  ArrowRight, Shield, Truck, Star, Zap, Menu as MenuIcon
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
+// Trust badges (pour le bas du menu ou ailleurs)
 const TRUST_ITEMS = [
   { icon: Truck, label: 'Livraison rapide', sub: 'Partout en Afrique' },
   { icon: Shield, label: 'Paiement sécurisé', sub: 'Transactions protégées' },
@@ -18,75 +19,103 @@ const TRUST_ITEMS = [
   { icon: Zap, label: 'Support 24/7', sub: 'Toujours disponible' },
 ];
 
-const STATS = [
-  { value: '5M+', label: 'Produits disponibles' },
-  { value: '12', label: 'Pays desservis' },
-  { value: '50K+', label: 'Clients satisfaits' },
-  { value: '24H', label: 'Service client' },
-];
-
-const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color }) => {
-  const [idx, setIdx] = useState(0);
-  const perPage = 3;
-  const maxIdx = Math.max(0, items.length - perPage);
-  const prev = () => setIdx(i => Math.max(0, i - 1));
-  const next = () => setIdx(i => Math.min(maxIdx, i + 1));
-
-  useEffect(() => {
-    if (items.length <= perPage) return;
-    const t = setInterval(() => setIdx(i => (i >= maxIdx ? 0 : i + 1)), 3500);
-    return () => clearInterval(t);
-  }, [items.length, maxIdx]);
-
-  const visible = items.slice(idx, idx + perPage);
+// Composant Catégorie avec sous-catégories au survol
+const CategoryMenuItem = ({ category, subcategories }) => {
+  const [showSub, setShowSub] = useState(false);
+  const hasSub = subcategories && subcategories.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
-            <Icon className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-black text-slate-800 text-base tracking-tight">{title}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={prev} disabled={idx === 0}
-            className="w-7 h-7 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 transition">
-            <ChevronLeft className="w-4 h-4 text-slate-600" />
-          </button>
-          <button onClick={next} disabled={idx >= maxIdx}
-            className="w-7 h-7 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 transition">
-            <ChevronRight className="w-4 h-4 text-slate-600" />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 flex-1">
-        <AnimatePresence mode="wait">
-          {visible.map((item, i) => (
-            <motion.div key={`${item.id || item.slug}-${idx}-${i}`}
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, delay: i * 0.05 }}>
-              {renderItem(item)}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      <Link to={viewAllLink}
-        className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 transition">
-        Voir tout <ArrowRight className="w-3 h-3" />
+    <div 
+      className="relative"
+      onMouseEnter={() => setShowSub(true)}
+      onMouseLeave={() => setShowSub(false)}
+    >
+      <Link 
+        to={`/categories/${category.slug}`}
+        className="flex items-center justify-between py-2 px-3 rounded-lg text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+      >
+        <span className="truncate">{category.name}</span>
+        {hasSub && <ChevronRight className="w-3 h-3 flex-shrink-0 ml-2" />}
       </Link>
+      
+      {/* Sous-catégories */}
+      {hasSub && showSub && (
+        <div className="absolute left-full top-0 ml-1 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-50">
+          {subcategories.map(sub => (
+            <Link
+              key={sub.id}
+              to={`/categories/${sub.slug}`}
+              className="block py-2 px-3 text-sm text-slate-600 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors"
+            >
+              {sub.name}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
+// Mini carrousel pour les boutiques
+const ShopCarousel = ({ shops }) => {
+  const [idx, setIdx] = useState(0);
+  const perPage = 3;
+  const maxIdx = Math.max(0, shops.length - perPage);
+
+  useEffect(() => {
+    if (shops.length <= perPage) return;
+    const t = setInterval(() => setIdx(i => (i >= maxIdx ? 0 : i + 1)), 4000);
+    return () => clearInterval(t);
+  }, [shops.length, maxIdx]);
+
+  const visible = shops.slice(idx, idx + perPage);
+
+  return (
+    <div className="relative">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1">
+          <Store className="w-4 h-4 text-amber-500" /> Boutiques Officielles
+        </h3>
+        <div className="flex gap-1">
+          <button onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0}
+            className="w-6 h-6 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center disabled:opacity-30">
+            <ChevronLeft className="w-3 h-3" />
+          </button>
+          <button onClick={() => setIdx(i => Math.min(maxIdx, i + 1))} disabled={idx >= maxIdx}
+            className="w-6 h-6 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center disabled:opacity-30">
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {visible.map((shop, i) => (
+          <Link key={shop.id} to={`/vendor-shop/${shop.id}`} className="group">
+            <div className="bg-slate-50 rounded-xl p-2 text-center hover:shadow-md transition">
+              <img 
+                src={shop.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name)}&background=f97316&color=fff&size=60`} 
+                alt={shop.name}
+                className="w-12 h-12 rounded-full mx-auto object-cover mb-1"
+              />
+              <p className="text-[10px] font-semibold text-slate-700 line-clamp-1">{shop.name}</p>
+              <p className="text-[9px] text-slate-400">{shop.count || 0} produits</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Composant principal HeroSection
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
   const [shops, setShops] = useState([]);
-  const [, setProducts] = useState([]);
+  const [rightBlockImage, setRightBlockImage] = useState('');
+  const [rightBlockVideo, setRightBlockVideo] = useState('');
+  const [rightBlockType, setRightBlockType] = useState('image'); // 'image' ou 'video'
 
+  // Chargement des settings hero
   useEffect(() => {
     axios.get(`${API}/hero-settings`)
       .then(res => {
@@ -94,31 +123,35 @@ const HeroSection = ({ categories = [] }) => {
         setHeroImages(imgs.length > 0 ? imgs : [
           'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1400&q=80',
           'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80',
-          'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1400&q=80',
         ]);
       })
       .catch(() => setHeroImages([
         'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1400&q=80',
         'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80',
-        'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1400&q=80',
       ]));
   }, []);
 
+  // Chargement du bloc droit (image/vidéo)
+  useEffect(() => {
+    axios.get(`${API}/admin/settings/right-block`)
+      .then(res => {
+        setRightBlockImage(res.data?.image || '');
+        setRightBlockVideo(res.data?.video || '');
+        setRightBlockType(res.data?.type || 'image');
+      })
+      .catch(() => {});
+  }, []);
+
+  // Diaporama fond
   useEffect(() => {
     if (heroImages.length <= 1) return;
     const t = setInterval(() => setBgIdx(i => (i + 1) % heroImages.length), 5000);
     return () => clearInterval(t);
   }, [heroImages.length]);
 
+  // Chargement boutiques
   useEffect(() => {
-    axios.get(`${API}/products/featured?limit=12`)
-      .catch(() => axios.get(`${API}/products?limit=12`))
-      .then(res => {
-        const list = Array.isArray(res.data) ? res.data : (res.data?.products || []);
-        setProducts(list.slice(0, 9));
-      }).catch(() => {});
-
-    axios.get(`${API}/products?limit=50`)
+    axios.get(`${API}/products?limit=100`)
       .then(res => {
         const list = Array.isArray(res.data) ? res.data : (res.data?.products || []);
         const sellerMap = {};
@@ -126,20 +159,24 @@ const HeroSection = ({ categories = [] }) => {
           if (p.seller_id && !sellerMap[p.seller_id]) {
             sellerMap[p.seller_id] = {
               id: p.seller_id,
-              slug: p.seller_id,
-              name: p.seller_name || 'Boutique',
+              name: p.seller_name || p.shop_name || 'Boutique',
               image: p.images?.[0] || null,
               count: 0,
             };
           }
           if (sellerMap[p.seller_id]) sellerMap[p.seller_id].count++;
         });
-        setShops(Object.values(sellerMap).slice(0, 9));
+        setShops(Object.values(sellerMap).slice(0, 12));
       }).catch(() => {});
   }, []);
 
   const activeCategories = categories.filter(c => c.is_active !== false);
+  const parentCategories = activeCategories.filter(c => !c.parent_slug);
   
+  const getSubCategories = (parentSlug) => {
+    return activeCategories.filter(c => c.parent_slug === parentSlug);
+  };
+
   const getImageUrl = (img) => {
     if (!img) return '';
     if (img.startsWith('/')) return `${API_BASE}${img}`;
@@ -148,41 +185,10 @@ const HeroSection = ({ categories = [] }) => {
   
   const currentBgUrl = getImageUrl(heroImages[bgIdx]);
 
-  const renderCategory = (cat) => {
-    const banners = cat.banner_images || [];
-    const img = banners[0] || cat.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(cat.name)}`;
-    const imgUrl = getImageUrl(img);
-    return (
-      <Link to={`/categories/${cat.slug}`} className="group flex flex-col items-center gap-1">
-        <div className="w-full aspect-square rounded-xl overflow-hidden border-2 border-white shadow-md group-hover:border-orange-400 group-hover:scale-105 transition-all duration-200">
-          <img src={imgUrl} alt={cat.name} className="w-full h-full object-cover" />
-        </div>
-        <span className="text-[10px] font-semibold text-slate-700 text-center leading-tight line-clamp-2 group-hover:text-orange-600 transition-colors">
-          {cat.name}
-        </span>
-      </Link>
-    );
-  };
-
-  const renderShop = (shop) => {
-    const imgUrl = shop.image ? getImageUrl(shop.image) : `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name)}&background=f97316&color=fff&size=80`;
-    return (
-      <Link to={`/vendor-shop/${shop.id}`} className="group flex flex-col items-center gap-1">
-        <div className="w-full aspect-square rounded-xl overflow-hidden border-2 border-white shadow-md group-hover:border-amber-400 group-hover:scale-105 transition-all duration-200">
-          <img src={imgUrl} alt={shop.name} className="w-full h-full object-cover" />
-        </div>
-        <span className="text-[10px] font-semibold text-slate-700 text-center leading-tight line-clamp-2 group-hover:text-amber-600 transition-colors">
-          {shop.name}
-        </span>
-        {shop.count > 0 && (
-          <span className="text-[9px] text-slate-400">{shop.count} produit{shop.count > 1 ? 's' : ''}</span>
-        )}
-      </Link>
-    );
-  };
-
   return (
-    <section className="relative w-full overflow-hidden" style={{ minHeight: 420 }}>
+    <section className="relative w-full overflow-hidden bg-slate-50" style={{ minHeight: 480 }}>
+      
+      {/* Fond diaporama */}
       <div className="absolute inset-0 z-0">
         <AnimatePresence>
           <motion.div key={bgIdx}
@@ -194,88 +200,130 @@ const HeroSection = ({ categories = [] }) => {
                 className="w-full h-full bg-black"
                 style={{
                   backgroundImage: `url(${currentBgUrl})`,
-                  backgroundSize: 'contain',
+                  backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
                 }}
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/20" />
           </motion.div>
         </AnimatePresence>
         
+        {/* Points de navigation */}
         {heroImages.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
             {heroImages.map((_, i) => (
               <button key={i} onClick={() => setBgIdx(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === bgIdx ? 'w-6 bg-orange-400' : 'w-1.5 bg-white/40 hover:bg-white/70'}`} />
+                className={`h-2 rounded-full transition-all duration-300 ${i === bgIdx ? 'w-8 bg-orange-500' : 'w-2 bg-white/50 hover:bg-white/80'}`} />
             ))}
           </div>
         )}
       </div>
 
-      <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-8 md:py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px_320px] gap-4 items-start">
-          <motion.div className="text-white space-y-5"
-            initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/20 border border-orange-400/40 backdrop-blur-sm">
-              <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-              <span className="text-xs font-semibold text-orange-200">Cloleo Marketplace Premium</span>
+      {/* Contenu principal */}
+      <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-5">
+          
+          {/* ===== COLONNE GAUCHE : MENU CATÉGORIES ===== */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 flex items-center gap-2">
+              <MenuIcon className="w-5 h-5 text-white" />
+              <span className="font-bold text-white text-sm">Toutes les catégories</span>
             </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight">
+            <div className="p-2 max-h-[400px] overflow-y-auto">
+              {parentCategories.map(cat => {
+                const subCats = getSubCategories(cat.slug);
+                return (
+                  <CategoryMenuItem 
+                    key={cat.id} 
+                    category={cat} 
+                    subcategories={subCats}
+                  />
+                );
+              })}
+              {parentCategories.length === 0 && (
+                <p className="text-sm text-slate-400 text-center py-4">Chargement...</p>
+              )}
+            </div>
+            
+            {/* Trust badges en bas du menu */}
+            <div className="border-t border-slate-100 p-3 grid grid-cols-2 gap-2">
+              {TRUST_ITEMS.slice(0, 4).map(f => (
+                <div key={f.label} className="flex items-center gap-2">
+                  <f.icon className="w-3 h-3 text-amber-500" />
+                  <span className="text-[9px] text-slate-500">{f.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO ===== */}
+          <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-[16/9] bg-black/20">
+            {currentBgUrl && (
+              <img 
+                src={currentBgUrl} 
+                alt="Hero" 
+                className="w-full h-full object-cover"
+              />
+            )}
+            {/* Texte overlay sur le hero */}
+            <div className="absolute inset-0 flex flex-col justify-center px-8 bg-gradient-to-r from-black/50 to-transparent">
+              <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-xs">
                 L'Afrique à portée<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">de clic</span>
+                <span className="text-orange-400">de clic</span>
               </h1>
-              <p className="mt-3 text-sm md:text-base text-white/80 max-w-sm">
-                Des milliers de produits africains authentiques. Achetez, vendez, revendez — partout dans le monde.
+              <p className="text-white/80 text-sm mt-2 max-w-xs">
+                Des milliers de produits africains authentiques
               </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="sm" className="rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/40 font-bold px-5">
-                <Link to="/produits"><ShoppingBag className="w-4 h-4 mr-1.5" /> Explorer</Link>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="rounded-full border-white/40 text-white hover:bg-white/10 font-semibold px-5">
-                <Link to="/connexion">Devenir vendeur</Link>
+              <Button asChild size="sm" className="mt-4 w-fit rounded-full bg-orange-500 hover:bg-orange-600">
+                <Link to="/produits">Explorer <ArrowRight className="w-4 h-4 ml-1" /></Link>
               </Button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-              {STATS.map(s => (
-                <div key={s.label} className="rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 px-3 py-2">
-                  <p className="text-lg font-black text-orange-300">{s.value}</p>
-                  <p className="text-[11px] text-white/70 leading-tight">{s.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="hidden md:grid grid-cols-2 gap-2 pt-1">
-              {TRUST_ITEMS.map(f => (
-                <div key={f.label} className="flex items-center gap-2 rounded-lg bg-white/8 border border-white/10 px-2.5 py-2">
-                  <f.icon className="w-4 h-4 text-amber-300 flex-shrink-0" />
-                  <div>
-                    <p className="text-[11px] font-semibold text-white leading-none">{f.label}</p>
-                    <p className="text-[10px] text-white/60">{f.sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+          </div>
 
-          {activeCategories.length > 0 && (
-            <motion.div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/60"
-              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}>
-              <MiniCarousel items={activeCategories} renderItem={renderCategory} title="Catégories" viewAllLink="/categories" icon={ShoppingBag} color="bg-gradient-to-br from-orange-500 to-amber-500" />
-            </motion.div>
-          )}
+          {/* ===== COLONNE DROITE : BOUTIQUES + BLOC IMAGE/VIDÉO ===== */}
+          <div className="space-y-4">
+            {/* Bloc Boutiques */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-100">
+              {shops.length > 0 ? (
+                <ShopCarousel shops={shops} />
+              ) : (
+                <div className="text-center py-4 text-slate-400 text-sm">Chargement des boutiques...</div>
+              )}
+              <Link to="/produits" className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 transition">
+                Voir tout <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
 
-          {shops.length > 0 && (
-            <motion.div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/60"
-              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.35 }}>
-              <MiniCarousel items={shops} renderItem={renderShop} title="Meilleures boutiques" viewAllLink="/produits" icon={Store} color="bg-gradient-to-br from-amber-500 to-orange-600" />
-            </motion.div>
-          )}
+            {/* Bloc Image/Vidéo (configurable par l'admin) */}
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+              {rightBlockType === 'video' && rightBlockVideo ? (
+                <div className="aspect-video">
+                  <iframe 
+                    src={rightBlockVideo}
+                    className="w-full h-full"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : rightBlockImage ? (
+                <img 
+                  src={getImageUrl(rightBlockImage)} 
+                  alt="Promotion" 
+                  className="w-full h-auto object-cover"
+                />
+              ) : (
+                <div className="aspect-video bg-gradient-to-br from-orange-100 to-amber-100 flex flex-col items-center justify-center p-4 text-center">
+                  <ShoppingBag className="w-8 h-8 text-orange-400 mb-2" />
+                  <p className="text-xs text-slate-500">Espace publicitaire</p>
+                  <p className="text-[10px] text-slate-400">Configurable depuis l'admin</p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
