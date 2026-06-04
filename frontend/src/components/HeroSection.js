@@ -34,7 +34,7 @@ const getCategoryIcon = (categoryName) => {
   if (name.includes('jeu') || name.includes('gaming') || name.includes('console')) return Gamepad;
   if (name.includes('montre') || name.includes('horloge')) return Watch;
   if (name.includes('photo') || name.includes('appareil')) return Camera;
-  return Gift; // Icône par défaut
+  return Gift;
 };
 
 // Composant Catégorie avec sous-catégories au survol
@@ -62,7 +62,6 @@ const CategoryMenuItem = ({ category, subcategories }) => {
         {hasSub && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-2 text-slate-400 group-hover:text-orange-500" />}
       </Link>
       
-      {/* Sous-catégories */}
       {hasSub && showSub && (
         <div className="absolute left-full top-0 ml-1 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-50">
           {subcategories.map(sub => (
@@ -146,7 +145,6 @@ const HeroSection = ({ categories = [] }) => {
   
   const MAX_VISIBLE_CATEGORIES = 10;
 
-  // Chargement des settings hero
   useEffect(() => {
     axios.get(`${API}/hero-settings`)
       .then(res => {
@@ -162,7 +160,6 @@ const HeroSection = ({ categories = [] }) => {
       ]));
   }, []);
 
-  // Chargement du bloc droit (image/vidéo)
   useEffect(() => {
     axios.get(`${API}/right-block-settings`)
       .then(res => {
@@ -174,14 +171,12 @@ const HeroSection = ({ categories = [] }) => {
       .catch(() => {});
   }, []);
 
-  // Diaporama fond
   useEffect(() => {
     if (heroImages.length <= 1) return;
     const t = setInterval(() => setBgIdx(i => (i + 1) % heroImages.length), 5000);
     return () => clearInterval(t);
   }, [heroImages.length]);
 
-  // Chargement boutiques
   useEffect(() => {
     axios.get(`${API}/products?limit=100`)
       .then(res => {
@@ -216,13 +211,11 @@ const HeroSection = ({ categories = [] }) => {
   };
   
   const currentBgUrl = getImageUrl(heroImages[bgIdx]);
-  
-  // Catégories visibles (avec limite + bouton voir plus)
   const visibleCategories = showAllCategories ? parentCategories : parentCategories.slice(0, MAX_VISIBLE_CATEGORIES);
   const hasMoreCategories = parentCategories.length > MAX_VISIBLE_CATEGORIES;
 
   return (
-    <section className="relative w-full bg-slate-50" style={{ minHeight: '500px' }}>
+    <section className="relative w-full bg-slate-50">
       
       {/* Fond diaporama */}
       <div className="absolute inset-0 z-0">
@@ -246,7 +239,6 @@ const HeroSection = ({ categories = [] }) => {
           </motion.div>
         </AnimatePresence>
         
-        {/* Points de navigation */}
         {heroImages.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
             {heroImages.map((_, i) => (
@@ -257,18 +249,17 @@ const HeroSection = ({ categories = [] }) => {
         )}
       </div>
 
-      {/* Contenu principal */}
+      {/* Contenu principal - GRILLE COLLÉE */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-0 items-stretch">
           
-          {/* ===== COLONNE GAUCHE : CATÉGORIES AVEC ICÔNES ===== */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 flex flex-col h-full">
+          {/* ===== COLONNE GAUCHE : CATÉGORIES ===== */}
+          <div className="bg-white rounded-l-2xl shadow-lg overflow-hidden border border-slate-100 flex flex-col h-full">
             <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <ShoppingBag className="w-5 h-5 text-white" />
               <span className="font-bold text-white text-sm">Toutes les catégories</span>
             </div>
             
-            {/* Liste des catégories avec scroll */}
             <div className="flex-1 overflow-y-auto" style={{ maxHeight: '380px' }}>
               <div className="p-2">
                 {visibleCategories.map(cat => {
@@ -284,7 +275,6 @@ const HeroSection = ({ categories = [] }) => {
               </div>
             </div>
             
-            {/* Bouton voir plus/voir moins */}
             {hasMoreCategories && (
               <button
                 onClick={() => setShowAllCategories(!showAllCategories)}
@@ -299,8 +289,8 @@ const HeroSection = ({ categories = [] }) => {
             )}
           </div>
 
-          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO ===== */}
-          <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-video bg-black/20">
+          {/* ===== COLONNE CENTRALE : DIAPORAMA HERO (plus petit) ===== */}
+          <div className="relative bg-black/20 h-full">
             {currentBgUrl && (
               <img 
                 src={currentBgUrl} 
@@ -309,7 +299,7 @@ const HeroSection = ({ categories = [] }) => {
               />
             )}
             <div className="absolute inset-0 flex flex-col justify-center px-6 bg-gradient-to-r from-black/40 to-transparent">
-              <h1 className="text-white text-xl md:text-2xl lg:text-3xl font-black leading-tight max-w-[200px]">
+              <h1 className="text-white text-xl md:text-2xl lg:text-3xl font-black leading-tight max-w-[180px]">
                 L'Afrique à portée<br />
                 <span className="text-orange-400">de clic</span>
               </h1>
@@ -320,41 +310,43 @@ const HeroSection = ({ categories = [] }) => {
           </div>
 
           {/* ===== COLONNE DROITE : BOUTIQUES + PUB ===== */}
-          <div className="flex flex-col gap-4 h-full">
-            {/* Bloc Boutiques */}
-            <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-100 flex-1 flex flex-col">
-              {shops.length > 0 ? (
-                <ShopCarousel shops={shops} />
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">Chargement des boutiques...</div>
-              )}
-            </div>
+          <div className="bg-white rounded-r-2xl shadow-lg overflow-hidden border border-slate-100 flex flex-col h-full">
+            <div className="p-4 flex-1 flex flex-col gap-4">
+              {/* Bloc Boutiques */}
+              <div className="flex-1">
+                {shops.length > 0 ? (
+                  <ShopCarousel shops={shops} />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">Chargement des boutiques...</div>
+                )}
+              </div>
 
-            {/* Bloc Image/Vidéo */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
-              {rightBlockType === 'video' && rightBlockVideo ? (
-                <div className="aspect-video">
-                  <iframe 
-                    src={rightBlockVideo}
-                    className="w-full h-full"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
+              {/* Bloc Image/Vidéo */}
+              <div>
+                {rightBlockType === 'video' && rightBlockVideo ? (
+                  <div className="aspect-video rounded-xl overflow-hidden">
+                    <iframe 
+                      src={rightBlockVideo}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : rightBlockImage ? (
+                  <img 
+                    src={getImageUrl(rightBlockImage)} 
+                    alt={rightBlockTitle || "Publicité"}
+                    className="w-full rounded-xl object-cover"
                   />
-                </div>
-              ) : rightBlockImage ? (
-                <img 
-                  src={getImageUrl(rightBlockImage)} 
-                  alt={rightBlockTitle || "Publicité"}
-                  className="w-full h-auto object-cover"
-                />
-              ) : (
-                <div className="aspect-video bg-gradient-to-br from-orange-100 to-amber-100 flex flex-col items-center justify-center p-4 text-center">
-                  <ShoppingBag className="w-8 h-8 text-orange-400 mb-2" />
-                  <p className="text-xs text-slate-500">Espace publicitaire</p>
-                  <p className="text-[10px] text-slate-400">Configurable depuis l'admin</p>
-                </div>
-              )}
+                ) : (
+                  <div className="aspect-video bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex flex-col items-center justify-center p-4 text-center">
+                    <ShoppingBag className="w-8 h-8 text-orange-400 mb-2" />
+                    <p className="text-xs text-slate-500">Espace publicitaire</p>
+                    <p className="text-[10px] text-slate-400">Configurable depuis l'admin</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
