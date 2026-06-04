@@ -925,7 +925,90 @@ async def admin_upload_hero_image(
     print(f"✅ Hero image uploaded: {url}")  # Debug
     return {"url": url, "filename": filename}
 
+# ═══════════════════════════════════════════════════════════════
+# RIGHT BLOCK (image/vidéo) — bloc publicitaire de droite
+# ═══════════════════════════════════════════════════════════════
 
+@api.get("/right-block-settings")
+async def public_right_block_settings():
+    """Route publique — bloc publicitaire de droite (image ou vidéo)"""
+    doc = await db.settings.find_one({"type": "right_block"}, {"_id": 0})
+    return doc or {"type": "right_block", "type_content": "image", "image": "", "video": "", "title": "Espace publicitaire"}
+
+
+@api.get("/admin/settings/right-block")
+async def admin_right_block_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère la configuration du bloc droit"""
+    doc = await db.settings.find_one({"type": "right_block"}, {"_id": 0})
+    return doc or {"type": "right_block", "type_content": "image", "image": "", "video": "", "title": "Espace publicitaire"}
+
+
+@api.put("/admin/settings/right-block")
+async def admin_save_right_block_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde la configuration du bloc droit"""
+    type_content = payload.get("type_content", "image")
+    image = payload.get("image", "")
+    video = payload.get("video", "")
+    title = payload.get("title", "Espace publicitaire")
+    
+    if type_content not in ["image", "video"]:
+        raise HTTPException(status_code=400, detail="type_content doit être 'image' ou 'video'")
+    
+    # Convertir URL YouTube standard en embed si nécessaire
+    if type_content == "video" and video and not video.startswith("https://www.youtube.com/embed/"):
+        if "youtu.be/" in video:
+            video_id = video.split("youtu.be/")[-1].split("?")[0]
+            video = f"https://www.youtube.com/embed/{video_id}"
+        elif "watch?v=" in video:
+            video_id = video.split("watch?v=")[-1].split("&")[0]
+            video = f"https://www.youtube.com/embed/{video_id}"
+    
+    doc = {
+        "type": "right_block",
+        "type_content": type_content,
+        "image": image,
+        "video": video,
+        "title": title,
+        "updated_at": _utc()
+    }
+    await db.settings.update_one({"type": "right_block"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "settings": doc}
+
+
+@api.post("/admin/upload/right-block-image")
+async def admin_upload_right_block_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'une image pour le bloc droit"""
+    allowed_extensions = {".png", ".jpeg", ".jpg", ".gif", ".webp"}
+    allowed_mimetypes = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
+    
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporté. Formats acceptés : PNG, JPEG, JPG, GIF, WEBP"
+        )
+    
+    if file.content_type and file.content_type not in allowed_mimetypes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type MIME non supporté : {file.content_type}"
+        )
+    
+    filename = f"rightblock_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 5 Mo)")
+    
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    
+    print(f"✅ Right block image uploaded: {url}")
+    return {"url": url, "filename": filename}
 
 @api.get("/admin/settings/platform")
 async def admin_platform_settings(user: dict = Depends(require_admin)):
