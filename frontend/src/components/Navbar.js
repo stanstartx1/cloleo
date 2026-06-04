@@ -38,44 +38,29 @@ const Navbar = () => {
   
   const hasUserMenu = isAuthenticated;
 
-  // Charger le logo depuis le backend
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        // Essayer d'abord avec API_BASE (sans /api)
-        const response = await fetch(`${API_BASE}/logo-settings`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.logo_url && data.logo_url.trim()) {
-          const logo = data.logo_url.startsWith('/') ? `${API_BASE}${data.logo_url}` : data.logo_url;
-          setLogoUrl(logo);
-          console.log('✅ Logo chargé:', logo);
-        } else {
-          console.log('ℹ️ Aucun logo configuré');
-        }
-      } catch (error) {
-        console.error('Erreur chargement logo:', error);
-        // Fallback: essayer avec API_URL
-        try {
-          const response2 = await fetch(`${API_URL}/logo-settings`);
-          if (response2.ok) {
-            const data2 = await response2.json();
-            if (data2.logo_url && data2.logo_url.trim()) {
-              const logo = data2.logo_url.startsWith('/') ? `${API_BASE}${data2.logo_url}` : data2.logo_url;
-              setLogoUrl(logo);
-            }
-          }
-        } catch (e) {
-          console.error('Fallback échoué:', e);
-        }
-      } finally {
-        setLogoLoading(false);
+// Charger le logo depuis le backend
+useEffect(() => {
+  const fetchLogo = async () => {
+    try {
+      // Utiliser API_URL qui contient /api
+      const response = await fetch(`${API_URL}/logo-settings`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-    };
-    fetchLogo();
-  }, []);
+      const data = await response.json();
+      if (data.logo_url && data.logo_url.trim()) {
+        const logo = data.logo_url.startsWith('/') ? `${API_BASE}${data.logo_url}` : data.logo_url;
+        setLogoUrl(logo);
+        console.log('✅ Logo chargé:', logo);
+      }
+    } catch (error) {
+      console.error('Erreur chargement logo:', error);
+    } finally {
+      setLogoLoading(false);
+    }
+  };
+  fetchLogo();
+}, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
