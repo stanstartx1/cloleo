@@ -4,25 +4,44 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   ChevronLeft, ChevronRight, ShoppingBag, Store,
-  ArrowRight, Shield, Truck, Star, Zap, ChevronDown
+  ArrowRight, ChevronDown, 
+  Shirt, Sparkles, Home, Phone, Tv, Laptop, 
+  Sofa, Dumbbell, Baby, Apple, Gem, Car, 
+  Book, Music, Gamepad, Watch, Camera, Gift
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Trust badges
-const TRUST_ITEMS = [
-  { icon: Truck, label: 'Livraison rapide', sub: 'Partout en Afrique' },
-  { icon: Shield, label: 'Paiement sécurisé', sub: 'Transactions protégées' },
-  { icon: Star, label: 'Qualité vérifiée', sub: 'Vendeurs sélectionnés' },
-  { icon: Zap, label: 'Support 24/7', sub: 'Toujours disponible' },
-];
+// Mapping des icônes par catégorie
+const getCategoryIcon = (categoryName) => {
+  const name = categoryName.toLowerCase();
+  if (name.includes('mode') || name.includes('textile') || name.includes('vetement') || name.includes('shirt')) return Shirt;
+  if (name.includes('beauté') || name.includes('cosmétique') || name.includes('parfum')) return Sparkles;
+  if (name.includes('maison') || name.includes('déco') || name.includes('meuble')) return Sofa;
+  if (name.includes('téléphone') || name.includes('portable') || name.includes('smartphone')) return Phone;
+  if (name.includes('tv') || name.includes('television') || name.includes('electronique')) return Tv;
+  if (name.includes('informatique') || name.includes('ordinateur') || name.includes('pc')) return Laptop;
+  if (name.includes('electroménager') || name.includes('frigo') || name.includes('machine')) return Home;
+  if (name.includes('sport') || name.includes('fitness')) return Dumbbell;
+  if (name.includes('bébé') || name.includes('puériculture')) return Baby;
+  if (name.includes('supermarché') || name.includes('alimentaire') || name.includes('épicerie')) return Apple;
+  if (name.includes('bijou') || name.includes('montre') || name.includes('accessoire')) return Gem;
+  if (name.includes('auto') || name.includes('moto') || name.includes('véhicule')) return Car;
+  if (name.includes('livre') || name.includes('librairie')) return Book;
+  if (name.includes('musique') || name.includes('instrument')) return Music;
+  if (name.includes('jeu') || name.includes('gaming') || name.includes('console')) return Gamepad;
+  if (name.includes('montre') || name.includes('horloge')) return Watch;
+  if (name.includes('photo') || name.includes('appareil')) return Camera;
+  return Gift; // Icône par défaut
+};
 
 // Composant Catégorie avec sous-catégories au survol
 const CategoryMenuItem = ({ category, subcategories }) => {
   const [showSub, setShowSub] = useState(false);
   const hasSub = subcategories && subcategories.length > 0;
+  const Icon = getCategoryIcon(category.name);
 
   return (
     <div 
@@ -32,10 +51,15 @@ const CategoryMenuItem = ({ category, subcategories }) => {
     >
       <Link 
         to={`/categories/${category.slug}`}
-        className="flex items-center justify-between py-2.5 px-3 rounded-lg text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+        className="flex items-center justify-between py-2.5 px-3 rounded-lg text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors group"
       >
-        <span className="truncate">{category.name}</span>
-        {hasSub && <ChevronRight className="w-3 h-3 flex-shrink-0 ml-2" />}
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-lg bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
+            <Icon className="w-3.5 h-3.5 text-orange-500" />
+          </div>
+          <span className="truncate">{category.name}</span>
+        </div>
+        {hasSub && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-2 text-slate-400 group-hover:text-orange-500" />}
       </Link>
       
       {/* Sous-catégories */}
@@ -71,7 +95,7 @@ const ShopCarousel = ({ shops }) => {
   const visible = shops.slice(idx, idx + perPage);
 
   return (
-    <div className="relative">
+    <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1">
           <Store className="w-4 h-4 text-amber-500" /> Boutiques Officielles
@@ -87,21 +111,24 @@ const ShopCarousel = ({ shops }) => {
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 flex-1">
         {visible.map((shop, i) => (
           <Link key={shop.id} to={`/vendor-shop/${shop.id}`} className="group">
-            <div className="bg-slate-50 rounded-xl p-2 text-center hover:shadow-md transition">
+            <div className="bg-slate-50 rounded-xl p-3 text-center hover:shadow-md transition h-full flex flex-col items-center justify-center">
               <img 
                 src={shop.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name)}&background=f97316&color=fff&size=60`} 
                 alt={shop.name}
-                className="w-12 h-12 rounded-full mx-auto object-cover mb-1"
+                className="w-14 h-14 rounded-full mx-auto object-cover mb-2"
               />
-              <p className="text-[10px] font-semibold text-slate-700 line-clamp-1">{shop.name}</p>
-              <p className="text-[9px] text-slate-400">{shop.count || 0} produits</p>
+              <p className="text-xs font-semibold text-slate-700 line-clamp-1">{shop.name}</p>
+              <p className="text-[10px] text-slate-400">{shop.count || 0} produits</p>
             </div>
           </Link>
         ))}
       </div>
+      <Link to="/produits" className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 transition">
+        Voir tout <ArrowRight className="w-3 h-3" />
+      </Link>
     </div>
   );
 };
@@ -117,7 +144,7 @@ const HeroSection = ({ categories = [] }) => {
   const [rightBlockTitle, setRightBlockTitle] = useState('');
   const [showAllCategories, setShowAllCategories] = useState(false);
   
-  const MAX_VISIBLE_CATEGORIES = 8;
+  const MAX_VISIBLE_CATEGORIES = 10;
 
   // Chargement des settings hero
   useEffect(() => {
@@ -195,7 +222,7 @@ const HeroSection = ({ categories = [] }) => {
   const hasMoreCategories = parentCategories.length > MAX_VISIBLE_CATEGORIES;
 
   return (
-    <section className="relative w-full overflow-hidden bg-slate-50">
+    <section className="relative w-full bg-slate-50" style={{ minHeight: '500px' }}>
       
       {/* Fond diaporama */}
       <div className="absolute inset-0 z-0">
@@ -230,11 +257,11 @@ const HeroSection = ({ categories = [] }) => {
         )}
       </div>
 
-      {/* Contenu principal - HAUTEUR ALIGNÉE */}
+      {/* Contenu principal */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-5 items-stretch">
           
-          {/* ===== COLONNE GAUCHE : MENU CATÉGORIES AVEC SCROLL ===== */}
+          {/* ===== COLONNE GAUCHE : CATÉGORIES AVEC ICÔNES ===== */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 flex flex-col h-full">
             <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <ShoppingBag className="w-5 h-5 text-white" />
@@ -242,7 +269,7 @@ const HeroSection = ({ categories = [] }) => {
             </div>
             
             {/* Liste des catégories avec scroll */}
-            <div className={`flex-1 overflow-y-auto ${hasMoreCategories ? 'max-h-[320px]' : ''}`}>
+            <div className="flex-1 overflow-y-auto" style={{ maxHeight: '380px' }}>
               <div className="p-2">
                 {visibleCategories.map(cat => {
                   const subCats = getSubCategories(cat.slug);
@@ -264,26 +291,16 @@ const HeroSection = ({ categories = [] }) => {
                 className="flex items-center justify-center gap-2 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-colors border-t border-slate-100 flex-shrink-0"
               >
                 {showAllCategories ? (
-                  <>Voir moins <ChevronRight className="w-4 h-4 rotate-90" /></>
+                  <>Voir moins <ChevronDown className="w-4 h-4 rotate-180" /></>
                 ) : (
                   <>Voir plus <ChevronDown className="w-4 h-4" /></>
                 )}
               </button>
             )}
-            
-            {/* Trust badges en bas */}
-            <div className="border-t border-slate-100 p-3 grid grid-cols-2 gap-2 flex-shrink-0">
-              {TRUST_ITEMS.slice(0, 4).map(f => (
-                <div key={f.label} className="flex items-center gap-2">
-                  <f.icon className="w-3 h-3 text-amber-500" />
-                  <span className="text-[9px] text-slate-500">{f.label}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* ===== COLONNE CENTRALE : DIAPORAMA HERO ===== */}
-          <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-[16/9] bg-black/20">
+          <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-video bg-black/20">
             {currentBgUrl && (
               <img 
                 src={currentBgUrl} 
@@ -291,36 +308,30 @@ const HeroSection = ({ categories = [] }) => {
                 className="w-full h-full object-cover"
               />
             )}
-            <div className="absolute inset-0 flex flex-col justify-center px-8 bg-gradient-to-r from-black/50 to-transparent">
-              <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-xs">
+            <div className="absolute inset-0 flex flex-col justify-center px-6 bg-gradient-to-r from-black/40 to-transparent">
+              <h1 className="text-white text-xl md:text-2xl lg:text-3xl font-black leading-tight max-w-[200px]">
                 L'Afrique à portée<br />
                 <span className="text-orange-400">de clic</span>
               </h1>
-              <p className="text-white/80 text-sm mt-2 max-w-xs">
-                Des milliers de produits africains authentiques
-              </p>
-              <Button asChild size="sm" className="mt-4 w-fit rounded-full bg-orange-500 hover:bg-orange-600">
-                <Link to="/produits">Explorer <ArrowRight className="w-4 h-4 ml-1" /></Link>
+              <Button asChild size="sm" className="mt-3 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-xs">
+                <Link to="/produits">Explorer <ArrowRight className="w-3 h-3 ml-1" /></Link>
               </Button>
             </div>
           </div>
 
-          {/* ===== COLONNE DROITE ===== */}
+          {/* ===== COLONNE DROITE : BOUTIQUES + PUB ===== */}
           <div className="flex flex-col gap-4 h-full">
             {/* Bloc Boutiques */}
-            <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-100">
+            <div className="bg-white rounded-2xl shadow-lg p-4 border border-slate-100 flex-1 flex flex-col">
               {shops.length > 0 ? (
                 <ShopCarousel shops={shops} />
               ) : (
-                <div className="text-center py-4 text-slate-400 text-sm">Chargement des boutiques...</div>
+                <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">Chargement des boutiques...</div>
               )}
-              <Link to="/produits" className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 transition">
-                Voir tout <ArrowRight className="w-3 h-3" />
-              </Link>
             </div>
 
-            {/* Bloc Image/Vidéo (configurable par l'admin) */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 flex-1">
+            {/* Bloc Image/Vidéo */}
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
               {rightBlockType === 'video' && rightBlockVideo ? (
                 <div className="aspect-video">
                   <iframe 
@@ -335,7 +346,7 @@ const HeroSection = ({ categories = [] }) => {
                 <img 
                   src={getImageUrl(rightBlockImage)} 
                   alt={rightBlockTitle || "Publicité"}
-                  className="w-full h-full object-cover"
+                  className="w-full h-auto object-cover"
                 />
               ) : (
                 <div className="aspect-video bg-gradient-to-br from-orange-100 to-amber-100 flex flex-col items-center justify-center p-4 text-center">
