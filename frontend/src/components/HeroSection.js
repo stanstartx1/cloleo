@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -11,23 +11,20 @@ import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// ─── Badges de confiance ────────────────────────────────────────────
 const TRUST_ITEMS = [
-  { icon: Truck,  label: 'Livraison rapide',    sub: 'Partout en Afrique' },
-  { icon: Shield, label: 'Paiement sécurisé',   sub: 'Transactions protégées' },
-  { icon: Star,   label: 'Qualité vérifiée',    sub: 'Vendeurs sélectionnés' },
-  { icon: Zap,    label: 'Support 24/7',         sub: 'Toujours disponible' },
+  { icon: Truck, label: 'Livraison rapide', sub: 'Partout en Afrique' },
+  { icon: Shield, label: 'Paiement sécurisé', sub: 'Transactions protégées' },
+  { icon: Star, label: 'Qualité vérifiée', sub: 'Vendeurs sélectionnés' },
+  { icon: Zap, label: 'Support 24/7', sub: 'Toujours disponible' },
 ];
 
-// ─── Stats à la SuperBuyer ───────────────────────────────────────────
 const STATS = [
-  { value: '5M+',  label: 'Produits disponibles' },
-  { value: '12',   label: 'Pays desservis' },
+  { value: '5M+', label: 'Produits disponibles' },
+  { value: '12', label: 'Pays desservis' },
   { value: '50K+', label: 'Clients satisfaits' },
-  { value: '24H',  label: 'Service client' },
+  { value: '24H', label: 'Service client' },
 ];
 
-// ─── Carousel générique ──────────────────────────────────────────────
 const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color }) => {
   const [idx, setIdx] = useState(0);
   const perPage = 3;
@@ -35,7 +32,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
   const prev = () => setIdx(i => Math.max(0, i - 1));
   const next = () => setIdx(i => Math.min(maxIdx, i + 1));
 
-  // Auto-scroll
   useEffect(() => {
     if (items.length <= perPage) return;
     const t = setInterval(() => setIdx(i => (i >= maxIdx ? 0 : i + 1)), 3500);
@@ -46,8 +42,7 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header card */}
-      <div className={`flex items-center justify-between mb-3 px-1`}>
+      <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
             <Icon className="w-4 h-4 text-white" />
@@ -66,7 +61,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
         </div>
       </div>
 
-      {/* Items */}
       <div className="grid grid-cols-3 gap-2 flex-1">
         <AnimatePresence mode="wait">
           {visible.map((item, i) => (
@@ -79,7 +73,6 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
         </AnimatePresence>
       </div>
 
-      {/* Footer link */}
       <Link to={viewAllLink}
         className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-700 transition">
         Voir tout <ArrowRight className="w-3 h-3" />
@@ -88,14 +81,12 @@ const MiniCarousel = ({ items, renderItem, title, viewAllLink, icon: Icon, color
   );
 };
 
-// ─── Composant principal ─────────────────────────────────────────────
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
   const [shops, setShops] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [, setProducts] = useState([]);
 
-  // Chargement des settings hero
   useEffect(() => {
     axios.get(`${API}/hero-settings`)
       .then(res => {
@@ -113,14 +104,12 @@ const HeroSection = ({ categories = [] }) => {
       ]));
   }, []);
 
-  // Diaporama fond
   useEffect(() => {
     if (heroImages.length <= 1) return;
     const t = setInterval(() => setBgIdx(i => (i + 1) % heroImages.length), 5000);
     return () => clearInterval(t);
   }, [heroImages.length]);
 
-  // Chargement boutiques + produits vedettes
   useEffect(() => {
     axios.get(`${API}/products/featured?limit=12`)
       .catch(() => axios.get(`${API}/products?limit=12`))
@@ -129,7 +118,6 @@ const HeroSection = ({ categories = [] }) => {
         setProducts(list.slice(0, 9));
       }).catch(() => {});
 
-    // Vendeurs actifs (on utilise les catégories avec des vendeurs)
     axios.get(`${API}/products?limit=50`)
       .then(res => {
         const list = Array.isArray(res.data) ? res.data : (res.data?.products || []);
@@ -151,19 +139,21 @@ const HeroSection = ({ categories = [] }) => {
   }, []);
 
   const activeCategories = categories.filter(c => c.is_active !== false);
-  const bgUrl = heroImages[bgIdx]
-    ? (heroImages[bgIdx].startsWith('/') ? `${API_BASE}${heroImages[bgIdx]}` : heroImages[bgIdx])
-    : '';
+  
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('/')) return `${API_BASE}${img}`;
+    return img;
+  };
+  
+  const currentBgUrl = getImageUrl(heroImages[bgIdx]);
 
-  // Render item catégorie
   const renderCategory = (cat) => {
     const banners = cat.banner_images || [];
-    const img = banners[0] || cat.image
-      || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(cat.name)}`;
-    const imgUrl = img.startsWith('/') ? `${API_BASE}${img}` : img;
+    const img = banners[0] || cat.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(cat.name)}`;
+    const imgUrl = getImageUrl(img);
     return (
-      <Link to={`/categories/${cat.slug}`}
-        className="group flex flex-col items-center gap-1">
+      <Link to={`/categories/${cat.slug}`} className="group flex flex-col items-center gap-1">
         <div className="w-full aspect-square rounded-xl overflow-hidden border-2 border-white shadow-md group-hover:border-orange-400 group-hover:scale-105 transition-all duration-200">
           <img src={imgUrl} alt={cat.name} className="w-full h-full object-cover" />
         </div>
@@ -174,14 +164,10 @@ const HeroSection = ({ categories = [] }) => {
     );
   };
 
-  // Render item boutique
   const renderShop = (shop) => {
-    const imgUrl = shop.image
-      ? (shop.image.startsWith('/') ? `${API_BASE}${shop.image}` : shop.image)
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name)}&background=f97316&color=fff&size=80`;
+    const imgUrl = shop.image ? getImageUrl(shop.image) : `https://ui-avatars.com/api/?name=${encodeURIComponent(shop.name)}&background=f97316&color=fff&size=80`;
     return (
-      <Link to={`/vendor-shop/${shop.id}`}
-        className="group flex flex-col items-center gap-1">
+      <Link to={`/vendor-shop/${shop.id}`} className="group flex flex-col items-center gap-1">
         <div className="w-full aspect-square rounded-xl overflow-hidden border-2 border-white shadow-md group-hover:border-amber-400 group-hover:scale-105 transition-all duration-200">
           <img src={imgUrl} alt={shop.name} className="w-full h-full object-cover" />
         </div>
@@ -197,21 +183,27 @@ const HeroSection = ({ categories = [] }) => {
 
   return (
     <section className="relative w-full overflow-hidden" style={{ minHeight: 420 }}>
-
-      {/* ── Fond diaporama ── */}
       <div className="absolute inset-0 z-0">
         <AnimatePresence>
           <motion.div key={bgIdx}
             className="absolute inset-0"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 1.2 }}>
-            {bgUrl && (
-              <img src={bgUrl} alt="hero" className="w-full h-full object-cover" />
+            {currentBgUrl && (
+              <div 
+                className="w-full h-full bg-black"
+                style={{
+                  backgroundImage: `url(${currentBgUrl})`,
+                  backgroundSize: 'contain',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
           </motion.div>
         </AnimatePresence>
-        {/* Points de navigation fond */}
+        
         {heroImages.length > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
             {heroImages.map((_, i) => (
@@ -222,49 +214,32 @@ const HeroSection = ({ categories = [] }) => {
         )}
       </div>
 
-      {/* ── Contenu principal ── */}
       <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 py-8 md:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px_320px] gap-4 items-start">
-
-          {/* Colonne gauche : texte + stats + CTA */}
           <motion.div className="text-white space-y-5"
             initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7 }}>
-
-            {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/20 border border-orange-400/40 backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
               <span className="text-xs font-semibold text-orange-200">Cloleo Marketplace Premium</span>
             </div>
-
-            {/* Titre */}
             <div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight">
                 L'Afrique à portée<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">
-                  de clic
-                </span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">de clic</span>
               </h1>
               <p className="mt-3 text-sm md:text-base text-white/80 max-w-sm">
                 Des milliers de produits africains authentiques. Achetez, vendez, revendez — partout dans le monde.
               </p>
             </div>
-
-            {/* CTA */}
             <div className="flex flex-wrap gap-3">
-              <Button asChild size="sm"
-                className="rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/40 font-bold px-5">
-                <Link to="/produits">
-                  <ShoppingBag className="w-4 h-4 mr-1.5" /> Explorer
-                </Link>
+              <Button asChild size="sm" className="rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/40 font-bold px-5">
+                <Link to="/produits"><ShoppingBag className="w-4 h-4 mr-1.5" /> Explorer</Link>
               </Button>
-              <Button asChild size="sm" variant="outline"
-                className="rounded-full border-white/40 text-white hover:bg-white/10 font-semibold px-5">
+              <Button asChild size="sm" variant="outline" className="rounded-full border-white/40 text-white hover:bg-white/10 font-semibold px-5">
                 <Link to="/connexion">Devenir vendeur</Link>
               </Button>
             </div>
-
-            {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
               {STATS.map(s => (
                 <div key={s.label} className="rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 px-3 py-2">
@@ -273,8 +248,6 @@ const HeroSection = ({ categories = [] }) => {
                 </div>
               ))}
             </div>
-
-            {/* Trust badges */}
             <div className="hidden md:grid grid-cols-2 gap-2 pt-1">
               {TRUST_ITEMS.map(f => (
                 <div key={f.label} className="flex items-center gap-2 rounded-lg bg-white/8 border border-white/10 px-2.5 py-2">
@@ -288,40 +261,21 @@ const HeroSection = ({ categories = [] }) => {
             </div>
           </motion.div>
 
-          {/* Card 1 : Catégories */}
           {activeCategories.length > 0 && (
-            <motion.div
-              className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/60"
+            <motion.div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/60"
               initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}>
-              <MiniCarousel
-                items={activeCategories}
-                renderItem={renderCategory}
-                title="Catégories"
-                viewAllLink="/categories"
-                icon={ShoppingBag}
-                color="bg-gradient-to-br from-orange-500 to-amber-500"
-              />
+              <MiniCarousel items={activeCategories} renderItem={renderCategory} title="Catégories" viewAllLink="/categories" icon={ShoppingBag} color="bg-gradient-to-br from-orange-500 to-amber-500" />
             </motion.div>
           )}
 
-          {/* Card 2 : Meilleures boutiques */}
           {shops.length > 0 && (
-            <motion.div
-              className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/60"
+            <motion.div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 border border-white/60"
               initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.35 }}>
-              <MiniCarousel
-                items={shops}
-                renderItem={renderShop}
-                title="Meilleures boutiques"
-                viewAllLink="/produits"
-                icon={Store}
-                color="bg-gradient-to-br from-amber-500 to-orange-600"
-              />
+              <MiniCarousel items={shops} renderItem={renderShop} title="Meilleures boutiques" viewAllLink="/produits" icon={Store} color="bg-gradient-to-br from-amber-500 to-orange-600" />
             </motion.div>
           )}
-
         </div>
       </div>
     </section>
