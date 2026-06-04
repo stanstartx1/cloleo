@@ -925,6 +925,58 @@ async def admin_upload_hero_image(
     print(f"✅ Hero image uploaded: {url}")  # Debug
     return {"url": url, "filename": filename}
 
+
+
+# ═══════════════════════════════════════════════════════════════
+# LOGO SETTINGS
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/logo-settings")
+async def public_logo_settings():
+    """Route publique — récupère le logo du site"""
+    doc = await db.settings.find_one({"type": "logo"}, {"_id": 0})
+    return doc or {"type": "logo", "logo_url": ""}
+
+
+@api.get("/admin/settings/logo")
+async def admin_logo_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère la configuration du logo"""
+    doc = await db.settings.find_one({"type": "logo"}, {"_id": 0})
+    return doc or {"type": "logo", "logo_url": ""}
+
+
+@api.put("/admin/settings/logo")
+async def admin_save_logo_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde l'URL du logo"""
+    logo_url = payload.get("logo_url", "")
+    doc = {"type": "logo", "logo_url": logo_url, "updated_at": _utc()}
+    await db.settings.update_one({"type": "logo"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "logo_url": logo_url}
+
+
+@api.post("/admin/upload/logo")
+async def admin_upload_logo(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'un logo (GIF, PNG, JPEG, JPG, WEBP)"""
+    allowed_extensions = {".gif", ".png", ".jpeg", ".jpg", ".webp"}
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Format non supporté")
+    
+    filename = f"logo_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 2 Mo)")
+    
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    return {"url": url, "filename": filename}
+
+
 # ═══════════════════════════════════════════════════════════════
 # RIGHT BLOCK (image/vidéo) — bloc publicitaire de droite
 # ═══════════════════════════════════════════════════════════════
