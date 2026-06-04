@@ -2323,14 +2323,24 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
-// ─── Composant Apparence du site (uniquement carrousel Hero) ────────────────
+// ─── Composant Apparence du site (carrousel Hero + Bloc publicitaire droite) ───
 const LayoutAppearanceSection = ({ token, API }) => {
+  // ===== HERO CAROUSEL STATES =====
   const [heroImages, setHeroImages] = React.useState([]);
   const [heroLoading, setHeroLoading] = React.useState(false);
   const [heroUploading, setHeroUploading] = React.useState(false);
   const [dragOverIndex, setDragOverIndex] = React.useState(null);
 
-  // Charger les images du hero
+  // ===== RIGHT BLOCK STATES =====
+  const [rightBlockType, setRightBlockType] = React.useState('image');
+  const [rightBlockImage, setRightBlockImage] = React.useState('');
+  const [rightBlockVideo, setRightBlockVideo] = React.useState('');
+  const [rightBlockTitle, setRightBlockTitle] = React.useState('Espace publicitaire');
+  const [rightBlockLoading, setRightBlockLoading] = React.useState(false);
+  const [rightBlockSaving, setRightBlockSaving] = React.useState(false);
+  const [rightBlockUploading, setRightBlockUploading] = React.useState(false);
+
+  // ===== HERO FUNCTIONS =====
   const fetchHeroImages = async () => {
     setHeroLoading(true);
     try {
@@ -2346,7 +2356,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
-  // Sauvegarder la liste des images hero
   const saveHeroImages = async (images) => {
     try {
       await axios.put(`${API}/admin/settings/hero`, { images }, {
@@ -2359,7 +2368,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
-  // Upload d'une image hero via /upload/multiple
   const uploadHeroImage = async (file) => {
     if (!file) return;
     
@@ -2394,7 +2402,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
-  // Supprimer une image hero
   const removeHeroImage = async (indexToRemove) => {
     const updatedImages = heroImages.filter((_, idx) => idx !== indexToRemove);
     setHeroImages(updatedImages);
@@ -2402,7 +2409,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     toast.success('Image supprimée');
   };
 
-  // Réordonner par glisser-déposer
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData('text/plain', index);
     e.dataTransfer.effectAllowed = 'move';
@@ -2438,12 +2444,98 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
+  // ===== RIGHT BLOCK FUNCTIONS =====
+  const fetchRightBlockSettings = async () => {
+    setRightBlockLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/right-block`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      setRightBlockType(data.type_content || 'image');
+      setRightBlockImage(data.image || '');
+      setRightBlockVideo(data.video || '');
+      setRightBlockTitle(data.title || 'Espace publicitaire');
+    } catch (error) {
+      console.error('Erreur chargement bloc droit:', error);
+    } finally {
+      setRightBlockLoading(false);
+    }
+  };
+
+  const saveRightBlockSettings = async () => {
+    setRightBlockSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/right-block`, {
+        type_content: rightBlockType,
+        image: rightBlockImage,
+        video: rightBlockVideo,
+        title: rightBlockTitle
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Bloc publicitaire sauvegardé !');
+    } catch (error) {
+      console.error('Erreur sauvegarde bloc droit:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setRightBlockSaving(false);
+    }
+  };
+
+  const uploadRightBlockImage = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setRightBlockUploading(true);
+    try {
+      const response = await axios.post(`${API}/admin/upload/right-block-image`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.url;
+      setRightBlockImage(newImageUrl);
+      toast.success('Image uploadée !');
+    } catch (error) {
+      console.error('Erreur upload image bloc droit:', error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setRightBlockUploading(false);
+    }
+  };
+
+  const handleRightBlockImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadRightBlockImage(file);
+    }
+    e.target.value = '';
+  };
+
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('/')) return `${API_BASE}${img}`;
+    return img;
+  };
+
   React.useEffect(() => {
     fetchHeroImages();
+    fetchRightBlockSettings();
   }, [token, API]);
 
   return (
     <div className="space-y-6 p-6">
+      {/* ===== SECTION CARROUSEL HERO ===== */}
       <div>
         <h2 className="text-xl font-bold text-slate-100">Carrousel Hero (Diaporama)</h2>
         <p className="text-slate-400 text-sm mt-1">
@@ -2451,7 +2543,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
         </p>
       </div>
 
-      {/* SECTION CARROUSEL HERO */}
       <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-5 border border-purple-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-purple-300">
           <Image className="w-5 h-5" /> 🎠 Images du diaporama
@@ -2460,7 +2551,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
           Ajoutez des images (GIF, PNG, JPEG, JPG). Glissez-déposez pour les réordonner.
         </p>
 
-        {/* Upload zone */}
         <div className="mb-5 p-4 border-2 border-dashed border-purple-500/40 rounded-lg text-center bg-slate-800/30">
           <input
             type="file"
@@ -2480,7 +2570,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
           <p className="text-xs text-slate-500 mt-2">Glissez les images pour les réordonner</p>
         </div>
 
-        {/* Liste des images */}
         {heroLoading ? (
           <p className="text-slate-400 text-center py-4">Chargement...</p>
         ) : heroImages.length === 0 ? (
@@ -2502,7 +2591,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                 }`}
               >
                 <img
-                  src={img}
+                  src={getImageUrl(img)}
                   alt={`Hero ${idx + 1}`}
                   className="w-full h-40 object-contain bg-slate-900"
                 />
@@ -2527,7 +2616,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
         )}
       </div>
 
-      {/* Bouton de rafraîchissement */}
       <button
         onClick={fetchHeroImages}
         disabled={heroLoading}
@@ -2536,6 +2624,142 @@ const LayoutAppearanceSection = ({ token, API }) => {
         <RefreshCw className={`w-4 h-4 inline mr-2 ${heroLoading ? 'animate-spin' : ''}`} />
         Rafraîchir les images
       </button>
+
+      {/* ===== SECTION BLOC PUBLICITAIRE DROITE ===== */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">Bloc publicitaire (colonne droite)</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez l'image ou la vidéo qui apparaîtra sous les boutiques sur la page d'accueil.
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 rounded-xl p-5 border border-emerald-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-emerald-300">
+          <Image className="w-5 h-5" /> 📺 Contenu du bloc
+        </h3>
+
+        {rightBlockLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-4">
+            {/* Type de contenu */}
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Type de contenu</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="right_block_type"
+                    value="image"
+                    checked={rightBlockType === 'image'}
+                    onChange={() => setRightBlockType('image')}
+                  />
+                  <span className="text-slate-200">🖼️ Image</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="right_block_type"
+                    value="video"
+                    checked={rightBlockType === 'video'}
+                    onChange={() => setRightBlockType('video')}
+                  />
+                  <span className="text-slate-200">🎬 Vidéo YouTube</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Upload image */}
+            {rightBlockType === 'image' && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Image publicitaire</label>
+                <div className="flex gap-4 items-start flex-wrap">
+                  {rightBlockImage && (
+                    <img src={getImageUrl(rightBlockImage)} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
+                  )}
+                  <div className="flex-1 min-w-[200px]">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={handleRightBlockImageChange}
+                      disabled={rightBlockUploading}
+                      className="hidden"
+                      id="right-block-upload"
+                    />
+                    <label
+                      htmlFor="right-block-upload"
+                      className="inline-flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {rightBlockUploading ? 'Upload en cours...' : '📁 Choisir une image'}
+                    </label>
+                    {rightBlockImage && (
+                      <button
+                        onClick={() => setRightBlockImage('')}
+                        className="ml-2 text-red-400 hover:text-red-300 text-sm"
+                      >
+                        Supprimer
+                      </button>
+                    )}
+                    <input
+                      type="text"
+                      value={rightBlockImage}
+                      onChange={(e) => setRightBlockImage(e.target.value)}
+                      placeholder="Ou URL de l'image"
+                      className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Vidéo YouTube */}
+            {rightBlockType === 'video' && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">URL YouTube</label>
+                <input
+                  type="text"
+                  value={rightBlockVideo}
+                  onChange={(e) => setRightBlockVideo(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..."
+                  className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                />
+                {rightBlockVideo && (
+                  <div className="mt-3 aspect-video bg-slate-800 rounded-lg overflow-hidden">
+                    <iframe
+                      src={rightBlockVideo.includes('youtube.com/embed') ? rightBlockVideo : rightBlockVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Titre */}
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Titre (optionnel)</label>
+              <input
+                type="text"
+                value={rightBlockTitle}
+                onChange={(e) => setRightBlockTitle(e.target.value)}
+                placeholder="Espace publicitaire"
+                className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+              />
+            </div>
+
+            {/* Bouton sauvegarde */}
+            <button
+              onClick={saveRightBlockSettings}
+              disabled={rightBlockSaving}
+              className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition disabled:opacity-50"
+            >
+              {rightBlockSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le bloc publicitaire'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
