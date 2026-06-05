@@ -33,6 +33,7 @@ from routes.favorites import router as favorites_router, session_favorites_route
 from routes.products import router as products_router
 from routes.reviews import router as reviews_router
 
+
 load_dotenv()
 
 app = FastAPI(title="Cloleo Marketplace API")
@@ -132,6 +133,65 @@ async def search_products(q: str = "", page: int = 1, limit: int = 20):
     total = await db.products.count_documents(query)
     products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
     return {"products": products, "total": total, "page": page}
+
+
+# ═══════════════════════════════════════════════════════════════
+# SEARCH SUGGESTIONS - Recherche en temps réel
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/search/suggestions")
+async def search_suggestions(q: str = "", limit: int = 8):
+    """Retourne des suggestions de noms de produits en temps réel"""
+    if not q or len(q) < 2:
+        return {"suggestions": []}
+    
+    # Recherche insensible à la casse dans les produits approuvés
+    products = await db.products.find(
+        {
+            "status": "approved",
+            "name": {"$regex": q, "$options": "i"}
+        },
+        {"_id": 0, "name": 1}
+    ).limit(limit).to_list(limit)
+    
+    suggestions = [p.get("name") for p in products if p.get("name")]
+    
+    # Si pas assez de résultats, ajouter des catégories correspondantes
+    if len(suggestions) < 4:
+        categories = await db.categories.find(
+            {"name": {"$regex": q, "$options": "i"}, "is_active": True},
+            {"_id": 0, "name": 1}
+        ).limit(limit - len(suggestions)).to_list(limit)
+        for cat in categories:
+            if cat.get("name") and cat.get("name") not in suggestions:
+                suggestions.append(cat.get("name"))
+    
+    return {"suggestions": suggestions[:limit]}
+
+
+@api.get("/search/products")
+async def search_products_live(q: str = "", limit: int = 5):
+    """Retourne des produits complets pour les suggestions en temps réel"""
+    if not q or len(q) < 2:
+        return {"products": []}
+    
+    products = await db.products.find(
+        {
+            "status": "approved",
+            "$or": [
+                {"name": {"$regex": q, "$options": "i"}},
+                {"tags": {"$regex": q, "$options": "i"}}
+            ]
+        },
+        {"_id": 0, "id": 1, "name": 1, "slug": 1, "price_fcfa": 1, "images": 1, "promo_price_fcfa": 1}
+    ).limit(limit).to_list(limit)
+    
+    # Formater les produits pour le frontend
+    for p in products:
+        p["price"] = p.get("promo_price_fcfa") or p.get("price_fcfa") or 0
+        p["image"] = p.get("images", [None])[0] if p.get("images") else None
+    
+    return {"products": products}
 
 
 @api.get("/stats/public")
@@ -852,6 +912,7 @@ async def public_layout_settings():
         "sidebar_image_right": "",
         "sidebar_width": 160
     }
+
 
 
 
@@ -1760,6 +1821,18 @@ def read_root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# Créer les index de recherche au démarrage
+@app.on_event("startup")
+async def startup_event():
+    try:
+        await db.products.create_index([("name", "text")])
+        await db.products.create_index("name")
+        await db.products.create_index("tags")
+        print("✅ Index de recherche créés avec succès")
+    except Exception as e:
+        print(f"⚠️ Note: Index existants ou erreur: {e}")
 
 
 if __name__ == "__main__":
