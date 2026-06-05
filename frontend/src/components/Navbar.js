@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, Filter, DollarSign, Star, TrendingUp, Clock } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, Filter, DollarSign, Star, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -28,16 +28,18 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu Recherche - version optimisée
+// Composant Mega Menu Recherche - avec checkbox
 const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
+  const [filters, setFilters] = useState({
+    certifiedVendor: false,
+    neuf: false,
+    occasion: false,
+  });
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [trendingSearches, setTrendingSearches] = useState([]);
-  const [recentSearches, setRecentSearches] = useState([]);
-  const [certifiedVendors, setCertifiedVendors] = useState([]);
   const menuRef = useRef(null);
 
-  // Charger les suggestions depuis l'API
+  // Charger les suggestions
   useEffect(() => {
     if (!isOpen || !searchQuery.trim()) {
       setSuggestions([]);
@@ -47,231 +49,166 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     const delayDebounce = setTimeout(async () => {
       setSuggestionsLoading(true);
       try {
-        // Suggestions de produits
-        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=8`);
+        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`);
         setSuggestions(response.data.suggestions || []);
       } catch (error) {
         console.error('Erreur suggestions:', error);
       } finally {
         setSuggestionsLoading(false);
       }
-    }, 200);
+    }, 300);
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, isOpen]);
 
-  // Charger les données dynamiques
+  // Fermer le menu
   useEffect(() => {
-    if (!isOpen) return;
-
-    // Charger les recherches populaires
-    const fetchTrending = async () => {
-      try {
-        const response = await axios.get(`${API}/search/trending?limit=6`);
-        setTrendingSearches(response.data.trending || [
-          'Sac à main', 'Montre connectée', 'Robe africaine', 
-          'Téléphone portable', 'Parfum', 'Chaussures'
-        ]);
-      } catch (error) {
-        setTrendingSearches(['Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone portable', 'Parfum', 'Chaussures']);
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        onClose();
       }
     };
-
-    // Charger les vendeurs certifiés
-    const fetchCertifiedVendors = async () => {
-      try {
-        const response = await axios.get(`${API}/vendors/certified?limit=4`);
-        setCertifiedVendors(response.data.vendors || []);
-      } catch (error) {
-        setCertifiedVendors([]);
-      }
-    };
-
-    // Charger les recherches récentes du localStorage
-    const stored = localStorage.getItem('recent_searches');
-    if (stored) {
-      setRecentSearches(JSON.parse(stored).slice(0, 5));
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
     }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
 
-    fetchTrending();
-    fetchCertifiedVendors();
-  }, [isOpen]);
-
-  // Sauvegarder une recherche
-  const saveRecentSearch = (term) => {
-    const stored = localStorage.getItem('recent_searches');
-    let recent = stored ? JSON.parse(stored) : [];
-    recent = [term, ...recent.filter(t => t !== term)].slice(0, 10);
-    localStorage.setItem('recent_searches', JSON.stringify(recent));
-    setRecentSearches(recent.slice(0, 5));
+  const handleApplyFilters = () => {
+    const conditions = [];
+    if (filters.neuf) conditions.push('neuf');
+    if (filters.occasion) conditions.push('occasion');
+    
+    onSearch({
+      q: searchQuery,
+      certifiedVendor: filters.certifiedVendor,
+      conditions: conditions,
+    });
+    onClose();
   };
 
-  const handleSearchClick = (term) => {
-    setSearchQuery(term);
-    saveRecentSearch(term);
-    onSearch({ q: term });
-  };
-
-  const clearRecentSearches = () => {
-    localStorage.removeItem('recent_searches');
-    setRecentSearches([]);
+  const handleResetFilters = () => {
+    setFilters({
+      certifiedVendor: false,
+      neuf: false,
+      occasion: false,
+    });
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200 rounded-b-2xl" ref={menuRef}>
-      <div className="max-w-screen-xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-12 max-h-[450px] overflow-y-auto">
-          
-          {/* Colonne gauche : Suggestions et recherches récentes */}
-          <div className="md:col-span-8 border-r border-slate-100">
-            
-            {/* Suggestions en direct */}
-            {searchQuery.trim() && (
-              <div className="p-3 border-b border-slate-100">
-                <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions pour "{searchQuery}"</h3>
-                {suggestionsLoading ? (
-                  <div className="space-y-1">
-                    {[...Array(4)].map((_, i) => (
-                      <div key={i} className="h-8 bg-slate-100 animate-pulse rounded-lg"></div>
-                    ))}
-                  </div>
-                ) : suggestions.length > 0 ? (
-                  <div className="space-y-0.5">
-                    {suggestions.map((suggestion, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleSearchClick(suggestion)}
-                        className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm"
-                      >
-                        <Search className="w-3 h-3 text-slate-400" />
-                        <span className="text-slate-700">{suggestion}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-400 text-center py-2">Aucune suggestion pour "{searchQuery}"</p>
-                )}
-              </div>
-            )}
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-amber-50">
+          <div className="flex items-center gap-3">
+            <Search className="w-4 h-4 text-orange-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un produit..."
+              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-sm"
+              autoFocus
+            />
+            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full transition">
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
+          </div>
+        </div>
 
-            {/* Recherches récentes */}
-            {!searchQuery.trim() && recentSearches.length > 0 && (
-              <div className="p-3 border-b border-slate-100">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Récentes
-                  </h3>
-                  <button onClick={clearRecentSearches} className="text-[10px] text-slate-400 hover:text-red-500">
-                    Effacer
-                  </button>
+        <div className="p-3">
+          {/* Suggestions */}
+          {searchQuery.trim() && (
+            <div className="mb-3">
+              <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
+              {suggestionsLoading ? (
+                <div className="space-y-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-8 bg-slate-100 animate-pulse rounded-lg"></div>
+                  ))}
                 </div>
+              ) : suggestions.length > 0 ? (
                 <div className="space-y-0.5">
-                  {recentSearches.map((term, idx) => (
+                  {suggestions.map((suggestion, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleSearchClick(term)}
+                      onClick={() => {
+                        setSearchQuery(suggestion);
+                        handleApplyFilters();
+                      }}
                       className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm"
                     >
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      <span className="text-slate-700">{term}</span>
+                      <Search className="w-3 h-3 text-slate-400" />
+                      <span className="text-slate-700">{suggestion}</span>
                     </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tendances de recherche */}
-            {!searchQuery.trim() && (
-              <div className="p-3 border-b border-slate-100">
-                <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Tendances
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {trendingSearches.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSearchClick(item)}
-                      className="px-2 py-1 bg-slate-100 hover:bg-orange-100 rounded-full text-[11px] text-slate-600 transition-colors"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Catégories populaires */}
-            {!searchQuery.trim() && (
-              <div className="p-3">
-                <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Catégories populaires</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {CATEGORIES.slice(0, 6).map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      to={`/categories/${cat.slug}`}
-                      onClick={onClose}
-                      className="px-2 py-1 bg-slate-100 hover:bg-orange-100 rounded-full text-[11px] text-slate-600 transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Colonne droite : Vendeurs certifiés et catégories */}
-          <div className="md:col-span-4 p-3 bg-slate-50">
-            {/* Vendeurs certifiés */}
-            <div className="mb-3">
-              <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                <Star className="w-3 h-3 text-amber-500" /> Vendeurs certifiés
-              </h3>
-              {certifiedVendors.length > 0 ? (
-                <div className="space-y-1.5">
-                  {certifiedVendors.map((vendor) => (
-                    <Link
-                      key={vendor.id}
-                      to={`/vendor-shop/${vendor.id}`}
-                      onClick={onClose}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-white transition-colors group"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-                        <Store className="w-4 h-4 text-amber-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-medium text-slate-700 group-hover:text-orange-600">
-                          {vendor.shop_name || vendor.name}
-                        </p>
-                        <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                          <span>{vendor.rating || '5.0'} • {vendor.product_count || 0} produits</span>
-                        </p>
-                      </div>
-                      <div className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded-full">
-                        Certifié
-                      </div>
-                    </Link>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-slate-400 text-xs">
-                  <Star className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p>Aucun vendeur certifié</p>
-                </div>
+                <p className="text-xs text-slate-400 text-center py-2">Aucune suggestion</p>
               )}
             </div>
+          )}
 
-            {/* Lien vers tous les vendeurs */}
-            <Link
-              to="/vendeurs-certifies"
-              onClick={onClose}
-              className="block text-center text-xs text-orange-500 hover:text-orange-600 mt-2"
-            >
-              Voir tous les vendeurs certifiés →
-            </Link>
+          {/* Filtres avec checkboxes */}
+          <div className="border-t border-slate-100 pt-3">
+            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <Filter className="w-3 h-3" /> Filtres
+            </h3>
+            
+            <div className="space-y-2">
+              {/* Vendeur certifié */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.certifiedVendor}
+                  onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-600 flex items-center gap-1">
+                  <Star className="w-3 h-3 text-amber-500" /> Vendeur certifié
+                </span>
+              </label>
+
+              {/* Neuf */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.neuf}
+                  onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-600">Neuf</span>
+              </label>
+
+              {/* Occasion */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.occasion}
+                  onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-600">Occasion</span>
+              </label>
+            </div>
+
+            {/* Boutons action */}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handleApplyFilters}
+                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
+              >
+                Voir les résultats
+              </button>
+              <button
+                onClick={handleResetFilters}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
+              >
+                Réinitialiser
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -292,7 +229,7 @@ const Navbar = () => {
   
   const searchInputRef = useRef(null);
 
-  // Charger le logo depuis le backend
+  // Charger le logo
   useEffect(() => {
     const fetchLogo = async () => {
       try {
@@ -313,7 +250,13 @@ const Navbar = () => {
 
   const handleSearch = (filters = null) => {
     if (filters && filters.q) {
-      navigate(`/recherche?q=${encodeURIComponent(filters.q)}`);
+      const params = new URLSearchParams();
+      params.append('q', filters.q);
+      if (filters.certifiedVendor) params.append('certified', 'true');
+      if (filters.conditions && filters.conditions.length) {
+        params.append('condition', filters.conditions.join(','));
+      }
+      navigate(`/recherche?${params.toString()}`);
     } else if (searchQuery.trim()) {
       navigate(`/recherche?q=${encodeURIComponent(searchQuery)}`);
     }
@@ -358,16 +301,16 @@ const Navbar = () => {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-5 shrink-0">
+            <div className="hidden lg:flex items-center gap-4 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1 font-medium hover:text-orange-500 transition-all duration-300 nav-item">
-                    Parcourir <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
+                  <button className="flex items-center gap-1 font-medium hover:text-orange-500 transition-all duration-300 text-sm">
+                    Parcourir <ChevronDown className="w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 animate-scale-in">
                   {CATEGORIES.map((cat, index) => (
-                    <DropdownMenuItem key={cat.slug} asChild className="transition-all duration-200 hover:translate-x-1" style={{ animationDelay: `${index * 0.05}s` }}>
+                    <DropdownMenuItem key={cat.slug} asChild className="transition-all duration-200 hover:translate-x-1">
                       <Link to={`/categories/${cat.slug}`}>{cat.name}</Link>
                     </DropdownMenuItem>
                   ))}
@@ -377,25 +320,25 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Link to="/produits?featured=true" className="font-medium hover:text-orange-500 transition-all duration-300 nav-item">
+              <Link to="/produits?featured=true" className="font-medium hover:text-orange-500 transition-all duration-300 text-sm">
                 Tendances
               </Link>
-              <Link to="/produits?sort_by=created_at" className="font-medium hover:text-orange-500 transition-all duration-300 nav-item">
+              <Link to="/produits?sort_by=created_at" className="font-medium hover:text-orange-500 transition-all duration-300 text-sm">
                 Nouveautés
               </Link>
             </div>
 
-            {/* Search bar - Desktop avec Mega Menu */}
-            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-md xl:max-w-lg mx-1 lg:mx-2 relative">
+            {/* Search bar - Desktop avec largeur réduite */}
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm mx-1 relative">
               <div className="relative w-full">
                 <div 
-                  className="flex items-center bg-gray-100 rounded-full px-4 py-2 cursor-pointer hover:bg-gray-200 transition-colors"
+                  className="flex items-center bg-gray-100 rounded-full px-3 py-1.5 cursor-pointer hover:bg-gray-200 transition-colors"
                   onClick={handleSearchClick}
                 >
-                  <Search className="w-4 h-4 text-gray-400" />
-                  <span className="ml-2 text-sm text-gray-500 flex-1">Rechercher un produit...</span>
+                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="ml-2 text-xs text-gray-500 flex-1">Rechercher...</span>
                 </div>
-                {/* Mega Menu intégré */}
+                {/* Mega Menu */}
                 <SearchMegaMenu
                   isOpen={megaMenuOpen}
                   onClose={() => setMegaMenuOpen(false)}
@@ -406,8 +349,8 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Actions - rapprochées */}
-            <div className="ml-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
+            {/* Actions - plus à gauche */}
+            <div className="ml-2 flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Mobile search button */}
               <Button
                 variant="ghost"
