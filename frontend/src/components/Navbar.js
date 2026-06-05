@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, SlidersHorizontal, Check, Filter, DollarSign, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
+const API = API_URL;
+
 const CATEGORIES = [
   { name: 'Mode & Textile', slug: 'mode-textile' },
   { name: 'Artisanat & Décoration', slug: 'artisanat-decoration' },
@@ -26,6 +28,286 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
+// Composant Mega Menu Recherche
+const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
+  const [filters, setFilters] = useState({
+    categories: [],
+    minPrice: '',
+    maxPrice: '',
+    condition: '',
+    sellerType: '',
+  });
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const menuRef = useRef(null);
+
+  // Charger les suggestions en temps réel
+  useEffect(() => {
+    if (!isOpen || !searchQuery.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=10`);
+        setSuggestions(response.data.suggestions || []);
+      } catch (error) {
+        console.error('Erreur suggestions:', error);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery, isOpen]);
+
+  // Fermer le menu en cliquant à l'extérieur
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
+
+  const handleCategoryToggle = (categorySlug) => {
+    setSelectedCategories(prev =>
+      prev.includes(categorySlug)
+        ? prev.filter(c => c !== categorySlug)
+        : [...prev, categorySlug]
+    );
+  };
+
+  const handleApplyFilters = () => {
+    onSearch({
+      q: searchQuery,
+      categories: selectedCategories,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      condition: filters.condition,
+      sellerType: filters.sellerType,
+    });
+    onClose();
+  };
+
+  const handleResetFilters = () => {
+    setSelectedCategories([]);
+    setFilters({
+      categories: [],
+      minPrice: '',
+      maxPrice: '',
+      condition: '',
+      sellerType: '',
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        ref={menuRef}
+        className="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-amber-50">
+          <div className="flex items-center gap-3">
+            <Search className="w-5 h-5 text-orange-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un produit, une marque ou une catégorie..."
+              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-lg"
+              autoFocus
+            />
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition">
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 max-h-[70vh] overflow-y-auto">
+          {/* Colonne gauche : Suggestions */}
+          <div className="md:col-span-2 border-r border-slate-100">
+            <div className="p-4">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Suggestions</h3>
+              {suggestionsLoading ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
+                  ))}
+                </div>
+              ) : suggestions.length > 0 ? (
+                <div className="space-y-1">
+                  {suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setSearchQuery(suggestion);
+                        handleApplyFilters();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2"
+                    >
+                      <Search className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm text-slate-700">{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : searchQuery.trim() && (
+                <p className="text-sm text-slate-400 text-center py-4">Aucune suggestion pour "{searchQuery}"</p>
+              )}
+            </div>
+
+            {/* Produits populaires */}
+            <div className="p-4 border-t border-slate-100">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Produits populaires</h3>
+              <div className="flex flex-wrap gap-2">
+                {['Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone portable', 'Parfum', 'Chaussures'].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => {
+                      setSearchQuery(item);
+                      handleApplyFilters();
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-orange-100 rounded-full text-xs text-slate-600 transition-colors"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Colonne droite : Filtres */}
+          <div className="p-4 bg-slate-50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Filter className="w-4 h-4" /> Filtres avancés
+              </h3>
+              <button onClick={handleResetFilters} className="text-xs text-orange-500 hover:text-orange-600">
+                Réinitialiser
+              </button>
+            </div>
+
+            {/* Filtre catégories */}
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-slate-500 block mb-2">Catégories</label>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {CATEGORIES.map((cat) => (
+                  <label key={cat.slug} className="flex items-center gap-2 cursor-pointer py-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(cat.slug)}
+                      onChange={() => handleCategoryToggle(cat.slug)}
+                      className="rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-slate-600">{cat.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtre prix */}
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-slate-500 block mb-2 flex items-center gap-1">
+                <DollarSign className="w-3 h-3" /> Prix
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice}
+                  onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
+                  className="w-1/2 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-orange-300 focus:ring-1 focus:ring-orange-300 outline-none"
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice}
+                  onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                  className="w-1/2 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-orange-300 focus:ring-1 focus:ring-orange-300 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Filtre condition */}
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-slate-500 block mb-2">État</label>
+              <div className="flex gap-3">
+                {[
+                  { value: 'neuf', label: 'Neuf' },
+                  { value: 'presque_neuf', label: 'Presque neuf' },
+                  { value: 'occasion', label: 'Occasion' },
+                ].map((cond) => (
+                  <label key={cond.value} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="condition"
+                      value={cond.value}
+                      checked={filters.condition === cond.value}
+                      onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-xs text-slate-600">{cond.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtre type vendeur */}
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-slate-500 block mb-2">Type de vendeur</label>
+              <div className="flex gap-3">
+                {[
+                  { value: 'vendor', label: 'Vendeurs' },
+                  { value: 'revendeur', label: 'Revendeurs' },
+                ].map((type) => (
+                  <label key={type.value} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sellerType"
+                      value={type.value}
+                      checked={filters.sellerType === type.value}
+                      onChange={(e) => setFilters({ ...filters, sellerType: e.target.value })}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-xs text-slate-600">{type.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Boutons action */}
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={handleApplyFilters}
+                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2 rounded-lg font-medium text-sm hover:from-orange-600 hover:to-amber-600 transition"
+              >
+                Voir les résultats
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
@@ -33,42 +315,57 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoading, setLogoLoading] = useState(true);
   
+  const searchInputRef = useRef(null);
   const hasUserMenu = isAuthenticated;
 
-// Charger le logo depuis le backend
-useEffect(() => {
-  const fetchLogo = async () => {
-    try {
-      // Utiliser API_URL qui contient /api
-      const response = await fetch(`${API_URL}/logo-settings`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  // Charger le logo depuis le backend
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/logo-settings`);
+        const data = await response.json();
+        if (data.logo_url && data.logo_url.trim()) {
+          const logo = data.logo_url.startsWith('/') ? `${API_BASE}${data.logo_url}` : data.logo_url;
+          setLogoUrl(logo);
+        }
+      } catch (error) {
+        console.error('Erreur chargement logo:', error);
+      } finally {
+        setLogoLoading(false);
       }
-      const data = await response.json();
-      if (data.logo_url && data.logo_url.trim()) {
-        const logo = data.logo_url.startsWith('/') ? `${API_BASE}${data.logo_url}` : data.logo_url;
-        setLogoUrl(logo);
-        console.log('✅ Logo chargé:', logo);
-      }
-    } catch (error) {
-      console.error('Erreur chargement logo:', error);
-    } finally {
-      setLogoLoading(false);
-    }
-  };
-  fetchLogo();
-}, []);
+    };
+    fetchLogo();
+  }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
+  const handleSearch = (filters = null) => {
+    if (filters && filters.q) {
+      const params = new URLSearchParams();
+      params.append('q', filters.q);
+      if (filters.categories?.length) params.append('categories', filters.categories.join(','));
+      if (filters.minPrice) params.append('min_price', filters.minPrice);
+      if (filters.maxPrice) params.append('max_price', filters.maxPrice);
+      if (filters.condition) params.append('condition', filters.condition);
+      if (filters.sellerType) params.append('seller_type', filters.sellerType);
+      navigate(`/recherche?${params.toString()}`);
+    } else if (searchQuery.trim()) {
       navigate(`/recherche?q=${encodeURIComponent(searchQuery)}`);
-      setSearchOpen(false);
-      setSearchQuery('');
     }
+    setMegaMenuOpen(false);
+    setSearchOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleSearchClick = () => {
+    setMegaMenuOpen(true);
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }, 100);
   };
 
   const handleLogout = () => {
@@ -80,21 +377,11 @@ useEffect(() => {
     <>
       <nav className="sticky top-0 z-40 bg-white shadow-md transition-all duration-300" data-testid="navbar">
         <div className="container mx-auto px-4">
-          {/* Main navbar - Top bar supprimée */}
           <div className="flex items-center h-14 md:h-16 gap-3 lg:gap-4">
-            {/* Logo - Image uploadable par l'admin */}
+            {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group shrink-0" data-testid="logo">
               {!logoLoading && logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Cloléo" 
-                  className="h-8 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    console.error('Erreur chargement image logo:', logoUrl);
-                    e.target.style.display = 'none';
-                    setLogoUrl('');
-                  }}
-                />
+                <img src={logoUrl} alt="Cloléo" className="h-8 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105" />
               ) : (
                 <>
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-lg md:text-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 group-hover:shadow-lg group-hover:shadow-orange-500/30">
@@ -136,22 +423,18 @@ useEffect(() => {
               </Link>
             </div>
 
-            {/* Search bar - Desktop */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 min-w-0 max-w-sm xl:max-w-md mx-2 lg:mx-4">
+            {/* Search bar - Desktop avec Mega Menu */}
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm xl:max-w-md mx-2 lg:mx-4">
               <div className="relative w-full">
-                <Input
-                  type="text"
-                  placeholder="Rechercher un produit..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 bg-gray-100 border-0 focus:bg-white focus:ring-2 focus:ring-orange-300 h-9 md:h-10 rounded-full"
-                  data-testid="search-input"
-                />
-                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors">
-                  <Search className="w-4 h-4" />
-                </button>
+                <div 
+                  className="flex items-center bg-gray-100 rounded-full px-4 py-2 cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={handleSearchClick}
+                >
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <span className="ml-2 text-sm text-gray-500 flex-1">Rechercher un produit...</span>
+                </div>
               </div>
-            </form>
+            </div>
 
             {/* Actions */}
             <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
@@ -287,6 +570,15 @@ useEffect(() => {
         </div>
       </nav>
 
+      {/* Mega Menu Recherche */}
+      <SearchMegaMenu
+        isOpen={megaMenuOpen}
+        onClose={() => setMegaMenuOpen(false)}
+        onSearch={handleSearch}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
+
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
@@ -397,11 +689,11 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Mobile Search Overlay */}
+      {/* Mobile Search Overlay (simplifié) */}
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
           <div className="bg-white p-4" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <form onSubmit={(e) => { e.preventDefault(); handleSearch({ q: searchQuery }); }} className="flex items-center gap-2">
               <Input
                 type="text"
                 placeholder="Rechercher..."
