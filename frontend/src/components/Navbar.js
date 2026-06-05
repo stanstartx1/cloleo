@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, Filter, DollarSign, Star, TrendingUp, Clock, Package, Tag } from 'lucide-react';
+import { 
+  ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
+  Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
+  Filter, Star, TrendingUp, Package, Tag, ChevronRight 
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -29,7 +33,7 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu Recherche - Version corrigée
+// Composant Mega Menu Recherche
 const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery, inputRef }) => {
   const [filters, setFilters] = useState({
     certifiedVendor: false,
@@ -41,7 +45,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
   const [loading, setLoading] = useState(false);
   const menuRef = useRef(null);
 
-  // Charger les suggestions en temps réel quand on tape
+  // Charger les suggestions en temps réel
   useEffect(() => {
     if (!isOpen) return;
     
@@ -54,11 +58,9 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     const delayDebounce = setTimeout(async () => {
       setLoading(true);
       try {
-        // Suggestions de mots-clés
         const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=5`);
         setSuggestions(response.data.suggestions || []);
         
-        // Suggestions de produits
         const productsRes = await axios.get(`${API}/search/products?q=${encodeURIComponent(searchQuery)}&limit=4`);
         setProductSuggestions(productsRes.data.products || []);
       } catch (error) {
@@ -71,10 +73,11 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, isOpen]);
 
-  // Fermer le menu en cliquant à l'extérieur
+  // Fermer le menu
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target) && inputRef?.current && !inputRef.current.contains(event.target)) {
+      if (menuRef.current && !menuRef.current.contains(event.target) && 
+          inputRef?.current && !inputRef.current.contains(event.target)) {
         onClose();
       }
     };
@@ -137,7 +140,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
           </div>
         </div>
 
-        {/* Suggestions en temps réel */}
+        {/* Suggestions */}
         {searchQuery.trim() && (
           <div className="mb-4">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
@@ -149,7 +152,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </div>
             ) : (
               <div className="space-y-1">
-                {/* Suggestions de mots-clés */}
                 {suggestions.map((suggestion, idx) => (
                   <button
                     key={`s-${idx}`}
@@ -160,8 +162,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
                     <span className="text-slate-700">{suggestion}</span>
                   </button>
                 ))}
-                
-                {/* Suggestions de produits */}
                 {productSuggestions.map((product) => (
                   <button
                     key={`p-${product.id}`}
@@ -187,11 +187,10 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
           </div>
         )}
 
-        {/* Grille du méga menu (quand pas de recherche) */}
+        {/* Grille du méga menu */}
         {!searchQuery.trim() && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             
-            {/* Colonne 1 : Catégories */}
             <div>
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <Tag className="w-3 h-3" /> Catégories
@@ -217,7 +216,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </div>
             </div>
 
-            {/* Colonne 2 : Tendances */}
             <div>
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" /> Tendances
@@ -235,7 +233,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </div>
             </div>
 
-            {/* Colonne 3 : Filtres */}
             <div>
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <Filter className="w-3 h-3" /> Filtres
@@ -288,7 +285,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </div>
             </div>
 
-            {/* Colonne 4 : Promo */}
             <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-3">
               <h3 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Bon plan</h3>
               <div className="text-center">
@@ -309,7 +305,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
           </div>
         )}
 
-        {/* Bouton de fermeture */}
         <div className="flex justify-end mt-4 pt-2 border-t border-slate-100">
           <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600">
             Fermer
@@ -331,7 +326,6 @@ const Navbar = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoading, setLogoLoading] = useState(true);
   
-  const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
 
   // Charger le logo
@@ -453,7 +447,6 @@ const Navbar = () => {
 
             {/* Actions */}
             <div className="ml-2 flex items-center gap-1 sm:gap-1.5 shrink-0">
-              {/* Mobile search button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -464,7 +457,6 @@ const Navbar = () => {
                 <Search className="w-4 h-4" />
               </Button>
 
-              {/* Panier */}
               <Link to="/panier" data-testid="cart-btn" className="relative">
                 <Button variant="ghost" size="icon" className="relative rounded-full w-8 h-8 md:w-9 md:h-9 hover:bg-orange-50">
                   <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-300 hover:scale-110" />
@@ -476,14 +468,12 @@ const Navbar = () => {
                 </Button>
               </Link>
 
-              {/* Favoris */}
               <Button variant="ghost" size="icon" asChild className="hidden md:flex rounded-full w-8 h-8 hover:bg-red-50">
                 <Link to="/favoris" data-testid="favorites-btn">
                   <Heart className="w-4 h-4 hover:text-red-500 transition-colors" />
                 </Link>
               </Button>
 
-              {/* User Menu */}
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -526,7 +516,6 @@ const Navbar = () => {
                 </Button>
               )}
 
-              {/* Menu burger mobile */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -541,7 +530,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu (inchangé) */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
           <div className="flex items-center justify-between p-4 border-b">
