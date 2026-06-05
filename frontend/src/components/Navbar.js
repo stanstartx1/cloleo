@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import axios from 'axios';
 
 const API = API_URL;
 
@@ -28,8 +29,8 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu Recherche enrichi
-const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
+// Composant Mega Menu Recherche - Version corrigée
+const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery, inputRef }) => {
   const [filters, setFilters] = useState({
     certifiedVendor: false,
     neuf: false,
@@ -37,24 +38,24 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
   });
   const [suggestions, setSuggestions] = useState([]);
   const [productSuggestions, setProductSuggestions] = useState([]);
-  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [trendingProducts, setTrendingProducts] = useState([]);
-  const [popularCategories, setPopularCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
   const menuRef = useRef(null);
 
-  // Charger les suggestions de produits en temps réel
+  // Charger les suggestions en temps réel quand on tape
   useEffect(() => {
-    if (!isOpen || !searchQuery.trim()) {
+    if (!isOpen) return;
+    
+    if (!searchQuery.trim()) {
       setSuggestions([]);
       setProductSuggestions([]);
       return;
     }
 
     const delayDebounce = setTimeout(async () => {
-      setSuggestionsLoading(true);
+      setLoading(true);
       try {
         // Suggestions de mots-clés
-        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`);
+        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=5`);
         setSuggestions(response.data.suggestions || []);
         
         // Suggestions de produits
@@ -63,53 +64,17 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
       } catch (error) {
         console.error('Erreur suggestions:', error);
       } finally {
-        setSuggestionsLoading(false);
+        setLoading(false);
       }
     }, 300);
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, isOpen]);
 
-  // Charger les données statiques du méga menu
-  useEffect(() => {
-    if (!isOpen) return;
-
-    // Produits tendances
-    const fetchTrendingProducts = async () => {
-      try {
-        const response = await axios.get(`${API}/products/trending?limit=6`);
-        setTrendingProducts(response.data.products || []);
-      } catch (error) {
-        // Données par défaut
-        setTrendingProducts([
-          { id: 1, name: 'Sac à main', image: null, price: 25000 },
-          { id: 2, name: 'Montre connectée', image: null, price: 45000 },
-          { id: 3, name: 'Robe africaine', image: null, price: 35000 },
-          { id: 4, name: 'Téléphone portable', image: null, price: 150000 },
-          { id: 5, name: 'Parfum', image: null, price: 20000 },
-          { id: 6, name: 'Chaussures', image: null, price: 30000 },
-        ]);
-      }
-    };
-
-    // Catégories populaires
-    const fetchPopularCategories = async () => {
-      try {
-        const response = await axios.get(`${API}/categories/popular?limit=8`);
-        setPopularCategories(response.data.categories || CATEGORIES.slice(0, 8));
-      } catch (error) {
-        setPopularCategories(CATEGORIES.slice(0, 8));
-      }
-    };
-
-    fetchTrendingProducts();
-    fetchPopularCategories();
-  }, [isOpen]);
-
-  // Fermer le menu
+  // Fermer le menu en cliquant à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      if (menuRef.current && !menuRef.current.contains(event.target) && inputRef?.current && !inputRef.current.contains(event.target)) {
         onClose();
       }
     };
@@ -117,7 +82,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, inputRef]);
 
   const handleApplyFilters = () => {
     const conditions = [];
@@ -140,39 +105,56 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     });
   };
 
-  const handleProductClick = (productId, productName) => {
-    setSearchQuery(productName);
-    onSearch({ q: productName });
+  const handleSuggestionClick = (suggestion) => {
+    setSearchQuery(suggestion);
+    onSearch({ q: suggestion });
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200 rounded-b-2xl" ref={menuRef}>
-      <div className="max-w-5xl mx-auto p-4">
+    <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200 rounded-b-2xl mt-1" ref={menuRef}>
+      <div className="max-w-4xl mx-auto p-4">
         
-        {/* Section recherche active */}
+        {/* Barre de recherche dans le méga menu */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-xl">
+          <div className="flex items-center gap-2">
+            <Search className="w-5 h-5 text-orange-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Que recherchez-vous ?"
+              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-base"
+              autoFocus
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="p-1 hover:bg-slate-200 rounded-full">
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Suggestions en temps réel */}
         {searchQuery.trim() && (
           <div className="mb-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions pour "{searchQuery}"</h3>
-            {suggestionsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {[...Array(4)].map((_, i) => (
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
+            {loading ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
                   <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+              <div className="space-y-1">
                 {/* Suggestions de mots-clés */}
                 {suggestions.map((suggestion, idx) => (
                   <button
                     key={`s-${idx}`}
-                    onClick={() => {
-                      setSearchQuery(suggestion);
-                      handleApplyFilters();
-                    }}
-                    className="text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm"
                   >
                     <Search className="w-4 h-4 text-slate-400" />
                     <span className="text-slate-700">{suggestion}</span>
@@ -183,8 +165,8 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
                 {productSuggestions.map((product) => (
                   <button
                     key={`p-${product.id}`}
-                    onClick={() => handleProductClick(product.id, product.name)}
-                    className="text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm group"
+                    onClick={() => handleSuggestionClick(product.name)}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm group"
                   >
                     <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
                       {product.image ? (
@@ -205,126 +187,116 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
           </div>
         )}
 
-        {/* Grille principale du méga menu */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          
-          {/* Colonne 1 : Catégories populaires */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-              <Tag className="w-3 h-3" /> Catégories populaires
-            </h3>
-            <div className="space-y-1">
-              {popularCategories.slice(0, 8).map((cat) => (
+        {/* Grille du méga menu (quand pas de recherche) */}
+        {!searchQuery.trim() && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            
+            {/* Colonne 1 : Catégories */}
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+                <Tag className="w-3 h-3" /> Catégories
+              </h3>
+              <div className="space-y-1">
+                {CATEGORIES.slice(0, 8).map((cat) => (
+                  <Link
+                    key={cat.slug}
+                    to={`/categories/${cat.slug}`}
+                    onClick={onClose}
+                    className="block px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
                 <Link
-                  key={cat.slug}
-                  to={`/categories/${cat.slug}`}
+                  to="/categories"
                   onClick={onClose}
-                  className="block px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  className="block px-2 py-1.5 text-xs text-orange-500 hover:text-orange-600 mt-2"
                 >
-                  {cat.name}
+                  Voir toutes →
                 </Link>
-              ))}
-              <Link
-                to="/categories"
-                onClick={onClose}
-                className="block px-2 py-1.5 text-xs text-orange-500 hover:text-orange-600 mt-2"
-              >
-                Voir toutes les catégories →
-              </Link>
+              </div>
             </div>
-          </div>
 
-          {/* Colonne 2 : Produits tendances */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Produits tendances
-            </h3>
-            <div className="space-y-2">
-              {trendingProducts.slice(0, 5).map((product) => (
+            {/* Colonne 2 : Tendances */}
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> Tendances
+              </h3>
+              <div className="space-y-1">
+                {['Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone', 'Parfum', 'Chaussures'].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => handleSuggestionClick(item)}
+                    className="w-full text-left px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Colonne 3 : Filtres */}
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+                <Filter className="w-3 h-3" /> Filtres
+              </h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.certifiedVendor}
+                    onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
+                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                  />
+                  <span className="text-xs text-slate-600 flex items-center gap-1">
+                    <Star className="w-3 h-3 text-amber-500" /> Vendeur certifié
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.neuf}
+                    onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
+                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                  />
+                  <span className="text-xs text-slate-600">Neuf</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.occasion}
+                    onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
+                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                  />
+                  <span className="text-xs text-slate-600">Occasion</span>
+                </label>
+              </div>
+
+              <div className="flex gap-2 mt-4">
                 <button
-                  key={product.id}
-                  onClick={() => handleProductClick(product.id, product.name)}
-                  className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm group"
+                  onClick={handleApplyFilters}
+                  className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
                 >
-                  <div className="w-8 h-8 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                    {product.image ? (
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Package className="w-4 h-4 text-slate-400 m-2" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-slate-700 group-hover:text-orange-600 text-xs">{product.name}</p>
-                    <p className="text-[10px] text-slate-400">{product.price?.toLocaleString()} FCFA</p>
-                  </div>
+                  Appliquer
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Colonne 3 : Filtres */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-              <Filter className="w-3 h-3" /> Filtres
-            </h3>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.certifiedVendor}
-                  onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                />
-                <span className="text-xs text-slate-600 flex items-center gap-1">
-                  <Star className="w-3 h-3 text-amber-500" /> Vendeur certifié
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.neuf}
-                  onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                />
-                <span className="text-xs text-slate-600">Neuf</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.occasion}
-                  onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                />
-                <span className="text-xs text-slate-600">Occasion</span>
-              </label>
+                <button
+                  onClick={handleResetFilters}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleApplyFilters}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
-              >
-                Appliquer
-              </button>
-              <button
-                onClick={handleResetFilters}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
-              >
-                Réinitialiser
-              </button>
-            </div>
-          </div>
-
-          {/* Colonne 4 : Bonus / Promotions */}
-          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-3">
-            <h3 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Bon plan</h3>
-            <div className="space-y-2">
+            {/* Colonne 4 : Promo */}
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-3">
+              <h3 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Bon plan</h3>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-500">-20%</div>
                 <p className="text-xs text-slate-600">Sur votre première commande</p>
                 <p className="text-[10px] text-slate-400 mt-1">Code: <span className="font-mono bg-white px-1 rounded">CLOLEO20</span></p>
               </div>
-              <div className="border-t border-orange-200 pt-2 mt-2">
+              <div className="border-t border-orange-200 pt-2 mt-3">
                 <Link
                   to="/produits?promo=true"
                   onClick={onClose}
@@ -335,6 +307,13 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </div>
             </div>
           </div>
+        )}
+
+        {/* Bouton de fermeture */}
+        <div className="flex justify-end mt-4 pt-2 border-t border-slate-100">
+          <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600">
+            Fermer
+          </button>
         </div>
       </div>
     </div>
@@ -353,6 +332,7 @@ const Navbar = () => {
   const [logoLoading, setLogoLoading] = useState(true);
   
   const searchInputRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
   // Charger le logo
   useEffect(() => {
@@ -391,11 +371,6 @@ const Navbar = () => {
 
   const handleSearchClick = () => {
     setMegaMenuOpen(true);
-    setTimeout(() => {
-      if (searchInputRef.current) {
-        searchInputRef.current.focus();
-      }
-    }, 100);
   };
 
   const handleLogout = () => {
@@ -454,7 +429,7 @@ const Navbar = () => {
             </div>
 
             {/* Search bar - Desktop */}
-            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm mx-1 relative">
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm mx-1 relative" ref={searchContainerRef}>
               <div className="relative w-full">
                 <div 
                   className="flex items-center bg-gray-100 rounded-full px-3 py-1.5 cursor-pointer hover:bg-gray-200 transition-colors"
@@ -463,6 +438,7 @@ const Navbar = () => {
                   <Search className="w-3.5 h-3.5 text-gray-400" />
                   <span className="ml-2 text-xs text-gray-500 flex-1">Rechercher...</span>
                 </div>
+                
                 {/* Mega Menu */}
                 <SearchMegaMenu
                   isOpen={megaMenuOpen}
@@ -470,6 +446,7 @@ const Navbar = () => {
                   onSearch={handleSearch}
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
+                  inputRef={searchContainerRef}
                 />
               </div>
             </div>
@@ -526,73 +503,26 @@ const Navbar = () => {
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <DropdownMenuSeparator />
-                    {isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin" className="flex items-center gap-2">
-                          <Crown className="w-4 h-4" /> Administration
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {isDriver && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/livreur" className="flex items-center gap-2">
-                          <Truck className="w-4 h-4" /> Espace livreur
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
+                    {isAdmin && <DropdownMenuItem asChild><Link to="/admin"><Crown className="w-4 h-4" /> Administration</Link></DropdownMenuItem>}
+                    {isDriver && <DropdownMenuItem asChild><Link to="/livreur"><Truck className="w-4 h-4" /> Espace livreur</Link></DropdownMenuItem>}
                     {isRevendeur && (
                       <>
-                        <DropdownMenuItem asChild>
-                          <Link to="/revendeur" className="flex items-center gap-2">
-                            <Store className="w-4 h-4" /> Espace revendeur
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/boutique/${user?.shop_slug || ''}`} className="flex items-center gap-2">
-                            <Eye className="w-4 h-4" /> Voir ma boutique
-                          </Link>
-                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link to="/revendeur"><Store className="w-4 h-4" /> Espace revendeur</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link to={`/boutique/${user?.shop_slug || ''}`}><Eye className="w-4 h-4" /> Voir ma boutique</Link></DropdownMenuItem>
                       </>
                     )}
-                    {isVendor && !isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/vendeur" className="flex items-center gap-2">
-                          <Store className="w-4 h-4" /> Espace vendeur
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem asChild>
-                      <Link to="/favoris" className="flex items-center gap-2">
-                        <Heart className="w-4 h-4" /> Mes favoris
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/abonnements" className="flex items-center gap-2">
-                        <Bell className="w-4 h-4" /> Mes abonnements
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/mes-messages" className="flex items-center gap-2">
-                        <MessageCircle className="w-4 h-4" /> Mes messages
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/parametres" className="flex items-center gap-2">
-                        <Settings className="w-4 h-4" /> Paramètres
-                      </Link>
-                    </DropdownMenuItem>
+                    {isVendor && !isAdmin && <DropdownMenuItem asChild><Link to="/vendeur"><Store className="w-4 h-4" /> Espace vendeur</Link></DropdownMenuItem>}
+                    <DropdownMenuItem asChild><Link to="/favoris"><Heart className="w-4 h-4" /> Mes favoris</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/abonnements"><Bell className="w-4 h-4" /> Mes abonnements</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/mes-messages"><MessageCircle className="w-4 h-4" /> Mes messages</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/parametres"><Settings className="w-4 h-4" /> Paramètres</Link></DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                      <LogOut className="w-4 h-4 mr-2" /> Déconnexion
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" /> Déconnexion</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
                 <Button asChild variant="default" size="sm" className="hidden md:inline-flex rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-3 py-1.5 text-xs h-8" data-testid="login-btn">
-                  <Link to="/connexion">
-                    <User className="w-3 h-3 mr-1" />
-                    <span className="hidden lg:inline text-xs">Connexion</span>
-                  </Link>
+                  <Link to="/connexion"><User className="w-3 h-3 mr-1" /> Connexion</Link>
                 </Button>
               )}
 
@@ -611,112 +541,29 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu (inchangé) */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
           <div className="flex items-center justify-between p-4 border-b">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Cloléo" className="h-8 w-auto" />
-            ) : (
-              <span className="text-xl font-bold">
-                <span className="text-orange-500">Clo</span>
-                <span className="text-amber-600">léo</span>
-              </span>
-            )}
-            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
-              <X className="w-6 h-6" />
-            </Button>
+            {logoUrl ? <img src={logoUrl} alt="Cloléo" className="h-8 w-auto" /> : <span className="text-xl font-bold"><span className="text-orange-500">Clo</span><span className="text-amber-600">léo</span></span>}
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></Button>
           </div>
           <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-80px)]">
             {isAuthenticated ? (
-              <div className="p-4 bg-gray-50 rounded-lg mb-4">
-                <p className="font-medium">{user?.name}</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-              </div>
+              <div className="p-4 bg-gray-50 rounded-lg mb-4"><p className="font-medium">{user?.name}</p><p className="text-sm text-gray-500">{user?.email}</p></div>
             ) : (
-              <Link 
-                to="/connexion" 
-                className="flex items-center gap-2 p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-medium"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <User className="w-5 h-5" /> Connexion / Inscription
-              </Link>
+              <Link to="/connexion" className="flex items-center gap-2 p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-medium" onClick={() => setMobileMenuOpen(false)}><User className="w-5 h-5" /> Connexion / Inscription</Link>
             )}
-
-            {isAdmin && (
-              <Link 
-                to="/admin" 
-                className="flex items-center gap-2 py-3 border-b font-medium text-amber-600"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Crown className="w-5 h-5" /> Administration
-              </Link>
-            )}
-
-            {isVendor && !isAdmin && (
-              <Link 
-                to="/vendeur" 
-                className="flex items-center gap-2 py-3 border-b font-medium text-orange-600"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Store className="w-5 h-5" /> Espace vendeur
-              </Link>
-            )}
-
-            <Link 
-              to="/categories" 
-              className="block py-3 border-b font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Toutes les catégories
-            </Link>
-            {CATEGORIES.map((cat) => (
-              <Link
-                key={cat.slug}
-                to={`/categories/${cat.slug}`}
-                className="block py-2 text-gray-600 hover:text-orange-500"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {cat.name}
-              </Link>
-            ))}
+            {isAdmin && <Link to="/admin" className="flex items-center gap-2 py-3 border-b font-medium text-amber-600" onClick={() => setMobileMenuOpen(false)}><Crown className="w-5 h-5" /> Administration</Link>}
+            {isVendor && !isAdmin && <Link to="/vendeur" className="flex items-center gap-2 py-3 border-b font-medium text-orange-600" onClick={() => setMobileMenuOpen(false)}><Store className="w-5 h-5" /> Espace vendeur</Link>}
+            <Link to="/categories" className="block py-3 border-b font-medium" onClick={() => setMobileMenuOpen(false)}>Toutes les catégories</Link>
+            {CATEGORIES.map((cat) => (<Link key={cat.slug} to={`/categories/${cat.slug}`} className="block py-2 text-gray-600 hover:text-orange-500" onClick={() => setMobileMenuOpen(false)}>{cat.name}</Link>))}
             <div className="pt-4 border-t space-y-2">
-              <Link 
-                to="/favoris" 
-                className="flex items-center gap-2 py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Heart className="w-5 h-5" /> Mes favoris
-              </Link>
-              {isAuthenticated && (
-                <Link 
-                  to="/abonnements" 
-                  className="flex items-center gap-2 py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Bell className="w-5 h-5" /> Mes abonnements
-                </Link>
-              )}
-              <Link 
-                to="/panier" 
-                className="flex items-center gap-2 py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <ShoppingCart className="w-5 h-5" /> Mon panier ({cart.item_count})
-              </Link>
+              <Link to="/favoris" className="flex items-center gap-2 py-2" onClick={() => setMobileMenuOpen(false)}><Heart className="w-5 h-5" /> Mes favoris</Link>
+              {isAuthenticated && <Link to="/abonnements" className="flex items-center gap-2 py-2" onClick={() => setMobileMenuOpen(false)}><Bell className="w-5 h-5" /> Mes abonnements</Link>}
+              <Link to="/panier" className="flex items-center gap-2 py-2" onClick={() => setMobileMenuOpen(false)}><ShoppingCart className="w-5 h-5" /> Mon panier ({cart.item_count})</Link>
             </div>
-
-            {isAuthenticated && (
-              <div className="pt-4 border-t">
-                <button 
-                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-2 py-2 text-red-600 w-full"
-                  data-testid="mobile-logout-btn"
-                >
-                  <LogOut className="w-5 h-5" /> Déconnexion
-                </button>
-              </div>
-            )}
+            {isAuthenticated && (<div className="pt-4 border-t"><button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center gap-2 py-2 text-red-600 w-full"><LogOut className="w-5 h-5" /> Déconnexion</button></div>)}
           </div>
         </div>
       )}
@@ -726,20 +573,9 @@ const Navbar = () => {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
           <div className="bg-white p-4" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={(e) => { e.preventDefault(); handleSearch({ q: searchQuery }); }} className="flex items-center gap-2">
-              <Input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 rounded-full"
-                autoFocus
-              />
-              <Button type="submit" size="icon" className="rounded-full bg-orange-500 hover:bg-orange-600">
-                <Search className="w-4 h-4" />
-              </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setSearchOpen(false)} className="rounded-full">
-                <X className="w-4 h-4" />
-              </Button>
+              <Input type="text" placeholder="Rechercher..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 rounded-full" autoFocus />
+              <Button type="submit" size="icon" className="rounded-full bg-orange-500 hover:bg-orange-600"><Search className="w-4 h-4" /></Button>
+              <Button type="button" variant="ghost" size="icon" onClick={() => setSearchOpen(false)} className="rounded-full"><X className="w-4 h-4" /></Button>
             </form>
           </div>
         </div>
