@@ -493,24 +493,59 @@ async def revendeur_catalog(
     limit: int = 48,
     search: str = "",
     category_slug: str = "",
+    all: bool = False,
     user: dict = Depends(require_dropshipper)
 ):
-    query = {"status": "approved"}
+    """
+    Retourne le catalogue produits pour le revendeur.
+    - all=true : retourne TOUS les produits sans pagination (pour la vue groupée par catégorie)
+    - category_slug : filtre par catégorie ou sous-catégorie
+    - search : recherche textuelle
+    """
+    query = {"status": "approved", "source": {"$ne": "revendeur"}}
     if category_slug:
-        query["category_slug"] = category_slug
+        # Chercher dans category_slug ET subcategory_slug pour couvrir les deux niveaux
+        query["$or"] = [
+            {"category_slug": category_slug},
+            {"subcategory_slug": category_slug},
+        ]
     if search:
-        query["$or"] = [{"name": {"$regex": search, "$options": "i"}}, {"description": {"$regex": search, "$options": "i"}}]
-    skip = (page - 1) * limit
+        search_filter = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}},
+        ]
+        if "$or" in query:
+            query["$and"] = [{"$or": query.pop("$or")}, {"$or": search_filter}]
+        else:
+            query["$or"] = search_filter
+
     total = await db.products.count_documents(query)
-    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
-    existing = await db.dropshipped_products.find({"dropshipper_id": user["id"]}, {"_id": 0, "original_product_id": 1}).to_list(2000)
+
+    if all:
+        # Mode vue catégorie : tous les produits d'un coup, champs essentiels seulement
+        products = await db.products.find(query, {
+            "_id": 0, "id": 1, "name": 1, "images": 1, "price_fcfa": 1,
+            "promo_price_fcfa": 1, "category_slug": 1, "subcategory_slug": 1,
+            "stock": 1, "condition": 1, "seller_id": 1,
+        }).sort("name", 1).to_list(5000)
+    else:
+        skip = (page - 1) * limit
+        products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+
+    # Marquer les produits déjà ajoutés par ce revendeur
+    existing = await db.dropshipped_products.find(
+        {"dropshipper_id": user["id"]}, {"_id": 0, "original_product_id": 1}
+    ).to_list(5000)
     existing_ids = {e.get("original_product_id") for e in existing}
     for p in products:
         p["is_dropshipped"] = p.get("id") in existing_ids
+
+    # Retourner catégories et sous-catégories avec image pour l'affichage
     categories = await db.categories.find(
         {"is_active": {"$ne": False}},
-        {"_id": 0, "id": 1, "slug": 1, "name": 1, "parent_slug": 1},
+        {"_id": 0, "id": 1, "slug": 1, "name": 1, "parent_slug": 1, "image": 1, "banner_images": 1},
     ).sort("name", 1).to_list(500)
+
     return {"products": products, "total": total, "page": page, "categories": categories}
 
 @api.get("/revendeur/products")

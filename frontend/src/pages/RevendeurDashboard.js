@@ -69,6 +69,8 @@ const RevendeurDashboard = () => {
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [allCatalogProducts, setAllCatalogProducts] = useState([]); // tous les produits pour la vue catégorie
+  const [allCatalogLoaded, setAllCatalogLoaded] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   
   // My products state
@@ -147,10 +149,10 @@ const RevendeurDashboard = () => {
   const fetchCatalog = async (page = 1, search = '') => {
     setCatalogLoading(true);
     try {
-      const params = new URLSearchParams({ page, limit: 12 });
+      const params = new URLSearchParams({ page, limit: 24 });
       if (search) params.append('search', search);
       if (catalogCategory) params.append('category_slug', catalogCategory);
-      
+
       const response = await apiGetWithFallback(`/revendeur/catalog?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -161,6 +163,21 @@ const RevendeurDashboard = () => {
       toast.error(error.response?.data?.detail || 'Erreur lors du chargement du catalogue');
     } finally {
       setCatalogLoading(false);
+    }
+  };
+
+  // Charge TOUS les produits sans pagination pour la vue groupée par catégorie/sous-catégorie
+  const fetchAllCatalogProducts = async () => {
+    if (allCatalogLoaded) return; // déjà chargé
+    try {
+      const response = await apiGetWithFallback(`/revendeur/catalog?all=true`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAllCatalogProducts(Array.isArray(response.data?.products) ? response.data.products : []);
+      setCatalogCategories(prev => prev.length ? prev : (Array.isArray(response.data?.categories) ? response.data.categories : []));
+      setAllCatalogLoaded(true);
+    } catch (error) {
+      // silencieux — on aura quand même la vue paginée
     }
   };
 
@@ -231,7 +248,7 @@ const RevendeurDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'catalog') fetchCatalog(catalogPage, catalogSearch);
+    if (activeTab === 'catalog') { fetchCatalog(catalogPage, catalogSearch); fetchAllCatalogProducts(); }
     if (activeTab === 'products') fetchMyProducts();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'earnings') fetchEarnings();
@@ -917,7 +934,7 @@ const RevendeurDashboard = () => {
               ) : (
                 /* Vue par catégories/sous-catégories */
                 <CatalogByCategoryView
-                  products={catalogProducts}
+                  products={allCatalogLoaded ? allCatalogProducts : catalogProducts}
                   categories={catalogCategories}
                   onAdd={handleAddProduct}
                   onFilterCategory={(slug) => { setCatalogCategory(slug); setCatalogPage(1); }}
@@ -1003,8 +1020,15 @@ const RevendeurDashboard = () => {
                                     >
                                       {product.is_active ? 'Actif' : 'Inactif'}
                                     </Badge>
-                                    <Badge variant="outline" className="capitalize">
-                                      {product.publication_status === 'approved' ? 'Publié' : (product.publication_status || 'En attente')}
+                                    <Badge
+                                      variant="outline"
+                                      className={`capitalize ${
+                                        product.publication_status === 'approved'
+                                          ? 'border-green-300 text-green-700 bg-green-50'
+                                          : 'border-orange-300 text-orange-600 bg-orange-50'
+                                      }`}
+                                    >
+                                      {product.publication_status === 'approved' ? '✓ Visible sur le site' : '⏳ En attente de validation'}
                                     </Badge>
                                   </motion.div>
                                 </div>
@@ -2655,11 +2679,13 @@ const CatalogProductCard = ({ product, index, onAdd }) => (
 // ============================================================
 const CatalogByCategoryView = ({ products, categories, onAdd, onFilterCategory }) => {
   const [expandedCats, setExpandedCats] = React.useState({});
+  const [expandedSubs, setExpandedSubs] = React.useState({});
 
   const parentCats = categories.filter(c => !c.parent_slug);
   const childCats = categories.filter(c => c.parent_slug);
 
   const toggleCat = (slug) => setExpandedCats(prev => ({ ...prev, [slug]: !prev[slug] }));
+  const toggleSub = (slug) => setExpandedSubs(prev => ({ ...prev, [slug]: !prev[slug] }));
 
   if (products.length === 0) {
     return (
@@ -2670,31 +2696,34 @@ const CatalogByCategoryView = ({ products, categories, onAdd, onFilterCategory }
     );
   }
 
-  // Regrouper produits par category_slug
-  const productsByCategory = {};
+  // Regrouper produits par category_slug ET subcategory_slug
+  // Un produit peut matcher via category_slug (direct) ou subcategory_slug
+  const productsBySlug = {};
   products.forEach(p => {
-    const slug = p.category_slug || '__sans_categorie__';
-    if (!productsByCategory[slug]) productsByCategory[slug] = [];
-    productsByCategory[slug].push(p);
+    // Clé principale : subcategory_slug si présent, sinon category_slug
+    const mainSlug = p.subcategory_slug || p.category_slug || '__sans_categorie__';
+    if (!productsBySlug[mainSlug]) productsBySlug[mainSlug] = [];
+    productsBySlug[mainSlug].push(p);
+    // Si subcategory_slug présent, ne pas aussi mettre dans le parent pour éviter les doublons
   });
 
   return (
     <div className="space-y-8">
       {parentCats.map((parent, pIdx) => {
         const subs = childCats.filter(c => c.parent_slug === parent.slug);
-        
-        // Produits directement sous la catégorie parente
-        const directProducts = productsByCategory[parent.slug] || [];
-        
+
+        // Produits directement sous la catégorie parente (sans sous-cat)
+        const directProducts = productsBySlug[parent.slug] || [];
+
         // Produits dans les sous-catégories
         const subProductGroups = subs
-          .map(sub => ({ sub, prods: productsByCategory[sub.slug] || [] }))
+          .map(sub => ({ sub, prods: productsBySlug[sub.slug] || [] }))
           .filter(g => g.prods.length > 0);
-        
+
         const totalProducts = directProducts.length + subProductGroups.reduce((s, g) => s + g.prods.length, 0);
-        
+
         if (totalProducts === 0) return null;
-        
+
         const isExpanded = expandedCats[parent.slug] !== false; // ouvert par défaut
 
         return (
@@ -2768,30 +2797,61 @@ const CatalogByCategoryView = ({ products, categories, onAdd, onFilterCategory }
                 )}
 
                 {/* Sous-catégories */}
-                {subProductGroups.map(({ sub, prods }, sIdx) => (
-                  <div key={sub.slug} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1 h-6 bg-purple-300 rounded-full" />
-                        <Tag className="w-4 h-4 text-indigo-400" />
-                        <span className="text-sm font-semibold text-gray-700">{sub.name}</span>
-                        <Badge variant="outline" className="text-xs text-indigo-600 border-indigo-200">
-                          {prods.length} produit{prods.length > 1 ? 's' : ''}
-                        </Badge>
-                      </div>
-                      {prods.length > 4 && (
-                        <button onClick={() => onFilterCategory(sub.slug)} className="text-xs text-purple-600 hover:underline">
-                          Voir tout →
-                        </button>
+                {subProductGroups.map(({ sub, prods }, sIdx) => {
+                  const isSubExpanded = expandedSubs[sub.slug] !== false; // ouvert par défaut
+                  const PREVIEW = 8;
+                  return (
+                    <div key={sub.slug} className="space-y-3 border-l-2 border-purple-100 pl-4">
+                      <button
+                        onClick={() => toggleSub(sub.slug)}
+                        className="w-full flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-1 h-5 bg-indigo-300 rounded-full" />
+                          <Tag className="w-4 h-4 text-indigo-400" />
+                          <span className="text-sm font-semibold text-gray-700 group-hover:text-indigo-600 transition-colors">
+                            {sub.name}
+                          </span>
+                          <Badge variant="outline" className="text-xs text-indigo-600 border-indigo-200">
+                            {prods.length} produit{prods.length > 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {prods.length > PREVIEW && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onFilterCategory(sub.slug); }}
+                              className="text-xs text-purple-600 hover:underline"
+                            >
+                              Filtrer →
+                            </button>
+                          )}
+                          <ChevronRight className={`w-4 h-4 text-indigo-300 transition-transform ${isSubExpanded ? 'rotate-90' : ''}`} />
+                        </div>
+                      </button>
+                      {isSubExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="space-y-3"
+                        >
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {prods.slice(0, PREVIEW).map((product, index) => (
+                              <CatalogProductCard key={product.id} product={product} index={index + sIdx * PREVIEW} onAdd={onAdd} />
+                            ))}
+                          </div>
+                          {prods.length > PREVIEW && (
+                            <button
+                              onClick={() => onFilterCategory(sub.slug)}
+                              className="text-sm text-purple-600 hover:underline ml-1"
+                            >
+                              + {prods.length - PREVIEW} autres produits dans {sub.name}
+                            </button>
+                          )}
+                        </motion.div>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {prods.slice(0, 4).map((product, index) => (
-                        <CatalogProductCard key={product.id} product={product} index={index + sIdx * 4} onAdd={onAdd} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </motion.div>
             )}
           </motion.div>
