@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, SlidersHorizontal, Check, Filter, DollarSign, Tag } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, Filter, DollarSign } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -28,7 +28,7 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu Recherche
+// Composant Mega Menu Recherche - version compacte sans overlay
 const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
   const [filters, setFilters] = useState({
     categories: [],
@@ -52,7 +52,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     const delayDebounce = setTimeout(async () => {
       setSuggestionsLoading(true);
       try {
-        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=10`);
+        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=5`);
         setSuggestions(response.data.suggestions || []);
       } catch (error) {
         console.error('Erreur suggestions:', error);
@@ -111,43 +111,39 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div 
-        ref={menuRef}
-        className="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200" ref={menuRef}>
+      <div className="max-w-screen-xl mx-auto px-4">
         {/* Header */}
-        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-amber-50">
+        <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-amber-50">
           <div className="flex items-center gap-3">
-            <Search className="w-5 h-5 text-orange-500" />
+            <Search className="w-4 h-4 text-orange-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher un produit, une marque ou une catégorie..."
-              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-lg"
+              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-sm"
               autoFocus
             />
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition">
-              <X className="w-5 h-5 text-slate-400" />
+            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full transition">
+              <X className="w-4 h-4 text-slate-400" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 max-h-[70vh] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 max-h-[380px] overflow-y-auto">
           {/* Colonne gauche : Suggestions */}
           <div className="md:col-span-2 border-r border-slate-100">
-            <div className="p-4">
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Suggestions</h3>
+            <div className="p-3">
+              <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
               {suggestionsLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
+                <div className="space-y-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-8 bg-slate-100 animate-pulse rounded-lg"></div>
                   ))}
                 </div>
               ) : suggestions.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {suggestions.map((suggestion, idx) => (
                     <button
                       key={idx}
@@ -155,30 +151,30 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
                         setSearchQuery(suggestion);
                         handleApplyFilters();
                       }}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm"
                     >
-                      <Search className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm text-slate-700">{suggestion}</span>
+                      <Search className="w-3 h-3 text-slate-400" />
+                      <span className="text-slate-700">{suggestion}</span>
                     </button>
                   ))}
                 </div>
               ) : searchQuery.trim() && (
-                <p className="text-sm text-slate-400 text-center py-4">Aucune suggestion pour "{searchQuery}"</p>
+                <p className="text-xs text-slate-400 text-center py-2">Aucune suggestion pour "{searchQuery}"</p>
               )}
             </div>
 
-            {/* Produits populaires */}
-            <div className="p-4 border-t border-slate-100">
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Produits populaires</h3>
-              <div className="flex flex-wrap gap-2">
-                {['Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone portable', 'Parfum', 'Chaussures'].map((item) => (
+            {/* Recherches populaires */}
+            <div className="p-3 border-t border-slate-100">
+              <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Recherches populaires</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {['Sac à main', 'Montre', 'Robe', 'Téléphone', 'Parfum', 'Chaussures'].map((item) => (
                   <button
                     key={item}
                     onClick={() => {
                       setSearchQuery(item);
                       handleApplyFilters();
                     }}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-orange-100 rounded-full text-xs text-slate-600 transition-colors"
+                    className="px-2 py-1 bg-slate-100 hover:bg-orange-100 rounded-full text-[11px] text-slate-600 transition-colors"
                   >
                     {item}
                   </button>
@@ -188,115 +184,117 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
           </div>
 
           {/* Colonne droite : Filtres */}
-          <div className="p-4 bg-slate-50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <Filter className="w-4 h-4" /> Filtres avancés
+          <div className="md:col-span-2 p-3 bg-slate-50">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <Filter className="w-3 h-3" /> Filtres
               </h3>
-              <button onClick={handleResetFilters} className="text-xs text-orange-500 hover:text-orange-600">
+              <button onClick={handleResetFilters} className="text-[10px] text-orange-500 hover:text-orange-600">
                 Réinitialiser
               </button>
             </div>
 
-            {/* Filtre catégories */}
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-slate-500 block mb-2">Catégories</label>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                {CATEGORIES.map((cat) => (
-                  <label key={cat.slug} className="flex items-center gap-2 cursor-pointer py-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(cat.slug)}
-                      onChange={() => handleCategoryToggle(cat.slug)}
-                      className="rounded border-slate-300 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-slate-600">{cat.name}</span>
-                  </label>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Filtre catégories */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 block mb-1">Catégories</label>
+                <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                  {CATEGORIES.slice(0, 6).map((cat) => (
+                    <label key={cat.slug} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat.slug)}
+                        onChange={() => handleCategoryToggle(cat.slug)}
+                        className="w-3 h-3 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                      />
+                      <span className="text-[11px] text-slate-600">{cat.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Filtre prix */}
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-slate-500 block mb-2 flex items-center gap-1">
-                <DollarSign className="w-3 h-3" /> Prix
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-                  className="w-1/2 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-orange-300 focus:ring-1 focus:ring-orange-300 outline-none"
-                />
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.maxPrice}
-                  onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-                  className="w-1/2 px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-orange-300 focus:ring-1 focus:ring-orange-300 outline-none"
-                />
+              {/* Filtre prix */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 block mb-1 flex items-center gap-1">
+                  <DollarSign className="w-2.5 h-2.5" /> Prix
+                </label>
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.minPrice}
+                    onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
+                    className="w-1/2 px-1.5 py-1 text-xs border border-slate-200 rounded-lg focus:border-orange-300 outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.maxPrice}
+                    onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                    className="w-1/2 px-1.5 py-1 text-xs border border-slate-200 rounded-lg focus:border-orange-300 outline-none"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Filtre condition */}
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-slate-500 block mb-2">État</label>
-              <div className="flex gap-3">
-                {[
-                  { value: 'neuf', label: 'Neuf' },
-                  { value: 'presque_neuf', label: 'Presque neuf' },
-                  { value: 'occasion', label: 'Occasion' },
-                ].map((cond) => (
-                  <label key={cond.value} className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="condition"
-                      value={cond.value}
-                      checked={filters.condition === cond.value}
-                      onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
-                      className="text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-xs text-slate-600">{cond.label}</span>
-                  </label>
-                ))}
+              {/* Filtre condition */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 block mb-1">État</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'neuf', label: 'Neuf' },
+                    { value: 'presque_neuf', label: 'Presque neuf' },
+                    { value: 'occasion', label: 'Occasion' },
+                  ].map((cond) => (
+                    <label key={cond.value} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="condition"
+                        value={cond.value}
+                        checked={filters.condition === cond.value}
+                        onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
+                        className="w-2.5 h-2.5 text-orange-500 focus:ring-orange-500"
+                      />
+                      <span className="text-[10px] text-slate-600">{cond.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Filtre type vendeur */}
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-slate-500 block mb-2">Type de vendeur</label>
-              <div className="flex gap-3">
-                {[
-                  { value: 'vendor', label: 'Vendeurs' },
-                  { value: 'revendeur', label: 'Revendeurs' },
-                ].map((type) => (
-                  <label key={type.value} className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="sellerType"
-                      value={type.value}
-                      checked={filters.sellerType === type.value}
-                      onChange={(e) => setFilters({ ...filters, sellerType: e.target.value })}
-                      className="text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-xs text-slate-600">{type.label}</span>
-                  </label>
-                ))}
+              {/* Filtre type vendeur */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 block mb-1">Vendeur</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'vendor', label: 'Vendeurs' },
+                    { value: 'revendeur', label: 'Revendeurs' },
+                  ].map((type) => (
+                    <label key={type.value} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sellerType"
+                        value={type.value}
+                        checked={filters.sellerType === type.value}
+                        onChange={(e) => setFilters({ ...filters, sellerType: e.target.value })}
+                        className="w-2.5 h-2.5 text-orange-500 focus:ring-orange-500"
+                      />
+                      <span className="text-[10px] text-slate-600">{type.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Boutons action */}
-            <div className="flex gap-2 mt-6">
+            <div className="flex gap-2 mt-3">
               <button
                 onClick={handleApplyFilters}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2 rounded-lg font-medium text-sm hover:from-orange-600 hover:to-amber-600 transition"
+                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
               >
-                Voir les résultats
+                Voir résultats
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition"
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
               >
                 Fermer
               </button>
@@ -320,7 +318,6 @@ const Navbar = () => {
   const [logoLoading, setLogoLoading] = useState(true);
   
   const searchInputRef = useRef(null);
-  const hasUserMenu = isAuthenticated;
 
   // Charger le logo depuis le backend
   useEffect(() => {
@@ -424,7 +421,7 @@ const Navbar = () => {
             </div>
 
             {/* Search bar - Desktop avec Mega Menu */}
-            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-md xl:max-w-lg mx-1 lg:mx-2">
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-md xl:max-w-lg mx-1 lg:mx-2 relative">
               <div className="relative w-full">
                 <div 
                   className="flex items-center bg-gray-100 rounded-full px-4 py-2 cursor-pointer hover:bg-gray-200 transition-colors"
@@ -433,6 +430,14 @@ const Navbar = () => {
                   <Search className="w-4 h-4 text-gray-400" />
                   <span className="ml-2 text-sm text-gray-500 flex-1">Rechercher un produit...</span>
                 </div>
+                {/* Mega Menu intégré */}
+                <SearchMegaMenu
+                  isOpen={megaMenuOpen}
+                  onClose={() => setMegaMenuOpen(false)}
+                  onSearch={handleSearch}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
               </div>
             </div>
 
@@ -572,15 +577,6 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-
-      {/* Mega Menu Recherche */}
-      <SearchMegaMenu
-        isOpen={megaMenuOpen}
-        onClose={() => setMegaMenuOpen(false)}
-        onSearch={handleSearch}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
