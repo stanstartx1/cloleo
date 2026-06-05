@@ -18,7 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import axios from 'axios';
 
 const API = API_URL;
 
@@ -33,51 +32,38 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu Recherche
-const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery, inputRef }) => {
+// Suggestions locales (sans API)
+const LOCAL_SUGGESTIONS = [
+  'Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone portable', 
+  'Parfum', 'Chaussures', 'Boubou', 'Pagne', 'Cuisinière', 'Réfrigérateur'
+];
+
+// Composant Mega Menu Recherche simplifié
+const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
   const [filters, setFilters] = useState({
     certifiedVendor: false,
     neuf: false,
     occasion: false,
   });
   const [suggestions, setSuggestions] = useState([]);
-  const [productSuggestions, setProductSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const menuRef = useRef(null);
 
-  // Charger les suggestions en temps réel
+  // Filtrer les suggestions localement
   useEffect(() => {
-    if (!isOpen) return;
-    
     if (!searchQuery.trim()) {
       setSuggestions([]);
-      setProductSuggestions([]);
       return;
     }
-
-    const delayDebounce = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=5`);
-        setSuggestions(response.data.suggestions || []);
-        
-        const productsRes = await axios.get(`${API}/search/products?q=${encodeURIComponent(searchQuery)}&limit=4`);
-        setProductSuggestions(productsRes.data.products || []);
-      } catch (error) {
-        console.error('Erreur suggestions:', error);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery, isOpen]);
+    const filtered = LOCAL_SUGGESTIONS.filter(s => 
+      s.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setSuggestions(filtered.slice(0, 6));
+  }, [searchQuery]);
 
   // Fermer le menu
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target) && 
-          inputRef?.current && !inputRef.current.contains(event.target)) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         onClose();
       }
     };
@@ -85,7 +71,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, inputRef]);
+  }, [isOpen, onClose]);
 
   const handleApplyFilters = () => {
     const conditions = [];
@@ -118,7 +104,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
 
   return (
     <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200 rounded-b-2xl mt-1" ref={menuRef}>
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-3xl mx-auto p-4">
         
         {/* Barre de recherche dans le méga menu */}
         <div className="mb-4 p-3 bg-gray-50 rounded-xl">
@@ -140,170 +126,125 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
           </div>
         </div>
 
-        {/* Suggestions */}
-        {searchQuery.trim() && (
+        {/* Suggestions en direct */}
+        {searchQuery.trim() && suggestions.length > 0 && (
           <div className="mb-4">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
-            {loading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {suggestions.map((suggestion, idx) => (
-                  <button
-                    key={`s-${idx}`}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm"
-                  >
-                    <Search className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-700">{suggestion}</span>
-                  </button>
-                ))}
-                {productSuggestions.map((product) => (
-                  <button
-                    key={`p-${product.id}`}
-                    onClick={() => handleSuggestionClick(product.name)}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm group"
-                  >
-                    <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                      {product.image ? (
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Package className="w-5 h-5 text-slate-400 m-2.5" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-slate-700 group-hover:text-orange-600">{product.name}</p>
-                      <p className="text-xs text-slate-400">{product.price?.toLocaleString()} FCFA</p>
-                    </div>
-                    <Tag className="w-3 h-3 text-slate-300" />
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="space-y-1">
+              {suggestions.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm"
+                >
+                  <Search className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-700">{suggestion}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Grille du méga menu */}
-        {!searchQuery.trim() && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            
-            <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-                <Tag className="w-3 h-3" /> Catégories
-              </h3>
-              <div className="space-y-1">
-                {CATEGORIES.slice(0, 8).map((cat) => (
-                  <Link
-                    key={cat.slug}
-                    to={`/categories/${cat.slug}`}
-                    onClick={onClose}
-                    className="block px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+        {/* Grille principale */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Catégories */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+              <Tag className="w-3 h-3" /> Catégories
+            </h3>
+            <div className="space-y-1">
+              {CATEGORIES.map((cat) => (
                 <Link
-                  to="/categories"
+                  key={cat.slug}
+                  to={`/categories/${cat.slug}`}
                   onClick={onClose}
-                  className="block px-2 py-1.5 text-xs text-orange-500 hover:text-orange-600 mt-2"
+                  className="block px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                 >
-                  Voir toutes →
+                  {cat.name}
                 </Link>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Tendances
-              </h3>
-              <div className="space-y-1">
-                {['Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone', 'Parfum', 'Chaussures'].map((item) => (
-                  <button
-                    key={item}
-                    onClick={() => handleSuggestionClick(item)}
-                    className="w-full text-left px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-                <Filter className="w-3 h-3" /> Filtres
-              </h3>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.certifiedVendor}
-                    onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                  />
-                  <span className="text-xs text-slate-600 flex items-center gap-1">
-                    <Star className="w-3 h-3 text-amber-500" /> Vendeur certifié
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.neuf}
-                    onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                  />
-                  <span className="text-xs text-slate-600">Neuf</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.occasion}
-                    onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-                  />
-                  <span className="text-xs text-slate-600">Occasion</span>
-                </label>
-              </div>
-
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={handleApplyFilters}
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
-                >
-                  Appliquer
-                </button>
-                <button
-                  onClick={handleResetFilters}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-3">
-              <h3 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Bon plan</h3>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-500">-20%</div>
-                <p className="text-xs text-slate-600">Sur votre première commande</p>
-                <p className="text-[10px] text-slate-400 mt-1">Code: <span className="font-mono bg-white px-1 rounded">CLOLEO20</span></p>
-              </div>
-              <div className="border-t border-orange-200 pt-2 mt-3">
-                <Link
-                  to="/produits?promo=true"
-                  onClick={onClose}
-                  className="flex items-center justify-center gap-1 text-xs text-orange-600 hover:text-orange-700"
-                >
-                  Voir les offres <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
+              ))}
+              <Link
+                to="/categories"
+                onClick={onClose}
+                className="block px-2 py-1.5 text-xs text-orange-500 hover:text-orange-600 mt-1"
+              >
+                Voir toutes les catégories →
+              </Link>
             </div>
           </div>
-        )}
+
+          {/* Tendances */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> Tendances
+            </h3>
+            <div className="space-y-1">
+              {['Sac à main', 'Montre connectée', 'Robe africaine', 'Téléphone', 'Parfum', 'Chaussures'].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => handleSuggestionClick(item)}
+                  className="w-full text-left px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtres */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+              <Filter className="w-3 h-3" /> Filtres
+            </h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.certifiedVendor}
+                  onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-600 flex items-center gap-1">
+                  <Star className="w-3 h-3 text-amber-500" /> Vendeur certifié
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.neuf}
+                  onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-600">Neuf</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.occasion}
+                  onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-600">Occasion</span>
+              </label>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handleApplyFilters}
+                className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
+              >
+                Appliquer
+              </button>
+              <button
+                onClick={handleResetFilters}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="flex justify-end mt-4 pt-2 border-t border-slate-100">
           <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-600">
@@ -440,7 +381,6 @@ const Navbar = () => {
                   onSearch={handleSearch}
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
-                  inputRef={searchContainerRef}
                 />
               </div>
             </div>
@@ -488,10 +428,7 @@ const Navbar = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-3 py-2">
-                      <p className="font-medium">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
-                    </div>
+                    <div className="px-3 py-2"><p className="font-medium">{user?.name}</p><p className="text-xs text-gray-500">{user?.email}</p></div>
                     <DropdownMenuSeparator />
                     {isAdmin && <DropdownMenuItem asChild><Link to="/admin"><Crown className="w-4 h-4" /> Administration</Link></DropdownMenuItem>}
                     {isDriver && <DropdownMenuItem asChild><Link to="/livreur"><Truck className="w-4 h-4" /> Espace livreur</Link></DropdownMenuItem>}
