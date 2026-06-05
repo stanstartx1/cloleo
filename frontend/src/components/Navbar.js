@@ -424,7 +424,7 @@ const Navbar = () => {
             </div>
 
             {/* Search bar - Desktop avec Mega Menu */}
-            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm xl:max-w-md mx-2 lg:mx-4">
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-md xl:max-w-lg mx-1 lg:mx-2">
               <div className="relative w-full">
                 <div 
                   className="flex items-center bg-gray-100 rounded-full px-4 py-2 cursor-pointer hover:bg-gray-200 transition-colors"
@@ -436,32 +436,35 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Actions - rapprochées */}
+            <div className="ml-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
+              {/* Mobile search button */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden rounded-full"
+                className="md:hidden rounded-full w-8 h-8"
                 onClick={() => setSearchOpen(true)}
                 data-testid="mobile-search-btn"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4" />
               </Button>
 
-              <Link to="/panier" data-testid="cart-btn">
-                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-orange-50">
-                  <ShoppingCart className="w-5 h-5 transition-transform duration-300 hover:scale-110" />
+              {/* Panier */}
+              <Link to="/panier" data-testid="cart-btn" className="relative">
+                <Button variant="ghost" size="icon" className="relative rounded-full w-8 h-8 md:w-9 md:h-9 hover:bg-orange-50">
+                  <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-300 hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1.5 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none shadow-md">
-                      {cart.item_count}
+                    <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-4 px-1 bg-orange-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold leading-none shadow-md z-10">
+                      {cart.item_count > 99 ? '99+' : cart.item_count}
                     </span>
                   )}
                 </Button>
               </Link>
 
-              <Button variant="ghost" size="icon" asChild className="hidden md:flex rounded-full hover:bg-red-50">
+              {/* Favoris (cœur) - Desktop uniquement */}
+              <Button variant="ghost" size="icon" asChild className="hidden md:flex rounded-full w-8 h-8 hover:bg-red-50">
                 <Link to="/favoris" data-testid="favorites-btn">
-                  <Heart className="w-5 h-5 hover:text-red-500 transition-colors" />
+                  <Heart className="w-4 h-4 hover:text-red-500 transition-colors" />
                 </Link>
               </Button>
 
@@ -469,8 +472,8 @@ const Navbar = () => {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-orange-50" data-testid="user-menu-btn">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-sm font-bold">
+                    <Button variant="ghost" size="icon" className="relative rounded-full w-8 h-8 hover:bg-orange-50" data-testid="user-menu-btn">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-xs font-bold">
                         {user?.profile_photo ? (
                           <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
                         ) : (
@@ -547,23 +550,23 @@ const Navbar = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button asChild variant="default" size="sm" className="hidden md:inline-flex rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600" data-testid="login-btn">
+                <Button asChild variant="default" size="sm" className="hidden md:inline-flex rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-3 py-1.5 text-xs h-8" data-testid="login-btn">
                   <Link to="/connexion">
-                    <User className="w-4 h-4 mr-2" />
-                    <span className="lg:hidden">Connexion</span>
-                    <span className="hidden lg:inline">Connexion</span>
+                    <User className="w-3 h-3 mr-1" />
+                    <span className="hidden lg:inline text-xs">Connexion</span>
                   </Link>
                 </Button>
               )}
 
+              {/* Menu burger mobile */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden rounded-full"
+                className="lg:hidden rounded-full w-8 h-8"
                 onClick={() => setMobileMenuOpen(true)}
                 data-testid="mobile-menu-btn"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-4 h-4" />
               </Button>
             </div>
           </div>
