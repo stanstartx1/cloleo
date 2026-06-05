@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, Filter, DollarSign, Star, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, Filter, DollarSign, Star, TrendingUp, Clock, Package, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -28,7 +28,7 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu Recherche - avec checkbox
+// Composant Mega Menu Recherche enrichi
 const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
   const [filters, setFilters] = useState({
     certifiedVendor: false,
@@ -36,21 +36,30 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     occasion: false,
   });
   const [suggestions, setSuggestions] = useState([]);
+  const [productSuggestions, setProductSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [popularCategories, setPopularCategories] = useState([]);
   const menuRef = useRef(null);
 
-  // Charger les suggestions
+  // Charger les suggestions de produits en temps réel
   useEffect(() => {
     if (!isOpen || !searchQuery.trim()) {
       setSuggestions([]);
+      setProductSuggestions([]);
       return;
     }
 
     const delayDebounce = setTimeout(async () => {
       setSuggestionsLoading(true);
       try {
+        // Suggestions de mots-clés
         const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`);
         setSuggestions(response.data.suggestions || []);
+        
+        // Suggestions de produits
+        const productsRes = await axios.get(`${API}/search/products?q=${encodeURIComponent(searchQuery)}&limit=4`);
+        setProductSuggestions(productsRes.data.products || []);
       } catch (error) {
         console.error('Erreur suggestions:', error);
       } finally {
@@ -60,6 +69,42 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, isOpen]);
+
+  // Charger les données statiques du méga menu
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Produits tendances
+    const fetchTrendingProducts = async () => {
+      try {
+        const response = await axios.get(`${API}/products/trending?limit=6`);
+        setTrendingProducts(response.data.products || []);
+      } catch (error) {
+        // Données par défaut
+        setTrendingProducts([
+          { id: 1, name: 'Sac à main', image: null, price: 25000 },
+          { id: 2, name: 'Montre connectée', image: null, price: 45000 },
+          { id: 3, name: 'Robe africaine', image: null, price: 35000 },
+          { id: 4, name: 'Téléphone portable', image: null, price: 150000 },
+          { id: 5, name: 'Parfum', image: null, price: 20000 },
+          { id: 6, name: 'Chaussures', image: null, price: 30000 },
+        ]);
+      }
+    };
+
+    // Catégories populaires
+    const fetchPopularCategories = async () => {
+      try {
+        const response = await axios.get(`${API}/categories/popular?limit=8`);
+        setPopularCategories(response.data.categories || CATEGORIES.slice(0, 8));
+      } catch (error) {
+        setPopularCategories(CATEGORIES.slice(0, 8));
+      }
+    };
+
+    fetchTrendingProducts();
+    fetchPopularCategories();
+  }, [isOpen]);
 
   // Fermer le menu
   useEffect(() => {
@@ -95,70 +140,134 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     });
   };
 
+  const handleProductClick = (productId, productName) => {
+    setSearchQuery(productName);
+    onSearch({ q: productName });
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200 rounded-b-2xl" ref={menuRef}>
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-orange-50 to-amber-50">
-          <div className="flex items-center gap-3">
-            <Search className="w-4 h-4 text-orange-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher un produit..."
-              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-sm"
-              autoFocus
-            />
-            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full transition">
-              <X className="w-4 h-4 text-slate-400" />
-            </button>
+      <div className="max-w-5xl mx-auto p-4">
+        
+        {/* Section recherche active */}
+        {searchQuery.trim() && (
+          <div className="mb-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions pour "{searchQuery}"</h3>
+            {suggestionsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                {/* Suggestions de mots-clés */}
+                {suggestions.map((suggestion, idx) => (
+                  <button
+                    key={`s-${idx}`}
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      handleApplyFilters();
+                    }}
+                    className="text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <Search className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-700">{suggestion}</span>
+                  </button>
+                ))}
+                
+                {/* Suggestions de produits */}
+                {productSuggestions.map((product) => (
+                  <button
+                    key={`p-${product.id}`}
+                    onClick={() => handleProductClick(product.id, product.name)}
+                    className="text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm group"
+                  >
+                    <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                      {product.image ? (
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-5 h-5 text-slate-400 m-2.5" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-slate-700 group-hover:text-orange-600">{product.name}</p>
+                      <p className="text-xs text-slate-400">{product.price?.toLocaleString()} FCFA</p>
+                    </div>
+                    <Tag className="w-3 h-3 text-slate-300" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
-        <div className="p-3">
-          {/* Suggestions */}
-          {searchQuery.trim() && (
-            <div className="mb-3">
-              <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
-              {suggestionsLoading ? (
-                <div className="space-y-1">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-8 bg-slate-100 animate-pulse rounded-lg"></div>
-                  ))}
-                </div>
-              ) : suggestions.length > 0 ? (
-                <div className="space-y-0.5">
-                  {suggestions.map((suggestion, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setSearchQuery(suggestion);
-                        handleApplyFilters();
-                      }}
-                      className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm"
-                    >
-                      <Search className="w-3 h-3 text-slate-400" />
-                      <span className="text-slate-700">{suggestion}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 text-center py-2">Aucune suggestion</p>
-              )}
+        {/* Grille principale du méga menu */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          
+          {/* Colonne 1 : Catégories populaires */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+              <Tag className="w-3 h-3" /> Catégories populaires
+            </h3>
+            <div className="space-y-1">
+              {popularCategories.slice(0, 8).map((cat) => (
+                <Link
+                  key={cat.slug}
+                  to={`/categories/${cat.slug}`}
+                  onClick={onClose}
+                  className="block px-2 py-1.5 text-sm text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+              <Link
+                to="/categories"
+                onClick={onClose}
+                className="block px-2 py-1.5 text-xs text-orange-500 hover:text-orange-600 mt-2"
+              >
+                Voir toutes les catégories →
+              </Link>
             </div>
-          )}
+          </div>
 
-          {/* Filtres avec checkboxes */}
-          <div className="border-t border-slate-100 pt-3">
-            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+          {/* Colonne 2 : Produits tendances */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> Produits tendances
+            </h3>
+            <div className="space-y-2">
+              {trendingProducts.slice(0, 5).map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => handleProductClick(product.id, product.name)}
+                  className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 text-sm group"
+                >
+                  <div className="w-8 h-8 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-4 h-4 text-slate-400 m-2" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-slate-700 group-hover:text-orange-600 text-xs">{product.name}</p>
+                    <p className="text-[10px] text-slate-400">{product.price?.toLocaleString()} FCFA</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Colonne 3 : Filtres */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
               <Filter className="w-3 h-3" /> Filtres
             </h3>
-            
             <div className="space-y-2">
-              {/* Vendeur certifié */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -170,8 +279,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
                   <Star className="w-3 h-3 text-amber-500" /> Vendeur certifié
                 </span>
               </label>
-
-              {/* Neuf */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -181,8 +288,6 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
                 />
                 <span className="text-xs text-slate-600">Neuf</span>
               </label>
-
-              {/* Occasion */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -194,13 +299,12 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </label>
             </div>
 
-            {/* Boutons action */}
             <div className="flex gap-2 mt-4">
               <button
                 onClick={handleApplyFilters}
                 className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
               >
-                Voir les résultats
+                Appliquer
               </button>
               <button
                 onClick={handleResetFilters}
@@ -208,6 +312,27 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               >
                 Réinitialiser
               </button>
+            </div>
+          </div>
+
+          {/* Colonne 4 : Bonus / Promotions */}
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-3">
+            <h3 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Bon plan</h3>
+            <div className="space-y-2">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-500">-20%</div>
+                <p className="text-xs text-slate-600">Sur votre première commande</p>
+                <p className="text-[10px] text-slate-400 mt-1">Code: <span className="font-mono bg-white px-1 rounded">CLOLEO20</span></p>
+              </div>
+              <div className="border-t border-orange-200 pt-2 mt-2">
+                <Link
+                  to="/produits?promo=true"
+                  onClick={onClose}
+                  className="flex items-center justify-center gap-1 text-xs text-orange-600 hover:text-orange-700"
+                >
+                  Voir les offres <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -328,7 +453,7 @@ const Navbar = () => {
               </Link>
             </div>
 
-            {/* Search bar - Desktop avec largeur réduite */}
+            {/* Search bar - Desktop */}
             <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm mx-1 relative">
               <div className="relative w-full">
                 <div 
@@ -349,7 +474,7 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Actions - plus à gauche */}
+            {/* Actions */}
             <div className="ml-2 flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Mobile search button */}
               <Button
@@ -374,7 +499,7 @@ const Navbar = () => {
                 </Button>
               </Link>
 
-              {/* Favoris (cœur) - Desktop uniquement */}
+              {/* Favoris */}
               <Button variant="ghost" size="icon" asChild className="hidden md:flex rounded-full w-8 h-8 hover:bg-red-50">
                 <Link to="/favoris" data-testid="favorites-btn">
                   <Heart className="w-4 h-4 hover:text-red-500 transition-colors" />
@@ -486,7 +611,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu (inchangé) */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
           <div className="flex items-center justify-between p-4 border-b">
@@ -596,7 +721,7 @@ const Navbar = () => {
         </div>
       )}
 
-      {/* Mobile Search Overlay (simplifié) */}
+      {/* Mobile Search Overlay */}
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
           <div className="bg-white p-4" onClick={(e) => e.stopPropagation()}>
