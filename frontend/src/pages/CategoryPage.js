@@ -183,6 +183,16 @@ const CategoryPage = () => {
   const hasActiveFilters = conditions.length > 0 || locations.length > 0 || priceRange[0] > 0 || priceRange[1] < 200000;
 
   const banners = category?.banner_images || [];
+  const filterProps = {
+    conditions,
+    locations,
+    priceRange,
+    setPriceRange,
+    toggleCondition,
+    toggleLocation,
+    clearFilters,
+    hasActiveFilters,
+  };
 
   return (
     <div className="min-h-screen" data-testid="category-page">
@@ -282,7 +292,7 @@ const CategoryPage = () => {
               <h3 className="font-bold mb-6 flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4" /> Filtres
               </h3>
-              <FilterContent />
+              <FilterContent {...filterProps} />
             </div>
           </aside>
 
@@ -306,7 +316,7 @@ const CategoryPage = () => {
                     <SheetTitle>Filtres</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6">
-                    <FilterContent />
+                    <FilterContent {...filterProps} />
                   </div>
                 </SheetContent>
               </Sheet>
