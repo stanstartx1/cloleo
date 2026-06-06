@@ -284,10 +284,16 @@ const Navbar = () => {
         <div className="container mx-auto px-3 md:px-4">
           <div className="flex items-center h-12 md:h-16 gap-2 md:gap-3 lg:gap-4">
             
-            {/* Logo - version responsive */}
+            {/* Logo - version responsive avec support des logos à fond blanc */}
             <Link to="/" className="flex items-center gap-1.5 md:gap-2 group shrink-0" data-testid="logo">
               {!logoLoading && logoUrl ? (
-                <img src={logoUrl} alt="Cloléo" className="h-7 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105" />
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-1 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                  <img 
+                    src={logoUrl} 
+                    alt="Cloléo" 
+                    className="h-7 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                  />
+                </div>
               ) : (
                 <>
                   <div className="w-7 h-7 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-base md:text-xl transition-all duration-500 group-hover:scale-110">
@@ -441,7 +447,13 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
           <div className="flex items-center justify-between p-3 border-b">
-            {logoUrl ? <img src={logoUrl} alt="Cloléo" className="h-7 w-auto" /> : <span className="text-lg font-bold"><span className="text-orange-500">Clo</span><span className="text-amber-600">léo</span></span>}
+            {logoUrl ? (
+              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-1">
+                <img src={logoUrl} alt="Cloléo" className="h-6 w-auto" />
+              </div>
+            ) : (
+              <span className="text-lg font-bold"><span className="text-orange-500">Clo</span><span className="text-amber-600">léo</span></span>
+            )}
             <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}><X className="w-5 h-5" /></Button>
           </div>
           <div className="p-3 space-y-3 overflow-y-auto max-h-[calc(100vh-60px)]">
