@@ -17,11 +17,11 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber' },
-  assigned: { label: 'Assignée', color: 'blue' },
-  picked_up: { label: 'Récupérée', color: 'indigo' },
+  assigned: { label: 'AssignÃ©e', color: 'blue' },
+  picked_up: { label: 'RÃ©cupÃ©rÃ©e', color: 'indigo' },
   in_transit: { label: 'En route', color: 'purple' },
-  delivered: { label: 'Livrée', color: 'green' },
-  cancelled: { label: 'Annulée', color: 'red' }
+  delivered: { label: 'LivrÃ©e', color: 'green' },
+  cancelled: { label: 'AnnulÃ©e', color: 'red' }
 };
 
 const AdminLiveTracking = ({ token }) => {
@@ -121,7 +121,7 @@ const AdminLiveTracking = ({ token }) => {
             <strong>${driver.driver_name}</strong><br/>
             <span style="color: #666;">${driver.vehicle_type}</span><br/>
             <span style="color: ${driver.status === 'available' ? 'green' : 'orange'};">
-              ${driver.status === 'available' ? '? Disponible' : '? Occupé'}
+              ${driver.status === 'available' ? 'âœ… Disponible' : 'ðŸ”´ OccupÃ©'}
             </span>
           </div>
         `);
@@ -138,47 +138,60 @@ const AdminLiveTracking = ({ token }) => {
     fitToLocations(mapboxRef.current, mapInstance.current, drivers.map(d => d.location).filter(Boolean), 50);
   };
 
-  // WebSocket for real-time updates
+  // WebSocket for real-time updates - URL CORRIGÃ‰E
   useEffect(() => {
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/api/ws/orders/admin_tracking`);
+      // ðŸ”§ CORRECTION: Suppression du /api en double
+      const wsUrl = `${WS_URL}/ws/orders/admin_tracking`;
+      console.log('WebSocket connecting to:', wsUrl);
+      
+      const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
         console.log('Admin tracking WebSocket connected');
       };
       
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'driver_location') {
-          // Update driver location
-          setDrivers(prev => prev.map(d => 
-            d.driver_id === data.driver_id 
-              ? { ...d, location: data.location }
-              : d
-          ));
+        try {
+          const data = JSON.parse(event.data);
           
-          // Update marker on map
-          if (markersRef.current[data.driver_id]) {
-            markersRef.current[data.driver_id].setLngLat(toLngLat(data.location));
+          if (data.type === 'driver_location') {
+            // Update driver location
+            setDrivers(prev => prev.map(d => 
+              d.driver_id === data.driver_id 
+                ? { ...d, location: data.location }
+                : d
+            ));
+            
+            // Update marker on map
+            if (markersRef.current[data.driver_id]) {
+              markersRef.current[data.driver_id].setLngLat(toLngLat(data.location));
+            }
           }
-        }
-        
-        if (data.type === 'order_update') {
-          // Refresh orders
-          fetchData();
-        }
-        
-        if (data.type === 'new_order') {
-          toast.info('Nouvelle commande !', {
-            description: `${data.order.delivery_address?.city}`
-          });
-          fetchData();
+          
+          if (data.type === 'order_update') {
+            // Refresh orders
+            fetchData();
+          }
+          
+          if (data.type === 'new_order') {
+            toast.info('Nouvelle commande !', {
+              description: `${data.order?.delivery_address?.city || 'Nouvelle commande'}`
+            });
+            fetchData();
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
         }
       };
       
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.log('WebSocket closed, reconnecting in 3s...', event.code);
         setTimeout(connectWebSocket, 3000);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
       };
       
       wsRef.current = ws;
@@ -224,24 +237,24 @@ const AdminLiveTracking = ({ token }) => {
       {/* Order Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <div className="bg-slate-700/50 rounded-xl p-4">
-          <p className="text-2xl font-bold text-white">{orderStats?.total || 0}</p>
+          <p className="text-2xl font-bold text-white">{orderStats?.total_orders || 0}</p>
           <p className="text-xs text-slate-400">Total commandes</p>
         </div>
         <div className="bg-amber-500/20 rounded-xl p-4">
-          <p className="text-2xl font-bold text-amber-400">{orderStats?.pending || 0}</p>
+          <p className="text-2xl font-bold text-amber-400">{orderStats?.pending_orders || 0}</p>
           <p className="text-xs text-slate-400">En attente</p>
         </div>
         <div className="bg-blue-500/20 rounded-xl p-4">
-          <p className="text-2xl font-bold text-blue-400">{orderStats?.assigned || 0}</p>
-          <p className="text-xs text-slate-400">Assignées</p>
+          <p className="text-2xl font-bold text-blue-400">{getOrderCountByStatus('assigned')}</p>
+          <p className="text-xs text-slate-400">AssignÃ©es</p>
         </div>
         <div className="bg-purple-500/20 rounded-xl p-4">
-          <p className="text-2xl font-bold text-purple-400">{orderStats?.in_transit || 0}</p>
+          <p className="text-2xl font-bold text-purple-400">{getOrderCountByStatus('in_transit')}</p>
           <p className="text-xs text-slate-400">En cours</p>
         </div>
         <div className="bg-green-500/20 rounded-xl p-4">
-          <p className="text-2xl font-bold text-green-400">{orderStats?.delivered || 0}</p>
-          <p className="text-xs text-slate-400">Livrées</p>
+          <p className="text-2xl font-bold text-green-400">{orderStats?.completed_orders || 0}</p>
+          <p className="text-xs text-slate-400">LivrÃ©es</p>
         </div>
         <div className="bg-emerald-500/20 rounded-xl p-4">
           <p className="text-2xl font-bold text-emerald-400">{formatPrice(orderStats?.total_revenue_fcfa || 0)}</p>
@@ -255,7 +268,7 @@ const AdminLiveTracking = ({ token }) => {
           <div className="p-4 border-b border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-cyan-400" />
-              <h3 className="font-bold">Suivi en temps réel</h3>
+              <h3 className="font-bold">Suivi en temps rÃ©el</h3>
             </div>
             <Button size="sm" variant="outline" onClick={fetchData}>
               <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
@@ -272,7 +285,7 @@ const AdminLiveTracking = ({ token }) => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-              <span className="text-slate-300">Occupé</span>
+              <span className="text-slate-300">OccupÃ©</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full" />
@@ -351,7 +364,7 @@ const AdminLiveTracking = ({ token }) => {
         <div className="p-4 border-b border-slate-700">
           <h3 className="font-bold flex items-center gap-2">
             <Package className="w-5 h-5 text-green-400" />
-            Commandes récentes
+            Commandes rÃ©centes
           </h3>
         </div>
         
@@ -381,7 +394,7 @@ const AdminLiveTracking = ({ token }) => {
                     {order.driver_name ? (
                       <span className="text-sm text-white">{order.driver_name}</span>
                     ) : (
-                      <span className="text-xs text-amber-400">Non assigné</span>
+                      <span className="text-xs text-amber-400">Non assignÃ©</span>
                     )}
                   </td>
                   <td className="p-3">
