@@ -12,14 +12,14 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, register } = useAuth();
-  
+ 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+ 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  
+ 
   // Register form
   const [registerName, setRegisterName] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
@@ -32,12 +32,12 @@ const AuthPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+   
     const result = await login(loginEmail, loginPassword);
-    
+   
     if (result.success) {
       toast.success(`Bienvenue, ${result.user.name} !`);
-      
+     
       // Redirect based on role
       if (result.user.role === 'admin') {
         navigate('/admin');
@@ -53,14 +53,14 @@ const AuthPage = () => {
     } else {
       toast.error(result.error);
     }
-    
+   
     setLoading(false);
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+   
     const result = await register(
       registerName,
       registerEmail,
@@ -68,10 +68,10 @@ const AuthPage = () => {
       registerRole,
       registerPhone || null
     );
-    
+   
     if (result.success) {
       toast.success('Compte créé avec succès !');
-      
+     
       if (result.user.role === 'vendor') {
         navigate('/vendeur');
       } else {
@@ -80,7 +80,7 @@ const AuthPage = () => {
     } else {
       toast.error(result.error);
     }
-    
+   
     setLoading(false);
   };
 
@@ -169,15 +169,6 @@ const AuthPage = () => {
                     <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </form>
-
-                {/* Quick login for testing */}
-                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-2">Comptes de test :</p>
-                  <div className="space-y-1 text-xs">
-                    <p><strong>Admin:</strong> admin@cloleo.com / cloclo@2026!</p>
-                    <p><strong>Vendeur:</strong> testvendor@cloleo.com / test123</p>
-                  </div>
-                </div>
               </TabsContent>
 
               {/* Register Tab */}
@@ -199,6 +190,7 @@ const AuthPage = () => {
                         <User className={`w-6 h-6 mx-auto mb-1 ${registerRole === 'customer' ? 'text-primary' : 'text-muted-foreground'}`} />
                         <p className="font-medium text-xs">Acheteur</p>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => handleRoleSelect('vendor')}
@@ -211,6 +203,7 @@ const AuthPage = () => {
                         <Store className={`w-6 h-6 mx-auto mb-1 ${registerRole === 'vendor' ? 'text-primary' : 'text-muted-foreground'}`} />
                         <p className="font-medium text-xs">Vendeur</p>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => handleRoleSelect('dropshipper')}
@@ -219,6 +212,7 @@ const AuthPage = () => {
                         <Package className="w-6 h-6 mx-auto mb-1 text-purple-500" />
                         <p className="font-medium text-xs text-purple-600">Revendeur</p>
                       </button>
+
                       <button
                         type="button"
                         onClick={() => handleRoleSelect('driver')}
