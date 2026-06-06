@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
+import { toAbsoluteMediaUrl } from '../utils/media';
 // Import depuis notre configuration centralisée
 import { API_URL, API_BASE, WS_URL } from '../config/api';
 const API = API_URL;
@@ -78,12 +79,89 @@ const image = imageRaw && imageRaw.startsWith('/')
   );
 };
 
+const getHomeProductDisplayPrice = (product) => {
+  const promoFcfa = Number(product.promo_price_fcfa || 0);
+  const priceFcfa = Number(product.price_fcfa || 0);
+  const discountPrice = Number(product.discount_price || 0);
+  const legacyPrice = Number(product.price || 0);
+  if (promoFcfa > 0 && priceFcfa > 0 && promoFcfa < priceFcfa) return promoFcfa;
+  if (priceFcfa > 0) return priceFcfa;
+  if (discountPrice > 0) return discountPrice;
+  if (legacyPrice > 0) return legacyPrice;
+  return 0;
+};
+
+const getHomeProductBasePrice = (product) => {
+  const priceFcfa = Number(product.price_fcfa || 0);
+  const legacyPrice = Number(product.price || 0);
+  return priceFcfa > 0 ? priceFcfa : legacyPrice;
+};
+
+const getHomeProductDiscount = (product) => {
+  const base = getHomeProductBasePrice(product);
+  const display = getHomeProductDisplayPrice(product);
+  if (!base || !display || display >= base) return null;
+  return Math.round((1 - display / base) * 100);
+};
+
+const getHomeProductImage = (product) =>
+  toAbsoluteMediaUrl(product.images?.[0] || product.main_image || product.image || '');
+
+const HomeTopProductCard = ({ product, index, onImageMissing }) => {
+  const price = getHomeProductDisplayPrice(product);
+  const basePrice = getHomeProductBasePrice(product);
+  const discount = getHomeProductDiscount(product);
+  const badgeText = discount ? `-${discount}%` : product.is_featured ? 'Top' : index < 4 ? 'Hot' : null;
+
+  return (
+    <Link
+      to={`/produit/${product.id}`}
+      className="group relative block bg-white p-2 transition-all duration-300 hover:z-10 hover:-translate-y-1 hover:shadow-xl"
+    >
+      <div className="relative overflow-hidden rounded-xl bg-slate-50">
+        <img
+          src={getHomeProductImage(product)}
+          alt={product.name}
+          className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          loading="lazy"
+          onError={() => onImageMissing(product.id)}
+        />
+        {badgeText && (
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-black text-white shadow-md">
+            {badgeText}
+          </span>
+        )}
+        {product.is_featured && (
+          <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+            Choix
+          </span>
+        )}
+      </div>
+      <div className="pt-2">
+        <p className="line-clamp-2 min-h-[2.35rem] text-[11px] font-medium leading-tight text-slate-700 group-hover:text-red-600 md:text-xs">
+          {product.name}
+        </p>
+        <p className="mt-1 text-sm font-black text-slate-950 md:text-[15px]">
+          {price.toLocaleString()} FCFA
+        </p>
+        {basePrice > price && (
+          <p className="text-[10px] text-slate-400 line-through">
+            {basePrice.toLocaleString()} FCFA
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+};
+
 const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [newProducts, setNewProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [brokenTopProductImages, setBrokenTopProductImages] = useState({});
   const [categorySlideTick, setCategorySlideTick] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [conditionFilters, setConditionFilters] = useState({
@@ -126,15 +204,17 @@ const HomePage = () => {
           }
         };
 
-        const [catRes, featured, newRes, trendingRes] = await Promise.all([
+        const [catRes, featured, allRes, newRes, trendingRes] = await Promise.all([
           axios.get(`${API}/categories`),
           fetchFeatured(),
+          axios.get(`${API}/products?limit=100`),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=16`),
           axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
         ]);
 
         setCategories(catRes.data);
         setFeaturedProducts(featured);
+        setAllProducts(allRes.data?.products || allRes.data || []);
         setNewProducts(newRes.data?.products || newRes.data || []);
         setTrendingProducts(trendingRes.data?.products || trendingRes.data || []);
       } catch (error) {
@@ -235,42 +315,18 @@ const HomePage = () => {
   );
 
   const topRatedProducts = useMemo(() => {
-    const merged = [...featuredProducts, ...newProducts, ...trendingProducts];
+    const merged = allProducts.length
+      ? allProducts
+      : [...featuredProducts, ...newProducts, ...trendingProducts];
     const deduped = merged.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
-    return applyProductFilters(deduped).slice(0, 30);
+    return applyProductFilters(deduped)
+      .filter((product) => {
+        const image = product.images?.[0] || product.main_image || product.image;
+        return image && !brokenTopProductImages[product.id];
+      })
+      .slice(0, 30);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters]);
-
-  const getProductDisplayPrice = (product) => {
-    const promoFcfa = Number(product.promo_price_fcfa || 0);
-    const priceFcfa = Number(product.price_fcfa || 0);
-    const discountPrice = Number(product.discount_price || 0);
-    const legacyPrice = Number(product.price || 0);
-    if (promoFcfa > 0 && priceFcfa > 0 && promoFcfa < priceFcfa) return promoFcfa;
-    if (priceFcfa > 0) return priceFcfa;
-    if (discountPrice > 0) return discountPrice;
-    if (legacyPrice > 0) return legacyPrice;
-    return 0;
-  };
-
-  const getProductBasePrice = (product) => {
-    const priceFcfa = Number(product.price_fcfa || 0);
-    const legacyPrice = Number(product.price || 0);
-    return priceFcfa > 0 ? priceFcfa : legacyPrice;
-  };
-
-  const getProductDiscount = (product) => {
-    const base = getProductBasePrice(product);
-    const display = getProductDisplayPrice(product);
-    if (!base || !display || display >= base) return null;
-    return Math.round((1 - display / base) * 100);
-  };
-
-  const getProductImage = (product) =>
-    product.images?.[0] ||
-    product.main_image ||
-    product.image ||
-    'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
+  }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
   const renderCategoryItems = (keyPrefix = 'cat') => (
     <>
@@ -450,54 +506,16 @@ const HomePage = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-                    {topRatedProducts.map((product, index) => {
-                      const price = getProductDisplayPrice(product);
-                      const basePrice = getProductBasePrice(product);
-                      const discount = getProductDiscount(product);
-                      const badgeText = discount ? `-${discount}%` : product.is_featured ? 'Top' : index < 4 ? 'Hot' : null;
-
-                      return (
-                        <Link
-                          key={`top-rated-${product.id}`}
-                          to={`/produit/${product.id}`}
-                          className="group relative block bg-white p-2 transition-all duration-300 hover:z-10 hover:-translate-y-1 hover:shadow-xl"
-                        >
-                          <div className="relative overflow-hidden rounded-xl bg-slate-50">
-                            <img
-                              src={getProductImage(product)}
-                              alt={product.name}
-                              className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              loading="lazy"
-                            />
-                            {badgeText && (
-                              <span className="absolute right-1.5 top-1.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-black text-white shadow-md">
-                                {badgeText}
-                              </span>
-                            )}
-                            {product.is_featured && (
-                              <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
-                                Choix
-                              </span>
-                            )}
-                          </div>
-                          <div className="pt-2">
-                            <p className="line-clamp-2 min-h-[2.35rem] text-[11px] font-medium leading-tight text-slate-700 group-hover:text-red-600 md:text-xs">
-                              {product.name}
-                            </p>
-                            <div className="mt-1 flex items-baseline gap-1.5">
-                              <p className="text-sm font-black text-slate-950 md:text-[15px]">
-                                {price.toLocaleString()} FCFA
-                              </p>
-                            </div>
-                            {basePrice > price && (
-                              <p className="text-[10px] text-slate-400 line-through">
-                                {basePrice.toLocaleString()} FCFA
-                              </p>
-                            )}
-                          </div>
-                        </Link>
-                      );
-                    })}
+                    {topRatedProducts.map((product, index) => (
+                      <HomeTopProductCard
+                        key={`top-rated-${product.id}`}
+                        product={product}
+                        index={index}
+                        onImageMissing={(productId) => {
+                          setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
