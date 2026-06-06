@@ -2,14 +2,13 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Zap, TrendingUp, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, TrendingUp, Star } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
-import { COUNTRIES, getCountryFlagUrl } from '../utils/countries';
 // Import depuis notre configuration centralisée
 import { API_URL, API_BASE, WS_URL } from '../config/api';
 const API = API_URL;
@@ -21,11 +20,6 @@ const isLocalEnvironment = typeof window !== 'undefined' &&
 const sectionMotion = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0 },
-};
-
-const cardMotion = {
-  hidden: { opacity: 0, y: 20, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1 },
 };
 
 const useInView = () => {
@@ -90,7 +84,6 @@ const HomePage = () => {
   const [newProducts, setNewProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [carouselIndex, setCarouselIndex] = useState(0);
   const [categorySlideTick, setCategorySlideTick] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [conditionFilters, setConditionFilters] = useState({
@@ -154,22 +147,11 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    if (featuredProducts.length <= 3) return;
-    const interval = setInterval(() => {
-      setCarouselIndex(prev => (prev + 1) % Math.max(1, featuredProducts.length - 2));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [featuredProducts.length]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
       setCategorySlideTick((prev) => prev + 1);
     }, 3500);
     return () => clearInterval(interval);
   }, []);
-
-  const nextSlide = () => setCarouselIndex(prev => Math.min(prev + 1, Math.max(0, featuredProducts.length - 3)));
-  const prevSlide = () => setCarouselIndex(prev => Math.max(prev - 1, 0));
 
   const toggleConditionFilter = (key) => {
     setConditionFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -192,7 +174,6 @@ const HomePage = () => {
       return byCategory && byCondition;
     });
 
-  const filteredFeaturedProducts = applyProductFilters(featuredProducts);
   const filteredTrendingProducts = applyProductFilters(trendingProducts);
   const filteredNewProducts = applyProductFilters(newProducts);
   const activeCategories = categories.filter(c => c.is_active !== false);
@@ -253,13 +234,14 @@ const HomePage = () => {
     [subCategories, buildLoopItems]
   );
 
-  const spotlightGridProducts = useMemo(() => {
+  const topRatedProducts = useMemo(() => {
     const merged = [...featuredProducts, ...newProducts, ...trendingProducts];
     const deduped = merged.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
-    return deduped.slice(0, 12);
-  }, [featuredProducts, newProducts, trendingProducts]);
+    return applyProductFilters(deduped).slice(0, 30);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters]);
 
-  const getSpotlightPrice = (product) => {
+  const getProductDisplayPrice = (product) => {
     const promoFcfa = Number(product.promo_price_fcfa || 0);
     const priceFcfa = Number(product.price_fcfa || 0);
     const discountPrice = Number(product.discount_price || 0);
@@ -270,6 +252,25 @@ const HomePage = () => {
     if (legacyPrice > 0) return legacyPrice;
     return 0;
   };
+
+  const getProductBasePrice = (product) => {
+    const priceFcfa = Number(product.price_fcfa || 0);
+    const legacyPrice = Number(product.price || 0);
+    return priceFcfa > 0 ? priceFcfa : legacyPrice;
+  };
+
+  const getProductDiscount = (product) => {
+    const base = getProductBasePrice(product);
+    const display = getProductDisplayPrice(product);
+    if (!base || !display || display >= base) return null;
+    return Math.round((1 - display / base) * 100);
+  };
+
+  const getProductImage = (product) =>
+    product.images?.[0] ||
+    product.main_image ||
+    product.image ||
+    'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
 
   const renderCategoryItems = (keyPrefix = 'cat') => (
     <>
@@ -380,27 +381,6 @@ const HomePage = () => {
 
       <HeroSection categories={categories} />
 
-      <section className="py-4 bg-gradient-to-r from-amber-50 via-white to-amber-50 border-b border-slate-100 overflow-hidden">
-        <div className="max-w-screen-xl mx-auto px-4">
-          <div className="relative overflow-hidden">
-            <div className="flex animate-scroll-flags gap-8 w-max">
-              {[...COUNTRIES, ...COUNTRIES, ...COUNTRIES].map((country, index) => (
-                <div key={`flag-${index}`} className="flex-shrink-0 group cursor-pointer transition-all duration-300 hover:scale-105">
-                  <div className="w-14 h-10 rounded-lg overflow-hidden shadow-md border-2 border-white group-hover:border-orange-400 transition-all duration-300">
-                    <img 
-                      src={getCountryFlagUrl(country.code)} 
-                      alt={country.name} 
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
@@ -426,37 +406,103 @@ const HomePage = () => {
             </section>
           )}
 
-          <section className="py-8 bg-white border-b border-slate-100">
-            <div className="max-w-screen-xl mx-auto px-4">
-              <div className="mb-4">
-                <SectionBand title="Inspiration Produits" tone="blue" />
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4 auto-rows-[120px] md:auto-rows-[130px]">
-                {spotlightGridProducts.map((product, index) => {
-                  const image = product.images?.[0] || product.main_image || 'https://images.unsplash.com/photo-1512446733611-9099a758e5b8?w=600&q=80';
-                  const hasPromo = Number(product.promo_price_fcfa || product.discount_price || 0) > 0;
-                  const badge = hasPromo ? 'Promo' : product.is_featured ? 'Vedette' : 'Nouveau';
-                  const badgeClass = hasPromo ? 'bg-red-500 text-white' : product.is_featured ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white';
-                  const isTall = index % 5 === 0 || index % 5 === 3;
-                  const isWide = index % 4 === 1;
-                  const sizeClass = isTall ? 'row-span-2 md:row-span-2 md:col-span-2' : isWide ? 'row-span-1 md:col-span-2' : 'row-span-1 md:col-span-1';
-                  return (
-                    <Link key={`spotlight-${product.id}`} to={`/products/${product.id}`} className={`group block ${sizeClass}`}>
-                      <div className="relative h-full rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm group-hover:shadow-md transition-all">
-                        <img src={image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[11px] font-bold ${badgeClass}`}>{badge}</span>
-                        <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
-                          <p className="text-sm md:text-base font-extrabold text-white whitespace-nowrap">
-                            {getSpotlightPrice(product).toLocaleString()} FCFA
-                          </p>
-                        </div>
-                      </div>
+          <motion.section
+            className="py-8 bg-[#f5f5f5] border-y border-red-100"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={sectionMotion}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          >
+            <div className="max-w-screen-xl mx-auto px-3 md:px-4">
+              <div className="overflow-hidden rounded-[1.4rem] border border-red-200 bg-white shadow-[0_20px_70px_-35px_rgba(220,38,38,0.55)]">
+                <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-4 py-3 text-white md:px-5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/30 sm:flex">
+                      <Star className="h-5 w-5 fill-white text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="truncate text-base font-black tracking-tight md:text-xl">Les mieux notés ! 14 ans avec vous</h2>
+                      <p className="hidden text-xs font-medium text-white/85 sm:block">Promos, nouveautés et coups de coeur sélectionnés pour vous</p>
+                    </div>
+                  </div>
+                  <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full bg-white/15 px-3 text-xs font-bold text-white hover:bg-white hover:text-red-600">
+                    <Link to="/produits?sort_by=sales_count">
+                      Voir plus <ArrowRight className="ml-1 h-3.5 w-3.5" />
                     </Link>
-                  );
-                })}
+                  </Button>
+                </div>
+
+                {loading ? (
+                  <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+                    {[...Array(21)].map((_, i) => (
+                      <div key={`top-skeleton-${i}`} className="bg-white p-2">
+                        <Skeleton className="aspect-square rounded-xl" />
+                        <Skeleton className="mt-2 h-3 w-11/12" />
+                        <Skeleton className="mt-2 h-4 w-20" />
+                      </div>
+                    ))}
+                  </div>
+                ) : topRatedProducts.length === 0 ? (
+                  <div className="py-14 text-center text-slate-400">
+                    <Star className="mx-auto mb-3 h-12 w-12 opacity-20" />
+                    <p className="font-semibold">Aucun produit disponible pour le moment</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+                    {topRatedProducts.map((product, index) => {
+                      const price = getProductDisplayPrice(product);
+                      const basePrice = getProductBasePrice(product);
+                      const discount = getProductDiscount(product);
+                      const badgeText = discount ? `-${discount}%` : product.is_featured ? 'Top' : index < 4 ? 'Hot' : null;
+
+                      return (
+                        <Link
+                          key={`top-rated-${product.id}`}
+                          to={`/produit/${product.id}`}
+                          className="group relative block bg-white p-2 transition-all duration-300 hover:z-10 hover:-translate-y-1 hover:shadow-xl"
+                        >
+                          <div className="relative overflow-hidden rounded-xl bg-slate-50">
+                            <img
+                              src={getProductImage(product)}
+                              alt={product.name}
+                              className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              loading="lazy"
+                            />
+                            {badgeText && (
+                              <span className="absolute right-1.5 top-1.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-black text-white shadow-md">
+                                {badgeText}
+                              </span>
+                            )}
+                            {product.is_featured && (
+                              <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+                                Choix
+                              </span>
+                            )}
+                          </div>
+                          <div className="pt-2">
+                            <p className="line-clamp-2 min-h-[2.35rem] text-[11px] font-medium leading-tight text-slate-700 group-hover:text-red-600 md:text-xs">
+                              {product.name}
+                            </p>
+                            <div className="mt-1 flex items-baseline gap-1.5">
+                              <p className="text-sm font-black text-slate-950 md:text-[15px]">
+                                {price.toLocaleString()} FCFA
+                              </p>
+                            </div>
+                            {basePrice > price && (
+                              <p className="text-[10px] text-slate-400 line-through">
+                                {basePrice.toLocaleString()} FCFA
+                              </p>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
-          </section>
+          </motion.section>
 
           <NotificationFeed notifications={[
             { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
@@ -464,83 +510,6 @@ const HomePage = () => {
             { user: 'Awa S.', action: 'vient de commander', product: 'iPhone 14', time: 'il y a 8 min' },
             { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
           ]} />
-
-          <motion.section
-            className="py-20 bg-gradient-to-b from-white via-orange-50/30 to-white relative"
-            initial="hidden" whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
-          >
-            <div className="absolute top-20 left-0 w-72 h-72 bg-gradient-to-br from-orange-200/40 to-amber-200/30 rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-0 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/20 rounded-full blur-3xl" />
-            <div className="max-w-screen-xl mx-auto px-4 relative z-10">
-              <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 animate-pulse">
-                    <Star className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="w-full">
-                    <SectionBand title="Produits en Vedette" tone="orange" />
-                    <p className="text-muted-foreground mt-1">Les meilleures sélections de nos vendeurs</p>
-                  </div>
-                </div>
-                {filteredFeaturedProducts.length > 3 && (
-                  <div className="hidden md:flex items-center gap-3">
-                    <Button variant="outline" size="icon" onClick={prevSlide} disabled={carouselIndex === 0}
-                      className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50">
-                      <ChevronLeft className="w-5 h-5" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={nextSlide} disabled={carouselIndex >= filteredFeaturedProducts.length - 4}
-                      className="rounded-full w-12 h-12 border-2 hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 disabled:opacity-50">
-                      <ChevronRight className="w-5 h-5" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
-                </div>
-              ) : filteredFeaturedProducts.length === 0 ? (
-                <div className="text-center py-16 text-slate-400">
-                  <Star className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                  <p className="text-lg font-medium">Aucun produit en vedette pour le moment</p>
-                </div>
-              ) : (
-                <div className="relative overflow-hidden">
-                  <div className="flex gap-4 transition-transform duration-700 ease-out"
-                    style={{ transform: `translateX(-${carouselIndex * 34}%)` }}>
-                    {filteredFeaturedProducts.map((product, index) => (
-                      <motion.div key={product.id}
-                        className="w-full md:w-[calc(27%-12px)] lg:w-[calc(27%-12px)] flex-shrink-0"
-                        variants={cardMotion} initial="hidden" animate="visible"
-                        transition={{ duration: 0.7, delay: index * 0.08 }}
-                        whileHover={{ y: -8, scale: 1.03 }}
-                      >
-                        <div className="transform transition-all duration-500"
-                          style={{
-                            opacity: index >= carouselIndex && index < carouselIndex + 3 ? 1 : 0.3,
-                            transform: index >= carouselIndex && index < carouselIndex + 3 ? 'scale(1)' : 'scale(0.95)'
-                          }}>
-                          <ProductCard product={product} className="scale-[0.82]" />
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {filteredFeaturedProducts.length > 3 && (
-                <div className="flex justify-center gap-2 mt-8">
-                  {[...Array(Math.max(1, filteredFeaturedProducts.length - 2))].map((_, i) => (
-                    <button key={i} onClick={() => setCarouselIndex(i)}
-                      className={`h-2 rounded-full transition-all duration-300 ${i === carouselIndex ? 'w-8 bg-gradient-to-r from-orange-500 to-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'}`} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.section>
 
           {themeSections.map((section, sectionIndex) => (
             <motion.section
@@ -882,13 +851,6 @@ const HomePage = () => {
           .continuous-marquee-track {
             animation: none;
           }
-        }
-        @keyframes scroll-flags {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-33.333%); }
-        }
-        .animate-scroll-flags {
-          animation: scroll-flags 40s linear infinite;
         }
       `}</style>
     </div>
