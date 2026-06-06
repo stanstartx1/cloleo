@@ -1,4 +1,4 @@
-ï»¿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import { API_URL } from '../config/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -11,10 +11,10 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { loadMapbox } from '../utils/mapboxLoader';
+import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, reverseGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
 
 const API = API_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
@@ -24,8 +24,8 @@ const CheckoutPage = () => {
   const { cart, clearCart } = useCart();
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapboxRef = useRef(null);
   const markerRef = useRef(null);
-  const autocompleteRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -37,110 +37,84 @@ const CheckoutPage = () => {
     phone: user?.phone || '',
     street: '',
     city: 'Abidjan',
-    country: "CÃ´te d'Ivoire",
+    country: "Côte d'Ivoire",
     latitude: null,
     longitude: null,
     paymentMethod: 'cash',
     notes: ''
   });
 
-  // Load Google Maps
+  // Load Mapbox
   useEffect(() => {
-    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
-      .then(() => initMap())
-      .catch(() => toast.error('Erreur chargement Google Maps'));
+    loadMapbox()
+      .then((mapboxgl) => {
+        mapboxRef.current = mapboxgl;
+        initMap(mapboxgl);
+      })
+      .catch(() => toast.error('Erreur chargement Mapbox'));
   }, []);
 
-  const initMap = () => {
-    if (!mapRef.current || !window.google) return;
-    
-    // Default to Abidjan
-    const defaultLocation = { lat: 5.3599, lng: -4.0083 };
-    
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center: defaultLocation,
+  const initMap = (mapboxgl) => {
+    if (!mapRef.current || mapInstance.current) return;
+
+    mapInstance.current = new mapboxgl.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: toLngLat(DEFAULT_MAP_CENTER),
       zoom: 13,
-      styles: [
-        { featureType: "poi", stylers: [{ visibility: "off" }] }
-      ]
     });
-    
-    markerRef.current = new window.google.maps.Marker({
-      map: mapInstance.current,
+
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    upsertMarker(mapboxgl, mapInstance.current, markerRef, DEFAULT_MAP_CENTER, {
+      color: '#ef4444',
+      title: 'Adresse de livraison',
       draggable: true,
-      position: defaultLocation,
-      icon: {
-        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
-      }
+      onDragEnd: ({ latitude, longitude }) => {
+        setFormData(prev => ({ ...prev, latitude, longitude }));
+        reverseGeocode(latitude, longitude);
+      },
     });
-    
-    // Update coordinates when marker is dragged
-    markerRef.current.addListener('dragend', () => {
-      const pos = markerRef.current.getPosition();
-      setFormData(prev => ({
-        ...prev,
-        latitude: pos.lat(),
-        longitude: pos.lng()
-      }));
-      reverseGeocode(pos.lat(), pos.lng());
+
+    mapInstance.current.on('click', (event) => {
+      const latitude = event.lngLat.lat;
+      const longitude = event.lngLat.lng;
+      upsertMarker(mapboxgl, mapInstance.current, markerRef, { latitude, longitude }, { color: '#ef4444' });
+      setFormData(prev => ({ ...prev, latitude, longitude }));
+      reverseGeocode(latitude, longitude);
     });
-    
-    // Click on map to place marker
-    mapInstance.current.addListener('click', (e) => {
-      markerRef.current.setPosition(e.latLng);
-      setFormData(prev => ({
-        ...prev,
-        latitude: e.latLng.lat(),
-        longitude: e.latLng.lng()
-      }));
-      reverseGeocode(e.latLng.lat(), e.latLng.lng());
-    });
-    
-    // Setup autocomplete
-    const input = document.getElementById('address-input');
-    if (input) {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
-        componentRestrictions: { country: ['ci', 'sn', 'ng', 'cm', 'gh'] }
-      });
-      
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace();
-        if (place.geometry) {
-          const location = place.geometry.location;
-          mapInstance.current.setCenter(location);
-          mapInstance.current.setZoom(17);
-          markerRef.current.setPosition(location);
-          
-          setFormData(prev => ({
-            ...prev,
-            street: place.formatted_address || place.name,
-            latitude: location.lat(),
-            longitude: location.lng()
-          }));
-        }
-      });
-    }
   };
 
   const reverseGeocode = async (lat, lng) => {
     try {
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-          setFormData(prev => ({
-            ...prev,
-            street: results[0].formatted_address
-          }));
-        }
-      });
+      const address = await reverseGeocodeMapbox(lat, lng);
+      if (address) setFormData(prev => ({ ...prev, street: address }));
     } catch (error) {
       console.error('Geocoding error:', error);
     }
   };
 
+  const geocodeTypedAddress = async () => {
+    try {
+      const result = await forwardGeocodeMapbox(formData.street);
+      if (!result || !mapInstance.current || !mapboxRef.current) return;
+
+      upsertMarker(mapboxRef.current, mapInstance.current, markerRef, result, { color: '#ef4444' });
+      mapInstance.current.easeTo({ center: toLngLat(result), zoom: 17 });
+      setFormData(prev => ({
+        ...prev,
+        street: result.address,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      }));
+    } catch (error) {
+      console.error('Forward geocoding error:', error);
+    }
+  };
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('GÃ©olocalisation non supportÃ©e');
+      toast.error('Géolocalisation non supportée');
       return;
     }
     
@@ -148,12 +122,10 @@ const CheckoutPage = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const location = { lat: latitude, lng: longitude };
-        
         if (mapInstance.current && markerRef.current) {
-          mapInstance.current.setCenter(location);
-          mapInstance.current.setZoom(17);
-          markerRef.current.setPosition(location);
+          const location = { latitude, longitude };
+          mapInstance.current.easeTo({ center: toLngLat(location), zoom: 17 });
+          upsertMarker(mapboxRef.current, mapInstance.current, markerRef, location, { color: '#ef4444' });
         }
         
         setFormData(prev => ({
@@ -164,7 +136,7 @@ const CheckoutPage = () => {
         
         reverseGeocode(latitude, longitude);
         setLocatingUser(false);
-        toast.success('Position trouvÃ©e !');
+        toast.success('Position trouvée !');
       },
       (error) => {
         setLocatingUser(false);
@@ -184,7 +156,7 @@ const CheckoutPage = () => {
     }
     
     if (!formData.latitude || !formData.longitude) {
-      toast.error('Veuillez sÃ©lectionner votre position sur la carte');
+      toast.error('Veuillez sélectionner votre position sur la carte');
       return;
     }
     
@@ -223,7 +195,7 @@ const CheckoutPage = () => {
       // Clear cart
       await clearCart();
       
-      toast.success('Commande passÃ©e avec succÃ¨s !');
+      toast.success('Commande passée avec succès !');
       
       // Play notification sound
       try {
@@ -247,13 +219,13 @@ const CheckoutPage = () => {
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande confirmÃ©e !</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande confirmée !</h1>
           <p className="text-gray-600 mb-6">
-            Votre commande a Ã©tÃ© passÃ©e avec succÃ¨s. Un livreur va bientÃ´t la prendre en charge.
+            Votre commande a été passée avec succès. Un livreur va bientôt la prendre en charge.
           </p>
           
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-gray-500">NumÃ©ro de commande</p>
+            <p className="text-sm text-gray-500">Numéro de commande</p>
             <p className="font-mono font-bold text-lg">{orderId?.slice(0, 8).toUpperCase()}</p>
           </div>
           
@@ -284,7 +256,7 @@ const CheckoutPage = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Finaliser la commande</h1>
-            <p className="text-muted-foreground">{cart.item_count} article(s) â€¢ {formatPrice(cart.total_fcfa)}</p>
+            <p className="text-muted-foreground">{cart.item_count} article(s) • {formatPrice(cart.total_fcfa)}</p>
           </div>
         </div>
 
@@ -311,7 +283,7 @@ const CheckoutPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">TÃ©lÃ©phone *</label>
+                    <label className="block text-sm font-medium mb-1">Téléphone *</label>
                     <Input
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -337,6 +309,7 @@ const CheckoutPage = () => {
                         id="address-input"
                         value={formData.street}
                         onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                        onBlur={geocodeTypedAddress}
                         placeholder="Rechercher votre adresse..."
                         data-testid="checkout-address"
                       />
@@ -370,7 +343,7 @@ const CheckoutPage = () => {
                   {formData.latitude && formData.longitude && (
                     <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
                       <CheckCircle className="w-4 h-4" />
-                      Position sÃ©lectionnÃ©e
+                      Position sélectionnée
                     </div>
                   )}
                   
@@ -411,11 +384,11 @@ const CheckoutPage = () => {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        ðŸ’µ
+                        ??
                       </div>
                       <div>
-                        <p className="font-medium">Paiement Ã  la livraison</p>
-                        <p className="text-sm text-muted-foreground">EspÃ¨ces ou Mobile Money</p>
+                        <p className="font-medium">Paiement à la livraison</p>
+                        <p className="text-sm text-muted-foreground">Espèces ou Mobile Money</p>
                       </div>
                     </div>
                   </button>
@@ -432,7 +405,7 @@ const CheckoutPage = () => {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        ðŸ’³
+                        ??
                       </div>
                       <div>
                         <p className="font-medium">Carte bancaire</p>
@@ -452,7 +425,7 @@ const CheckoutPage = () => {
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Indications pour le livreur (Ã©tage, code, repÃ¨res...)"
+                  placeholder="Indications pour le livreur (étage, code, repères...)"
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                   data-testid="checkout-notes"
@@ -463,7 +436,7 @@ const CheckoutPage = () => {
             {/* Right: Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl border p-6 sticky top-24">
-                <h2 className="font-bold text-lg mb-4">RÃ©capitulatif</h2>
+                <h2 className="font-bold text-lg mb-4">Récapitulatif</h2>
                 
                 {/* Items */}
                 <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
@@ -476,7 +449,7 @@ const CheckoutPage = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm line-clamp-1">{item.product.name}</p>
-                        <p className="text-sm text-muted-foreground">QtÃ©: {item.quantity}</p>
+                        <p className="text-sm text-muted-foreground">Qté: {item.quantity}</p>
                       </div>
                       <p className="font-medium text-sm">
                         {formatPrice(item.subtotal_fcfa)}
@@ -524,7 +497,7 @@ const CheckoutPage = () => {
                 </Button>
                 
                 <p className="text-xs text-center text-muted-foreground mt-4">
-                  En confirmant, vous acceptez nos conditions gÃ©nÃ©rales de vente
+                  En confirmant, vous acceptez nos conditions générales de vente
                 </p>
               </div>
             </div>

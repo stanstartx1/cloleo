@@ -14,7 +14,8 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { loadMapbox } from '../utils/mapboxLoader';
+import { toLngLat, upsertMarker } from '../utils/mapboxMap';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { copyToClipboard } from '../utils/share';
 import axios from 'axios';
@@ -31,7 +32,6 @@ import {
 
 
 const API = API_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const withDropshipperFallback = (path) => {
   if (!path.startsWith('/revendeur/')) return [path];
@@ -2237,6 +2237,7 @@ const RevendeurOrderTracking = ({ token }) => {
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapboxRef = useRef(null);
   const driverMarker = useRef(null);
   const customerMarker = useRef(null);
   const wsRef = useRef(null);
@@ -2298,37 +2299,36 @@ const RevendeurOrderTracking = ({ token }) => {
     return () => wsRef.current?.close();
   }, [selectedOrder, fetchOrders]);
 
-  // Initialize Google Map
+  // Initialize Mapbox map
   useEffect(() => {
     if (!selectedOrder || !mapRef.current) return;
 
-    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
-      .then(() => createMap())
-      .catch(() => toast.error('Erreur chargement Google Maps'));
+    loadMapbox()
+      .then((mapboxgl) => {
+        mapboxRef.current = mapboxgl;
+        createMap(mapboxgl);
+      })
+      .catch(() => toast.error('Erreur chargement Mapbox'));
   }, [selectedOrder]);
 
-  const createMap = () => {
+  const createMap = (mapboxgl) => {
     if (!selectedOrder?.delivery_address) return;
     
     const customerPos = {
-      lat: selectedOrder.delivery_address.latitude || 5.3600,
-      lng: selectedOrder.delivery_address.longitude || -4.0083
+      latitude: selectedOrder.delivery_address.latitude || 5.3600,
+      longitude: selectedOrder.delivery_address.longitude || -4.0083
     };
     
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center: customerPos,
+    mapInstance.current = new mapboxgl.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: toLngLat(customerPos),
       zoom: 14,
-      styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }]
     });
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     
-    // Customer marker (red)
-    customerMarker.current = new window.google.maps.Marker({
-      map: mapInstance.current,
-      position: customerPos,
-      icon: {
-        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-        scaledSize: new window.google.maps.Size(40, 40)
-      },
+    upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
+      color: '#ef4444',
       title: 'Client'
     });
     
@@ -2340,26 +2340,14 @@ const RevendeurOrderTracking = ({ token }) => {
   };
 
   const updateDriverMarker = (location) => {
-    if (!mapInstance.current || !window.google || !location) return;
+    if (!mapInstance.current || !mapboxRef.current || !location) return;
+
+    upsertMarker(mapboxRef.current, mapInstance.current, driverMarker, location, {
+      color: '#2563eb',
+      title: 'Livreur'
+    });
     
-    const pos = { lat: location.latitude, lng: location.longitude };
-    
-    if (driverMarker.current) {
-      driverMarker.current.setPosition(pos);
-    } else {
-      driverMarker.current = new window.google.maps.Marker({
-        map: mapInstance.current,
-        position: pos,
-        icon: {
-          url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-          scaledSize: new window.google.maps.Size(40, 40)
-        },
-        title: 'Livreur'
-      });
-    }
-    
-    // Pan to driver
-    mapInstance.current.panTo(pos);
+    mapInstance.current.easeTo({ center: toLngLat(location), zoom: 14 });
   };
 
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
@@ -2492,12 +2480,6 @@ const RevendeurOrderTracking = ({ token }) => {
               
               {/* Map */}
               <div ref={mapRef} className="w-full h-48 bg-gray-100" data-testid="revendeur-tracking-map">
-                {!GOOGLE_MAPS_API_KEY && (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    <MapPin className="w-8 h-8 mr-2" />
-                    Carte non disponible
-                  </div>
-                )}
               </div>
               
               {/* Order Info */}

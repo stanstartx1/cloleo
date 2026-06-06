@@ -1,4 +1,4 @@
-ï»¿import { API_URL, API_BASE, WS_URL } from '../config/api';
+import { API_URL } from '../config/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -11,10 +11,10 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { loadMapbox } from '../utils/mapboxLoader';
+import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, reverseGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
 
 const API = API_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
@@ -23,6 +23,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
   const { user, token, isAuthenticated } = useAuth();
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapboxRef = useRef(null);
   const markerRef = useRef(null);
   
   const [quantity, setQuantity] = useState(initialQuantity);
@@ -37,7 +38,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
     phone: user?.phone || '',
     street: '',
     city: 'Abidjan',
-    country: "CÃ´te d'Ivoire",
+    country: "Côte d'Ivoire",
     latitude: null,
     longitude: null,
     paymentMethod: 'cash',
@@ -49,67 +50,81 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
   const deliveryFee = 1500; // Fixed delivery fee
   const grandTotal = totalPrice + deliveryFee;
 
-  // Load Google Maps
+  // Load Mapbox
   useEffect(() => {
     if (step === 2) {
       setTimeout(() => {
-        loadGoogleMaps(GOOGLE_MAPS_API_KEY)
-          .then(() => initMap())
-          .catch(() => toast.error('Erreur chargement Google Maps'));
+        loadMapbox()
+          .then((mapboxgl) => {
+            mapboxRef.current = mapboxgl;
+            initMap(mapboxgl);
+          })
+          .catch(() => toast.error('Erreur chargement Mapbox'));
       }, 100);
     }
   }, [step]);
 
-  const initMap = () => {
-    if (!mapRef.current || !window.google) return;
-    
-    const defaultLocation = { lat: 5.3599, lng: -4.0083 };
-    
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center: defaultLocation,
+  const initMap = (mapboxgl) => {
+    if (!mapRef.current || mapInstance.current) return;
+
+    mapInstance.current = new mapboxgl.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: toLngLat(DEFAULT_MAP_CENTER),
       zoom: 13,
-      styles: [
-        { featureType: "poi", stylers: [{ visibility: "off" }] }
-      ]
     });
-    
-    markerRef.current = new window.google.maps.Marker({
-      map: mapInstance.current,
-      position: defaultLocation,
+
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    upsertMarker(mapboxgl, mapInstance.current, markerRef, DEFAULT_MAP_CENTER, {
+      color: '#f97316',
+      title: 'Adresse de livraison',
       draggable: true,
-      animation: window.google.maps.Animation.DROP
+      onDragEnd: ({ latitude, longitude }) => {
+        setFormData(prev => ({ ...prev, latitude, longitude }));
+        reverseGeocode(latitude, longitude);
+      },
     });
-    
-    markerRef.current.addListener('dragend', (e) => {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
-      reverseGeocode(lat, lng);
-    });
-    
-    mapInstance.current.addListener('click', (e) => {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      markerRef.current.setPosition(e.latLng);
-      setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
-      reverseGeocode(lat, lng);
+
+    mapInstance.current.on('click', (event) => {
+      const latitude = event.lngLat.lat;
+      const longitude = event.lngLat.lng;
+      upsertMarker(mapboxgl, mapInstance.current, markerRef, { latitude, longitude }, { color: '#f97316' });
+      setFormData(prev => ({ ...prev, latitude, longitude }));
+      reverseGeocode(latitude, longitude);
     });
   };
 
   const reverseGeocode = async (lat, lng) => {
-    if (!window.google) return;
-    
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        setFormData(prev => ({ ...prev, street: results[0].formatted_address }));
-      }
-    });
+    try {
+      const address = await reverseGeocodeMapbox(lat, lng);
+      if (address) setFormData(prev => ({ ...prev, street: address }));
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    }
+  };
+
+  const geocodeTypedAddress = async () => {
+    try {
+      const result = await forwardGeocodeMapbox(formData.street);
+      if (!result || !mapInstance.current || !mapboxRef.current) return;
+
+      upsertMarker(mapboxRef.current, mapInstance.current, markerRef, result, { color: '#f97316' });
+      mapInstance.current.easeTo({ center: toLngLat(result), zoom: 17 });
+      setFormData(prev => ({
+        ...prev,
+        street: result.address,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      }));
+    } catch (error) {
+      console.error('Forward geocoding error:', error);
+    }
   };
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('GÃ©olocalisation non supportÃ©e');
+      toast.error('Géolocalisation non supportée');
       return;
     }
     
@@ -117,18 +132,16 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const location = { lat: latitude, lng: longitude };
-        
         if (mapInstance.current && markerRef.current) {
-          mapInstance.current.setCenter(location);
-          mapInstance.current.setZoom(17);
-          markerRef.current.setPosition(location);
+          const location = { latitude, longitude };
+          mapInstance.current.easeTo({ center: toLngLat(location), zoom: 17 });
+          upsertMarker(mapboxRef.current, mapInstance.current, markerRef, location, { color: '#f97316' });
         }
         
         setFormData(prev => ({ ...prev, latitude, longitude }));
         reverseGeocode(latitude, longitude);
         setLocatingUser(false);
-        toast.success('Position trouvÃ©e !');
+        toast.success('Position trouvée !');
       },
       () => {
         setLocatingUser(false);
@@ -145,7 +158,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
     }
     
     if (!formData.latitude || !formData.longitude) {
-      toast.error('Veuillez sÃ©lectionner votre position sur la carte');
+      toast.error('Veuillez sélectionner votre position sur la carte');
       return;
     }
     
@@ -178,7 +191,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
       setOrderId(response.data.id);
       setOrderPlaced(true);
       setStep(3);
-      toast.success('Commande passÃ©e avec succÃ¨s !');
+      toast.success('Commande passée avec succès !');
       
       if (onSuccess) {
         onSuccess(response.data);
@@ -222,7 +235,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
 
       {/* Quantity Selector */}
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-        <span className="font-medium">QuantitÃ©</span>
+        <span className="font-medium">Quantité</span>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setQuantity(q => Math.max(1, q - 1))}
@@ -311,7 +324,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
         
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">
-            <Phone className="w-4 h-4 inline mr-1" /> TÃ©lÃ©phone *
+            <Phone className="w-4 h-4 inline mr-1" /> Téléphone *
           </label>
           <Input
             value={formData.phone}
@@ -328,6 +341,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
           <Input
             value={formData.street}
             onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
+            onBlur={geocodeTypedAddress}
             placeholder="Cliquez sur la carte ou entrez l'adresse"
             className="h-12"
           />
@@ -361,7 +375,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
             }`}
           >
             <Package className="w-6 h-6 mx-auto mb-2 text-orange-500" />
-            <p className="font-medium text-sm">Paiement Ã  la livraison</p>
+            <p className="font-medium text-sm">Paiement à la livraison</p>
           </button>
           <button
             onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'mobile_money' }))}
@@ -424,16 +438,16 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
       </div>
       
       <div>
-        <h3 className="text-2xl font-bold text-gray-800">Commande confirmÃ©e !</h3>
-        <p className="text-gray-600 mt-2">Votre commande #{orderId?.slice(0, 8)} a Ã©tÃ© passÃ©e avec succÃ¨s</p>
+        <h3 className="text-2xl font-bold text-gray-800">Commande confirmée !</h3>
+        <p className="text-gray-600 mt-2">Votre commande #{orderId?.slice(0, 8)} a été passée avec succès</p>
       </div>
       
       <div className="p-4 bg-green-50 rounded-xl border border-green-100">
         <p className="text-green-800 font-medium">
-          Vous recevrez bientÃ´t une confirmation par tÃ©lÃ©phone
+          Vous recevrez bientôt une confirmation par téléphone
         </p>
         <p className="text-green-600 text-sm mt-1">
-          Livraison estimÃ©e : 2-4 heures
+          Livraison estimée : 2-4 heures
         </p>
       </div>
       
@@ -469,7 +483,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
               <p className="text-sm text-white/80">
                 {step === 1 && 'Confirmez votre achat'}
                 {step === 2 && 'Adresse de livraison'}
-                {step === 3 && 'Commande confirmÃ©e'}
+                {step === 3 && 'Commande confirmée'}
               </p>
             </div>
           </div>

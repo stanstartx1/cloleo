@@ -1,4 +1,4 @@
-Ôªøimport React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { 
   MapPin, Truck, Package, Eye, Phone, Clock, 
@@ -6,22 +6,22 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { loadMapbox } from '../utils/mapboxLoader';
+import { fitToLocations, toLngLat, upsertMarker } from '../utils/mapboxMap';
 
-import { API_BASE, API_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 
 const API = API_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber' },
-  assigned: { label: 'Assign√©e', color: 'blue' },
-  picked_up: { label: 'R√©cup√©r√©e', color: 'indigo' },
+  assigned: { label: 'AssignÈe', color: 'blue' },
+  picked_up: { label: 'RÈcupÈrÈe', color: 'indigo' },
   in_transit: { label: 'En route', color: 'purple' },
-  delivered: { label: 'Livr√©e', color: 'green' },
-  cancelled: { label: 'Annul√©e', color: 'red' }
+  delivered: { label: 'LivrÈe', color: 'green' },
+  cancelled: { label: 'AnnulÈe', color: 'red' }
 };
 
 const AdminLiveTracking = ({ token }) => {
@@ -35,6 +35,7 @@ const AdminLiveTracking = ({ token }) => {
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapboxRef = useRef(null);
   const markersRef = useRef({});
   const wsRef = useRef(null);
 
@@ -62,25 +63,27 @@ const AdminLiveTracking = ({ token }) => {
   useEffect(() => {
     fetchData();
 
-    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
-      .then(() => setMapLoaded(true))
-      .catch(() => toast.error('Erreur chargement Google Maps'));
+    loadMapbox()
+      .then((mapboxgl) => {
+        mapboxRef.current = mapboxgl;
+        setMapLoaded(true);
+      })
+      .catch(() => toast.error('Erreur chargement Mapbox'));
   }, [fetchData]);
 
   // Initialize map
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || mapInstance.current) return;
     
-    // Default to Abidjan
-    const center = { lat: 5.3599, lng: -4.0083 };
-    
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center,
+    const center = { latitude: 5.3599, longitude: -4.0083 };
+
+    mapInstance.current = new mapboxRef.current.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: toLngLat(center),
       zoom: 12,
-      styles: [
-        { featureType: "poi", stylers: [{ visibility: "off" }] }
-      ]
     });
+    mapInstance.current.addControl(new mapboxRef.current.NavigationControl(), 'top-right');
     
     // Add markers for drivers
     updateDriverMarkers();
@@ -94,47 +97,37 @@ const AdminLiveTracking = ({ token }) => {
   }, [drivers]);
 
   const updateDriverMarkers = () => {
-    if (!mapInstance.current || !window.google) return;
+    if (!mapInstance.current || !mapboxRef.current) return;
     
     // Clear old markers
-    Object.values(markersRef.current).forEach(marker => marker.setMap(null));
+    Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
     
     // Add new markers
     drivers.forEach(driver => {
       if (!driver.location?.latitude) return;
       
-      const pos = { lat: driver.location.latitude, lng: driver.location.longitude };
-      
-      const marker = new window.google.maps.Marker({
-        map: mapInstance.current,
-        position: pos,
-        icon: {
-          url: driver.status === 'available' 
-            ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
-            : driver.status === 'busy'
-            ? 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png'
-            : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-          scaledSize: new window.google.maps.Size(35, 35)
-        },
+      const pos = { latitude: driver.location.latitude, longitude: driver.location.longitude };
+      const markerRef = { current: null };
+      const color = driver.status === 'available' ? '#22c55e' : driver.status === 'busy' ? '#eab308' : '#2563eb';
+
+      const marker = upsertMarker(mapboxRef.current, mapInstance.current, markerRef, pos, {
+        color,
         title: driver.driver_name
       });
-      
-      // Info window
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
+
+      const popup = new mapboxRef.current.Popup({ offset: 24 }).setHTML(`
           <div style="padding: 8px; min-width: 150px;">
             <strong>${driver.driver_name}</strong><br/>
             <span style="color: #666;">${driver.vehicle_type}</span><br/>
             <span style="color: ${driver.status === 'available' ? 'green' : 'orange'};">
-              ${driver.status === 'available' ? '‚óè Disponible' : '‚óè Occup√©'}
+              ${driver.status === 'available' ? '? Disponible' : '? OccupÈ'}
             </span>
           </div>
-        `
-      });
-      
-      marker.addListener('click', () => {
-        infoWindow.open(mapInstance.current, marker);
+        `);
+
+      marker.getElement().addEventListener('click', () => {
+        marker.setPopup(popup).togglePopup();
         setSelectedDriver(driver);
       });
       
@@ -142,15 +135,7 @@ const AdminLiveTracking = ({ token }) => {
     });
     
     // Fit bounds if we have markers
-    if (drivers.length > 0) {
-      const bounds = new window.google.maps.LatLngBounds();
-      drivers.forEach(d => {
-        if (d.location?.latitude) {
-          bounds.extend({ lat: d.location.latitude, lng: d.location.longitude });
-        }
-      });
-      mapInstance.current.fitBounds(bounds, { padding: 50 });
-    }
+    fitToLocations(mapboxRef.current, mapInstance.current, drivers.map(d => d.location).filter(Boolean), 50);
   };
 
   // WebSocket for real-time updates
@@ -174,11 +159,8 @@ const AdminLiveTracking = ({ token }) => {
           ));
           
           // Update marker on map
-          if (markersRef.current[data.driver_id] && window.google) {
-            markersRef.current[data.driver_id].setPosition({
-              lat: data.location.latitude,
-              lng: data.location.longitude
-            });
+          if (markersRef.current[data.driver_id]) {
+            markersRef.current[data.driver_id].setLngLat(toLngLat(data.location));
           }
         }
         
@@ -220,11 +202,7 @@ const AdminLiveTracking = ({ token }) => {
   const focusOnDriver = (driver) => {
     if (!mapInstance.current || !driver.location) return;
     
-    mapInstance.current.setCenter({
-      lat: driver.location.latitude,
-      lng: driver.location.longitude
-    });
-    mapInstance.current.setZoom(16);
+    mapInstance.current.easeTo({ center: toLngLat(driver.location), zoom: 16 });
     setSelectedDriver(driver);
   };
 
@@ -255,7 +233,7 @@ const AdminLiveTracking = ({ token }) => {
         </div>
         <div className="bg-blue-500/20 rounded-xl p-4">
           <p className="text-2xl font-bold text-blue-400">{orderStats?.assigned || 0}</p>
-          <p className="text-xs text-slate-400">Assign√©es</p>
+          <p className="text-xs text-slate-400">AssignÈes</p>
         </div>
         <div className="bg-purple-500/20 rounded-xl p-4">
           <p className="text-2xl font-bold text-purple-400">{orderStats?.in_transit || 0}</p>
@@ -263,7 +241,7 @@ const AdminLiveTracking = ({ token }) => {
         </div>
         <div className="bg-green-500/20 rounded-xl p-4">
           <p className="text-2xl font-bold text-green-400">{orderStats?.delivered || 0}</p>
-          <p className="text-xs text-slate-400">Livr√©es</p>
+          <p className="text-xs text-slate-400">LivrÈes</p>
         </div>
         <div className="bg-emerald-500/20 rounded-xl p-4">
           <p className="text-2xl font-bold text-emerald-400">{formatPrice(orderStats?.total_revenue_fcfa || 0)}</p>
@@ -277,7 +255,7 @@ const AdminLiveTracking = ({ token }) => {
           <div className="p-4 border-b border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-cyan-400" />
-              <h3 className="font-bold">Suivi en temps r√©el</h3>
+              <h3 className="font-bold">Suivi en temps rÈel</h3>
             </div>
             <Button size="sm" variant="outline" onClick={fetchData}>
               <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
@@ -294,7 +272,7 @@ const AdminLiveTracking = ({ token }) => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-              <span className="text-slate-300">Occup√©</span>
+              <span className="text-slate-300">OccupÈ</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full" />
@@ -373,7 +351,7 @@ const AdminLiveTracking = ({ token }) => {
         <div className="p-4 border-b border-slate-700">
           <h3 className="font-bold flex items-center gap-2">
             <Package className="w-5 h-5 text-green-400" />
-            Commandes r√©centes
+            Commandes rÈcentes
           </h3>
         </div>
         
@@ -403,7 +381,7 @@ const AdminLiveTracking = ({ token }) => {
                     {order.driver_name ? (
                       <span className="text-sm text-white">{order.driver_name}</span>
                     ) : (
-                      <span className="text-xs text-amber-400">Non assign√©</span>
+                      <span className="text-xs text-amber-400">Non assignÈ</span>
                     )}
                   </td>
                   <td className="p-3">

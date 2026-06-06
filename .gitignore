@@ -151,3 +151,4 @@ backend/uploads/
 # Modèles d'environnement (sans secrets) — à versionner
 !.env.example
 !**/.env.example
+".env" 

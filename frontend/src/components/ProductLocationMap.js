@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
-
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-
-const DEFAULT_CENTER = { lat: 5.3599, lng: -4.0083 };
+import { loadMapbox } from '../utils/mapboxLoader';
+import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
 
 const ProductLocationMap = ({ product }) => {
   const mapRef = useRef(null);
@@ -18,58 +15,39 @@ const ProductLocationMap = ({ product }) => {
 
     const initMap = async () => {
       try {
-        if (!GOOGLE_MAPS_API_KEY) {
-          setError('Clé Google Maps absente');
-          setLoading(false);
-          return;
-        }
-
-        await loadGoogleMaps(GOOGLE_MAPS_API_KEY);
+        const mapboxgl = await loadMapbox();
         if (cancelled || !mapRef.current) return;
 
-        const map = new window.google.maps.Map(mapRef.current, {
-          center: DEFAULT_CENTER,
+        const map = new mapboxgl.Map({
+          container: mapRef.current,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: toLngLat(DEFAULT_MAP_CENTER),
           zoom: 12,
-          mapTypeId: 'roadmap',
-          streetViewControl: false,
-          fullscreenControl: false
         });
         mapInstance.current = map;
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
         const lat = Number(product?.latitude);
         const lng = Number(product?.longitude);
         const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
 
         if (hasCoordinates) {
-          const position = { lat, lng };
-          markerRef.current = new window.google.maps.Marker({
-            map,
-            position,
-            title: product?.name || 'Produit'
-          });
-          map.setCenter(position);
-          map.setZoom(15);
+          const position = { latitude: lat, longitude: lng };
+          upsertMarker(mapboxgl, map, markerRef, position, { color: '#f97316', title: product?.name || 'Produit' });
+          map.easeTo({ center: toLngLat(position), zoom: 15 });
         } else {
           const query = [product?.city, product?.location].filter(Boolean).join(', ');
           if (query) {
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ address: query }, (results, status) => {
-              if (cancelled || status !== 'OK' || !results?.length) return;
-              const loc = results[0].geometry.location;
-              const position = { lat: loc.lat(), lng: loc.lng() };
-              markerRef.current = new window.google.maps.Marker({
-                map,
-                position,
-                title: product?.name || 'Produit'
-              });
-              map.setCenter(position);
-              map.setZoom(13);
-            });
+            const result = await forwardGeocodeMapbox(query);
+            if (!cancelled && result) {
+              upsertMarker(mapboxgl, map, markerRef, result, { color: '#f97316', title: product?.name || 'Produit' });
+              map.easeTo({ center: toLngLat(result), zoom: 13 });
+            }
           }
         }
 
         setLoading(false);
-      } catch (e) {
+      } catch {
         setError('Impossible de charger la carte');
         setLoading(false);
       }
@@ -78,6 +56,8 @@ const ProductLocationMap = ({ product }) => {
     initMap();
     return () => {
       cancelled = true;
+      mapInstance.current?.remove();
+      mapInstance.current = null;
     };
   }, [product]);
 

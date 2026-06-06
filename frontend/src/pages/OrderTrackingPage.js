@@ -9,26 +9,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { loadMapbox } from '../utils/mapboxLoader';
+import { fitToLocations, setRouteLine, toLngLat, upsertMarker } from '../utils/mapboxMap';
 import UserAvatar from '../components/UserAvatar';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
 
-const toWsUrl = (url) => {
-  const safeUrl = typeof url === 'string' ? url.trim() : '';
- 
-  if (!safeUrl) {
-    return WS_URL;
-  }
-  // Conversion intelligente http → ws et https → wss
-  return safeUrl
-    .replace(/^https:\/\//i, 'wss://')
-    .replace(/^http:\/\//i, 'ws://');
-};
-
-const calculatedWS_URL = WS_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+const API = API_URL;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
@@ -51,10 +39,10 @@ const OrderTrackingPage = () => {
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapboxRef = useRef(null);
   const driverMarker = useRef(null);
   const customerMarker = useRef(null);
   const wsRef = useRef(null);
-  const directionsRenderer = useRef(null);
 
   // Fetch order details
   const fetchOrder = useCallback(async () => {
@@ -138,111 +126,72 @@ const OrderTrackingPage = () => {
   useEffect(() => {
     if (!order || !mapRef.current) return;
 
-    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
-      .then(() => initMap())
-      .catch(() => toast.error('Erreur chargement Google Maps'));
+    loadMapbox()
+      .then((mapboxgl) => {
+        mapboxRef.current = mapboxgl;
+        initMap(mapboxgl);
+      })
+      .catch(() => toast.error('Erreur chargement Mapbox'));
   }, [order]);
 
   // Update map when driver location changes
   useEffect(() => {
-    if (!driverLocation || !mapInstance.current || !window.google) return;
-    
-    const driverPos = { 
-      lat: driverLocation.latitude, 
-      lng: driverLocation.longitude 
-    };
-    
-    if (driverMarker.current) {
-      driverMarker.current.setPosition(driverPos);
-    }
-    
-    // Update route
-    if (order?.delivery_address?.latitude && directionsRenderer.current) {
-      updateRoute(driverPos);
+    if (!driverLocation || !mapInstance.current || !mapboxRef.current) return;
+
+    upsertMarker(mapboxRef.current, mapInstance.current, driverMarker, driverLocation, {
+      color: '#2563eb',
+      title: 'Livreur',
+    });
+
+    if (order?.delivery_address?.latitude) {
+      updateRoute(driverLocation);
     }
   }, [driverLocation, order]);
 
-  const initMap = () => {
+  const initMap = (mapboxgl) => {
     if (!order?.delivery_address) return;
     
     const customerPos = {
-      lat: order.delivery_address.latitude || 5.3599,
-      lng: order.delivery_address.longitude || -4.0083
+      latitude: order.delivery_address.latitude || 5.3599,
+      longitude: order.delivery_address.longitude || -4.0083
     };
     
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center: customerPos,
+    mapInstance.current = new mapboxgl.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: toLngLat(customerPos),
       zoom: 14,
-      styles: [
-        { featureType: "poi", stylers: [{ visibility: "off" }] }
-      ]
     });
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     
-    // Customer marker (red - destination)
-    customerMarker.current = new window.google.maps.Marker({
-      map: mapInstance.current,
-      position: customerPos,
-      icon: {
-        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-        scaledSize: new window.google.maps.Size(40, 40)
-      },
+    upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
+      color: '#ef4444',
       title: 'Votre position'
     });
     
-    // Driver marker (blue - moving)
     const driverPos = driverLocation 
-      ? { lat: driverLocation.latitude, lng: driverLocation.longitude }
+      ? { latitude: driverLocation.latitude, longitude: driverLocation.longitude }
       : null;
     
     if (driverPos) {
-      driverMarker.current = new window.google.maps.Marker({
-        map: mapInstance.current,
-        position: driverPos,
-        icon: {
-          url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-          scaledSize: new window.google.maps.Size(40, 40)
-        },
+      upsertMarker(mapboxgl, mapInstance.current, driverMarker, driverPos, {
+        color: '#2563eb',
         title: 'Livreur'
       });
-      
-      // Setup directions renderer
-      directionsRenderer.current = new window.google.maps.DirectionsRenderer({
-        map: mapInstance.current,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: '#4F46E5',
-          strokeWeight: 4
-        }
-      });
-      
-      // Draw initial route
+
       updateRoute(driverPos);
-      
-      // Fit bounds to show both markers
-      const bounds = new window.google.maps.LatLngBounds();
-      bounds.extend(customerPos);
-      bounds.extend(driverPos);
-      mapInstance.current.fitBounds(bounds, { padding: 50 });
+      fitToLocations(mapboxgl, mapInstance.current, [customerPos, driverPos], 50);
     }
   };
 
   const updateRoute = (driverPos) => {
-    if (!window.google || !order?.delivery_address) return;
-    
-    const directionsService = new window.google.maps.DirectionsService();
-    
-    directionsService.route({
-      origin: driverPos,
-      destination: {
-        lat: order.delivery_address.latitude,
-        lng: order.delivery_address.longitude
-      },
-      travelMode: window.google.maps.TravelMode.DRIVING
-    }, (result, status) => {
-      if (status === 'OK' && directionsRenderer.current) {
-        directionsRenderer.current.setDirections(result);
-      }
-    });
+    if (!mapInstance.current || !order?.delivery_address) return;
+
+    const destination = {
+      latitude: order.delivery_address.latitude,
+      longitude: order.delivery_address.longitude
+    };
+    setRouteLine(mapInstance.current, 'order-tracking-route', driverPos, destination);
   };
 
   const getStatusProgress = () => {

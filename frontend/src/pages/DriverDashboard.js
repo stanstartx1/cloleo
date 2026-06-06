@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
-import GoogleMap from '../components/GoogleMap';
+import MapboxMap from '../components/MapboxMap';
 
 import { API_BASE, API_URL } from '../config/api';
 
@@ -572,13 +572,13 @@ const DriverDashboard = () => {
                       
                       {activeOrderForMap.delivery_address?.latitude && (
                         <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}&travelmode=driving`}
+                          href={`geo:${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}?q=${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="block p-3 text-center text-sm text-blue-400 hover:bg-slate-700/50 border-t border-slate-700"
                         >
                           <Navigation className="w-4 h-4 inline mr-2" />
-                          Ouvrir dans Google Maps
+                          Ouvrir l'itinéraire
                         </a>
                       )}
                     </div>
@@ -606,7 +606,7 @@ const DriverDashboard = () => {
                   </div>
                 </div>
                 
-                <GoogleMap 
+                <MapboxMap
                   driverLocation={currentLocation}
                   customerLocation={customerLocation}
                   showRoute={activeOrders.length > 0}

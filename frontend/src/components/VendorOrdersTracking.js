@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { 
   Package, Truck, MapPin, Phone, Clock, CheckCircle, 
@@ -6,22 +6,22 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
-import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { loadMapbox } from '../utils/mapboxLoader';
+import { toLngLat, upsertMarker } from '../utils/mapboxMap';
 
-import { API_BASE, API_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 
 const API = API_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber' },
-  assigned: { label: 'Livreur assignÃ©', color: 'blue' },
-  picked_up: { label: 'Colis rÃ©cupÃ©rÃ©', color: 'indigo' },
+  assigned: { label: 'Livreur assigné', color: 'blue' },
+  picked_up: { label: 'Colis récupéré', color: 'indigo' },
   in_transit: { label: 'En livraison', color: 'purple' },
-  delivered: { label: 'LivrÃ©e', color: 'green' },
-  cancelled: { label: 'AnnulÃ©e', color: 'red' }
+  delivered: { label: 'Livrée', color: 'green' },
+  cancelled: { label: 'Annulée', color: 'red' }
 };
 
 const VendorOrdersTracking = ({ token, vendorId }) => {
@@ -32,6 +32,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const mapboxRef = useRef(null);
   const driverMarker = useRef(null);
   const customerMarker = useRef(null);
   const wsRef = useRef(null);
@@ -96,33 +97,32 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
   useEffect(() => {
     if (!selectedOrder || !mapRef.current) return;
 
-    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
-      .then(() => createMap())
-      .catch(() => toast.error('Erreur chargement Google Maps'));
+    loadMapbox()
+      .then((mapboxgl) => {
+        mapboxRef.current = mapboxgl;
+        createMap(mapboxgl);
+      })
+      .catch(() => toast.error('Erreur chargement Mapbox'));
   }, [selectedOrder]);
 
-  const createMap = () => {
+  const createMap = (mapboxgl) => {
     if (!selectedOrder?.delivery_address) return;
     
     const customerPos = {
-      lat: selectedOrder.delivery_address.latitude,
-      lng: selectedOrder.delivery_address.longitude
+      latitude: selectedOrder.delivery_address.latitude || 5.3599,
+      longitude: selectedOrder.delivery_address.longitude || -4.0083
     };
     
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center: customerPos,
+    mapInstance.current = new mapboxgl.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: toLngLat(customerPos),
       zoom: 14,
-      styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }]
     });
+    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     
-    // Customer marker
-    customerMarker.current = new window.google.maps.Marker({
-      map: mapInstance.current,
-      position: customerPos,
-      icon: {
-        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-        scaledSize: new window.google.maps.Size(35, 35)
-      },
+    upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
+      color: '#ef4444',
       title: 'Client'
     });
     
@@ -134,23 +134,12 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
   };
 
   const updateDriverMarker = (location) => {
-    if (!mapInstance.current || !window.google || !location) return;
-    
-    const pos = { lat: location.latitude, lng: location.longitude };
-    
-    if (driverMarker.current) {
-      driverMarker.current.setPosition(pos);
-    } else {
-      driverMarker.current = new window.google.maps.Marker({
-        map: mapInstance.current,
-        position: pos,
-        icon: {
-          url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-          scaledSize: new window.google.maps.Size(35, 35)
-        },
-        title: 'Livreur'
-      });
-    }
+    if (!mapInstance.current || !mapboxRef.current || !location) return;
+
+    upsertMarker(mapboxRef.current, mapInstance.current, driverMarker, location, {
+      color: '#2563eb',
+      title: 'Livreur'
+    });
   };
 
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
@@ -183,7 +172,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
           <p className="text-2xl font-bold text-green-700">
             {orders.filter(o => o.status === 'delivered').length}
           </p>
-          <p className="text-sm text-green-600">LivrÃ©es</p>
+          <p className="text-sm text-green-600">Livrées</p>
         </div>
         <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
           <Truck className="w-6 h-6 text-purple-500 mb-2" />
@@ -335,7 +324,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
               <div className="text-center">
                 <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                 <p className="text-muted-foreground">
-                  SÃ©lectionnez une commande pour voir le suivi
+                  Sélectionnez une commande pour voir le suivi
                 </p>
               </div>
             </div>
@@ -349,7 +338,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
           <div className="p-4 border-b">
             <h3 className="font-bold flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
-              Commandes terminÃ©es
+              Commandes terminées
             </h3>
           </div>
           <div className="overflow-x-auto touch-scroll-x">

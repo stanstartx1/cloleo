@@ -15,7 +15,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
-import GoogleMap from '../components/GoogleMap';
+import MapboxMap from '../components/MapboxMap';
 import MessagesSection from '../components/MessagesSection';
 import { 
   AnimatedNumber, 
@@ -922,7 +922,7 @@ const VendorDashboard = () => {
                         </div>
                       </div>
                       
-                      <GoogleMap 
+                      <MapboxMap
                         driverLocation={selectedDriverLocation}
                         customerLocation={customerLocation}
                         showRoute={!!selectedDriverLocation && !!customerLocation}
