@@ -154,6 +154,78 @@ const HomeTopProductCard = ({ product, index, onImageMissing }) => {
   );
 };
 
+const MarketplaceStripProductCard = ({ product, index, onImageMissing }) => {
+  const price = getHomeProductDisplayPrice(product);
+  const basePrice = getHomeProductBasePrice(product);
+  const discount = getHomeProductDiscount(product);
+  const badgeText = discount ? `-${discount}%` : index < 2 ? 'Smart' : null;
+
+  return (
+    <Link
+      to={`/produit/${product.id}`}
+      className="group relative min-w-[142px] max-w-[142px] bg-white p-1.5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:min-w-[158px] sm:max-w-[158px] md:min-w-0 md:max-w-none"
+    >
+      <div className="relative aspect-[1.08] overflow-hidden rounded-md bg-slate-50">
+        <img
+          src={getHomeProductImage(product)}
+          alt={product.name}
+          className="h-full w-full object-contain object-center p-1.5 transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          onError={() => onImageMissing(product.id)}
+        />
+        {badgeText && (
+          <span className="absolute left-1 top-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[8px] font-black uppercase text-white">
+            {badgeText}
+          </span>
+        )}
+      </div>
+      <p className="mt-1.5 line-clamp-2 min-h-[1.9rem] text-[10px] font-semibold leading-tight text-slate-800 group-hover:text-orange-600">
+        {product.name}
+      </p>
+      <p className="mt-0.5 text-[11px] font-black leading-tight text-slate-950">
+        {price.toLocaleString()} FCFA
+      </p>
+      {basePrice > price && (
+        <p className="text-[9px] leading-tight text-slate-400 line-through">
+          {basePrice.toLocaleString()} FCFA
+        </p>
+      )}
+    </Link>
+  );
+};
+
+const MarketplaceProductStrip = ({ title, href, products, tone = 'orange', onImageMissing }) => {
+  const tones = {
+    red: 'bg-red-600 text-white',
+    orange: 'bg-amber-400 text-slate-950',
+    green: 'bg-emerald-500 text-white',
+    cyan: 'bg-cyan-500 text-white',
+  };
+
+  if (!products.length) return null;
+
+  return (
+    <section className="border-b-4 border-cyan-500 bg-white">
+      <div className={`flex items-center justify-between px-3 py-2 text-xs font-black md:px-4 ${tones[tone] || tones.orange}`}>
+        <h2 className="truncate">{title}</h2>
+        <Link to={href} className="ml-3 shrink-0 text-[10px] font-bold hover:underline">
+          Voir plus <ArrowRight className="ml-1 inline h-3 w-3" />
+        </Link>
+      </div>
+      <div className="grid grid-flow-col auto-cols-[142px] gap-2 overflow-x-auto px-2 py-2 no-scrollbar sm:auto-cols-[158px] md:grid-flow-row md:grid-cols-6 lg:grid-cols-7">
+        {products.map((product, index) => (
+          <MarketplaceStripProductCard
+            key={`${title}-${product.id}`}
+            product={product}
+            index={index}
+            onImageMissing={onImageMissing}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -322,6 +394,63 @@ const HomePage = () => {
       .slice(0, 30);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
+
+  const marketplaceStripSourceProducts = useMemo(() => {
+    const merged = allProducts.length
+      ? allProducts
+      : [...featuredProducts, ...newProducts, ...trendingProducts];
+    const deduped = merged.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
+    return applyProductFilters(deduped).filter((product) => {
+      const image = product.images?.[0] || product.main_image || product.image;
+      return image && !brokenTopProductImages[product.id];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
+
+  const pickMarketplaceProducts = useCallback((keywords, fallbackStart = 0) => {
+    const keywordList = keywords.map((keyword) => keyword.toLowerCase());
+    const matches = marketplaceStripSourceProducts.filter((product) => {
+      const haystack = [
+        product.name,
+        product.category_name,
+        product.category_slug,
+        product.subcategory_name,
+        product.subcategory_slug,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return keywordList.some((keyword) => haystack.includes(keyword));
+    });
+    const fallback = marketplaceStripSourceProducts.slice(fallbackStart);
+    return [...matches, ...fallback]
+      .filter((product, index, arr) => arr.findIndex((item) => item.id === product.id) === index)
+      .slice(0, 7);
+  }, [marketplaceStripSourceProducts]);
+
+  const marketplaceProductStrips = useMemo(() => ([
+    {
+      title: 'Sponsor officiel | Smart Technology',
+      href: '/produits?search=smart',
+      tone: 'red',
+      products: pickMarketplaceProducts(['smart', 'tech', 'ordinateur', 'pc', 'laptop'], 0),
+    },
+    {
+      title: 'Les vrais kiens du moment | 14 ans avec vous',
+      href: '/produits?sort_by=sales_count',
+      tone: 'orange',
+      products: pickMarketplaceProducts(['mode', 'chaussure', 'vetement', 'fashion', 'accessoire'], 7),
+    },
+    {
+      title: 'Smartphones | 14 ans avec vous',
+      href: '/produits?search=smartphone',
+      tone: 'green',
+      products: pickMarketplaceProducts(['phone', 'iphone', 'samsung', 'smartphone', 'xiaomi', 'redmi'], 14),
+    },
+    {
+      title: 'TVs & Audio | 14 ans avec vous',
+      href: '/produits?search=audio',
+      tone: 'orange',
+      products: pickMarketplaceProducts(['tv', 'audio', 'speaker', 'casque', 'ecouteur', 'sound'], 21),
+    },
+  ]), [pickMarketplaceProducts]);
 
   const renderCategoryItems = (keyPrefix = 'cat') => (
     <>
@@ -519,6 +648,36 @@ const HomePage = () => {
               </div>
             </motion.section>
           ))}
+
+          <section className="bg-white">
+            <div className="max-w-screen-xl mx-auto overflow-hidden border-x border-slate-100">
+              {loading ? (
+                <div className="space-y-1 py-2">
+                  {[...Array(4)].map((_, blockIndex) => (
+                    <div key={`market-strip-skeleton-${blockIndex}`} className="border-b-4 border-cyan-500 bg-white">
+                      <Skeleton className="h-8 w-full rounded-none" />
+                      <div className="grid grid-cols-3 gap-2 p-2 md:grid-cols-7">
+                        {[...Array(7)].map((_, itemIndex) => (
+                          <Skeleton key={`market-strip-item-${blockIndex}-${itemIndex}`} className="h-36 rounded-md" />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                marketplaceProductStrips.map((strip) => (
+                  <MarketplaceProductStrip
+                    key={strip.title}
+                    title={strip.title}
+                    href={strip.href}
+                    tone={strip.tone}
+                    products={strip.products}
+                    onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
+                  />
+                ))
+              )}
+            </div>
+          </section>
 
           <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
             <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
