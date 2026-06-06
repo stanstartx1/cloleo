@@ -159,14 +159,14 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
       )} />
       
       {/* Image Container */}
-      <div className="relative h-36 md:h-40 lg:h-44 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 flex-shrink-0">
+      <div className="relative h-36 md:h-40 lg:h-44 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 flex-shrink-0">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
           className={cn(
-            "w-full h-full object-cover transition-all duration-700 ease-out",
-            "md:group-hover:scale-110 md:group-hover:brightness-105",
-            isHovered && "scale-110 brightness-105"
+            "w-full h-full object-contain object-center p-2 transition-all duration-700 ease-out",
+            "md:group-hover:scale-105 md:group-hover:brightness-105",
+            isHovered && "scale-105 brightness-105"
           )}
           loading="lazy"
           decoding="async"

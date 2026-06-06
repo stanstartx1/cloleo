@@ -549,12 +549,14 @@ const HomePage = () => {
                     </Link>
                   </Button>
                 </div>
-                <div className="flex gap-4 overflow-x-auto touch-scroll-x pb-2 snap-x snap-mandatory">
-                  {section.products.map((product) => (
-                    <div key={`${section.category.slug}-${product.id}`} className="min-w-[220px] md:min-w-[250px] lg:min-w-[270px] snap-start">
-                      <ProductCard product={product} className="h-full" />
-                    </div>
-                  ))}
+                <div className="selection-products-marquee pb-2">
+                  <div className="selection-products-track">
+                    {[...section.products, ...section.products].map((product, productIndex) => (
+                      <div key={`${section.category.slug}-${product.id}-${productIndex}`} className="w-[220px] shrink-0 md:w-[250px] lg:w-[270px]">
+                        <ProductCard product={product} className="h-full" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.section>
@@ -857,6 +859,24 @@ const HomePage = () => {
         .continuous-marquee-track-subs {
           animation: marquee-cats 190s linear infinite;
         }
+        @keyframes selection-products-scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(calc(-50% - 0.5rem)); }
+        }
+        .selection-products-marquee {
+          overflow: hidden;
+          width: 100%;
+        }
+        .selection-products-track {
+          display: flex;
+          width: max-content;
+          gap: 1rem;
+          will-change: transform;
+          animation: selection-products-scroll 56s linear infinite;
+        }
+        .selection-products-marquee:hover .selection-products-track {
+          animation-play-state: paused;
+        }
         @media (min-width: 768px) {
           .continuous-marquee:hover .continuous-marquee-track {
             animation-play-state: paused;
@@ -868,6 +888,9 @@ const HomePage = () => {
           }
           .continuous-marquee-track {
             animation: none;
+          }
+          .selection-products-track {
+            animation-duration: 38s;
           }
         }
       `}</style>
