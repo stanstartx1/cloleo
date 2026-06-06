@@ -309,11 +309,6 @@ const HomePage = () => {
     [parentCategories, buildLoopItems]
   );
 
-  const subLoopItems = useMemo(
-    () => buildLoopItems(subCategories, 14),
-    [subCategories, buildLoopItems]
-  );
-
   const topRatedProducts = useMemo(() => {
     const merged = allProducts.length
       ? allProducts
@@ -347,32 +342,6 @@ const HomePage = () => {
             <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
               {category.name}
             </span>
-          </Link>
-        );
-      })}
-    </>
-  );
-
-  const renderSubCategoryItems = (keyPrefix = 'subcat') => (
-    <>
-      {subLoopItems.map((sub, index) => {
-        const banners = sub.banner_images || [];
-        const img = banners.length > 0
-          ? banners[(categorySlideTick + index) % banners.length]
-          : (sub.image || `https://source.unsplash.com/240x180/?${encodeURIComponent(sub.name)}`);
-        return (
-          <Link
-            key={`${keyPrefix}-${sub.slug}-${index}`}
-            to={`/categories/${sub.slug}`}
-            className="flex-shrink-0 w-60 md:w-64 group snap-start"
-          >
-            <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
-              <img src={img} alt={sub.name} className="w-full h-36 md:h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="p-2">
-                <p className="text-sm font-semibold text-slate-700 truncate">{sub.name}</p>
-                <p className="text-[11px] text-slate-400 truncate">{sub.parent_slug}</p>
-              </div>
-            </div>
           </Link>
         );
       })}
@@ -450,17 +419,6 @@ const HomePage = () => {
         <div className="w-full">
 
           <AdStrip tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
-
-          {subCategories.length > 0 && (
-            <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-              <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
-                <div className="continuous-marquee">
-                  <div className="continuous-marquee-track continuous-marquee-track-subs">{renderSubCategoryItems('sub-main-a')}</div>
-                  <div className="continuous-marquee-track continuous-marquee-track-subs hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-main-b')}</div>
-                </div>
-              </div>
-            </section>
-          )}
 
           <motion.section
             className="py-8 bg-[#f5f5f5] border-y border-red-100"
@@ -572,17 +530,6 @@ const HomePage = () => {
           </section>
 
           <AdStrip tone="blue" title="Espace Publicitaire - Marques Partenaires" subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans." />
-
-          {subCategories.length > 0 && (
-            <section className="py-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-100 overflow-hidden">
-              <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
-                <div className="continuous-marquee">
-                  <div className="continuous-marquee-track continuous-marquee-track-subs">{renderSubCategoryItems('sub-mid-a')}</div>
-                  <div className="continuous-marquee-track continuous-marquee-track-subs hidden md:flex" aria-hidden="true">{renderSubCategoryItems('sub-mid-b')}</div>
-                </div>
-              </div>
-            </section>
-          )}
 
           <motion.section
             ref={trendingRef}
@@ -855,9 +802,6 @@ const HomePage = () => {
         }
         .continuous-marquee-track-cats {
           animation: marquee-cats 150s linear infinite;
-        }
-        .continuous-marquee-track-subs {
-          animation: marquee-cats 190s linear infinite;
         }
         @keyframes selection-products-scroll {
           0% { transform: translateX(0); }
