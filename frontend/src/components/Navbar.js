@@ -241,7 +241,11 @@ const Navbar = () => {
         const response = await fetch(`${API_BASE}/logo-settings`);
         const data = await response.json();
         if (data.logo_url && data.logo_url.trim()) {
-          const logo = data.logo_url.startsWith('/') ? `${API_BASE}${data.logo_url}` : data.logo_url;
+          // Support tous les formats d'image (GIF, PNG, JPEG, JPG, WEBP, SVG)
+          let logo = data.logo_url;
+          if (logo.startsWith('/')) {
+            logo = `${API_BASE}${logo}`;
+          }
           setLogoUrl(logo);
         }
       } catch (error) {
@@ -278,21 +282,40 @@ const Navbar = () => {
     navigate('/');
   };
 
+  // Gestionnaire d'erreur d'image (fallback)
+  const handleImageError = (e) => {
+    e.target.style.display = 'none';
+    // Afficher le fallback
+    const parent = e.target.parentElement;
+    if (parent && parent.parentElement) {
+      const fallback = parent.parentElement.querySelector('.logo-fallback');
+      if (fallback) {
+        e.target.style.display = 'none';
+        fallback.style.display = 'flex';
+      }
+    }
+  };
+
   return (
     <>
       <nav className="sticky top-0 z-40 bg-white shadow-md transition-all duration-300" data-testid="navbar">
         <div className="container mx-auto px-3 md:px-4">
           <div className="flex items-center h-12 md:h-16 gap-2 md:gap-3 lg:gap-4">
             
-            {/* Logo - version responsive avec support des logos à fond blanc */}
+            {/* Logo - support tous formats avec fallback */}
             <Link to="/" className="flex items-center gap-1.5 md:gap-2 group shrink-0" data-testid="logo">
               {!logoLoading && logoUrl ? (
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-1 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                <div className="relative bg-white/80 backdrop-blur-sm rounded-lg p-1 shadow-sm transition-all duration-300 group-hover:shadow-md">
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
                     className="h-7 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    onError={handleImageError}
                   />
+                  {/* Fallback si l'image ne charge pas */}
+                  <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg items-center justify-center">
+                    <span className="text-white font-bold text-base md:text-xl">C</span>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -449,7 +472,12 @@ const Navbar = () => {
           <div className="flex items-center justify-between p-3 border-b">
             {logoUrl ? (
               <div className="bg-white/80 backdrop-blur-sm rounded-lg p-1">
-                <img src={logoUrl} alt="Cloléo" className="h-6 w-auto" />
+                <img 
+                  src={logoUrl} 
+                  alt="Cloléo" 
+                  className="h-6 w-auto object-contain"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
               </div>
             ) : (
               <span className="text-lg font-bold"><span className="text-orange-500">Clo</span><span className="text-amber-600">léo</span></span>
