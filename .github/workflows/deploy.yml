@@ -31,28 +31,29 @@ jobs:
             
             echo "== Backend =="
             cd backend
-            source venv/bin/activate || echo "Venv failed"
-            pip install -r requirements.txt --quiet || echo "Pip skipped"
+            source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
+            pip install -r requirements.txt --quiet
             deactivate
             
             echo "== Frontend build =="
             cd ../frontend
             
-            # === PARTIE CORRIGÉE ET AMÉLIORÉE ===
+            # === PARTIE CORRIGÉE AVEC MAPBOX ===
             echo "Setting up production environment..."
             
             # Supprime l'ancien .env.production et en crée un propre
             rm -f .env.production
             echo "REACT_APP_BACKEND_URL=https://cloleo.com" > .env.production
+            echo "REACT_APP_MAPBOX_ACCESS_TOKEN=${{ secrets.REACT_APP_MAPBOX_ACCESS_TOKEN }}" >> .env.production
             
             # Installation et build
             npm ci --prefer-offline || npm install
             npm run build
             
-            echo "✅ Frontend built successfully with HTTPS backend URL"
+            echo "✅ Frontend built successfully with HTTPS backend URL and Mapbox token"
             
             echo "== Restart services =="
             systemctl restart cloleo-backend || echo "Backend warning"
-            systemctl reload apache2 || echo "Apache warning"
+            systemctl reload nginx || echo "Nginx warning"
             
             echo "✅ Deployment finished at $(date)"
