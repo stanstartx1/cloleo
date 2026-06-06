@@ -14,6 +14,12 @@ import { toAbsoluteMediaUrl } from '../utils/media';
 import { API_URL, API_BASE, WS_URL } from '../config/api';
 const API = API_URL;
 
+const DEFAULT_HOME_AD_STRIPS = [
+  { id: 'offers', title: 'Espace Publicitaire - Offres du Jour', subtitle: 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.', tone: 'orange', enabled: true, media_type: 'none', media_url: '', link: '' },
+  { id: 'partners', title: 'Espace Publicitaire - Marques Partenaires', subtitle: 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.', tone: 'blue', enabled: true, media_type: 'none', media_url: '', link: '' },
+  { id: 'premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
+];
+
 // Optionnel : garder la détection locale si tu en as besoin ailleurs
 const isLocalEnvironment = typeof window !== 'undefined' &&
   /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -244,6 +250,7 @@ const HomePage = () => {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [hoveredCategorySlug, setHoveredCategorySlug] = useState(null);
   const [layoutSettings, setLayoutSettings] = useState(null);
+  const [adStrips, setAdStrips] = useState(DEFAULT_HOME_AD_STRIPS);
 
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
@@ -259,6 +266,18 @@ const HomePage = () => {
         sidebar_image_right: '',
         sidebar_width: 160,
       }));
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API}/ad-strip-settings`)
+      .then(res => {
+        const strips = Array.isArray(res.data?.strips) ? res.data.strips : DEFAULT_HOME_AD_STRIPS;
+        setAdStrips(DEFAULT_HOME_AD_STRIPS.map((fallback) => ({
+          ...fallback,
+          ...(strips.find((strip) => strip.id === fallback.id) || {}),
+        })));
+      })
+      .catch(() => setAdStrips(DEFAULT_HOME_AD_STRIPS));
   }, []);
 
   useEffect(() => {
@@ -477,19 +496,58 @@ const HomePage = () => {
     </>
   );
 
-  const AdStrip = ({ tone = 'orange', title, subtitle }) => {
+  const AdStrip = ({ stripId, tone = 'orange', title, subtitle }) => {
+    const configuredStrip = adStrips.find((strip) => strip.id === stripId);
+    const strip = {
+      title,
+      subtitle,
+      tone,
+      enabled: true,
+      media_type: 'none',
+      media_url: '',
+      link: '',
+      ...(configuredStrip || {}),
+    };
     const tones = {
       orange: 'from-orange-50 via-amber-50 to-orange-100 border-orange-200',
       blue: 'from-sky-50 via-cyan-50 to-blue-100 border-sky-200',
       green: 'from-emerald-50 via-teal-50 to-green-100 border-emerald-200',
     };
+    if (!strip.enabled) return null;
+
+    const mediaUrl = strip.media_url ? toAbsoluteMediaUrl(strip.media_url) : '';
+    const content = (
+      <div className={`relative min-h-[150px] overflow-hidden rounded-2xl border bg-gradient-to-r ${tones[strip.tone] || tones[tone]} px-5 py-6 md:min-h-[210px] md:px-8 md:py-8`}>
+        {strip.media_type === 'image' && mediaUrl && (
+          <img src={mediaUrl} alt={strip.title} className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        {strip.media_type === 'video' && mediaUrl && (
+          <video src={mediaUrl} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
+        )}
+        {(strip.media_type === 'image' || strip.media_type === 'video') && mediaUrl && (
+          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
+        )}
+        <div className="relative z-10 flex h-full min-h-[102px] flex-col justify-center md:min-h-[150px]">
+          <p className={`text-base font-black md:text-2xl ${(strip.media_type !== 'none' && mediaUrl) ? 'text-white drop-shadow' : 'text-slate-800'}`}>
+            {strip.title}
+          </p>
+          <p className={`mt-2 max-w-2xl text-sm md:text-base ${(strip.media_type !== 'none' && mediaUrl) ? 'text-white/90' : 'text-slate-600'}`}>
+            {strip.subtitle}
+          </p>
+        </div>
+      </div>
+    );
+
     return (
-      <section className="py-3 bg-white">
+      <section className="py-5 bg-white">
         <div className="max-w-screen-xl mx-auto px-4">
-          <div className={`rounded-2xl border bg-gradient-to-r ${tones[tone]} px-4 py-3 md:px-6 md:py-4`}>
-            <p className="text-sm md:text-base font-bold text-slate-800">{title}</p>
-            <p className="text-xs md:text-sm text-slate-600">{subtitle}</p>
-          </div>
+          {strip.link ? (
+            strip.link.startsWith('http') ? (
+              <a href={strip.link} target="_blank" rel="noopener noreferrer" className="block">{content}</a>
+            ) : (
+              <Link to={strip.link} className="block">{content}</Link>
+            )
+          ) : content}
         </div>
       </section>
     );
@@ -547,7 +605,7 @@ const HomePage = () => {
 <div className="w-full">
         <div className="w-full">
 
-          <AdStrip tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
+          <AdStrip stripId="offers" tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
 
           <motion.section
             className="py-8 bg-[#f5f5f5] border-y border-red-100"
@@ -688,7 +746,7 @@ const HomePage = () => {
             </div>
           </section>
 
-          <AdStrip tone="blue" title="Espace Publicitaire - Marques Partenaires" subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans." />
+          <AdStrip stripId="partners" tone="blue" title="Espace Publicitaire - Marques Partenaires" subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans." />
 
           <motion.section
             ref={trendingRef}
@@ -747,7 +805,7 @@ const HomePage = () => {
             </div>
           </section>
 
-          <AdStrip tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
+          <AdStrip stripId="premium" tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
 
           <motion.section
             ref={newProductsRef}

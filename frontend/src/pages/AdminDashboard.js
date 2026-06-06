@@ -2325,11 +2325,23 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
 
 // ─── Composant Apparence du site (carrousel Hero + Bloc publicitaire droite + Logo) ───
 const LayoutAppearanceSection = ({ token, API }) => {
+  const defaultAdStrips = [
+    { id: 'offers', label: 'Offres du Jour', title: 'Espace Publicitaire - Offres du Jour', subtitle: 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.', tone: 'orange', enabled: true, media_type: 'none', media_url: '', link: '' },
+    { id: 'partners', label: 'Marques Partenaires', title: 'Espace Publicitaire - Marques Partenaires', subtitle: 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.', tone: 'blue', enabled: true, media_type: 'none', media_url: '', link: '' },
+    { id: 'premium', label: 'Sélection Premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
+  ];
+
   // ===== HERO CAROUSEL STATES =====
   const [heroImages, setHeroImages] = React.useState([]); // [{url: "...", link: "", title: ""}]
   const [heroLoading, setHeroLoading] = React.useState(false);
   const [heroUploading, setHeroUploading] = React.useState(false);
   const [dragOverIndex, setDragOverIndex] = React.useState(null);
+
+  // ===== HOME AD STRIPS STATES =====
+  const [adStrips, setAdStrips] = React.useState(defaultAdStrips);
+  const [adStripsLoading, setAdStripsLoading] = React.useState(false);
+  const [adStripsSaving, setAdStripsSaving] = React.useState(false);
+  const [adStripUploading, setAdStripUploading] = React.useState(null);
 
   // ===== RIGHT BLOCK STATES =====
   const [rightBlockType, setRightBlockType] = React.useState('image');
@@ -2465,6 +2477,88 @@ const LayoutAppearanceSection = ({ token, API }) => {
     const file = e.target.files?.[0];
     if (file) {
       uploadHeroImage(file);
+    }
+    e.target.value = '';
+  };
+
+  // ===== HOME AD STRIPS FUNCTIONS =====
+  const fetchAdStrips = async () => {
+    setAdStripsLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/ad-strips`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const strips = Array.isArray(response.data?.strips) ? response.data.strips : [];
+      setAdStrips(defaultAdStrips.map((fallback) => ({
+        ...fallback,
+        ...(strips.find((strip) => strip.id === fallback.id) || {}),
+      })));
+    } catch (error) {
+      console.error('Erreur chargement zones pub:', error);
+      toast.error('Impossible de charger les zones publicitaires');
+    } finally {
+      setAdStripsLoading(false);
+    }
+  };
+
+  const saveAdStrips = async (nextStrips = adStrips) => {
+    setAdStripsSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/ad-strips`, { strips: nextStrips }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Zones publicitaires sauvegardées !');
+    } catch (error) {
+      console.error('Erreur sauvegarde zones pub:', error);
+      toast.error('Erreur lors de la sauvegarde des zones pub');
+    } finally {
+      setAdStripsSaving(false);
+    }
+  };
+
+  const updateAdStrip = (stripId, patch) => {
+    setAdStrips(prev => prev.map(strip => strip.id === stripId ? { ...strip, ...patch } : strip));
+  };
+
+  const uploadAdStripMedia = async (stripId, file) => {
+    if (!file) return;
+
+    const allowedTypes = [
+      'image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp',
+      'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Images: GIF, WEBP, PNG, JPEG, JPG. Vidéos: MP4, WEBM, OGG, MOV');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    setAdStripUploading(stripId);
+    try {
+      const response = await axios.post(`${API}/admin/upload/ad-strip-media`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      updateAdStrip(stripId, {
+        media_url: response.data.url,
+        media_type: response.data.media_type || (file.type.startsWith('video/') ? 'video' : 'image'),
+      });
+      toast.success('Média publicitaire uploadé !');
+    } catch (error) {
+      console.error('Erreur upload média pub:', error);
+      toast.error(error.response?.data?.detail || "Erreur lors de l'upload");
+    } finally {
+      setAdStripUploading(null);
+    }
+  };
+
+  const handleAdStripMediaChange = (stripId, e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadAdStripMedia(stripId, file);
     }
     e.target.value = '';
   };
@@ -2625,6 +2719,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
 
   React.useEffect(() => {
     fetchHeroImages();
+    fetchAdStrips();
     fetchRightBlockSettings();
     fetchLogoSettings();
   }, [token, API]);
@@ -2762,6 +2857,152 @@ const LayoutAppearanceSection = ({ token, API }) => {
         <RefreshCw className={`w-4 h-4 inline mr-2 ${heroLoading ? 'animate-spin' : ''}`} />
         Rafraîchir les images
       </button>
+
+      {/* ===== SECTION ZONES PUBLICITAIRES HOME ===== */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">Zones publicitaires de la page d'accueil</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez les 3 espaces publicitaires horizontaux du site. Formats images acceptés : GIF, WEBP, PNG, JPEG, JPG. Vidéos : MP4, WEBM, OGG, MOV.
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-xl p-5 border border-cyan-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-cyan-300">
+          <Image className="w-5 h-5" /> Espaces pubs horizontaux
+        </h3>
+
+        {adStripsLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-5">
+            {adStrips.map((strip) => (
+              <div key={strip.id} className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-100">{strip.label || strip.title}</h4>
+                    <p className="text-xs text-slate-400">ID : {strip.id}</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={strip.enabled !== false}
+                      onChange={(e) => updateAdStrip(strip.id, { enabled: e.target.checked })}
+                    />
+                    Activer cette zone
+                  </label>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-[220px,1fr]">
+                  <div className="rounded-lg overflow-hidden bg-slate-900 border border-slate-700 min-h-[140px] flex items-center justify-center">
+                    {strip.media_type === 'video' && strip.media_url ? (
+                      <video src={getImageUrl(strip.media_url)} className="w-full h-40 object-cover" controls />
+                    ) : strip.media_type === 'image' && strip.media_url ? (
+                      <img src={getImageUrl(strip.media_url)} alt={strip.title} className="w-full h-40 object-cover" />
+                    ) : (
+                      <span className="text-slate-500 text-sm">Aucun média</span>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Titre</label>
+                        <input
+                          type="text"
+                          value={strip.title}
+                          onChange={(e) => updateAdStrip(strip.id, { title: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Lien de redirection</label>
+                        <input
+                          type="text"
+                          value={strip.link || ''}
+                          onChange={(e) => updateAdStrip(strip.id, { link: e.target.value })}
+                          placeholder="/produits ou https://..."
+                          className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Sous-titre</label>
+                      <input
+                        type="text"
+                        value={strip.subtitle || ''}
+                        onChange={(e) => updateAdStrip(strip.id, { subtitle: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Style couleur</label>
+                        <select
+                          value={strip.tone || 'orange'}
+                          onChange={(e) => updateAdStrip(strip.id, { tone: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                        >
+                          <option value="orange">Orange</option>
+                          <option value="blue">Bleu</option>
+                          <option value="green">Vert</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Type média</label>
+                        <select
+                          value={strip.media_type || 'none'}
+                          onChange={(e) => updateAdStrip(strip.id, { media_type: e.target.value, media_url: e.target.value === 'none' ? '' : strip.media_url })}
+                          className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                        >
+                          <option value="none">Aucun</option>
+                          <option value="image">Image / GIF</option>
+                          <option value="video">Vidéo uploadée</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Upload média</label>
+                        <input
+                          type="file"
+                          accept="image/gif,image/webp,image/png,image/jpeg,image/jpg,video/mp4,video/webm,video/ogg,video/quicktime"
+                          onChange={(e) => handleAdStripMediaChange(strip.id, e)}
+                          disabled={adStripUploading === strip.id}
+                          id={`ad-strip-upload-${strip.id}`}
+                          className="hidden"
+                        />
+                        <label htmlFor={`ad-strip-upload-${strip.id}`} className="inline-flex w-full items-center justify-center gap-2 cursor-pointer bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded-lg transition text-sm">
+                          <Upload className="w-4 h-4" />
+                          {adStripUploading === strip.id ? 'Upload...' : 'Choisir'}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">URL média</label>
+                      <input
+                        type="text"
+                        value={strip.media_url || ''}
+                        onChange={(e) => updateAdStrip(strip.id, { media_url: e.target.value })}
+                        placeholder="/uploads/..."
+                        className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={() => saveAdStrips()}
+              disabled={adStripsSaving}
+              className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition disabled:opacity-50"
+            >
+              {adStripsSaving ? 'Sauvegarde...' : 'Sauvegarder les zones publicitaires'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ===== SECTION BLOC PUBLICITAIRE DROITE ===== */}
       <div className="mt-8">

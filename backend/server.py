@@ -1188,6 +1188,121 @@ async def admin_upload_right_block_image(
     print(f"✅ Right block image uploaded: {url}")
     return {"url": url, "filename": filename}
 
+DEFAULT_AD_STRIPS = [
+    {
+        "id": "offers",
+        "title": "Espace Publicitaire - Offres du Jour",
+        "subtitle": "Mettez ici vos promos, annonces flash et nouveautes sponsorisees.",
+        "tone": "orange",
+        "enabled": True,
+        "media_type": "none",
+        "media_url": "",
+        "link": "",
+    },
+    {
+        "id": "partners",
+        "title": "Espace Publicitaire - Marques Partenaires",
+        "subtitle": "Zone dediee aux campagnes partenaires, bannieres saisonnieres et bons plans.",
+        "tone": "blue",
+        "enabled": True,
+        "media_type": "none",
+        "media_url": "",
+        "link": "",
+    },
+    {
+        "id": "premium",
+        "title": "Espace Publicitaire - Selection Premium",
+        "subtitle": "Emplacements premium pour operations speciales, evenements et mises en avant.",
+        "tone": "green",
+        "enabled": True,
+        "media_type": "none",
+        "media_url": "",
+        "link": "",
+    },
+]
+
+
+def _normalize_ad_strips(strips):
+    by_id = {strip["id"]: strip for strip in DEFAULT_AD_STRIPS}
+    incoming = strips if isinstance(strips, list) else []
+    for item in incoming:
+        if not isinstance(item, dict):
+            continue
+        strip_id = item.get("id")
+        if strip_id not in by_id:
+            continue
+        media_type = item.get("media_type", "none")
+        if media_type not in ["none", "image", "video"]:
+            media_type = "none"
+        by_id[strip_id] = {
+            **by_id[strip_id],
+            "title": str(item.get("title") or by_id[strip_id]["title"]).strip()[:120],
+            "subtitle": str(item.get("subtitle") or "").strip()[:220],
+            "tone": item.get("tone") if item.get("tone") in ["orange", "blue", "green"] else by_id[strip_id]["tone"],
+            "enabled": bool(item.get("enabled", True)),
+            "media_type": media_type,
+            "media_url": str(item.get("media_url") or "").strip(),
+            "link": str(item.get("link") or "").strip(),
+        }
+    return [by_id["offers"], by_id["partners"], by_id["premium"]]
+
+
+@api.get("/ad-strip-settings")
+async def public_ad_strip_settings():
+    """Route publique — zones publicitaires horizontales de la Home."""
+    doc = await db.settings.find_one({"type": "ad_strips"}, {"_id": 0})
+    return doc or {"type": "ad_strips", "strips": DEFAULT_AD_STRIPS}
+
+
+@api.get("/admin/settings/ad-strips")
+async def admin_ad_strip_settings(user: dict = Depends(require_admin)):
+    """Admin — recupere les zones publicitaires horizontales."""
+    doc = await db.settings.find_one({"type": "ad_strips"}, {"_id": 0})
+    return doc or {"type": "ad_strips", "strips": DEFAULT_AD_STRIPS}
+
+
+@api.put("/admin/settings/ad-strips")
+async def admin_save_ad_strip_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde les zones publicitaires horizontales."""
+    strips = _normalize_ad_strips(payload.get("strips", []))
+    doc = {"type": "ad_strips", "strips": strips, "updated_at": _utc()}
+    await db.settings.update_one({"type": "ad_strips"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "strips": strips}
+
+
+@api.post("/admin/upload/ad-strip-media")
+async def admin_upload_ad_strip_media(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload image/GIF/WEBP ou video pour une zone publicitaire."""
+    allowed_image_ext = {".gif", ".png", ".jpeg", ".jpg", ".webp"}
+    allowed_video_ext = {".mp4", ".webm", ".ogg", ".mov"}
+    allowed_image_mimes = {"image/gif", "image/png", "image/jpeg", "image/jpg", "image/webp"}
+    allowed_video_mimes = {"video/mp4", "video/webm", "video/ogg", "video/quicktime"}
+
+    ext = Path(file.filename or "").suffix.lower()
+    is_image = ext in allowed_image_ext
+    is_video = ext in allowed_video_ext
+    if not is_image and not is_video:
+        raise HTTPException(status_code=400, detail="Format non supporte. Images: GIF, WEBP, PNG, JPEG, JPG. Videos: MP4, WEBM, OGG, MOV")
+
+    if file.content_type:
+        valid_mime = file.content_type in (allowed_image_mimes if is_image else allowed_video_mimes)
+        if not valid_mime:
+            raise HTTPException(status_code=400, detail=f"Type MIME non supporte : {file.content_type}")
+
+    content = await file.read()
+    max_size = 50 * 1024 * 1024 if is_video else 10 * 1024 * 1024
+    if len(content) > max_size:
+        raise HTTPException(status_code=400, detail=f"Fichier trop lourd (max {'50 Mo' if is_video else '10 Mo'})")
+
+    filename = f"adstrip_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    dest.write_bytes(content)
+    return {"url": f"/uploads/{filename}", "filename": filename, "media_type": "video" if is_video else "image"}
+
+
 @api.get("/admin/settings/platform")
 async def admin_platform_settings(user: dict = Depends(require_admin)):
     settings = await db.settings.find_one({"type": "platform"}, {"_id": 0})
