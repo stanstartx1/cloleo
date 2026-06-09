@@ -2352,6 +2352,15 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [rightBlockSaving, setRightBlockSaving] = React.useState(false);
   const [rightBlockUploading, setRightBlockUploading] = React.useState(false);
 
+  // ===== TRENDING BLOCK STATES =====
+  const [trendingGradientFrom, setTrendingGradientFrom] = React.useState('#1e293b');
+  const [trendingGradientTo, setTrendingGradientTo] = React.useState('#0f172a');
+  const [trendingBackgroundImage, setTrendingBackgroundImage] = React.useState('');
+  const [trendingEnableBlurs, setTrendingEnableBlurs] = React.useState(true);
+  const [trendingLoading, setTrendingLoading] = React.useState(false);
+  const [trendingUploading, setTrendingUploading] = React.useState(false);
+  const [trendingSaving, setTrendingSaving] = React.useState(false);
+
   // ===== LOGO STATES =====
   const [logoUrl, setLogoUrl] = React.useState('');
   const [logoLoading, setLogoLoading] = React.useState(false);
@@ -2641,6 +2650,85 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
+  // ===== TRENDING BLOCK FUNCTIONS =====
+  const fetchTrendingSettings = async () => {
+    setTrendingLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/trending-block`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      setTrendingGradientFrom(data.gradient_from || '#1e293b');
+      setTrendingGradientTo(data.gradient_to || '#0f172a');
+      setTrendingBackgroundImage(data.background_image || '');
+      setTrendingEnableBlurs(data.enable_blurs !== false);
+    } catch (error) {
+      console.error('Erreur chargement paramètres trending:', error);
+      toast.error('Impossible de charger les paramètres du bloc Trending');
+    } finally {
+      setTrendingLoading(false);
+    }
+  };
+
+  const saveTrendingSettings = async () => {
+    setTrendingSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/trending-block`, {
+        gradient_from: trendingGradientFrom,
+        gradient_to: trendingGradientTo,
+        background_image: trendingBackgroundImage,
+        enable_blurs: trendingEnableBlurs,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Bloc Trending sauvegardé !');
+    } catch (error) {
+      console.error('Erreur sauvegarde trending:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setTrendingSaving(false);
+    }
+  };
+
+  const uploadTrendingBackgroundImage = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setTrendingUploading(true);
+    try {
+      const response = await axios.post(`${API}/admin/upload/trending-bg`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.url;
+      setTrendingBackgroundImage(newImageUrl);
+      toast.success('Image de fond uploadée !');
+    } catch (error) {
+      console.error('Erreur upload image trending:', error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setTrendingUploading(false);
+    }
+  };
+
+  const handleTrendingImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadTrendingBackgroundImage(file);
+    }
+    e.target.value = '';
+  };
+
   // ===== LOGO FUNCTIONS =====
   const fetchLogoSettings = async () => {
     setLogoLoading(true);
@@ -2721,6 +2809,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
     fetchHeroImages();
     fetchAdStrips();
     fetchRightBlockSettings();
+    fetchTrendingSettings();
     fetchLogoSettings();
   }, [token, API]);
 
@@ -3118,6 +3207,141 @@ const LayoutAppearanceSection = ({ token, API }) => {
             {logoSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le logo'}
           </button>
         </div>
+      </div>
+
+      {/* ===== SECTION BLOC TENDANCE DU MOMENT ===== */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">Bloc Tendance du moment</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Personnalisez l'apparence du bloc qui affiche les produits tendances. Changez les couleurs du dégradé, ajoutez une image de fond, et gérez les effets visuels.
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-xl p-5 border border-purple-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-purple-300">
+          <Palette className="w-5 h-5" /> 🎨 Personnalisation du bloc
+        </h3>
+
+        {trendingLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-5">
+            {/* Aperçu du gradient */}
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
+              <div
+                className="h-32 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
+                style={{
+                  background: trendingBackgroundImage
+                    ? `url(${trendingBackgroundImage}) center/cover`
+                    : `linear-gradient(135deg, ${trendingGradientFrom}, ${trendingGradientTo})`,
+                }}
+              />
+            </div>
+
+            {/* Couleurs du gradient */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Couleur de départ</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={trendingGradientFrom}
+                    onChange={(e) => setTrendingGradientFrom(e.target.value)}
+                    className="w-12 h-10 rounded-lg cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={trendingGradientFrom}
+                    onChange={(e) => setTrendingGradientFrom(e.target.value)}
+                    placeholder="#000000"
+                    className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Couleur d'arrivée</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={trendingGradientTo}
+                    onChange={(e) => setTrendingGradientTo(e.target.value)}
+                    className="w-12 h-10 rounded-lg cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={trendingGradientTo}
+                    onChange={(e) => setTrendingGradientTo(e.target.value)}
+                    placeholder="#000000"
+                    className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Image de fond personnalisée */}
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Image de fond (optionnel)</label>
+              <div className="flex gap-4 items-start flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                    onChange={handleTrendingImageChange}
+                    disabled={trendingUploading}
+                    className="hidden"
+                    id="trending-bg-upload"
+                  />
+                  <label
+                    htmlFor="trending-bg-upload"
+                    className="inline-flex items-center gap-2 cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {trendingUploading ? 'Upload en cours...' : '📁 Choisir une image'}
+                  </label>
+                  {trendingBackgroundImage && (
+                    <button
+                      onClick={() => setTrendingBackgroundImage('')}
+                      className="ml-2 text-red-400 hover:text-red-300 text-sm"
+                    >
+                      Supprimer l'image
+                    </button>
+                  )}
+                  <input
+                    type="text"
+                    value={trendingBackgroundImage}
+                    onChange={(e) => setTrendingBackgroundImage(e.target.value)}
+                    placeholder="Ou URL de l'image"
+                    className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                  />
+                  <p className="text-xs text-slate-500 mt-2">Si vous ajoutez une image, elle s'affichera par-dessus le gradient.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Effets animés */}
+            <div className="pt-2 border-t border-slate-700">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={trendingEnableBlurs}
+                  onChange={(e) => setTrendingEnableBlurs(e.target.checked)}
+                  className="w-4 h-4 rounded cursor-pointer"
+                />
+                <span className="text-sm">Afficher les effets de flou animés (bulles flottantes)</span>
+              </label>
+              <p className="text-xs text-slate-500 mt-2">Désactivez pour une apparence plus épurée.</p>
+            </div>
+
+            <button
+              onClick={saveTrendingSettings}
+              disabled={trendingSaving}
+              className="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition disabled:opacity-50"
+            >
+              {trendingSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder les paramètres'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

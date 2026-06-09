@@ -251,6 +251,12 @@ const HomePage = () => {
   const [hoveredCategorySlug, setHoveredCategorySlug] = useState(null);
   const [layoutSettings, setLayoutSettings] = useState(null);
   const [adStrips, setAdStrips] = useState(DEFAULT_HOME_AD_STRIPS);
+  const [trendingBlockSettings, setTrendingBlockSettings] = useState({
+    gradient_from: '#1e293b',
+    gradient_to: '#0f172a',
+    background_image: '',
+    enable_blurs: true,
+  });
 
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
@@ -278,6 +284,22 @@ const HomePage = () => {
         })));
       })
       .catch(() => setAdStrips(DEFAULT_HOME_AD_STRIPS));
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API}/trending-block-settings`)
+      .then(res => setTrendingBlockSettings(res.data || {
+        gradient_from: '#1e293b',
+        gradient_to: '#0f172a',
+        background_image: '',
+        enable_blurs: true,
+      }))
+      .catch(() => setTrendingBlockSettings({
+        gradient_from: '#1e293b',
+        gradient_to: '#0f172a',
+        background_image: '',
+        enable_blurs: true,
+      }));
   }, []);
 
   useEffect(() => {
@@ -863,15 +885,25 @@ const HomePage = () => {
 
           <motion.section
             ref={trendingRef}
-            className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
+            className="py-20 relative overflow-hidden"
+            style={{
+              background: trendingBlockSettings.background_image
+                ? `linear-gradient(135deg, ${trendingBlockSettings.gradient_from}, ${trendingBlockSettings.gradient_to}), url(${trendingBlockSettings.background_image})`
+                : `linear-gradient(135deg, ${trendingBlockSettings.gradient_from}, ${trendingBlockSettings.gradient_to})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundBlendMode: 'overlay',
+            }}
             initial="hidden" whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
             variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
           >
-            <div className="absolute inset-0">
-              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-              <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-            </div>
+            {trendingBlockSettings.enable_blurs && (
+              <div className="absolute inset-0">
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+              </div>
+            )}
             <div className="max-w-screen-xl mx-auto px-4 relative z-10">
               <div className="flex items-center justify-between mb-12">
                 <div className="flex items-center gap-4">

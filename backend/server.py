@@ -1104,6 +1104,100 @@ async def admin_upload_logo(
 
 
 # ═══════════════════════════════════════════════════════════════
+# TRENDING BLOCK — bloc "Tendances du moment"
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/trending-block-settings")
+async def public_trending_block_settings():
+    """Route publique — récupère la configuration du bloc Tendances"""
+    doc = await db.settings.find_one({"type": "trending_block"}, {"_id": 0})
+    return doc or {
+        "type": "trending_block",
+        "gradient_from": "#1e293b",
+        "gradient_to": "#0f172a",
+        "background_image": "",
+        "enable_blurs": True,
+    }
+
+
+@api.get("/admin/settings/trending-block")
+async def admin_trending_block_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère la configuration du bloc Tendances"""
+    doc = await db.settings.find_one({"type": "trending_block"}, {"_id": 0})
+    return doc or {
+        "type": "trending_block",
+        "gradient_from": "#1e293b",
+        "gradient_to": "#0f172a",
+        "background_image": "",
+        "enable_blurs": True,
+    }
+
+
+@api.put("/admin/settings/trending-block")
+async def admin_save_trending_block_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde la configuration du bloc Tendances"""
+    gradient_from = str(payload.get("gradient_from", "#1e293b")).strip()
+    gradient_to = str(payload.get("gradient_to", "#0f172a")).strip()
+    background_image = str(payload.get("background_image", "")).strip()
+    enable_blurs = bool(payload.get("enable_blurs", True))
+    
+    # Valider les couleurs (format hex simple)
+    import re
+    hex_pattern = r"^#[0-9A-Fa-f]{6}$"
+    if not re.match(hex_pattern, gradient_from):
+        gradient_from = "#1e293b"
+    if not re.match(hex_pattern, gradient_to):
+        gradient_to = "#0f172a"
+    
+    doc = {
+        "type": "trending_block",
+        "gradient_from": gradient_from,
+        "gradient_to": gradient_to,
+        "background_image": background_image,
+        "enable_blurs": enable_blurs,
+        "updated_at": _utc()
+    }
+    await db.settings.update_one({"type": "trending_block"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "settings": doc}
+
+
+@api.post("/admin/upload/trending-bg")
+async def admin_upload_trending_bg(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'une image de fond pour le bloc Tendances"""
+    allowed_extensions = {".gif", ".png", ".jpeg", ".jpg", ".webp"}
+    allowed_mimetypes = {"image/gif", "image/png", "image/jpeg", "image/jpg", "image/webp"}
+    
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporté. Formats acceptés : GIF, PNG, JPEG, JPG, WEBP"
+        )
+    
+    if file.content_type and file.content_type not in allowed_mimetypes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type MIME non supporté : {file.content_type}"
+        )
+    
+    filename = f"trending_bg_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 10 Mo)")
+    
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    
+    print(f"✅ Trending block background image uploaded: {url}")
+    return {"url": url, "filename": filename}
+
+
+# ═══════════════════════════════════════════════════════════════
 # RIGHT BLOCK (image/vidéo) — bloc publicitaire de droite
 # ═══════════════════════════════════════════════════════════════
 
