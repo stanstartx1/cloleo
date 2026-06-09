@@ -674,38 +674,151 @@ const HomePage = () => {
             { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
           ]} />
 
-          {themeSections.map((section, sectionIndex) => (
-            <motion.section
-              key={`theme-${section.category.slug}`}
-              className={`py-14 ${sectionIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
-              initial="hidden" whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-              variants={sectionMotion} transition={{ duration: 0.6, ease: 'easeOut' }}
-            >
-              <div className="max-w-screen-xl mx-auto px-4">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-full max-w-2xl">
-                    <SectionBand title={`Sélection ${section.category.name}`} tone={sectionIndex % 2 === 0 ? 'orange' : 'blue'} />
-                    <p className="text-slate-500 text-sm">Produits de la catégorie et de ses sous-catégories</p>
+          {themeSections.map((section, sectionIndex) => {
+            const categoryColors = {
+              'maison-cuisine': { gradient: 'from-amber-600 to-orange-500', icon: '🏠', lightBg: 'bg-amber-50' },
+              'mode-textile': { gradient: 'from-pink-600 to-rose-500', icon: '👗', lightBg: 'bg-pink-50' },
+              'beaute': { gradient: 'from-purple-600 to-fuchsia-500', icon: '💄', lightBg: 'bg-purple-50' },
+              'electronique-gadgets': { gradient: 'from-blue-600 to-cyan-500', icon: '📱', lightBg: 'bg-blue-50' },
+            };
+            const colorConfig = categoryColors[section.category.slug] || { gradient: 'from-indigo-600 to-blue-500', icon: '📦', lightBg: 'bg-indigo-50' };
+            const featuredProduct = section.products?.[0];
+            
+            return (
+              <motion.section
+                key={`theme-${section.category.slug}`}
+                className={`py-16 ${colorConfig.lightBg} relative overflow-hidden`}
+                initial="hidden" whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+                variants={sectionMotion} transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                {/* Fond décoratif */}
+                <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-br opacity-10 rounded-full blur-3xl" style={{ backgroundImage: `linear-gradient(135deg, var(--gradient-from), var(--gradient-to))` }} />
+                <div className="absolute -bottom-10 -left-10 w-64 h-64 bg-gradient-to-tr opacity-5 rounded-full blur-3xl" style={{ backgroundImage: `linear-gradient(135deg, var(--gradient-from), var(--gradient-to))` }} />
+
+                <div className="max-w-screen-xl mx-auto px-4 relative z-10">
+                  {/* Header Premium */}
+                  <div className="mb-12">
+                    <div className={`inline-flex items-center gap-3 bg-gradient-to-r ${colorConfig.gradient} text-white px-6 py-3 rounded-full mb-4 shadow-lg shadow-current/20`}>
+                      <span className="text-2xl">{colorConfig.icon}</span>
+                      <h2 className="text-lg md:text-xl font-black tracking-tight">{section.category.name}</h2>
+                    </div>
+                    <p className="text-slate-600 text-sm md:text-base max-w-2xl">Découvrez notre sélection exclusive de {section.category.name.toLowerCase()} - Des produits de qualité, des artisans vérifiés</p>
                   </div>
-                  <Button asChild variant="ghost" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
-                    <Link to={`/categories/${section.category.slug}`}>
-                      Voir la catégorie <ArrowRight className="ml-2 w-4 h-4" />
-                    </Link>
-                  </Button>
-                </div>
-                <div className="selection-products-marquee pb-2">
-                  <div className="selection-products-track">
-                    {[...section.products, ...section.products].map((product, productIndex) => (
-                      <div key={`${section.category.slug}-${product.id}-${productIndex}`} className="w-[220px] shrink-0 md:w-[250px] lg:w-[270px]">
-                        <ProductCard product={product} className="h-full" />
-                      </div>
-                    ))}
+
+                  {/* Grille Produits */}
+                  {section.products.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                      {/* Featured - Produit 1 en grand */}
+                      {featuredProduct && (
+                        <motion.div
+                          className="col-span-2 md:col-span-2 row-span-2 group relative rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-300"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <Link to={`/produit/${featuredProduct.slug}`} className="block h-full">
+                            <div className="relative h-full bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col">
+                              {/* Image */}
+                              <div className="flex-1 overflow-hidden relative">
+                                {featuredProduct.images?.[0] && (
+                                  <>
+                                    <img src={toAbsoluteMediaUrl(featuredProduct.images[0])} alt={featuredProduct.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                  </>
+                                )}
+                                {/* Badge */}
+                                <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                  ⭐ Mis en avant
+                                </div>
+                              </div>
+                              {/* Info */}
+                              <div className="p-3 md:p-4 bg-white">
+                                <h3 className="font-semibold text-slate-800 line-clamp-2 mb-2 group-hover:text-orange-600 transition-colors">{featuredProduct.name}</h3>
+                                <p className="text-sm text-slate-500 mb-3">{featuredProduct.seller_name}</p>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa && (
+                                      <>
+                                        <span className="text-xs line-through text-slate-400">{(featuredProduct.price_fcfa || 0).toLocaleString()} FCFA</span>
+                                        <span className="font-bold text-orange-600">{(featuredProduct.promo_price_fcfa || 0).toLocaleString()} FCFA</span>
+                                      </>
+                                    ) || (
+                                      <span className="font-bold text-lg text-orange-600">{(featuredProduct.price_fcfa || 0).toLocaleString()} FCFA</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        </motion.div>
+                      )}
+
+                      {/* Autres produits en grille */}
+                      {section.products.slice(1, 12).map((product, idx) => (
+                        <motion.div
+                          key={`${section.category.slug}-${product.id}-${idx}`}
+                          className="group relative rounded-xl overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-300 h-full"
+                          whileHover={{ y: -4 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                        >
+                          <Link to={`/produit/${product.slug}`} className="block h-full">
+                            <div className="flex flex-col h-full bg-white">
+                              {/* Image */}
+                              <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200">
+                                {product.images?.[0] && (
+                                  <>
+                                    <img src={toAbsoluteMediaUrl(product.images[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                                  </>
+                                )}
+                                {/* Promo Badge */}
+                                {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
+                                  <div className="absolute top-1 right-1 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                                    -{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%
+                                  </div>
+                                )}
+                              </div>
+                              {/* Info */}
+                              <div className="flex-1 p-2 md:p-3 flex flex-col">
+                                <h3 className="font-semibold text-xs md:text-sm text-slate-800 line-clamp-2 mb-1 group-hover:text-orange-600 transition-colors flex-1">{product.name}</h3>
+                                <p className="text-xs text-slate-500 mb-2 line-clamp-1">{product.seller_name}</p>
+                                <div className="mt-auto">
+                                  <div className="flex items-center gap-1">
+                                    {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
+                                      <>
+                                        <span className="text-xs line-through text-slate-400">{(product.price_fcfa || 0).toLocaleString('fr')} F</span>
+                                        <span className="font-bold text-sm text-orange-600">{(product.promo_price_fcfa || 0).toLocaleString('fr')} F</span>
+                                      </>
+                                    ) || (
+                                      <span className="font-bold text-sm text-orange-600">{(product.price_fcfa || 0).toLocaleString('fr')} F</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-slate-400">
+                      <p className="font-semibold">Aucun produit disponible pour le moment</p>
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  <div className="mt-10 text-center">
+                    <Button asChild className={`bg-gradient-to-r ${colorConfig.gradient} hover:shadow-lg hover:shadow-current/30 text-white rounded-full px-8 py-3 font-semibold transition-all duration-300 hover:-translate-y-1`}>
+                      <Link to={`/categories/${section.category.slug}`}>
+                        Voir toute la sélection <ArrowRight className="ml-2 w-4 h-4" />
+                      </Link>
+                    </Button>
                   </div>
                 </div>
-              </div>
-            </motion.section>
-          ))}
+              </motion.section>
+            );
+          })}
 
           <section className="bg-white">
             <div className="max-w-screen-xl mx-auto overflow-hidden border-x border-slate-100">
