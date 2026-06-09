@@ -407,15 +407,20 @@ const HomePage = () => {
   const themeSections = useMemo(() => {
     const source = parentCategories.map((parent) => {
       const children = subCategoriesByParent[parent.slug] || [];
-      const ownProducts = productByCategorySlug[parent.slug] || [];
-      const childProducts = children.flatMap((child) => productByCategorySlug[child.slug] || []);
-      const deduped = [...ownProducts, ...childProducts].filter(
-        (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i
-      );
-      return { category: parent, products: deduped.slice(0, 12) };
+      const relevantSlugs = [parent.slug, ...children.map((child) => child.slug)];
+      const deduped = allVisibleProducts.filter((product) => {
+        const categoryMatch = relevantSlugs.includes(product.category_slug);
+        const subcategoryMatch = relevantSlugs.includes(product.subcategory_slug);
+        return categoryMatch || subcategoryMatch;
+      });
+      const uniqueProducts = deduped.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
+      return { category: parent, subcategories: children, products: uniqueProducts.slice(0, 12) };
     });
-    return source.filter((s) => s.products.length > 0).slice(0, 1);
-  }, [parentCategories, subCategoriesByParent, productByCategorySlug]);
+    return source
+      .filter((s) => s.products.length > 0)
+      .sort((a, b) => b.products.length - a.products.length)
+      .slice(0, 4);
+  }, [allVisibleProducts, parentCategories, subCategoriesByParent]);
 
   const parentLoopItems = useMemo(
     () => buildLoopItems(parentCategories, 14),
@@ -448,7 +453,7 @@ const HomePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
-  const pickMarketplaceProducts = useCallback((keywords, fallbackStart = 0) => {
+  const pickMarketplaceProducts = useCallback((keywords) => {
     const keywordList = keywords.map((keyword) => keyword.toLowerCase());
     const matches = marketplaceStripSourceProducts.filter((product) => {
       const haystack = [
@@ -457,11 +462,11 @@ const HomePage = () => {
         product.category_slug,
         product.subcategory_name,
         product.subcategory_slug,
+        ...(product.tags || []),
       ].filter(Boolean).join(' ').toLowerCase();
       return keywordList.some((keyword) => haystack.includes(keyword));
     });
-    const fallback = marketplaceStripSourceProducts.slice(fallbackStart);
-    return [...matches, ...fallback]
+    return [...matches]
       .filter((product, index, arr) => arr.findIndex((item) => item.id === product.id) === index)
       .slice(0, 7);
   }, [marketplaceStripSourceProducts]);
@@ -626,8 +631,117 @@ const HomePage = () => {
 
 <div className="w-full">
         <div className="w-full">
+          <div className="max-w-screen-xl mx-auto px-4">
+            <div className="grid gap-8 xl:grid-cols-2">
+              {themeSections.map((section, sectionIndex) => {
+                const categoryColors = {
+                  'maison-cuisine': { gradient: 'from-amber-600 to-orange-500', icon: '🏠', lightBg: 'bg-amber-50' },
+                  'mode-textile': { gradient: 'from-pink-600 to-rose-500', icon: '👗', lightBg: 'bg-pink-50' },
+                  'beaute': { gradient: 'from-purple-600 to-fuchsia-500', icon: '💄', lightBg: 'bg-purple-50' },
+                  'electronique-gadgets': { gradient: 'from-blue-600 to-cyan-500', icon: '📱', lightBg: 'bg-blue-50' },
+                };
+                const colorConfig = categoryColors[section.category.slug] || { gradient: 'from-indigo-600 to-blue-500', icon: '📦', lightBg: 'bg-indigo-50' };
+                const featuredProduct = section.products?.[0];
 
-          <AdStrip stripId="offers" tone="orange" title="Espace Publicitaire - Offres du Jour" subtitle="Mettez ici vos promos, annonces flash et nouveautés sponsorisées." />
+                return (
+                  <motion.section
+                    key={`theme-${section.category.slug}`}
+                    className={`rounded-[2rem] border border-slate-200 ${colorConfig.lightBg} overflow-hidden shadow-xl`}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.2 }}
+                    variants={sectionMotion}
+                    transition={{ duration: 0.55, ease: 'easeOut', delay: sectionIndex * 0.08 }}
+                  >
+                    <div className={`bg-gradient-to-r ${colorConfig.gradient} px-6 py-5 text-white`}> 
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white/15 text-2xl shadow-md shadow-black/10">{colorConfig.icon}</div>
+                          <div>
+                            <h2 className="text-xl font-black tracking-tight">{section.category.name}</h2>
+                            <p className="text-sm text-white/85">
+                              {section.subcategories.length > 0 ? `${section.subcategories.length} sous-catégories sélectionnées` : 'Produits phares et nouveautés'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="rounded-full bg-white/15 px-4 py-2 text-xs uppercase tracking-[0.12em] text-white/90">{section.products.length} articles</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white px-4 py-5 sm:px-5">
+                      {section.products.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                          {featuredProduct && (
+                            <Link to={`/categories/${section.category.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                              <div className="relative h-64 overflow-hidden bg-slate-100">
+                                {featuredProduct.images?.[0] ? (
+                                  <img src={toAbsoluteMediaUrl(featuredProduct.images[0])} alt={featuredProduct.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center bg-slate-200 text-slate-500">Aucune image</div>
+                                )}
+                                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/90 to-transparent" />
+                                <span className="absolute top-3 left-3 rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-md">En vedette</span>
+                              </div>
+                              <div className="space-y-2 p-4">
+                                <h3 className="text-base font-semibold text-slate-900 line-clamp-2">{featuredProduct.name}</h3>
+                                <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{featuredProduct.category_name || section.category.name}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-bold text-orange-600">{(featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa ? featuredProduct.promo_price_fcfa : featuredProduct.price_fcfa || featuredProduct.price || 0).toLocaleString('fr')} FCFA</span>
+                                  <span className="text-xs text-slate-400">{featuredProduct.seller_name}</span>
+                                </div>
+                              </div>
+                            </Link>
+                          )}
+
+                          <div className="grid gap-4">
+                            {section.products.slice(1, 5).map((product) => (
+                              <Link key={product.id} to={`/produit/${product.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                                <div className="relative h-40 overflow-hidden bg-slate-100">
+                                  {product.images?.[0] ? (
+                                    <img src={toAbsoluteMediaUrl(product.images[0])} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center bg-slate-200 text-slate-500">Pas d'image</div>
+                                  )}
+                                </div>
+                                <div className="space-y-2 p-4">
+                                  <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
+                                  <p className="text-xs text-slate-500 line-clamp-1">{product.seller_name}</p>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-bold text-orange-600">{(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')} FCFA</span>
+                                    {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
+                                      <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-500">-{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-slate-500">Aucun produit disponible dans cette catégorie pour le moment.</div>
+                      )}
+                    </div>
+                  </motion.section>
+                );
+              })}
+            </div>
+
+            <div className="mt-8 space-y-8">
+              {themeSections.map((section, index) => {
+                if (index !== 1 && index !== 3) return null;
+                const stripId = index === 1 ? 'offers' : 'partners';
+                return (
+                  <AdStrip
+                    key={`ad-after-block-${index}`}
+                    stripId={stripId}
+                    tone={index === 1 ? 'orange' : 'blue'}
+                    title={stripId === 'offers' ? 'Offres spéciales' : 'Offres partenaires'}
+                    subtitle={stripId === 'offers' ? 'GIF, vidéo, JPEG, WEBP et plus.' : 'Remplissez ces emplacements dans le dashboard pour mettre en avant vos campagnes.'}
+                  />
+                );
+              })}
+            </div>
+          </div>
 
           <motion.section
             className="py-8 bg-[#f5f5f5] border-y border-red-100"
@@ -637,54 +751,56 @@ const HomePage = () => {
             variants={sectionMotion}
             transition={{ duration: 0.55, ease: 'easeOut' }}
           >
-            <div className="max-w-screen-xl mx-auto px-3 md:px-4">
-              <div className="overflow-hidden rounded-[1.4rem] border border-red-200 bg-white shadow-[0_20px_70px_-35px_rgba(220,38,38,0.55)]">
-                <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-4 py-3 text-white md:px-5">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/30 sm:flex">
-                      <Star className="h-5 w-5 fill-white text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="truncate text-base font-black tracking-tight md:text-xl">Les mieux notés ! 14 ans avec vous</h2>
-                      <p className="hidden text-xs font-medium text-white/85 sm:block">Promos, nouveautés et coups de coeur sélectionnés pour vous</p>
-                    </div>
-                  </div>
-                  <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full bg-white/15 px-3 text-xs font-bold text-white hover:bg-white hover:text-red-600">
-                    <Link to="/produits?sort_by=sales_count">
-                      Voir plus <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                </div>
-
-                {loading ? (
-                  <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-                    {[...Array(21)].map((_, i) => (
-                      <div key={`top-skeleton-${i}`} className="bg-white p-2">
-                        <Skeleton className="aspect-square rounded-xl" />
-                        <Skeleton className="mt-2 h-3 w-11/12" />
-                        <Skeleton className="mt-2 h-4 w-20" />
+            <div className="max-w-screen-xl mx-auto overflow-hidden border-x border-slate-100">
+              <div className="max-w-screen-xl mx-auto px-3 md:px-4">
+                <div className="overflow-hidden rounded-[1.4rem] border border-red-200 bg-white shadow-[0_20px_70px_-35px_rgba(220,38,38,0.55)]">
+                  <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-4 py-3 text-white md:px-5">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/30 sm:flex">
+                        <Star className="h-5 w-5 fill-white text-white" />
                       </div>
-                    ))}
+                      <div className="min-w-0">
+                        <h2 className="truncate text-base font-black tracking-tight md:text-xl">Les mieux notés ! 14 ans avec vous</h2>
+                        <p className="hidden text-xs font-medium text-white/85 sm:block">Promos, nouveautés et coups de coeur sélectionnés pour vous</p>
+                      </div>
+                    </div>
+                    <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full bg-white/15 px-3 text-xs font-bold text-white hover:bg-white hover:text-red-600">
+                      <Link to="/produits?sort_by=sales_count">
+                        Voir plus <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
                   </div>
-                ) : topRatedProducts.length === 0 ? (
-                  <div className="py-14 text-center text-slate-400">
-                    <Star className="mx-auto mb-3 h-12 w-12 opacity-20" />
-                    <p className="font-semibold">Aucun produit disponible pour le moment</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-                    {topRatedProducts.map((product, index) => (
-                      <HomeTopProductCard
-                        key={`top-rated-${product.id}`}
-                        product={product}
-                        index={index}
-                        onImageMissing={(productId) => {
-                          setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+
+                  {loading ? (
+                    <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+                      {[...Array(21)].map((_, i) => (
+                        <div key={`top-skeleton-${i}`} className="bg-white p-2">
+                          <Skeleton className="aspect-square rounded-xl" />
+                          <Skeleton className="mt-2 h-3 w-11/12" />
+                          <Skeleton className="mt-2 h-4 w-20" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : topRatedProducts.length === 0 ? (
+                    <div className="py-14 text-center text-slate-400">
+                      <Star className="mx-auto mb-3 h-12 w-12 opacity-20" />
+                      <p className="font-semibold">Aucun produit disponible pour le moment</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+                      {topRatedProducts.map((product, index) => (
+                        <HomeTopProductCard
+                          key={`top-rated-${product.id}`}
+                          product={product}
+                          index={index}
+                          onImageMissing={(productId) => {
+                            setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </motion.section>
