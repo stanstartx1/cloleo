@@ -122,36 +122,36 @@ const HomeTopProductCard = ({ product, index, onImageMissing }) => {
   return (
     <Link
       to={`/produit/${product.id}`}
-      className="group relative block bg-white p-2 transition-all duration-300 hover:z-10 hover:-translate-y-1 hover:shadow-xl"
+      className="group relative block bg-white p-1 transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="relative overflow-hidden rounded-xl bg-slate-50">
+      <div className="relative overflow-hidden rounded-lg bg-slate-50">
         <img
           src={getHomeProductImage(product)}
           alt={product.name}
-          className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
           onError={() => onImageMissing(product.id)}
         />
         {badgeText && (
-          <span className="absolute right-1.5 top-1.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-black text-white shadow-md">
+          <span className="absolute right-1 top-1 rounded-full bg-orange-500 px-1 py-0.5 text-[9px] font-bold text-white shadow-sm">
             {badgeText}
           </span>
         )}
         {product.is_featured && (
-          <span className="absolute left-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+          <span className="absolute left-1 top-1 rounded bg-red-600 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
             Choix
           </span>
         )}
       </div>
-      <div className="pt-2">
-        <p className="line-clamp-2 min-h-[2.35rem] text-[11px] font-medium leading-tight text-slate-700 group-hover:text-red-600 md:text-xs">
+      <div className="pt-1">
+        <p className="line-clamp-2 min-h-[2rem] text-[10px] font-medium leading-tight text-slate-700 group-hover:text-red-600 md:text-[11px]">
           {product.name}
         </p>
-        <p className="mt-1 text-sm font-black text-slate-950 md:text-[15px]">
+        <p className="mt-1 text-[13px] font-black text-slate-950 md:text-[14px]">
           {price.toLocaleString()} FCFA
         </p>
         {basePrice > price && (
-          <p className="text-[10px] text-slate-400 line-through">
+          <p className="text-[9px] text-slate-400 line-through">
             {basePrice.toLocaleString()} FCFA
           </p>
         )}
