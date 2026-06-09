@@ -238,10 +238,24 @@ const Navbar = () => {
   useEffect(() => {
     const fetchLogo = async () => {
       try {
-        const response = await fetch(`${API_BASE}/logo-settings`);
-        const data = await response.json();
-        if (data.logo_url && data.logo_url.trim()) {
-          // Support tous les formats d'image (GIF, PNG, JPEG, JPG, WEBP, SVG)
+        const response = await fetch(`${API}/logo-settings`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} when fetching logo`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          console.warn('Logo endpoint returned non-JSON response:', contentType, text.slice(0, 200));
+          return;
+        }
+
+        if (data && data.logo_url && data.logo_url.trim()) {
           let logo = data.logo_url;
           if (logo.startsWith('/')) {
             logo = `${API_BASE}${logo}`;
