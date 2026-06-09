@@ -10,6 +10,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
 import { toAbsoluteMediaUrl } from '../utils/media';
+import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
 // Import depuis notre configuration centralisée
 import { API_URL, API_BASE, WS_URL } from '../config/api';
 const API = API_URL;
@@ -257,6 +258,7 @@ const HomePage = () => {
     background_image: '',
     enable_blurs: true,
   });
+  const [layoutVariant, setLayoutVariant] = useState(getRandomLayoutVariant());
 
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
@@ -343,6 +345,14 @@ const HomePage = () => {
     const interval = setInterval(() => {
       setCategorySlideTick((prev) => prev + 1);
     }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Changer le layout toutes les 5 minutes (300 secondes)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLayoutVariant(getRandomLayoutVariant());
+    }, 300000);
     return () => clearInterval(interval);
   }, []);
 
@@ -632,7 +642,7 @@ const HomePage = () => {
 <div className="w-full">
         <div className="w-full">
           <div className="max-w-screen-xl mx-auto px-4">
-            <div className="grid gap-0 xl:grid-cols-2">
+            <div className={`grid gap-0 ${layoutVariant.themeSectionGrid}`}>
               {themeSections.map((section, sectionIndex) => {
                 const categoryColors = {
                   'maison-cuisine': { gradient: 'from-amber-600 to-orange-500', icon: '🏠', lightBg: 'bg-amber-50' },
@@ -668,12 +678,12 @@ const HomePage = () => {
                       </div>
                     </div>
 
-                    <div className="bg-white px-4 py-5 sm:px-5">
+                    <div className={`bg-white ${layoutVariant.sectionPadding}`}>
                       {section.products.length > 0 ? (
-                        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                        <div className={`grid ${layoutVariant.productCardGrid}`}>
                           {featuredProduct && (
-                            <Link to={`/categories/${section.category.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm transition hover:-translate-y-1 hover:shadow-lg md:col-span-2 lg:col-span-2">
-                              <div className="relative h-64 overflow-hidden bg-slate-100">
+                            <Link to={`/categories/${section.category.slug}`} className={`group overflow-hidden ${layoutVariant.productCardRounding} border border-slate-200 bg-slate-50 shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${layoutVariant.featuredCardColSpan || ''}`}>
+                              <div className={`relative ${layoutVariant.productImageHeight} overflow-hidden bg-slate-100`}>
                                 {featuredProduct.images?.[0] ? (
                                   <img src={toAbsoluteMediaUrl(featuredProduct.images[0])} alt={featuredProduct.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                                 ) : (
@@ -682,11 +692,11 @@ const HomePage = () => {
                                 <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/90 to-transparent" />
                                 <span className="absolute top-3 left-3 rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-md">En vedette</span>
                               </div>
-                              <div className="space-y-2 p-4">
-                                <h3 className="text-base font-semibold text-slate-900 line-clamp-2">{featuredProduct.name}</h3>
+                              <div className="space-y-2 p-3">
+                                <h3 className={`font-semibold text-slate-900 line-clamp-2 ${layoutVariant.productTextSize}`}>{featuredProduct.name}</h3>
                                 <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{featuredProduct.category_name || section.category.name}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="font-bold text-orange-600">{(featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa ? featuredProduct.promo_price_fcfa : featuredProduct.price_fcfa || featuredProduct.price || 0).toLocaleString('fr')} FCFA</span>
+                                  <span className={`font-bold text-orange-600 ${layoutVariant.productPriceSize}`}>{(featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa ? featuredProduct.promo_price_fcfa : featuredProduct.price_fcfa || featuredProduct.price || 0).toLocaleString('fr')} FCFA</span>
                                   <span className="text-xs text-slate-400">{featuredProduct.seller_name}</span>
                                 </div>
                               </div>
@@ -694,19 +704,19 @@ const HomePage = () => {
                           )}
 
                           {section.products.slice(1, 13).map((product) => (
-                            <Link key={product.id} to={`/produit/${product.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                              <div className="relative h-40 overflow-hidden bg-slate-100">
+                            <Link key={product.id} to={`/produit/${product.slug}`} className={`group overflow-hidden ${layoutVariant.productCardRounding} border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg`}>
+                              <div className={`relative ${layoutVariant.productImageHeight} overflow-hidden bg-slate-100`}>
                                 {product.images?.[0] ? (
                                   <img src={toAbsoluteMediaUrl(product.images[0])} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                                 ) : (
                                   <div className="flex h-full items-center justify-center bg-slate-200 text-slate-500">Pas d'image</div>
                                 )}
                               </div>
-                              <div className="space-y-2 p-4">
-                                <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
+                              <div className="space-y-2 p-3">
+                                <p className={`font-semibold text-slate-900 line-clamp-2 ${layoutVariant.productTextSize}`}>{product.name}</p>
                                 <p className="text-xs text-slate-500 line-clamp-1">{product.seller_name}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-sm font-bold text-orange-600">{(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')} FCFA</span>
+                                  <span className={`font-bold text-orange-600 ${layoutVariant.productPriceSize}`}>{(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')} FCFA</span>
                                   {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
                                     <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-500">-{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%</span>
                                   )}
