@@ -414,7 +414,7 @@ const HomePage = () => {
         return categoryMatch || subcategoryMatch;
       });
       const uniqueProducts = deduped.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
-      return { category: parent, subcategories: children, products: uniqueProducts.slice(0, 12) };
+      return { category: parent, subcategories: children, products: uniqueProducts.slice(0, 16) };
     });
     return source
       .filter((s) => s.products.length > 0)
@@ -632,7 +632,7 @@ const HomePage = () => {
 <div className="w-full">
         <div className="w-full">
           <div className="max-w-screen-xl mx-auto px-4">
-            <div className="grid gap-8 xl:grid-cols-2">
+            <div className="grid gap-0 xl:grid-cols-2">
               {themeSections.map((section, sectionIndex) => {
                 const categoryColors = {
                   'maison-cuisine': { gradient: 'from-amber-600 to-orange-500', icon: '🏠', lightBg: 'bg-amber-50' },
@@ -670,9 +670,9 @@ const HomePage = () => {
 
                     <div className="bg-white px-4 py-5 sm:px-5">
                       {section.products.length > 0 ? (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
                           {featuredProduct && (
-                            <Link to={`/categories/${section.category.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                            <Link to={`/categories/${section.category.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm transition hover:-translate-y-1 hover:shadow-lg md:col-span-2 lg:col-span-2">
                               <div className="relative h-64 overflow-hidden bg-slate-100">
                                 {featuredProduct.images?.[0] ? (
                                   <img src={toAbsoluteMediaUrl(featuredProduct.images[0])} alt={featuredProduct.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
@@ -693,29 +693,27 @@ const HomePage = () => {
                             </Link>
                           )}
 
-                          <div className="grid gap-4">
-                            {section.products.slice(1, 5).map((product) => (
-                              <Link key={product.id} to={`/produit/${product.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                                <div className="relative h-40 overflow-hidden bg-slate-100">
-                                  {product.images?.[0] ? (
-                                    <img src={toAbsoluteMediaUrl(product.images[0])} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                                  ) : (
-                                    <div className="flex h-full items-center justify-center bg-slate-200 text-slate-500">Pas d'image</div>
+                          {section.products.slice(1, 13).map((product) => (
+                            <Link key={product.id} to={`/produit/${product.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                              <div className="relative h-40 overflow-hidden bg-slate-100">
+                                {product.images?.[0] ? (
+                                  <img src={toAbsoluteMediaUrl(product.images[0])} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center bg-slate-200 text-slate-500">Pas d'image</div>
+                                )}
+                              </div>
+                              <div className="space-y-2 p-4">
+                                <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
+                                <p className="text-xs text-slate-500 line-clamp-1">{product.seller_name}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-sm font-bold text-orange-600">{(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')} FCFA</span>
+                                  {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
+                                    <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-500">-{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%</span>
                                   )}
                                 </div>
-                                <div className="space-y-2 p-4">
-                                  <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
-                                  <p className="text-xs text-slate-500 line-clamp-1">{product.seller_name}</p>
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="text-sm font-bold text-orange-600">{(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')} FCFA</span>
-                                    {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
-                                      <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-500">-{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
+                              </div>
+                            </Link>
+                          ))}
                         </div>
                       ) : (
                         <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-slate-500">Aucun produit disponible dans cette catégorie pour le moment.</div>
@@ -726,7 +724,7 @@ const HomePage = () => {
               })}
             </div>
 
-            <div className="mt-8 space-y-8">
+            <div className="mt-0 space-y-0">
               {themeSections.map((section, index) => {
                 if (index !== 1 && index !== 3) return null;
                 const stripId = index === 1 ? 'offers' : 'partners';
