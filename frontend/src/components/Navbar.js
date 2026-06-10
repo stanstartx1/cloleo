@@ -318,7 +318,7 @@ const Navbar = () => {
         data-testid="navbar"
       >
         <div className="container mx-auto px-4 md:px-6">
-          <div className="flex items-center h-16 md:h-20 gap-3 md:gap-4 lg:gap-6">
+          <div className="flex items-center h-20 md:h-28 gap-3 md:gap-4 lg:gap-6">
             
             {/* ── Logo ── */}
             <Link to="/" className="flex items-center gap-2 group shrink-0" data-testid="logo">
@@ -327,7 +327,7 @@ const Navbar = () => {
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-10 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    className="h-14 md:h-20 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                     onError={handleImageError}
                   />
                   <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
@@ -336,7 +336,7 @@ const Navbar = () => {
                 </div>
               ) : (
                 <>
-                  <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-lg md:text-2xl transition-all duration-500 group-hover:scale-110 shadow-sm">
+                  <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-xl md:text-3xl transition-all duration-500 group-hover:scale-110 shadow-sm">
                     C
                   </div>
                   <span className="text-xl md:text-2xl font-black tracking-tight">
@@ -383,14 +383,14 @@ const Navbar = () => {
             </div>
 
             {/* ── Barre de recherche stylée ── */}
-            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-md mx-2 relative" ref={searchContainerRef}>
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-xl mx-3 relative" ref={searchContainerRef}>
               <div className="relative w-full">
                 <div 
-                  className="flex items-center bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 hover:border-orange-400 rounded-full px-4 py-2.5 cursor-pointer transition-all duration-300 hover:shadow-md group"
+                  className="flex items-center bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 hover:border-orange-400 rounded-full px-5 py-3 cursor-pointer transition-all duration-300 hover:shadow-md group"
                   onClick={handleSearchClick}
                 >
-                  <Search className="w-4 h-4 text-orange-400 group-hover:text-orange-600 transition-colors shrink-0" />
-                  <span className="ml-2.5 text-sm font-semibold text-slate-500 group-hover:text-slate-700 flex-1 transition-colors">
+                  <Search className="w-5 h-5 text-orange-400 group-hover:text-orange-600 transition-colors shrink-0" />
+                  <span className="ml-3 text-sm font-semibold text-slate-500 group-hover:text-slate-700 flex-1 transition-colors">
                     Rechercher un produit...
                   </span>
                   <span className="hidden lg:flex items-center gap-1 text-[10px] font-bold text-orange-400 bg-white border border-orange-200 rounded-full px-2 py-0.5">
