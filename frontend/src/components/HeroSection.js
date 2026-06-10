@@ -8,7 +8,7 @@ import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Composant HeroSection - Diaporama à gauche, 2 blocs pub à droite
+// Composant HeroSection - Diaporama rectangle à gauche, 2 blocs pub compacts à droite
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
@@ -42,7 +42,7 @@ const HeroSection = ({ categories = [] }) => {
       })
       .catch(() => {});
     
-    // Bloc du bas - tu peux créer un nouvel endpoint ou utiliser le même avec un paramètre
+    // Bloc du bas
     axios.get(`${API}/right-block-settings-bottom`)
       .then(res => {
         setRightBlockImageBottom(res.data?.image || '');
@@ -51,7 +51,6 @@ const HeroSection = ({ categories = [] }) => {
         setRightBlockTitleBottom(res.data?.title || '');
       })
       .catch(() => {
-        // Fallback avec données par défaut si l'endpoint n'existe pas
         setRightBlockImageBottom('');
         setRightBlockTypeBottom('image');
         setRightBlockTitleBottom('Espace publicitaire');
@@ -88,16 +87,15 @@ const HeroSection = ({ categories = [] }) => {
   const currentBgLink = getImageLink(currentImage);
   const currentBgTitle = getImageTitle(currentImage);
 
-  // Composant pour un bloc pub individuel
-  const PubBlock = ({ image, video, type, title, size = 'normal' }) => {
+  // Composant pour un bloc pub compact
+  const PubBlock = ({ image, video, type, title }) => {
     const imageUrl = getImageUrl(image);
-    const heightClass = size === 'small' ? 'h-[180px] lg:h-[200px]' : 'h-[200px] lg:h-[250px]';
     
     return (
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
-        <div className={`${heightClass} p-3 flex flex-col`}>
+      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
+        <div className="h-[160px] lg:h-[180px] p-2 flex flex-col">
           {type === 'video' && video ? (
-            <div className="rounded-xl overflow-hidden flex-1">
+            <div className="rounded-lg overflow-hidden flex-1">
               <iframe 
                 src={video}
                 className="w-full h-full"
@@ -111,14 +109,13 @@ const HeroSection = ({ categories = [] }) => {
               <img 
                 src={imageUrl} 
                 alt={title || "Publicité"}
-                className="w-full h-full object-cover rounded-xl"
+                className="w-full h-full object-cover rounded-lg"
               />
             </div>
           ) : (
-            <div className="flex-1 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex flex-col items-center justify-center p-4 text-center">
-              <ShoppingBag className="w-10 h-10 text-orange-400 mb-2" />
-              <p className="text-sm font-semibold text-slate-600">{title || "Espace publicitaire"}</p>
-              <p className="text-xs text-slate-400 mt-1">Configurable</p>
+            <div className="flex-1 bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg flex flex-col items-center justify-center p-3 text-center">
+              <ShoppingBag className="w-8 h-8 text-orange-400 mb-1" />
+              <p className="text-xs font-semibold text-slate-600">{title || "Espace pub"}</p>
             </div>
           )}
         </div>
@@ -127,9 +124,9 @@ const HeroSection = ({ categories = [] }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 h-full">
-      {/* COLONNE GAUCHE : DIAPORAMA HERO */}
-      <div className="relative bg-black/20 rounded-2xl overflow-hidden min-h-[380px] lg:min-h-[420px]">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3 h-full">
+      {/* COLONNE GAUCHE : DIAPORAMA HERO EN RECTANGLE */}
+      <div className="relative bg-black/20 rounded-xl overflow-hidden">
         {currentBgUrl && (
           currentBgLink ? (
             <a 
@@ -141,37 +138,36 @@ const HeroSection = ({ categories = [] }) => {
               <img 
                 src={currentBgUrl} 
                 alt={currentBgTitle}
-                className="w-full h-[380px] lg:h-[420px] object-cover"
+                className="w-full h-[260px] lg:h-[340px] object-cover"
               />
             </a>
           ) : (
             <img 
               src={currentBgUrl} 
               alt={currentBgTitle}
-              className="w-full h-[380px] lg:h-[420px] object-cover"
+              className="w-full h-[260px] lg:h-[340px] object-cover"
             />
           )
         )}
-        <div className="absolute inset-0 flex flex-col justify-center px-6 bg-gradient-to-r from-black/50 to-transparent">
-          <h1 className="text-white text-xl md:text-2xl lg:text-3xl font-black leading-tight max-w-[250px]">
+        <div className="absolute inset-0 flex flex-col justify-center px-5 bg-gradient-to-r from-black/50 to-transparent">
+          <h1 className="text-white text-lg md:text-xl lg:text-2xl font-black leading-tight max-w-[200px]">
             L'Afrique à portée<br />
             <span className="text-orange-400">de clic</span>
           </h1>
-          <Button asChild size="sm" className="mt-3 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-xs">
+          <Button asChild size="sm" className="mt-2 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-xs h-8">
             <Link to="/produits">Explorer <ArrowRight className="w-3 h-3 ml-1" /></Link>
           </Button>
         </div>
       </div>
 
-      {/* COLONNE DROITE : DEUX BLOCS PUB (HAUT ET BAS) */}
-      <div className="flex flex-col gap-4">
+      {/* COLONNE DROITE : DEUX BLOCS PUB COMPACTS */}
+      <div className="flex flex-col gap-2">
         {/* Bloc pub HAUT */}
         <PubBlock 
           image={rightBlockImageTop}
           video={rightBlockVideoTop}
           type={rightBlockTypeTop}
           title={rightBlockTitleTop}
-          size="normal"
         />
         
         {/* Bloc pub BAS */}
@@ -180,7 +176,6 @@ const HeroSection = ({ categories = [] }) => {
           video={rightBlockVideoBottom}
           type={rightBlockTypeBottom}
           title={rightBlockTitleBottom}
-          size="normal"
         />
       </div>
     </div>
