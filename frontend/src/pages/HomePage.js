@@ -630,7 +630,7 @@ const HomePage = () => {
 
       <HeroSection categories={categories} />
 
-      <section className="py-5 bg-white border-b border-slate-100 overflow-hidden">
+      <section className="py-5 bg-white border-b border-slate-100 overflow-hidden hidden md:block">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
           <div className="continuous-marquee">
             <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-main-a')}</div>
@@ -1034,7 +1034,7 @@ const HomePage = () => {
             );
           })}
 
-          <section className="bg-white">
+          <section className="bg-white hidden md:block">
             <div className="max-w-screen-xl mx-auto overflow-hidden border-x border-slate-100">
               {loading ? (
                 <div className="space-y-1 py-2">
@@ -1064,7 +1064,7 @@ const HomePage = () => {
             </div>
           </section>
 
-          <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
+          <section className="py-5 bg-white border-y border-slate-100 overflow-hidden hidden md:block">
             <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
               <div className="continuous-marquee">
                 <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-mid-a')}</div>
