@@ -5,6 +5,7 @@ import axios from 'axios';
 import { ArrowRight, Sparkles, Zap, TrendingUp, Star } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
+import CategorySidebar from '../components/CategorySidebar';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
@@ -628,7 +629,20 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      <HeroSection categories={categories} />
+      {/* Hero Section avec sidebar catégories - Layout style ivory.co.il */}
+      <div className="max-w-screen-xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          {/* Sidebar Catégories - À gauche avec mega-menu */}
+          <div className="hidden lg:block">
+            <CategorySidebar />
+          </div>
+          
+          {/* Hero Section - Diaporama + bloc droite */}
+          <div>
+            <HeroSection categories={categories} />
+          </div>
+        </div>
+      </div>
 
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden hidden md:block">
         <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
@@ -1262,68 +1276,6 @@ const HomePage = () => {
 
           <TrustBanner />
 
-        </div>
-      </div>
-
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
-        onMouseEnter={() => setIsCategoryMenuOpen(true)}
-        onMouseLeave={() => setIsCategoryMenuOpen(false)}
-      >
-        <button className="ml-3 rounded-r-2xl rounded-l-full bg-gradient-to-b from-orange-500 to-amber-500 text-white px-4 py-4 shadow-2xl animate-bounce">
-          <span className="font-extrabold tracking-wide [writing-mode:vertical-rl] rotate-180">CATEGORIES</span>
-        </button>
-        <div className={`absolute left-16 top-1/2 -translate-y-1/2 w-[360px] max-h-[78vh] overflow-y-auto rounded-2xl border border-orange-200 bg-white p-4 shadow-2xl transition-all duration-300 ${isCategoryMenuOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-4 pointer-events-none'}`}>
-          <h3 className="text-lg font-black text-slate-800 mb-3">Catégories</h3>
-          <div className="space-y-2 mb-4">
-            <button onMouseEnter={() => setHoveredCategorySlug(null)} onClick={() => setSelectedCategory('all')}
-              className={`w-full text-left text-sm px-3 py-2 rounded-lg transition ${selectedCategory === 'all' ? 'bg-orange-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-              Toutes les catégories
-            </button>
-            {parentCategories.map((category) => (
-              <div key={category.slug} className="flex items-center gap-2">
-                <Link to={`/categories/${category.slug}`} onMouseEnter={() => setHoveredCategorySlug(category.slug)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-orange-100 hover:text-orange-700 transition">
-                  {category.name}
-                </Link>
-                <button onClick={() => setSelectedCategory(category.slug)}
-                  className={`text-xs px-2 py-2 rounded-lg transition ${selectedCategory === category.slug ? 'bg-orange-500 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}>
-                  Filtrer
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 mb-4">
-            {(() => {
-              const category = categories.find((c) => c.slug === hoveredCategorySlug) || categories[0];
-              if (!category) return <div className="p-4 text-sm text-slate-500">Aucune catégorie</div>;
-              const index = categories.findIndex((c) => c.slug === category.slug);
-              const banners = category.banner_images || [];
-              const banner = banners.length > 0
-                ? banners[(categorySlideTick + Math.max(0, index)) % banners.length]
-                : (category.image || `https://source.unsplash.com/400x300/?${category.name}`);
-              return (
-                <div>
-                  <img src={banner} alt={category.name} className="h-28 w-full object-cover" />
-                  <div className="p-3">
-                    <p className="text-sm font-bold text-slate-800">{category.name}</p>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{category.description || 'Explore cette catégorie'}</p>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-          <h4 className="text-sm font-bold text-slate-800 mb-2">Filtres rapides</h4>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={conditionFilters.neuf} onChange={() => toggleConditionFilter('neuf')} />Neuf
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={conditionFilters.presque_neuf} onChange={() => toggleConditionFilter('presque_neuf')} />Presque neuf
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={conditionFilters.occasion} onChange={() => toggleConditionFilter('occasion')} />Occasion
-            </label>
-          </div>
         </div>
       </div>
 
