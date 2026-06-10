@@ -347,41 +347,23 @@ const Navbar = () => {
               )}
             </Link>
 
-            {/* ── Desktop Navigation ── */}
-            <div className="hidden lg:flex items-center gap-5 shrink-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide">
-                    Parcourir <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-60 animate-scale-in shadow-xl">
-                  {CATEGORIES.map((cat) => (
-                    <DropdownMenuItem key={cat.slug} asChild className="transition-all duration-200 hover:translate-x-1 font-semibold">
-                      <Link to={`/categories/${cat.slug}`}>{cat.name}</Link>
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/categories" className="font-bold text-orange-600">Voir toutes les catégories →</Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+// Dans Navbar.js, vers la ligne 210-235, remplace le bloc "Desktop Navigation" par :
 
-              <Link
-                to="/produits?featured=true"
-                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
-              >
-                Tendances
-              </Link>
-              <Link
-                to="/produits?sort_by=created_at"
-                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
-              >
-                Nouveautés
-              </Link>
-            </div>
-
+{/* ── Desktop Navigation ── (sans le menu Parcourir) */}
+<div className="hidden lg:flex items-center gap-5 shrink-0">
+  <Link
+    to="/produits?featured=true"
+    className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
+  >
+    Tendances
+  </Link>
+  <Link
+    to="/produits?sort_by=created_at"
+    className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
+  >
+    Nouveautés
+  </Link>
+</div>
             {/* ── Barre de recherche stylée ── */}
             <div className="hidden md:flex items-center flex-1 min-w-0 max-w-xl mx-3 relative" ref={searchContainerRef}>
               <div className="relative w-full">
