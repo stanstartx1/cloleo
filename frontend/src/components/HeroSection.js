@@ -445,7 +445,7 @@ const HeroSection = ({ categories = [] }) => {
           </div>
 
           {/* Boutiques sur mobile */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 p-3">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 p-3 hidden md:block">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1">
                 <Store className="w-4 h-4 text-amber-500" /> Boutiques
@@ -468,7 +468,7 @@ const HeroSection = ({ categories = [] }) => {
           </div>
 
           {/* Espace publicitaire mobile */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 hidden md:block">
             {rightBlockType === 'video' && rightBlockVideo ? (
               <div className="aspect-video">
                 <iframe 
