@@ -347,23 +347,22 @@ const Navbar = () => {
               )}
             </Link>
 
-// Dans Navbar.js, vers la ligne 210-235, remplace le bloc "Desktop Navigation" par :
+            {/* ── Desktop Navigation ── (sans le menu Parcourir) */}
+            <div className="hidden lg:flex items-center gap-5 shrink-0">
+              <Link
+                to="/produits?featured=true"
+                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
+              >
+                Tendances
+              </Link>
+              <Link
+                to="/produits?sort_by=created_at"
+                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
+              >
+                Nouveautés
+              </Link>
+            </div>
 
-{/* ── Desktop Navigation ── (sans le menu Parcourir) */}
-<div className="hidden lg:flex items-center gap-5 shrink-0">
-  <Link
-    to="/produits?featured=true"
-    className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
-  >
-    Tendances
-  </Link>
-  <Link
-    to="/produits?sort_by=created_at"
-    className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
-  >
-    Nouveautés
-  </Link>
-</div>
             {/* ── Barre de recherche stylée ── */}
             <div className="hidden md:flex items-center flex-1 min-w-0 max-w-xl mx-3 relative" ref={searchContainerRef}>
               <div className="relative w-full">
