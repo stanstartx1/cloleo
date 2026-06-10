@@ -612,24 +612,23 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - Layout style ivory.co.il */}
+      {/* Hero Section avec sidebar catégories - Layout avec bannières intégrées dans la colonne droite */}
       <div className="max-w-screen-xl mx-auto px-4 pt-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-          {/* Sidebar Catégories - À gauche avec mega-menu */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+          {/* Sidebar Catégories - À gauche, prend toute la hauteur */}
           <div className="hidden lg:block">
             <CategorySidebar />
           </div>
           
-          {/* Hero Section - Diaporama + bloc droite */}
-          <div>
+          {/* Colonne droite : Hero (diaporama) + Bannières publicitaires en dessous */}
+          <div className="flex flex-col gap-4">
+            {/* Hero Section - Diaporama uniquement */}
             <HeroSection categories={categories} />
+            
+            {/* Bannières publicitaires 2x2 juste en dessous */}
+            <AdBannerGrid />
           </div>
         </div>
-      </div>
-
-      {/* Bannières publicitaires carrées horizontales */}
-      <div className="max-w-screen-xl mx-auto px-4 py-8">
-        <AdBannerGrid />
       </div>
 
       <section className="py-5 bg-white border-b border-slate-100 overflow-hidden hidden md:block">

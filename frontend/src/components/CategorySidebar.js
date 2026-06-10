@@ -12,7 +12,7 @@ const CategorySidebar = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [categorySlideTick, setCategorySlideTick] = useState(0);
   
-  const MAX_VISIBLE_CATEGORIES = 12; // Augmenté pour plus de hauteur
+  const MAX_VISIBLE_CATEGORIES = 12;
 
   useEffect(() => {
     axios.get(`${API}/categories`)
@@ -58,11 +58,10 @@ const CategorySidebar = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-24">
-      {/* PAS DE TITRE "CATÉGORIES" - Supprimé */}
+    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden h-full">
+      {/* PAS DE TITRE - Supprimé */}
       
-      {/* Liste des catégories - Hauteur augmentée */}
-      <div className="p-2 max-h-[600px] overflow-y-auto">
+      <div className="p-2 h-full max-h-[700px] overflow-y-auto">
         {visibleCategories.map(cat => {
           const subCats = getSubCategories(cat.slug);
           const hasSub = subCats.length > 0;
@@ -123,7 +122,6 @@ const CategorySidebar = () => {
         })}
       </div>
       
-      {/* Bouton Voir plus */}
       {hasMoreCategories && (
         <button
           onClick={() => setShowAllCategories(!showAllCategories)}
