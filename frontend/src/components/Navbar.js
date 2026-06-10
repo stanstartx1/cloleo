@@ -323,7 +323,7 @@ const Navbar = () => {
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-7 md:h-10 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    className="h-14 md:h-20 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                     onError={handleImageError}
                   />
                   {/* Fallback si l'image ne charge pas */}
