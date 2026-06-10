@@ -8,14 +8,18 @@ import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Composant HeroSection simplifié avec carré pub à droite
+// Composant HeroSection - Diaporama à gauche, 2 blocs pub à droite
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
-  const [rightBlockImage, setRightBlockImage] = useState('');
-  const [rightBlockVideo, setRightBlockVideo] = useState('');
-  const [rightBlockType, setRightBlockType] = useState('image');
-  const [rightBlockTitle, setRightBlockTitle] = useState('');
+  const [rightBlockImageTop, setRightBlockImageTop] = useState('');
+  const [rightBlockVideoTop, setRightBlockVideoTop] = useState('');
+  const [rightBlockTypeTop, setRightBlockTypeTop] = useState('image');
+  const [rightBlockTitleTop, setRightBlockTitleTop] = useState('');
+  const [rightBlockImageBottom, setRightBlockImageBottom] = useState('');
+  const [rightBlockVideoBottom, setRightBlockVideoBottom] = useState('');
+  const [rightBlockTypeBottom, setRightBlockTypeBottom] = useState('image');
+  const [rightBlockTitleBottom, setRightBlockTitleBottom] = useState('');
 
   useEffect(() => {
     axios.get(`${API}/hero-settings`)
@@ -26,15 +30,32 @@ const HeroSection = ({ categories = [] }) => {
       .catch(() => setHeroImages([]));
   }, []);
 
+  // Charger les deux blocs pub
   useEffect(() => {
+    // Bloc du haut
     axios.get(`${API}/right-block-settings`)
       .then(res => {
-        setRightBlockImage(res.data?.image || '');
-        setRightBlockVideo(res.data?.video || '');
-        setRightBlockType(res.data?.type_content || 'image');
-        setRightBlockTitle(res.data?.title || '');
+        setRightBlockImageTop(res.data?.image || '');
+        setRightBlockVideoTop(res.data?.video || '');
+        setRightBlockTypeTop(res.data?.type_content || 'image');
+        setRightBlockTitleTop(res.data?.title || '');
       })
       .catch(() => {});
+    
+    // Bloc du bas - tu peux créer un nouvel endpoint ou utiliser le même avec un paramètre
+    axios.get(`${API}/right-block-settings-bottom`)
+      .then(res => {
+        setRightBlockImageBottom(res.data?.image || '');
+        setRightBlockVideoBottom(res.data?.video || '');
+        setRightBlockTypeBottom(res.data?.type_content || 'image');
+        setRightBlockTitleBottom(res.data?.title || '');
+      })
+      .catch(() => {
+        // Fallback avec données par défaut si l'endpoint n'existe pas
+        setRightBlockImageBottom('');
+        setRightBlockTypeBottom('image');
+        setRightBlockTitleBottom('Espace publicitaire');
+      });
   }, []);
 
   useEffect(() => {
@@ -66,6 +87,44 @@ const HeroSection = ({ categories = [] }) => {
   const currentBgUrl = getImageUrl(currentImage);
   const currentBgLink = getImageLink(currentImage);
   const currentBgTitle = getImageTitle(currentImage);
+
+  // Composant pour un bloc pub individuel
+  const PubBlock = ({ image, video, type, title, size = 'normal' }) => {
+    const imageUrl = getImageUrl(image);
+    const heightClass = size === 'small' ? 'h-[180px] lg:h-[200px]' : 'h-[200px] lg:h-[250px]';
+    
+    return (
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
+        <div className={`${heightClass} p-3 flex flex-col`}>
+          {type === 'video' && video ? (
+            <div className="rounded-xl overflow-hidden flex-1">
+              <iframe 
+                src={video}
+                className="w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : imageUrl ? (
+            <div className="flex-1 flex items-center justify-center">
+              <img 
+                src={imageUrl} 
+                alt={title || "Publicité"}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            </div>
+          ) : (
+            <div className="flex-1 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex flex-col items-center justify-center p-4 text-center">
+              <ShoppingBag className="w-10 h-10 text-orange-400 mb-2" />
+              <p className="text-sm font-semibold text-slate-600">{title || "Espace publicitaire"}</p>
+              <p className="text-xs text-slate-400 mt-1">Configurable</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 h-full">
@@ -104,35 +163,25 @@ const HeroSection = ({ categories = [] }) => {
         </div>
       </div>
 
-      {/* COLONNE DROITE : CARRÉ PUBLICITAIRE */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 h-[380px] lg:h-[420px]">
-        <div className="h-full p-4 flex flex-col">
-          {rightBlockType === 'video' && rightBlockVideo ? (
-            <div className="aspect-video rounded-xl overflow-hidden flex-1">
-              <iframe 
-                src={rightBlockVideo}
-                className="w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          ) : rightBlockImage ? (
-            <div className="flex-1 flex items-center justify-center">
-              <img 
-                src={getImageUrl(rightBlockImage)} 
-                alt={rightBlockTitle || "Publicité"}
-                className="w-full h-full object-cover rounded-xl"
-              />
-            </div>
-          ) : (
-            <div className="flex-1 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex flex-col items-center justify-center p-4 text-center">
-              <ShoppingBag className="w-12 h-12 text-orange-400 mb-3" />
-              <p className="text-sm font-semibold text-slate-600">Espace publicitaire</p>
-              <p className="text-xs text-slate-400 mt-1">Configurable depuis l'admin</p>
-            </div>
-          )}
-        </div>
+      {/* COLONNE DROITE : DEUX BLOCS PUB (HAUT ET BAS) */}
+      <div className="flex flex-col gap-4">
+        {/* Bloc pub HAUT */}
+        <PubBlock 
+          image={rightBlockImageTop}
+          video={rightBlockVideoTop}
+          type={rightBlockTypeTop}
+          title={rightBlockTitleTop}
+          size="normal"
+        />
+        
+        {/* Bloc pub BAS */}
+        <PubBlock 
+          image={rightBlockImageBottom}
+          video={rightBlockVideoBottom}
+          type={rightBlockTypeBottom}
+          title={rightBlockTitleBottom}
+          size="normal"
+        />
       </div>
     </div>
   );
