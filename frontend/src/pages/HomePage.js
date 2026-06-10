@@ -682,72 +682,110 @@ const HomePage = () => {
                       {section.products.length > 0 ? (
                         <div className={`grid ${layoutVariant.productCardGrid}`}>
                           {featuredProduct && (
-                            <Link to={`/categories/${section.category.slug}`} className={`group overflow-hidden ${layoutVariant.productCardRounding} ${layoutVariant.border} bg-gradient-to-br from-slate-50 to-white ${layoutVariant.shadow} transition-all duration-300 hover:-translate-y-2 ${layoutVariant.featuredCardColSpan || ''}`}>
-                              <div className={`relative h-64 md:h-72 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200`}>
+                            <Link to={`/categories/${section.category.slug}`} className={`group flex flex-col overflow-hidden ${layoutVariant.productCardRounding} bg-gradient-to-br from-slate-50 to-white ${layoutVariant.shadow} transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 h-full ${layoutVariant.featuredCardColSpan || ''}`}>
+                              {/* Featured Image - 70% of card */}
+                              <div className={`relative w-full overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 flex-shrink-0 h-64 md:h-72`}>
                                 {featuredProduct.images?.[0] ? (
                                   <img 
                                     src={toAbsoluteMediaUrl(featuredProduct.images[0])} 
                                     alt={featuredProduct.name} 
-                                    className="h-full w-full object-contain md:object-cover p-2 transition-transform duration-300 group-hover:scale-110" 
+                                    className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-125" 
+                                    loading="lazy"
                                   />
                                 ) : (
-                                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">
-                                    <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4.5-4.5 3 3 2.5-2.5L16 15z" /></svg>
+                                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-200 to-amber-300 text-white">
+                                    <svg className="w-16 h-16 opacity-30" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4.5-4.5 3 3 2.5-2.5L16 15z" /></svg>
                                   </div>
                                 )}
-                                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
-                                <span className="absolute top-4 left-4 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-1.5 text-sm font-bold text-white shadow-lg">⭐ En vedette</span>
+                                <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                                <span className="absolute top-4 left-4 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-1.5 text-xs md:text-sm font-black text-white shadow-lg backdrop-blur-sm">⭐ VEDETTE</span>
                               </div>
-                              <div className="p-4 md:p-5 flex flex-col gap-3">
-                                <div>
-                                  <h3 className="text-base md:text-lg font-black text-slate-900 line-clamp-2 mb-1">{featuredProduct.name}</h3>
-                                  <p className="text-xs text-slate-500 uppercase tracking-wide">{featuredProduct.category_name || section.category.name}</p>
+
+                              {/* Featured Info - 30% of card */}
+                              <div className={`${layoutVariant.productCardPadding} flex flex-col flex-grow justify-between bg-white`}>
+                                {/* Featured Product Name */}
+                                <div className="mb-3">
+                                  <h3 className={`font-black text-slate-900 line-clamp-2 leading-tight ${layoutVariant.productTextSize || 'text-base md:text-lg'}`}>
+                                    {featuredProduct.name}
+                                  </h3>
+                                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold mt-1">
+                                    {featuredProduct.category_name || section.category.name}
+                                  </p>
                                 </div>
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                                  <div>
-                                    <span className="text-xl md:text-2xl font-black text-orange-600 block">
-                                      {(featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa ? featuredProduct.promo_price_fcfa : featuredProduct.price_fcfa || featuredProduct.price || 0).toLocaleString('fr')}
+
+                                {/* Featured Price Section */}
+                                <div className="border-t border-orange-100 pt-2 mt-auto">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <span className={`font-black text-orange-600 block ${layoutVariant.productPriceSize || 'text-xl md:text-2xl'}`}>
+                                        {(featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa ? featuredProduct.promo_price_fcfa : featuredProduct.price_fcfa || featuredProduct.price || 0).toLocaleString('fr')}
+                                      </span>
+                                      {featuredProduct.price_fcfa && featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa && (
+                                        <span className="text-xs text-slate-400 line-through font-medium">
+                                          {featuredProduct.price_fcfa.toLocaleString('fr')}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-slate-600 font-bold bg-orange-50 px-3 py-1.5 rounded-lg">
+                                      {featuredProduct.seller_name}
                                     </span>
-                                    {featuredProduct.price_fcfa && featuredProduct.promo_price_fcfa && featuredProduct.promo_price_fcfa < featuredProduct.price_fcfa && (
-                                      <span className="text-xs text-slate-400 line-through">{featuredProduct.price_fcfa.toLocaleString('fr')}</span>
-                                    )}
                                   </div>
-                                  <span className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-lg">{featuredProduct.seller_name}</span>
                                 </div>
                               </div>
                             </Link>
                           )}
 
                           {section.products.slice(1, 13).map((product) => (
-                            <Link key={product.id} to={`/produit/${product.slug}`} className={`group overflow-hidden ${layoutVariant.productCardRounding} ${layoutVariant.border} bg-white ${layoutVariant.shadow} transition-all duration-300 hover:-translate-y-2 transform`}>
-                              <div className={`relative ${layoutVariant.productImageHeight} overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100`}>
+                            <Link key={product.id} to={`/produit/${product.slug}`} className={`group flex flex-col overflow-hidden ${layoutVariant.productCardRounding} bg-white ${layoutVariant.shadow} transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 transform h-full`}>
+                              {/* Image Section - 70% de la carte */}
+                              <div className={`relative w-full overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100 to-slate-150 flex-shrink-0 ${layoutVariant.productImageHeight}`}>
                                 {product.images?.[0] ? (
                                   <img 
                                     src={toAbsoluteMediaUrl(product.images[0])} 
                                     alt={product.name} 
-                                    className="h-full w-full object-contain md:object-cover p-1 transition-transform duration-300 group-hover:scale-110" 
+                                    className="h-full w-full object-contain p-1.5 transition-transform duration-500 group-hover:scale-125" 
+                                    loading="lazy"
                                   />
                                 ) : (
-                                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">
-                                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4.5-4.5 3 3 2.5-2.5L16 15z" /></svg>
+                                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-400">
+                                    <svg className="w-12 h-12 opacity-40" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4.5-4.5 3 3 2.5-2.5L16 15z" /></svg>
                                   </div>
                                 )}
+                                
+                                {/* Discount Badge */}
                                 {product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
-                                  <span className="absolute top-2 right-2 rounded-full bg-red-500 text-white text-[11px] font-black px-2.5 py-1 shadow-lg">
-                                    -{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%
-                                  </span>
+                                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                                    <span className="rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-black px-3 py-1 shadow-lg backdrop-blur-sm">
+                                      -{Math.round(100 * (1 - product.promo_price_fcfa / product.price_fcfa))}%
+                                    </span>
+                                  </div>
                                 )}
                               </div>
-                              <div className={`${layoutVariant.productCardPadding} flex flex-col h-full`}>
-                                <p className={`font-semibold text-slate-900 line-clamp-2 flex-grow mb-2 ${layoutVariant.productTextSize}`}>{product.name}</p>
-                                <p className="text-xs text-slate-500 line-clamp-1 mb-2 truncate">{product.seller_name}</p>
-                                <div className="flex items-center justify-between gap-1 mt-auto">
-                                  <div>
-                                    <span className={`font-black text-orange-600 block ${layoutVariant.productPriceSize}`}>
-                                      {(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')} 
+
+                              {/* Info Section - 30% de la carte */}
+                              <div className={`${layoutVariant.productCardPadding} flex flex-col flex-grow justify-between bg-white`}>
+                                {/* Product Name */}
+                                <div className="mb-2">
+                                  <h3 className={`font-black text-slate-900 line-clamp-2 leading-tight ${layoutVariant.productTextSize}`}>
+                                    {product.name}
+                                  </h3>
+                                </div>
+
+                                {/* Seller Info */}
+                                <p className="text-xs text-slate-500 line-clamp-1 mb-2 truncate font-medium">
+                                  {product.seller_name}
+                                </p>
+
+                                {/* Price Section */}
+                                <div className="border-t border-slate-100 pt-2 mt-auto">
+                                  <div className="flex items-baseline justify-between gap-1">
+                                    <span className={`font-black text-orange-600 ${layoutVariant.productPriceSize}`}>
+                                      {(product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa ? product.promo_price_fcfa : product.price_fcfa || product.price || 0).toLocaleString('fr')}
                                     </span>
                                     {product.price_fcfa && product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa && (
-                                      <span className="text-[9px] text-slate-400 line-through">{product.price_fcfa.toLocaleString('fr')}</span>
+                                      <span className="text-[10px] text-slate-400 line-through">
+                                        {product.price_fcfa.toLocaleString('fr')}
+                                      </span>
                                     )}
                                   </div>
                                 </div>
