@@ -33,7 +33,6 @@ const CATEGORIES = [
   { name: 'Sport & Loisirs', slug: 'sport-loisirs' },
 ];
 
-// Composant Mega Menu simplifié - Version responsive
 const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery }) => {
   const [filters, setFilters] = useState({
     certifiedVendor: false,
@@ -107,24 +106,27 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-full left-0 right-0 z-50 bg-white shadow-xl border-t border-slate-200 rounded-b-2xl mt-1 max-h-[80vh] overflow-y-auto" ref={menuRef}>
-      <div className="max-w-2xl mx-auto p-3 md:p-4">
+    <div
+      className="absolute top-full left-0 right-0 z-50 bg-white shadow-2xl border-t-2 border-orange-400 rounded-b-2xl mt-1 max-h-[80vh] overflow-y-auto"
+      ref={menuRef}
+    >
+      <div className="max-w-2xl mx-auto p-4 md:p-5">
         
         {/* Barre de recherche */}
-        <div className="mb-3 p-2 md:p-3 bg-gray-50 rounded-xl">
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+        <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+          <div className="flex items-center gap-3">
+            <Search className="w-5 h-5 text-orange-500 shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Que recherchez-vous ?"
-              className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 text-sm md:text-base"
+              className="flex-1 bg-transparent border-none outline-none text-slate-800 font-semibold placeholder-slate-400 text-sm md:text-base"
               autoFocus
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="p-1 hover:bg-slate-200 rounded-full">
-                <X className="w-3 h-3 md:w-4 md:h-4 text-slate-400" />
+              <button onClick={() => setSearchQuery('')} className="p-1 hover:bg-orange-100 rounded-full transition-colors">
+                <X className="w-4 h-4 text-slate-400" />
               </button>
             )}
           </div>
@@ -132,80 +134,80 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
 
         {/* Suggestions */}
         {searchQuery.trim() && searchQuery.length >= 2 && (
-          <div className="mb-3">
-            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Suggestions</h3>
+          <div className="mb-4">
+            <h3 className="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-2">Suggestions</h3>
             {loading ? (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-8 md:h-10 bg-slate-100 animate-pulse rounded-lg"></div>
+                  <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
                 ))}
               </div>
             ) : suggestions.length > 0 ? (
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {suggestions.map((suggestion, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full text-left px-2 py-1.5 md:px-3 md:py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2 md:gap-3 text-xs md:text-sm"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm"
                   >
-                    <Search className="w-3 h-3 md:w-4 md:h-4 text-slate-400" />
-                    <span className="text-slate-700">{suggestion}</span>
+                    <Search className="w-4 h-4 text-orange-400" />
+                    <span className="text-slate-700 font-medium">{suggestion}</span>
                   </button>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 text-center py-2">Aucune suggestion pour "{searchQuery}"</p>
+              <p className="text-xs text-slate-400 text-center py-2 font-medium">Aucune suggestion pour "{searchQuery}"</p>
             )}
           </div>
         )}
 
         {/* Filtres */}
-        <div className="border-t border-slate-100 pt-3">
-          <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Filtres
+        <div className="border-t border-slate-100 pt-4">
+          <h3 className="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5" /> Filtres
           </h3>
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="space-y-2">
+            <label className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={filters.certifiedVendor}
                 onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
-                className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
               />
-              <span className="text-[11px] md:text-xs text-slate-600 flex items-center gap-1">
-                <Star className="w-2.5 h-2.5 md:w-3 md:h-3 text-amber-500" /> Vendeur certifié
+              <span className="text-xs text-slate-700 font-semibold flex items-center gap-1.5 group-hover:text-orange-600 transition-colors">
+                <Star className="w-3.5 h-3.5 text-amber-500" /> Vendeur certifié
               </span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={filters.neuf}
                 onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
-                className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
               />
-              <span className="text-[11px] md:text-xs text-slate-600">Neuf</span>
+              <span className="text-xs text-slate-700 font-semibold group-hover:text-orange-600 transition-colors">Neuf</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={filters.occasion}
                 onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
-                className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
               />
-              <span className="text-[11px] md:text-xs text-slate-600">Occasion</span>
+              <span className="text-xs text-slate-700 font-semibold group-hover:text-orange-600 transition-colors">Occasion</span>
             </label>
           </div>
 
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-4">
             <button
               onClick={handleApplyFilters}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-1.5 rounded-lg font-medium text-xs hover:from-orange-600 hover:to-amber-600 transition"
+              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2 rounded-xl font-bold text-xs hover:from-orange-600 hover:to-amber-600 transition shadow-sm"
             >
-              Appliquer
+              Appliquer les filtres
             </button>
             <button
               onClick={handleResetFilters}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 transition"
+              className="px-4 py-2 border border-slate-200 rounded-xl text-xs text-slate-600 font-semibold hover:bg-slate-100 transition"
             >
               Reset
             </button>
@@ -213,8 +215,8 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
         </div>
 
         <div className="flex justify-end mt-3 pt-2 border-t border-slate-100">
-          <button onClick={onClose} className="text-[10px] text-slate-400 hover:text-slate-600">
-            Fermer
+          <button onClick={onClose} className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors">
+            Fermer ✕
           </button>
         </div>
       </div>
@@ -296,10 +298,8 @@ const Navbar = () => {
     navigate('/');
   };
 
-  // Gestionnaire d'erreur d'image (fallback)
   const handleImageError = (e) => {
     e.target.style.display = 'none';
-    // Afficher le fallback
     const parent = e.target.parentElement;
     if (parent && parent.parentElement) {
       const fallback = parent.parentElement.querySelector('.logo-fallback');
@@ -312,31 +312,34 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-white shadow-md transition-all duration-300" data-testid="navbar">
-        <div className="container mx-auto px-3 md:px-4">
-          <div className="flex items-center h-12 md:h-16 gap-2 md:gap-3 lg:gap-4">
+      {/* ── Navbar principale ── hauteur augmentée : h-16 mobile / h-20 desktop */}
+      <nav
+        className="sticky top-0 z-40 bg-white shadow-md transition-all duration-300 border-b-2 border-orange-100"
+        data-testid="navbar"
+      >
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="flex items-center h-16 md:h-20 gap-3 md:gap-4 lg:gap-6">
             
-            {/* Logo - support tous formats avec fallback */}
-            <Link to="/" className="flex items-center gap-1.5 md:gap-2 group shrink-0" data-testid="logo">
+            {/* ── Logo ── */}
+            <Link to="/" className="flex items-center gap-2 group shrink-0" data-testid="logo">
               {!logoLoading && logoUrl ? (
-                <div className="relative bg-white/80 backdrop-blur-sm rounded-lg p-1 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-sm transition-all duration-300 group-hover:shadow-md">
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-14 md:h-20 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    className="h-10 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                     onError={handleImageError}
                   />
-                  {/* Fallback si l'image ne charge pas */}
-                  <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg items-center justify-center">
-                    <span className="text-white font-bold text-base md:text-xl">C</span>
+                  <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
+                    <span className="text-white font-black text-lg md:text-2xl">C</span>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="w-7 h-7 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-base md:text-xl transition-all duration-500 group-hover:scale-110">
+                  <div className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-lg md:text-2xl transition-all duration-500 group-hover:scale-110 shadow-sm">
                     C
                   </div>
-                  <span className="text-base md:text-2xl font-bold tracking-tight">
+                  <span className="text-xl md:text-2xl font-black tracking-tight">
                     <span className="text-orange-500">Clo</span>
                     <span className="text-amber-600">léo</span>
                   </span>
@@ -344,43 +347,55 @@ const Navbar = () => {
               )}
             </Link>
 
-            {/* Desktop Navigation - cachée sur mobile */}
-            <div className="hidden lg:flex items-center gap-4 shrink-0">
+            {/* ── Desktop Navigation ── */}
+            <div className="hidden lg:flex items-center gap-5 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1 font-medium hover:text-orange-500 transition-all duration-300 text-sm">
-                    Parcourir <ChevronDown className="w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-180" />
+                  <button className="flex items-center gap-1.5 font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide">
+                    Parcourir <ChevronDown className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 animate-scale-in">
-                  {CATEGORIES.map((cat, index) => (
-                    <DropdownMenuItem key={cat.slug} asChild className="transition-all duration-200 hover:translate-x-1">
+                <DropdownMenuContent className="w-60 animate-scale-in shadow-xl">
+                  {CATEGORIES.map((cat) => (
+                    <DropdownMenuItem key={cat.slug} asChild className="transition-all duration-200 hover:translate-x-1 font-semibold">
                       <Link to={`/categories/${cat.slug}`}>{cat.name}</Link>
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/categories" className="font-medium">Voir toutes les catégories</Link>
+                    <Link to="/categories" className="font-bold text-orange-600">Voir toutes les catégories →</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Link to="/produits?featured=true" className="font-medium hover:text-orange-500 transition-all duration-300 text-sm">
+
+              <Link
+                to="/produits?featured=true"
+                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
+              >
                 Tendances
               </Link>
-              <Link to="/produits?sort_by=created_at" className="font-medium hover:text-orange-500 transition-all duration-300 text-sm">
+              <Link
+                to="/produits?sort_by=created_at"
+                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
+              >
                 Nouveautés
               </Link>
             </div>
 
-            {/* Search bar - cachée sur mobile (utilise l'overlay) */}
-            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-sm mx-1 relative" ref={searchContainerRef}>
+            {/* ── Barre de recherche stylée ── */}
+            <div className="hidden md:flex items-center flex-1 min-w-0 max-w-md mx-2 relative" ref={searchContainerRef}>
               <div className="relative w-full">
                 <div 
-                  className="flex items-center bg-gray-100 rounded-full px-3 py-1.5 cursor-pointer hover:bg-gray-200 transition-colors"
+                  className="flex items-center bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 hover:border-orange-400 rounded-full px-4 py-2.5 cursor-pointer transition-all duration-300 hover:shadow-md group"
                   onClick={handleSearchClick}
                 >
-                  <Search className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="ml-2 text-xs text-gray-500 flex-1">Rechercher...</span>
+                  <Search className="w-4 h-4 text-orange-400 group-hover:text-orange-600 transition-colors shrink-0" />
+                  <span className="ml-2.5 text-sm font-semibold text-slate-500 group-hover:text-slate-700 flex-1 transition-colors">
+                    Rechercher un produit...
+                  </span>
+                  <span className="hidden lg:flex items-center gap-1 text-[10px] font-bold text-orange-400 bg-white border border-orange-200 rounded-full px-2 py-0.5">
+                    ⌘K
+                  </span>
                 </div>
                 <SearchMegaMenu
                   isOpen={megaMenuOpen}
@@ -392,45 +407,63 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Actions - version responsive */}
-            <div className="ml-auto flex items-center gap-0.5 sm:gap-1 shrink-0">
+            {/* ── Actions ── */}
+            <div className="ml-auto flex items-center gap-1 shrink-0">
               
               {/* Bouton recherche mobile */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden rounded-full w-8 h-8"
+                className="md:hidden rounded-full w-9 h-9 hover:bg-orange-50"
                 onClick={() => setSearchOpen(true)}
                 data-testid="mobile-search-btn"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-5 h-5 text-slate-700" />
               </Button>
 
               {/* Panier */}
               <Link to="/panier" data-testid="cart-btn" className="relative">
-                <Button variant="ghost" size="icon" className="relative rounded-full w-8 h-8 md:w-9 md:h-9 hover:bg-orange-50">
-                  <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-300 hover:scale-110" />
+                <Button variant="ghost" size="icon" className="relative rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-orange-50">
+                  <ShoppingCart className="w-5 h-5 text-slate-700 transition-transform duration-300 hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[1rem] h-3.5 md:h-4 px-1 bg-orange-500 text-white text-[8px] md:text-[9px] rounded-full flex items-center justify-center font-bold leading-none shadow-md z-10">
+                    <span className="absolute -top-1 -right-1 min-w-[1.1rem] h-4 px-1 bg-orange-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none shadow-md z-10">
                       {cart.item_count > 99 ? '99+' : cart.item_count}
                     </span>
                   )}
                 </Button>
               </Link>
 
-              {/* Favoris - caché sur très petit mobile */}
-              <Button variant="ghost" size="icon" asChild className="hidden sm:flex rounded-full w-8 h-8 hover:bg-red-50">
+              {/* Favoris */}
+              <Button variant="ghost" size="icon" asChild className="hidden sm:flex rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-red-50">
                 <Link to="/favoris" data-testid="favorites-btn">
-                  <Heart className="w-4 h-4 hover:text-red-500 transition-colors" />
+                  <Heart className="w-5 h-5 text-slate-700 hover:text-red-500 transition-colors" />
                 </Link>
               </Button>
 
-              {/* User Menu */}
-              {isAuthenticated ? (
+              {/* Bouton Connexion (non connecté, desktop) */}
+              {!isAuthenticated && (
+                <Button
+                  asChild
+                  variant="default"
+                  size="sm"
+                  className="hidden md:inline-flex rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2 text-xs font-bold h-9 shadow-sm hover:shadow-md hover:from-orange-600 hover:to-amber-600 transition-all"
+                  data-testid="login-btn"
+                >
+                  <Link to="/connexion"><User className="w-3.5 h-3.5 mr-1.5" /> Connexion</Link>
+                </Button>
+              )}
+
+              {/* User Menu (connecté) */}
+              {isAuthenticated && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative rounded-full w-7 h-7 md:w-8 md:h-8 hover:bg-orange-50" data-testid="user-menu-btn">
-                      <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-[10px] md:text-xs font-bold">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-orange-50 ring-2 ring-orange-200 hover:ring-orange-400 transition-all"
+                      data-testid="user-menu-btn"
+                    >
+                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden flex items-center justify-center text-white text-xs font-black">
                         {user?.profile_photo ? (
                           <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
                         ) : (
@@ -439,116 +472,222 @@ const Navbar = () => {
                       </div>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-3 py-2"><p className="font-medium">{user?.name}</p><p className="text-xs text-gray-500">{user?.email}</p></div>
+                  <DropdownMenuContent align="end" className="w-60 shadow-xl">
+                    <div className="px-3 py-2.5 bg-orange-50 rounded-t-lg">
+                      <p className="font-bold text-slate-800">{user?.name}</p>
+                      <p className="text-xs font-medium text-slate-500">{user?.email}</p>
+                    </div>
                     <DropdownMenuSeparator />
-                    {isAdmin && <DropdownMenuItem asChild><Link to="/admin"><Crown className="w-4 h-4" /> Administration</Link></DropdownMenuItem>}
-                    {isDriver && <DropdownMenuItem asChild><Link to="/livreur"><Truck className="w-4 h-4" /> Espace livreur</Link></DropdownMenuItem>}
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="font-bold text-amber-600">
+                          <Crown className="w-4 h-4 mr-2" /> Administration
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {isDriver && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/livreur" className="font-semibold">
+                          <Truck className="w-4 h-4 mr-2" /> Espace livreur
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     {isRevendeur && (
                       <>
-                        <DropdownMenuItem asChild><Link to="/revendeur"><Store className="w-4 h-4" /> Espace revendeur</Link></DropdownMenuItem>
-                        <DropdownMenuItem asChild><Link to={`/boutique/${user?.shop_slug || ''}`}><Eye className="w-4 h-4" /> Voir ma boutique</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/revendeur" className="font-semibold">
+                            <Store className="w-4 h-4 mr-2" /> Espace revendeur
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/boutique/${user?.shop_slug || ''}`} className="font-semibold">
+                            <Eye className="w-4 h-4 mr-2" /> Voir ma boutique
+                          </Link>
+                        </DropdownMenuItem>
                       </>
                     )}
-                    {isVendor && !isAdmin && <DropdownMenuItem asChild><Link to="/vendeur"><Store className="w-4 h-4" /> Espace vendeur</Link></DropdownMenuItem>}
-                    <DropdownMenuItem asChild><Link to="/favoris"><Heart className="w-4 h-4" /> Mes favoris</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link to="/abonnements"><Bell className="w-4 h-4" /> Mes abonnements</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link to="/mes-messages"><MessageCircle className="w-4 h-4" /> Mes messages</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link to="/parametres"><Settings className="w-4 h-4" /> Paramètres</Link></DropdownMenuItem>
+                    {isVendor && !isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/vendeur" className="font-semibold">
+                          <Store className="w-4 h-4 mr-2" /> Espace vendeur
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link to="/favoris" className="font-semibold"><Heart className="w-4 h-4 mr-2" /> Mes favoris</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> Mes abonnements</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/mes-messages" className="font-semibold"><MessageCircle className="w-4 h-4 mr-2" /> Mes messages</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/parametres" className="font-semibold"><Settings className="w-4 h-4 mr-2" /> Paramètres</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" /> Déconnexion</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 font-bold">
+                      <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              ) : (
-                <Button asChild variant="default" size="sm" className="hidden md:inline-flex rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white px-3 py-1.5 text-xs h-8" data-testid="login-btn">
-                  <Link to="/connexion"><User className="w-3 h-3 mr-1" /> Connexion</Link>
-                </Button>
               )}
 
               {/* Menu burger mobile */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden rounded-full w-8 h-8"
+                className="lg:hidden rounded-full w-9 h-9 hover:bg-orange-50"
                 onClick={() => setMobileMenuOpen(true)}
                 data-testid="mobile-menu-btn"
               >
-                <Menu className="w-4 h-4" />
+                <Menu className="w-5 h-5 text-slate-700" />
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Menu - version améliorée */}
+      {/* ── Mobile Menu ── */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
-          <div className="flex items-center justify-between p-3 border-b">
+          <div className="flex items-center justify-between p-4 border-b-2 border-orange-100 bg-white">
             {logoUrl ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-lg p-1">
+              <div className="bg-white/80 rounded-lg p-1">
                 <img 
                   src={logoUrl} 
                   alt="Cloléo" 
-                  className="h-6 w-auto object-contain"
+                  className="h-8 w-auto object-contain"
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               </div>
             ) : (
-              <span className="text-lg font-bold"><span className="text-orange-500">Clo</span><span className="text-amber-600">léo</span></span>
+              <span className="text-xl font-black">
+                <span className="text-orange-500">Clo</span>
+                <span className="text-amber-600">léo</span>
+              </span>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}><X className="w-5 h-5" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="rounded-full hover:bg-orange-50">
+              <X className="w-5 h-5" />
+            </Button>
           </div>
-          <div className="p-3 space-y-3 overflow-y-auto max-h-[calc(100vh-60px)]">
+
+          <div className="p-4 space-y-3 overflow-y-auto max-h-[calc(100vh-64px)]">
             {isAuthenticated ? (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium text-sm">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+              <div className="p-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+                <p className="font-bold text-slate-800 text-sm">{user?.name}</p>
+                <p className="text-xs font-medium text-slate-500">{user?.email}</p>
               </div>
             ) : (
-              <Link to="/connexion" className="flex items-center gap-2 p-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-medium text-sm" onClick={() => setMobileMenuOpen(false)}><User className="w-4 h-4" /> Connexion / Inscription</Link>
+              <Link
+                to="/connexion"
+                className="flex items-center gap-2 p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-bold text-sm shadow-sm"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User className="w-4 h-4" /> Connexion / Inscription
+              </Link>
             )}
-            {isAdmin && <Link to="/admin" className="flex items-center gap-2 py-2.5 border-b font-medium text-amber-600 text-sm" onClick={() => setMobileMenuOpen(false)}><Crown className="w-4 h-4" /> Administration</Link>}
-            {isVendor && !isAdmin && <Link to="/vendeur" className="flex items-center gap-2 py-2.5 border-b font-medium text-orange-600 text-sm" onClick={() => setMobileMenuOpen(false)}><Store className="w-4 h-4" /> Espace vendeur</Link>}
-            <Link to="/categories" className="block py-2.5 border-b font-medium text-sm" onClick={() => setMobileMenuOpen(false)}>Toutes les catégories</Link>
-            <div className="space-y-1">
+
+            {isAdmin && (
+              <Link to="/admin" className="flex items-center gap-2 py-3 border-b font-bold text-amber-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                <Crown className="w-4 h-4" /> Administration
+              </Link>
+            )}
+            {isVendor && !isAdmin && (
+              <Link to="/vendeur" className="flex items-center gap-2 py-3 border-b font-bold text-orange-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                <Store className="w-4 h-4" /> Espace vendeur
+              </Link>
+            )}
+
+            <Link to="/categories" className="block py-3 border-b font-bold text-slate-800 text-sm" onClick={() => setMobileMenuOpen(false)}>
+              Toutes les catégories
+            </Link>
+
+            <div className="space-y-0.5">
               {CATEGORIES.map((cat) => (
-                <Link key={cat.slug} to={`/categories/${cat.slug}`} className="block py-2 text-sm text-gray-600 hover:text-orange-500" onClick={() => setMobileMenuOpen(false)}>{cat.name}</Link>
+                <Link
+                  key={cat.slug}
+                  to={`/categories/${cat.slug}`}
+                  className="block py-2.5 px-2 text-sm font-semibold text-slate-600 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {cat.name}
+                </Link>
               ))}
             </div>
-            <div className="pt-2 border-t space-y-2">
-              <Link to="/favoris" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileMenuOpen(false)}><Heart className="w-4 h-4" /> Mes favoris</Link>
-              {isAuthenticated && <Link to="/abonnements" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileMenuOpen(false)}><Bell className="w-4 h-4" /> Mes abonnements</Link>}
-              <Link to="/panier" className="flex items-center gap-2 py-2 text-sm" onClick={() => setMobileMenuOpen(false)}><ShoppingCart className="w-4 h-4" /> Mon panier ({cart.item_count})</Link>
+
+            <div className="pt-3 border-t space-y-1">
+              <Link to="/favoris" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                <Heart className="w-4 h-4" /> Mes favoris
+              </Link>
+              {isAuthenticated && (
+                <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                  <Bell className="w-4 h-4" /> Mes abonnements
+                </Link>
+              )}
+              <Link to="/panier" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                <ShoppingCart className="w-4 h-4" /> Mon panier
+                {cart.item_count > 0 && (
+                  <span className="ml-auto bg-orange-500 text-white text-[10px] font-black rounded-full px-2 py-0.5">{cart.item_count}</span>
+                )}
+              </Link>
             </div>
-            {isAuthenticated && (<div className="pt-2 border-t"><button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center gap-2 py-2 text-sm text-red-600 w-full"><LogOut className="w-4 h-4" /> Déconnexion</button></div>)}
+
+            {isAuthenticated && (
+              <div className="pt-3 border-t">
+                <button
+                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-bold text-red-600 w-full rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" /> Déconnexion
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Mobile Search Overlay - amélioré */}
+      {/* ── Mobile Search Overlay ── */}
       {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-white" onClick={() => setSearchOpen(false)}>
-          <div className="bg-white p-3 border-b" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={(e) => { e.preventDefault(); handleSearch({ q: searchQuery }); }} className="flex items-center gap-2">
-              <Input
-                type="text"
-                placeholder="Rechercher un produit..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 rounded-full text-sm h-10"
-                autoFocus
-              />
-              <Button type="submit" size="icon" className="rounded-full bg-orange-500 hover:bg-orange-600 w-10 h-10">
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
+          <div className="bg-white p-4 border-b-2 border-orange-200 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleSearch({ q: searchQuery }); }}
+              className="flex items-center gap-2"
+            >
+              <div className="flex-1 flex items-center bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 rounded-full px-4 py-2 focus-within:border-orange-500 transition-colors">
+                <Search className="w-4 h-4 text-orange-400 shrink-0" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher un produit..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm font-semibold text-slate-700 placeholder-slate-400 h-auto py-0 px-2"
+                  autoFocus
+                />
+              </div>
+              <Button
+                type="submit"
+                size="icon"
+                className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 w-10 h-10 shadow-sm"
+              >
                 <Search className="w-4 h-4" />
               </Button>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setSearchOpen(false)} className="rounded-full w-10 h-10">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchOpen(false)}
+                className="rounded-full w-10 h-10 hover:bg-orange-50"
+              >
                 <X className="w-5 h-5" />
               </Button>
             </form>
           </div>
-          {/* Suggestions rapides dans l'overlay */}
-          <div className="p-3">
-            <p className="text-xs text-slate-400 mb-2">Suggestions populaires</p>
+
+          {/* Suggestions rapides */}
+          <div className="bg-white mt-0 p-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-xs font-bold text-orange-500 uppercase tracking-wide mb-3">Suggestions populaires</p>
             <div className="flex flex-wrap gap-2">
               {['Sac à main', 'Montre', 'Robe', 'Téléphone', 'Parfum', 'Chaussures'].map((item) => (
                 <button
@@ -557,7 +696,7 @@ const Navbar = () => {
                     setSearchQuery(item);
                     handleSearch({ q: item });
                   }}
-                  className="px-3 py-1.5 bg-gray-100 rounded-full text-xs text-slate-600 hover:bg-orange-100"
+                  className="px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-full text-xs font-bold text-orange-600 hover:bg-orange-100 hover:border-orange-400 transition-all"
                 >
                   {item}
                 </button>
