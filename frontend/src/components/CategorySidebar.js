@@ -12,7 +12,7 @@ const CategorySidebar = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [categorySlideTick, setCategorySlideTick] = useState(0);
   
-  const MAX_VISIBLE_CATEGORIES = 8;
+  const MAX_VISIBLE_CATEGORIES = 12; // Augmenté pour plus de hauteur
 
   useEffect(() => {
     axios.get(`${API}/categories`)
@@ -58,15 +58,11 @@ const CategorySidebar = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-28">
-      {/* En-tête */}
-      <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 flex items-center gap-2">
-        <ShoppingBag className="w-5 h-5 text-white" />
-        <span className="font-bold text-white text-sm">Toutes les catégories</span>
-      </div>
+    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-24">
+      {/* PAS DE TITRE "CATÉGORIES" - Supprimé */}
       
-      {/* Liste des catégories */}
-      <div className="p-2 max-h-[500px] overflow-y-auto">
+      {/* Liste des catégories - Hauteur augmentée */}
+      <div className="p-2 max-h-[600px] overflow-y-auto">
         {visibleCategories.map(cat => {
           const subCats = getSubCategories(cat.slug);
           const hasSub = subCats.length > 0;
@@ -81,7 +77,7 @@ const CategorySidebar = () => {
             >
               <Link 
                 to={`/categories/${cat.slug}`}
-                className="flex items-center justify-between py-2.5 px-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors group"
+                className="flex items-center justify-between py-3 px-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors group"
               >
                 <span className="truncate">{cat.name}</span>
                 {hasSub && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-2 text-slate-400 group-hover:text-orange-500" />}
