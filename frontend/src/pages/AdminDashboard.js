@@ -2329,6 +2329,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
     { id: 'offers', label: 'Offres du Jour', title: 'Espace Publicitaire - Offres du Jour', subtitle: 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.', tone: 'orange', enabled: true, media_type: 'none', media_url: '', link: '' },
     { id: 'partners', label: 'Marques Partenaires', title: 'Espace Publicitaire - Marques Partenaires', subtitle: 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.', tone: 'blue', enabled: true, media_type: 'none', media_url: '', link: '' },
     { id: 'premium', label: 'Sélection Premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
+    { id: 'flash', label: 'Ventes Flash', title: 'Espace Publicitaire - Ventes Flash', subtitle: 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !', tone: 'red', enabled: true, media_type: 'none', media_url: '', link: '' },
   ];
 
   // ===== HERO CARROUSEL STATES =====
@@ -2907,6 +2908,17 @@ const LayoutAppearanceSection = ({ token, API }) => {
     fetchLogoSettings();
   }, [token, API]);
 
+  // Fonction pour obtenir la couleur de fond en fonction du tone
+  const getToneColor = (tone) => {
+    switch (tone) {
+      case 'orange': return 'from-orange-500 to-amber-500';
+      case 'blue': return 'from-blue-500 to-cyan-500';
+      case 'green': return 'from-green-500 to-emerald-500';
+      case 'red': return 'from-red-500 to-rose-500';
+      default: return 'from-orange-500 to-amber-500';
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* ===== SECTION CARROUSEL HERO ===== */}
@@ -3185,17 +3197,17 @@ const LayoutAppearanceSection = ({ token, API }) => {
         )}
       </div>
 
-      {/* ===== SECTION ZONES PUBLICITAIRES HOME ===== */}
+      {/* ===== SECTION ZONES PUBLICITAIRES HOME (4 BLOCS) ===== */}
       <div className="mt-8">
         <h2 className="text-xl font-bold text-slate-100">Zones publicitaires horizontales (sous la hero)</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez les 3 espaces publicitaires horizontaux du site. Formats images acceptés : GIF, WEBP, PNG, JPEG, JPG. Vidéos : MP4, WEBM, OGG, MOV.
+          Configurez les 4 espaces publicitaires horizontaux du site. Formats images acceptés : GIF, WEBP, PNG, JPEG, JPG. Vidéos : MP4, WEBM, OGG, MOV.
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-xl p-5 border border-cyan-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-cyan-300">
-          <Image className="w-5 h-5" /> Espaces pubs horizontaux
+          <Image className="w-5 h-5" /> Espaces pubs horizontaux (4 blocs)
         </h3>
 
         {adStripsLoading ? (
@@ -3226,7 +3238,9 @@ const LayoutAppearanceSection = ({ token, API }) => {
                     ) : strip.media_type === 'image' && strip.media_url ? (
                       <img src={getImageUrl(strip.media_url)} alt={strip.title} className="w-full h-40 object-cover" />
                     ) : (
-                      <span className="text-slate-500 text-sm">Aucun média</span>
+                      <div className={`w-full h-40 flex items-center justify-center bg-gradient-to-r ${getToneColor(strip.tone)} opacity-70`}>
+                        <span className="text-white text-sm font-bold px-3 py-1 bg-black/30 rounded-full">{strip.title}</span>
+                      </div>
                     )}
                   </div>
 
@@ -3274,6 +3288,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                           <option value="orange">Orange</option>
                           <option value="blue">Bleu</option>
                           <option value="green">Vert</option>
+                          <option value="red">Rouge</option>
                         </select>
                       </div>
                       <div>
@@ -3325,7 +3340,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
               disabled={adStripsSaving}
               className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition disabled:opacity-50"
             >
-              {adStripsSaving ? 'Sauvegarde...' : 'Sauvegarder les zones publicitaires'}
+              {adStripsSaving ? 'Sauvegarde...' : 'Sauvegarder les 4 zones publicitaires'}
             </button>
           </div>
         )}

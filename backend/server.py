@@ -1198,6 +1198,7 @@ async def admin_upload_trending_bg(
 
 
 # ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 # RIGHT BLOCK (image/vidéo) — bloc publicitaire de droite
 # ═══════════════════════════════════════════════════════════════
 
@@ -1282,6 +1283,11 @@ async def admin_upload_right_block_image(
     print(f"✅ Right block image uploaded: {url}")
     return {"url": url, "filename": filename}
 
+
+# ═══════════════════════════════════════════════════════════════
+# AD STRIPS — 4 zones publicitaires horizontales sous la hero
+# ═══════════════════════════════════════════════════════════════
+
 DEFAULT_AD_STRIPS = [
     {
         "id": "offers",
@@ -1313,6 +1319,16 @@ DEFAULT_AD_STRIPS = [
         "media_url": "",
         "link": "",
     },
+    {
+        "id": "flash",
+        "title": "Espace Publicitaire - Ventes Flash",
+        "subtitle": "Offres limitees dans le temps, ne manquez pas ces bonnes affaires !",
+        "tone": "red",
+        "enabled": True,
+        "media_type": "none",
+        "media_url": "",
+        "link": "",
+    },
 ]
 
 
@@ -1328,36 +1344,39 @@ def _normalize_ad_strips(strips):
         media_type = item.get("media_type", "none")
         if media_type not in ["none", "image", "video"]:
             media_type = "none"
+        tone = item.get("tone")
+        if tone not in ["orange", "blue", "green", "red"]:
+            tone = by_id[strip_id]["tone"]
         by_id[strip_id] = {
             **by_id[strip_id],
             "title": str(item.get("title") or by_id[strip_id]["title"]).strip()[:120],
             "subtitle": str(item.get("subtitle") or "").strip()[:220],
-            "tone": item.get("tone") if item.get("tone") in ["orange", "blue", "green"] else by_id[strip_id]["tone"],
+            "tone": tone,
             "enabled": bool(item.get("enabled", True)),
             "media_type": media_type,
             "media_url": str(item.get("media_url") or "").strip(),
             "link": str(item.get("link") or "").strip(),
         }
-    return [by_id["offers"], by_id["partners"], by_id["premium"]]
+    return [by_id["offers"], by_id["partners"], by_id["premium"], by_id["flash"]]
 
 
 @api.get("/ad-strip-settings")
 async def public_ad_strip_settings():
-    """Route publique — zones publicitaires horizontales de la Home."""
+    """Route publique — zones publicitaires horizontales de la Home (4 blocs)."""
     doc = await db.settings.find_one({"type": "ad_strips"}, {"_id": 0})
     return doc or {"type": "ad_strips", "strips": DEFAULT_AD_STRIPS}
 
 
 @api.get("/admin/settings/ad-strips")
 async def admin_ad_strip_settings(user: dict = Depends(require_admin)):
-    """Admin — recupere les zones publicitaires horizontales."""
+    """Admin — recupere les zones publicitaires horizontales (4 blocs)."""
     doc = await db.settings.find_one({"type": "ad_strips"}, {"_id": 0})
     return doc or {"type": "ad_strips", "strips": DEFAULT_AD_STRIPS}
 
 
 @api.put("/admin/settings/ad-strips")
 async def admin_save_ad_strip_settings(payload: dict, user: dict = Depends(require_admin)):
-    """Admin — sauvegarde les zones publicitaires horizontales."""
+    """Admin — sauvegarde les zones publicitaires horizontales (4 blocs)."""
     strips = _normalize_ad_strips(payload.get("strips", []))
     doc = {"type": "ad_strips", "strips": strips, "updated_at": _utc()}
     await db.settings.update_one({"type": "ad_strips"}, {"$set": doc}, upsert=True)
@@ -1369,7 +1388,7 @@ async def admin_upload_ad_strip_media(
     file: UploadFile = File(...),
     user: dict = Depends(require_admin)
 ):
-    """Admin — upload image/GIF/WEBP ou video pour une zone publicitaire."""
+    """Admin — upload image/GIF/WEBP ou video pour une zone publicitaire (4 blocs)."""
     allowed_image_ext = {".gif", ".png", ".jpeg", ".jpg", ".webp"}
     allowed_video_ext = {".mp4", ".webm", ".ogg", ".mov"}
     allowed_image_mimes = {"image/gif", "image/png", "image/jpeg", "image/jpg", "image/webp"}
@@ -1395,9 +1414,6 @@ async def admin_upload_ad_strip_media(
     dest = uploads_dir / filename
     dest.write_bytes(content)
     return {"url": f"/uploads/{filename}", "filename": filename, "media_type": "video" if is_video else "image"}
-
-
-
 
 
 # ═══════════════════════════════════════════════════════════════

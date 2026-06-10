@@ -6,26 +6,22 @@ import { ArrowRight, Sparkles, Zap, TrendingUp, Star } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
-import AdBannerGrid from '../components/AdBannerGrid';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
-// Import depuis notre configuration centralisée
-import { API_URL, API_BASE, WS_URL } from '../config/api';
+import { API_URL, API_BASE } from '../config/api';
+
 const API = API_URL;
 
 const DEFAULT_HOME_AD_STRIPS = [
   { id: 'offers', title: 'Espace Publicitaire - Offres du Jour', subtitle: 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.', tone: 'orange', enabled: true, media_type: 'none', media_url: '', link: '' },
   { id: 'partners', title: 'Espace Publicitaire - Marques Partenaires', subtitle: 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.', tone: 'blue', enabled: true, media_type: 'none', media_url: '', link: '' },
   { id: 'premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
+  { id: 'flash', title: 'Espace Publicitaire - Ventes Flash', subtitle: 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !', tone: 'red', enabled: true, media_type: 'none', media_url: '', link: '' },
 ];
-
-// Optionnel : garder la détection locale si tu en as besoin ailleurs
-const isLocalEnvironment = typeof window !== 'undefined' &&
-  /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 
 const sectionMotion = {
   hidden: { opacity: 0, y: 40 },
@@ -55,9 +51,9 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
     ? (layoutSettings?.sidebar_image_left || '')
     : (layoutSettings?.sidebar_image_right || '');
 
-const image = imageRaw && imageRaw.startsWith('/')
-  ? `${API_BASE}${imageRaw}`
-  : imageRaw;
+  const image = imageRaw && imageRaw.startsWith('/')
+    ? `${API_BASE}${imageRaw}`
+    : imageRaw;
   const baseStyle = {
     position: 'fixed',
     top: topOffset,
@@ -86,6 +82,88 @@ const image = imageRaw && imageRaw.startsWith('/')
       backgroundColor: color,
     }} />
   );
+};
+
+// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX =====
+const AdHorizontalStrip = ({ strip }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const getToneStyles = (tone) => {
+    const tones = {
+      orange: 'from-orange-500 via-amber-500 to-orange-600',
+      blue: 'from-blue-500 via-cyan-500 to-blue-600',
+      green: 'from-emerald-500 via-teal-500 to-green-600',
+      red: 'from-red-500 via-rose-500 to-red-600',
+    };
+    return tones[tone] || tones.orange;
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    if (typeof url === 'object') url = url.url || '';
+    if (url.startsWith('/')) return `${API_BASE}${url}`;
+    return url;
+  };
+
+  const mediaUrl = getImageUrl(strip.media_url);
+  const toneGradient = getToneStyles(strip.tone);
+
+  const content = (
+    <div 
+      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} h-full`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Fond dégradé ou média */}
+      {strip.media_type === 'image' && mediaUrl ? (
+        <div className="relative h-32 md:h-36 lg:h-40">
+          <img 
+            src={mediaUrl} 
+            alt={strip.title}
+            className="w-full h-full object-cover transition-transform duration-500"
+            style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        </div>
+      ) : strip.media_type === 'video' && mediaUrl ? (
+        <div className="relative h-32 md:h-36 lg:h-40">
+          <video 
+            src={mediaUrl} 
+            className="w-full h-full object-cover"
+            autoPlay={isHovered}
+            muted
+            loop
+            playsInline
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        </div>
+      ) : (
+        <div className={`h-32 md:h-36 lg:h-40 bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
+          <span className="text-white text-3xl md:text-4xl font-black opacity-30">
+            {strip.title?.charAt(0) || 'A'}
+          </span>
+        </div>
+      )}
+      
+      {/* Texte superposé */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+        <h3 className="text-sm md:text-base font-bold line-clamp-1">{strip.title}</h3>
+        <p className="text-xs opacity-90 line-clamp-1">{strip.subtitle}</p>
+        <span className={`inline-block mt-1.5 text-[10px] font-bold bg-white/20 rounded-full px-2 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-3' : ''}`}>
+          Découvrir →
+        </span>
+      </div>
+    </div>
+  );
+
+  if (strip.link) {
+    return (
+      <Link to={strip.link} className="block h-full">
+        {content}
+      </Link>
+    );
+  }
+  return content;
 };
 
 const getHomeProductDisplayPrice = (product) => {
@@ -250,8 +328,6 @@ const HomePage = () => {
     occasion: false,
     presque_neuf: false,
   });
-  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
-  const [hoveredCategorySlug, setHoveredCategorySlug] = useState(null);
   const [layoutSettings, setLayoutSettings] = useState(null);
   const [adStrips, setAdStrips] = useState(DEFAULT_HOME_AD_STRIPS);
   const [trendingBlockSettings, setTrendingBlockSettings] = useState({
@@ -350,7 +426,6 @@ const HomePage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Changer le layout toutes les 5 minutes (300 secondes)
   useEffect(() => {
     const interval = setInterval(() => {
       setLayoutVariant(getRandomLayoutVariant());
@@ -403,7 +478,6 @@ const HomePage = () => {
 
   const allVisibleProducts = useMemo(
     () => applyProductFilters([...featuredProducts, ...trendingProducts, ...newProducts]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [featuredProducts, trendingProducts, newProducts, selectedCategory, conditionFilters]
   );
 
@@ -432,7 +506,6 @@ const HomePage = () => {
         return image && !brokenTopProductImages[product.id];
       })
       .slice(0, 30);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
   const marketplaceStripSourceProducts = useMemo(() => {
@@ -444,7 +517,6 @@ const HomePage = () => {
       const image = product.images?.[0] || product.main_image || product.image;
       return image && !brokenTopProductImages[product.id];
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
   const pickMarketplaceProducts = useCallback((keywords) => {
@@ -591,7 +663,6 @@ const HomePage = () => {
   const sidebarW = layoutSettings?.sidebar_width || 0;
   const showSidebars = layoutSettings !== null && sidebarW > 0;
 
-  // Ref sur le début de la zone centrée pour calculer le top des sidebars fixed
   const centeredZoneRef = useRef(null);
   const [sidebarTop, setSidebarTop] = React.useState(0);
   useEffect(() => {
@@ -600,11 +671,13 @@ const HomePage = () => {
       const rect = centeredZoneRef.current.getBoundingClientRect();
       setSidebarTop(rect.top + window.scrollY);
     };
-    // Délai court pour laisser le DOM se stabiliser
     const t = setTimeout(updateTop, 100);
     window.addEventListener('resize', updateTop);
     return () => { clearTimeout(t); window.removeEventListener('resize', updateTop); };
   }, [layoutSettings, loading]);
+
+  // Filtrer les strips actifs
+  const activeAdStrips = adStrips.filter(strip => strip.enabled !== false);
 
   return (
     <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
@@ -612,21 +685,27 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - Layout avec bannières intégrées dans la colonne droite */}
+      {/* Hero Section avec sidebar catégories */}
       <div className="max-w-screen-xl mx-auto px-4 pt-4">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
-          {/* Sidebar Catégories - À gauche, prend toute la hauteur */}
+          {/* Sidebar Catégories - À gauche */}
           <div className="hidden lg:block">
             <CategorySidebar />
           </div>
           
-          {/* Colonne droite : Hero (diaporama) + Bannières publicitaires en dessous */}
+          {/* Colonne droite : Hero + Bannières publicitaires horizontales */}
           <div className="flex flex-col gap-4">
             {/* Hero Section - Diaporama uniquement */}
             <HeroSection categories={categories} />
             
-            {/* Bannières publicitaires 2x2 juste en dessous */}
-            <AdBannerGrid />
+            {/* 4 Bannières publicitaires horizontales */}
+            {activeAdStrips.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {activeAdStrips.map((strip) => (
+                  <AdHorizontalStrip key={strip.id} strip={strip} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -644,7 +723,6 @@ const HomePage = () => {
         <div className="w-full">
           <div className="max-w-screen-xl mx-auto px-4">
             {/* SECTION SUPPRIMÉE : Les 4 blocs de catégories (themeSections) ont été retirés */}
-            {/* On passe directement à la section "Les mieux notés" */}
           </div>
 
           <motion.section
@@ -768,9 +846,11 @@ const HomePage = () => {
               backgroundPosition: 'center',
               backgroundBlendMode: 'overlay',
             }}
-            initial="hidden" whileInView="visible"
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
+            variants={sectionMotion}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
           >
             {trendingBlockSettings.enable_blurs && (
               <div className="absolute inset-0">
@@ -829,9 +909,11 @@ const HomePage = () => {
           <motion.section
             ref={newProductsRef}
             className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
-            initial="hidden" whileInView="visible"
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
+            variants={sectionMotion}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
           >
             <div className="max-w-screen-xl mx-auto px-4">
               <div className="flex items-center justify-between mb-12">
@@ -877,9 +959,11 @@ const HomePage = () => {
 
           <motion.section
             className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
-            initial="hidden" whileInView="visible"
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion} transition={{ duration: 0.7, ease: 'easeOut' }}
+            variants={sectionMotion}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
           >
             <div className="absolute inset-0">
               <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
@@ -943,7 +1027,6 @@ const HomePage = () => {
           </section>
 
           <TrustBanner />
-
         </div>
       </div>
 
