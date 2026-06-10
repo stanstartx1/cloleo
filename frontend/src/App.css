@@ -445,3 +445,38 @@
   background: #f97316;
   border-radius: 10px;
 }
+
+/* Mega-menu animations - plus grandes et au-dessus */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeInUp 0.2s ease-out forwards;
+}
+
+/* Mega-menu scrollbar personnalisée */
+.fixed.z-50::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fixed.z-50::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.fixed.z-50::-webkit-scrollbar-thumb {
+  background: #f97316;
+  border-radius: 10px;
+}
+
+.fixed.z-50::-webkit-scrollbar-thumb:hover {
+  background: #ea580c;
+}
