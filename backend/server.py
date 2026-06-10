@@ -1397,6 +1397,216 @@ async def admin_upload_ad_strip_media(
     return {"url": f"/uploads/{filename}", "filename": filename, "media_type": "video" if is_video else "image"}
 
 
+
+
+
+# ═══════════════════════════════════════════════════════════════
+# RIGHT BLOCK TOP (Bloc publicitaire HAUT de la colonne droite)
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/right-block-settings-top")
+async def public_right_block_top_settings():
+    """Route publique — bloc publicitaire HAUT de la colonne droite (image ou vidéo)"""
+    doc = await db.settings.find_one({"type": "right_block_top"}, {"_id": 0})
+    return doc or {
+        "type": "right_block_top",
+        "type_content": "image",
+        "image": "",
+        "video": "",
+        "title": "Espace publicitaire",
+        "link": ""
+    }
+
+
+@api.get("/admin/settings/right-block-top")
+async def admin_right_block_top_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère la configuration du bloc publicitaire HAUT de la colonne droite"""
+    doc = await db.settings.find_one({"type": "right_block_top"}, {"_id": 0})
+    return doc or {
+        "type": "right_block_top",
+        "type_content": "image",
+        "image": "",
+        "video": "",
+        "title": "Espace publicitaire",
+        "link": ""
+    }
+
+
+@api.put("/admin/settings/right-block-top")
+async def admin_save_right_block_top_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde la configuration du bloc publicitaire HAUT de la colonne droite"""
+    type_content = payload.get("type_content", "image")
+    image = payload.get("image", "")
+    video = payload.get("video", "")
+    title = payload.get("title", "Espace publicitaire")
+    link = payload.get("link", "")
+    
+    if type_content not in ["image", "video"]:
+        raise HTTPException(status_code=400, detail="type_content doit être 'image' ou 'video'")
+    
+    # Convertir URL YouTube standard en embed si nécessaire
+    if type_content == "video" and video and not video.startswith("https://www.youtube.com/embed/"):
+        if "youtu.be/" in video:
+            video_id = video.split("youtu.be/")[-1].split("?")[0]
+            video = f"https://www.youtube.com/embed/{video_id}"
+        elif "watch?v=" in video:
+            video_id = video.split("watch?v=")[-1].split("&")[0]
+            video = f"https://www.youtube.com/embed/{video_id}"
+    
+    doc = {
+        "type": "right_block_top",
+        "type_content": type_content,
+        "image": image,
+        "video": video,
+        "title": title,
+        "link": link,
+        "updated_at": _utc()
+    }
+    await db.settings.update_one({"type": "right_block_top"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "settings": doc}
+
+
+@api.post("/admin/upload/right-block-top-image")
+async def admin_upload_right_block_top_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'une image pour le bloc publicitaire HAUT de la colonne droite"""
+    allowed_extensions = {".png", ".jpeg", ".jpg", ".gif", ".webp"}
+    allowed_mimetypes = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
+    
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporté. Formats acceptés : PNG, JPEG, JPG, GIF, WEBP"
+        )
+    
+    if file.content_type and file.content_type not in allowed_mimetypes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type MIME non supporté : {file.content_type}"
+        )
+    
+    filename = f"rightblocktop_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 5 Mo)")
+    
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    
+    print(f"✅ Right block TOP image uploaded: {url}")
+    return {"url": url, "filename": filename}
+
+
+# ═══════════════════════════════════════════════════════════════
+# RIGHT BLOCK BOTTOM (Bloc publicitaire BAS de la colonne droite)
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/right-block-settings-bottom")
+async def public_right_block_bottom_settings():
+    """Route publique — bloc publicitaire BAS de la colonne droite (image ou vidéo)"""
+    doc = await db.settings.find_one({"type": "right_block_bottom"}, {"_id": 0})
+    return doc or {
+        "type": "right_block_bottom",
+        "type_content": "image",
+        "image": "",
+        "video": "",
+        "title": "Espace publicitaire",
+        "link": ""
+    }
+
+
+@api.get("/admin/settings/right-block-bottom")
+async def admin_right_block_bottom_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère la configuration du bloc publicitaire BAS de la colonne droite"""
+    doc = await db.settings.find_one({"type": "right_block_bottom"}, {"_id": 0})
+    return doc or {
+        "type": "right_block_bottom",
+        "type_content": "image",
+        "image": "",
+        "video": "",
+        "title": "Espace publicitaire",
+        "link": ""
+    }
+
+
+@api.put("/admin/settings/right-block-bottom")
+async def admin_save_right_block_bottom_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde la configuration du bloc publicitaire BAS de la colonne droite"""
+    type_content = payload.get("type_content", "image")
+    image = payload.get("image", "")
+    video = payload.get("video", "")
+    title = payload.get("title", "Espace publicitaire")
+    link = payload.get("link", "")
+    
+    if type_content not in ["image", "video"]:
+        raise HTTPException(status_code=400, detail="type_content doit être 'image' ou 'video'")
+    
+    # Convertir URL YouTube standard en embed si nécessaire
+    if type_content == "video" and video and not video.startswith("https://www.youtube.com/embed/"):
+        if "youtu.be/" in video:
+            video_id = video.split("youtu.be/")[-1].split("?")[0]
+            video = f"https://www.youtube.com/embed/{video_id}"
+        elif "watch?v=" in video:
+            video_id = video.split("watch?v=")[-1].split("&")[0]
+            video = f"https://www.youtube.com/embed/{video_id}"
+    
+    doc = {
+        "type": "right_block_bottom",
+        "type_content": type_content,
+        "image": image,
+        "video": video,
+        "title": title,
+        "link": link,
+        "updated_at": _utc()
+    }
+    await db.settings.update_one({"type": "right_block_bottom"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "settings": doc}
+
+
+@api.post("/admin/upload/right-block-bottom-image")
+async def admin_upload_right_block_bottom_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'une image pour le bloc publicitaire BAS de la colonne droite"""
+    allowed_extensions = {".png", ".jpeg", ".jpg", ".gif", ".webp"}
+    allowed_mimetypes = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
+    
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporté. Formats acceptés : PNG, JPEG, JPG, GIF, WEBP"
+        )
+    
+    if file.content_type and file.content_type not in allowed_mimetypes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type MIME non supporté : {file.content_type}"
+        )
+    
+    filename = f"rightblockbottom_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 5 Mo)")
+    
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    
+    print(f"✅ Right block BOTTOM image uploaded: {url}")
+    return {"url": url, "filename": filename}
+
+
+
+
+
 @api.get("/admin/settings/platform")
 async def admin_platform_settings(user: dict = Depends(require_admin)):
     settings = await db.settings.find_one({"type": "platform"}, {"_id": 0})

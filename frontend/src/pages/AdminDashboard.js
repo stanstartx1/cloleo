@@ -2323,7 +2323,7 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
-// ─── Composant Apparence du site (carrousel Hero + Bloc publicitaire droite + Logo) ───
+// ─── Composant Apparence du site (carrousel Hero + Blocs publicitaires droite (haut/bas) + Logo) ───
 const LayoutAppearanceSection = ({ token, API }) => {
   const defaultAdStrips = [
     { id: 'offers', label: 'Offres du Jour', title: 'Espace Publicitaire - Offres du Jour', subtitle: 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.', tone: 'orange', enabled: true, media_type: 'none', media_url: '', link: '' },
@@ -2331,8 +2331,8 @@ const LayoutAppearanceSection = ({ token, API }) => {
     { id: 'premium', label: 'Sélection Premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
   ];
 
-  // ===== HERO CAROUSEL STATES =====
-  const [heroImages, setHeroImages] = React.useState([]); // [{url: "...", link: "", title: ""}]
+  // ===== HERO CARROUSEL STATES =====
+  const [heroImages, setHeroImages] = React.useState([]);
   const [heroLoading, setHeroLoading] = React.useState(false);
   const [heroUploading, setHeroUploading] = React.useState(false);
   const [dragOverIndex, setDragOverIndex] = React.useState(null);
@@ -2343,14 +2343,25 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [adStripsSaving, setAdStripsSaving] = React.useState(false);
   const [adStripUploading, setAdStripUploading] = React.useState(null);
 
-  // ===== RIGHT BLOCK STATES =====
-  const [rightBlockType, setRightBlockType] = React.useState('image');
-  const [rightBlockImage, setRightBlockImage] = React.useState('');
-  const [rightBlockVideo, setRightBlockVideo] = React.useState('');
-  const [rightBlockTitle, setRightBlockTitle] = React.useState('Espace publicitaire');
-  const [rightBlockLoading, setRightBlockLoading] = React.useState(false);
-  const [rightBlockSaving, setRightBlockSaving] = React.useState(false);
-  const [rightBlockUploading, setRightBlockUploading] = React.useState(false);
+  // ===== RIGHT BLOCK TOP STATES (Bloc publicitaire HAUT) =====
+  const [rightBlockTopType, setRightBlockTopType] = React.useState('image');
+  const [rightBlockTopImage, setRightBlockTopImage] = React.useState('');
+  const [rightBlockTopVideo, setRightBlockTopVideo] = React.useState('');
+  const [rightBlockTopTitle, setRightBlockTopTitle] = React.useState('Espace publicitaire');
+  const [rightBlockTopLink, setRightBlockTopLink] = React.useState('');
+  const [rightBlockTopLoading, setRightBlockTopLoading] = React.useState(false);
+  const [rightBlockTopSaving, setRightBlockTopSaving] = React.useState(false);
+  const [rightBlockTopUploading, setRightBlockTopUploading] = React.useState(false);
+
+  // ===== RIGHT BLOCK BOTTOM STATES (Bloc publicitaire BAS) =====
+  const [rightBlockBottomType, setRightBlockBottomType] = React.useState('image');
+  const [rightBlockBottomImage, setRightBlockBottomImage] = React.useState('');
+  const [rightBlockBottomVideo, setRightBlockBottomVideo] = React.useState('');
+  const [rightBlockBottomTitle, setRightBlockBottomTitle] = React.useState('Espace publicitaire');
+  const [rightBlockBottomLink, setRightBlockBottomLink] = React.useState('');
+  const [rightBlockBottomLoading, setRightBlockBottomLoading] = React.useState(false);
+  const [rightBlockBottomSaving, setRightBlockBottomSaving] = React.useState(false);
+  const [rightBlockBottomUploading, setRightBlockBottomUploading] = React.useState(false);
 
   // ===== TRENDING BLOCK STATES =====
   const [trendingGradientFrom, setTrendingGradientFrom] = React.useState('#1e293b');
@@ -2572,46 +2583,48 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
-  // ===== RIGHT BLOCK FUNCTIONS =====
-  const fetchRightBlockSettings = async () => {
-    setRightBlockLoading(true);
+  // ===== RIGHT BLOCK TOP FUNCTIONS (Bloc HAUT) =====
+  const fetchRightBlockTopSettings = async () => {
+    setRightBlockTopLoading(true);
     try {
-      const response = await axios.get(`${API}/admin/settings/right-block`, {
+      const response = await axios.get(`${API}/admin/settings/right-block-top`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = response.data;
-      setRightBlockType(data.type_content || 'image');
-      setRightBlockImage(data.image || '');
-      setRightBlockVideo(data.video || '');
-      setRightBlockTitle(data.title || 'Espace publicitaire');
+      setRightBlockTopType(data.type_content || 'image');
+      setRightBlockTopImage(data.image || '');
+      setRightBlockTopVideo(data.video || '');
+      setRightBlockTopTitle(data.title || 'Espace publicitaire');
+      setRightBlockTopLink(data.link || '');
     } catch (error) {
-      console.error('Erreur chargement bloc droit:', error);
+      console.error('Erreur chargement bloc droit haut:', error);
     } finally {
-      setRightBlockLoading(false);
+      setRightBlockTopLoading(false);
     }
   };
 
-  const saveRightBlockSettings = async () => {
-    setRightBlockSaving(true);
+  const saveRightBlockTopSettings = async () => {
+    setRightBlockTopSaving(true);
     try {
-      await axios.put(`${API}/admin/settings/right-block`, {
-        type_content: rightBlockType,
-        image: rightBlockImage,
-        video: rightBlockVideo,
-        title: rightBlockTitle
+      await axios.put(`${API}/admin/settings/right-block-top`, {
+        type_content: rightBlockTopType,
+        image: rightBlockTopImage,
+        video: rightBlockTopVideo,
+        title: rightBlockTopTitle,
+        link: rightBlockTopLink
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Bloc publicitaire sauvegardé !');
+      toast.success('Bloc publicitaire HAUT sauvegardé !');
     } catch (error) {
-      console.error('Erreur sauvegarde bloc droit:', error);
+      console.error('Erreur sauvegarde bloc droit haut:', error);
       toast.error('Erreur lors de la sauvegarde');
     } finally {
-      setRightBlockSaving(false);
+      setRightBlockTopSaving(false);
     }
   };
 
-  const uploadRightBlockImage = async (file) => {
+  const uploadRightBlockTopImage = async (file) => {
     if (!file) return;
     
     const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
@@ -2623,29 +2636,109 @@ const LayoutAppearanceSection = ({ token, API }) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    setRightBlockUploading(true);
+    setRightBlockTopUploading(true);
     try {
-      const response = await axios.post(`${API}/admin/upload/right-block-image`, formData, {
+      const response = await axios.post(`${API}/admin/upload/right-block-top-image`, formData, {
         headers: { 
           Authorization: `Bearer ${token}`, 
           'Content-Type': 'multipart/form-data' 
         }
       });
       const newImageUrl = response.data.url;
-      setRightBlockImage(newImageUrl);
-      toast.success('Image uploadée !');
+      setRightBlockTopImage(newImageUrl);
+      toast.success('Image uploadée pour le bloc HAUT !');
     } catch (error) {
-      console.error('Erreur upload image bloc droit:', error);
+      console.error('Erreur upload image bloc droit haut:', error);
       toast.error("Erreur lors de l'upload");
     } finally {
-      setRightBlockUploading(false);
+      setRightBlockTopUploading(false);
     }
   };
 
-  const handleRightBlockImageChange = (e) => {
+  const handleRightBlockTopImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      uploadRightBlockImage(file);
+      uploadRightBlockTopImage(file);
+    }
+    e.target.value = '';
+  };
+
+  // ===== RIGHT BLOCK BOTTOM FUNCTIONS (Bloc BAS) =====
+  const fetchRightBlockBottomSettings = async () => {
+    setRightBlockBottomLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/right-block-bottom`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      setRightBlockBottomType(data.type_content || 'image');
+      setRightBlockBottomImage(data.image || '');
+      setRightBlockBottomVideo(data.video || '');
+      setRightBlockBottomTitle(data.title || 'Espace publicitaire');
+      setRightBlockBottomLink(data.link || '');
+    } catch (error) {
+      console.error('Erreur chargement bloc droit bas:', error);
+    } finally {
+      setRightBlockBottomLoading(false);
+    }
+  };
+
+  const saveRightBlockBottomSettings = async () => {
+    setRightBlockBottomSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/right-block-bottom`, {
+        type_content: rightBlockBottomType,
+        image: rightBlockBottomImage,
+        video: rightBlockBottomVideo,
+        title: rightBlockBottomTitle,
+        link: rightBlockBottomLink
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Bloc publicitaire BAS sauvegardé !');
+    } catch (error) {
+      console.error('Erreur sauvegarde bloc droit bas:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setRightBlockBottomSaving(false);
+    }
+  };
+
+  const uploadRightBlockBottomImage = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setRightBlockBottomUploading(true);
+    try {
+      const response = await axios.post(`${API}/admin/upload/right-block-bottom-image`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.url;
+      setRightBlockBottomImage(newImageUrl);
+      toast.success('Image uploadée pour le bloc BAS !');
+    } catch (error) {
+      console.error('Erreur upload image bloc droit bas:', error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setRightBlockBottomUploading(false);
+    }
+  };
+
+  const handleRightBlockBottomImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadRightBlockBottomImage(file);
     }
     e.target.value = '';
   };
@@ -2808,7 +2901,8 @@ const LayoutAppearanceSection = ({ token, API }) => {
   React.useEffect(() => {
     fetchHeroImages();
     fetchAdStrips();
-    fetchRightBlockSettings();
+    fetchRightBlockTopSettings();
+    fetchRightBlockBottomSettings();
     fetchTrendingSettings();
     fetchLogoSettings();
   }, [token, API]);
@@ -2875,14 +2969,12 @@ const LayoutAppearanceSection = ({ token, API }) => {
                     dragOverIndex === idx ? 'border-purple-400 scale-[1.02] shadow-lg shadow-purple-500/30' : 'border-slate-600 hover:border-slate-500'
                   }`}
                 >
-                  {/* Image */}
                   <img
                     src={getImageUrl(imageUrl)}
                     alt={imageTitle || `Hero ${idx + 1}`}
                     className="w-full h-32 object-cover bg-slate-900"
                   />
                   
-                  {/* Overlay au survol - Champs lien et titre */}
                   <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between">
                     <div>
                       <label className="text-[10px] text-white/70 block mb-1">Lien de redirection</label>
@@ -2906,7 +2998,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
                     </div>
                   </div>
                   
-                  {/* Bouton supprimer */}
                   <button
                     onClick={() => removeHeroImage(idx)}
                     className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -2915,19 +3006,16 @@ const LayoutAppearanceSection = ({ token, API }) => {
                     <Trash2 className="w-3 h-3" />
                   </button>
                   
-                  {/* Numéro */}
                   <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
                     {idx + 1}
                   </div>
                   
-                  {/* Indicateur de lien */}
                   {imageLink && (
                     <div className="absolute bottom-1 left-1 bg-purple-600/80 text-white text-[9px] px-1.5 py-0.5 rounded-full">
                       🔗 Lié
                     </div>
                   )}
                   
-                  {/* Icône glisser */}
                   <div className="absolute bottom-1 right-1 text-white/40 text-xs">
                     <GripVertical className="w-3 h-3" />
                   </div>
@@ -2947,9 +3035,159 @@ const LayoutAppearanceSection = ({ token, API }) => {
         Rafraîchir les images
       </button>
 
+      {/* ===== SECTION BLOC PUBLICITAIRE DROITE HAUT ===== */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">Bloc publicitaire (colonne droite - HAUT)</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez l'image ou la vidéo qui apparaîtra en HAUT de la colonne droite sur la page d'accueil (à côté du diaporama).
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 rounded-xl p-5 border border-emerald-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-emerald-300">
+          <Image className="w-5 h-5" /> 📺 Bloc HAUT
+        </h3>
+
+        {rightBlockTopLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Type de contenu</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="right_block_top_type" value="image" checked={rightBlockTopType === 'image'} onChange={() => setRightBlockTopType('image')} />
+                  <span className="text-slate-200">🖼️ Image</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="right_block_top_type" value="video" checked={rightBlockTopType === 'video'} onChange={() => setRightBlockTopType('video')} />
+                  <span className="text-slate-200">🎬 Vidéo YouTube</span>
+                </label>
+              </div>
+            </div>
+
+            {rightBlockTopType === 'image' && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Image publicitaire</label>
+                <div className="flex gap-4 items-start flex-wrap">
+                  {rightBlockTopImage && <img src={getImageUrl(rightBlockTopImage)} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />}
+                  <div className="flex-1 min-w-[200px]">
+                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={handleRightBlockTopImageChange} disabled={rightBlockTopUploading} className="hidden" id="right-block-top-upload" />
+                    <label htmlFor="right-block-top-upload" className="inline-flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"><Upload className="w-4 h-4" />{rightBlockTopUploading ? 'Upload en cours...' : '📁 Choisir une image'}</label>
+                    {rightBlockTopImage && <button onClick={() => setRightBlockTopImage('')} className="ml-2 text-red-400 hover:text-red-300 text-sm">Supprimer</button>}
+                    <input type="text" value={rightBlockTopImage} onChange={(e) => setRightBlockTopImage(e.target.value)} placeholder="Ou URL de l'image" className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {rightBlockTopType === 'video' && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">URL YouTube</label>
+                <input type="text" value={rightBlockTopVideo} onChange={(e) => setRightBlockTopVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..." className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+                {rightBlockTopVideo && (
+                  <div className="mt-3 aspect-video bg-slate-800 rounded-lg overflow-hidden">
+                    <iframe src={rightBlockTopVideo.includes('youtube.com/embed') ? rightBlockTopVideo : rightBlockTopVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} className="w-full h-full" frameBorder="0" allowFullScreen />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Titre (optionnel)</label>
+              <input type="text" value={rightBlockTopTitle} onChange={(e) => setRightBlockTopTitle(e.target.value)} placeholder="Espace publicitaire" className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Lien de redirection (optionnel)</label>
+              <input type="text" value={rightBlockTopLink} onChange={(e) => setRightBlockTopLink(e.target.value)} placeholder="https://... ou /produits" className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+            </div>
+
+            <button onClick={saveRightBlockTopSettings} disabled={rightBlockTopSaving} className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition disabled:opacity-50">
+              {rightBlockTopSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le bloc HAUT'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ===== SECTION BLOC PUBLICITAIRE DROITE BAS ===== */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">Bloc publicitaire (colonne droite - BAS)</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez l'image ou la vidéo qui apparaîtra en BAS de la colonne droite sur la page d'accueil (sous le premier bloc).
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-5 border border-blue-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-300">
+          <Image className="w-5 h-5" /> 📺 Bloc BAS
+        </h3>
+
+        {rightBlockBottomLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Type de contenu</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="right_block_bottom_type" value="image" checked={rightBlockBottomType === 'image'} onChange={() => setRightBlockBottomType('image')} />
+                  <span className="text-slate-200">🖼️ Image</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="right_block_bottom_type" value="video" checked={rightBlockBottomType === 'video'} onChange={() => setRightBlockBottomType('video')} />
+                  <span className="text-slate-200">🎬 Vidéo YouTube</span>
+                </label>
+              </div>
+            </div>
+
+            {rightBlockBottomType === 'image' && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Image publicitaire</label>
+                <div className="flex gap-4 items-start flex-wrap">
+                  {rightBlockBottomImage && <img src={getImageUrl(rightBlockBottomImage)} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />}
+                  <div className="flex-1 min-w-[200px]">
+                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={handleRightBlockBottomImageChange} disabled={rightBlockBottomUploading} className="hidden" id="right-block-bottom-upload" />
+                    <label htmlFor="right-block-bottom-upload" className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"><Upload className="w-4 h-4" />{rightBlockBottomUploading ? 'Upload en cours...' : '📁 Choisir une image'}</label>
+                    {rightBlockBottomImage && <button onClick={() => setRightBlockBottomImage('')} className="ml-2 text-red-400 hover:text-red-300 text-sm">Supprimer</button>}
+                    <input type="text" value={rightBlockBottomImage} onChange={(e) => setRightBlockBottomImage(e.target.value)} placeholder="Ou URL de l'image" className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {rightBlockBottomType === 'video' && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">URL YouTube</label>
+                <input type="text" value={rightBlockBottomVideo} onChange={(e) => setRightBlockBottomVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..." className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+                {rightBlockBottomVideo && (
+                  <div className="mt-3 aspect-video bg-slate-800 rounded-lg overflow-hidden">
+                    <iframe src={rightBlockBottomVideo.includes('youtube.com/embed') ? rightBlockBottomVideo : rightBlockBottomVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} className="w-full h-full" frameBorder="0" allowFullScreen />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Titre (optionnel)</label>
+              <input type="text" value={rightBlockBottomTitle} onChange={(e) => setRightBlockBottomTitle(e.target.value)} placeholder="Espace publicitaire" className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Lien de redirection (optionnel)</label>
+              <input type="text" value={rightBlockBottomLink} onChange={(e) => setRightBlockBottomLink(e.target.value)} placeholder="https://... ou /produits" className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
+            </div>
+
+            <button onClick={saveRightBlockBottomSettings} disabled={rightBlockBottomSaving} className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition disabled:opacity-50">
+              {rightBlockBottomSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le bloc BAS'}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* ===== SECTION ZONES PUBLICITAIRES HOME ===== */}
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Zones publicitaires de la page d'accueil</h2>
+        <h2 className="text-xl font-bold text-slate-100">Zones publicitaires horizontales (sous la hero)</h2>
         <p className="text-slate-400 text-sm mt-1">
           Configurez les 3 espaces publicitaires horizontaux du site. Formats images acceptés : GIF, WEBP, PNG, JPEG, JPG. Vidéos : MP4, WEBM, OGG, MOV.
         </p>
@@ -3093,76 +3331,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
         )}
       </div>
 
-      {/* ===== SECTION BLOC PUBLICITAIRE DROITE ===== */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Bloc publicitaire (colonne droite)</h2>
-        <p className="text-slate-400 text-sm mt-1">
-          Configurez l'image ou la vidéo qui apparaîtra sous les boutiques sur la page d'accueil.
-        </p>
-      </div>
-
-      <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 rounded-xl p-5 border border-emerald-500/30">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-emerald-300">
-          <Image className="w-5 h-5" /> 📺 Contenu du bloc
-        </h3>
-
-        {rightBlockLoading ? (
-          <p className="text-slate-400 text-center py-4">Chargement...</p>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-slate-300 block mb-2">Type de contenu</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="right_block_type" value="image" checked={rightBlockType === 'image'} onChange={() => setRightBlockType('image')} />
-                  <span className="text-slate-200">🖼️ Image</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="right_block_type" value="video" checked={rightBlockType === 'video'} onChange={() => setRightBlockType('video')} />
-                  <span className="text-slate-200">🎬 Vidéo YouTube</span>
-                </label>
-              </div>
-            </div>
-
-            {rightBlockType === 'image' && (
-              <div>
-                <label className="text-sm text-slate-300 block mb-2">Image publicitaire</label>
-                <div className="flex gap-4 items-start flex-wrap">
-                  {rightBlockImage && <img src={getImageUrl(rightBlockImage)} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />}
-                  <div className="flex-1 min-w-[200px]">
-                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={handleRightBlockImageChange} disabled={rightBlockUploading} className="hidden" id="right-block-upload" />
-                    <label htmlFor="right-block-upload" className="inline-flex items-center gap-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"><Upload className="w-4 h-4" />{rightBlockUploading ? 'Upload en cours...' : '📁 Choisir une image'}</label>
-                    {rightBlockImage && <button onClick={() => setRightBlockImage('')} className="ml-2 text-red-400 hover:text-red-300 text-sm">Supprimer</button>}
-                    <input type="text" value={rightBlockImage} onChange={(e) => setRightBlockImage(e.target.value)} placeholder="Ou URL de l'image" className="mt-2 w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {rightBlockType === 'video' && (
-              <div>
-                <label className="text-sm text-slate-300 block mb-2">URL YouTube</label>
-                <input type="text" value={rightBlockVideo} onChange={(e) => setRightBlockVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..." className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
-                {rightBlockVideo && (
-                  <div className="mt-3 aspect-video bg-slate-800 rounded-lg overflow-hidden">
-                    <iframe src={rightBlockVideo.includes('youtube.com/embed') ? rightBlockVideo : rightBlockVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} className="w-full h-full" frameBorder="0" allowFullScreen />
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="text-sm text-slate-300 block mb-2">Titre (optionnel)</label>
-              <input type="text" value={rightBlockTitle} onChange={(e) => setRightBlockTitle(e.target.value)} placeholder="Espace publicitaire" className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm" />
-            </div>
-
-            <button onClick={saveRightBlockSettings} disabled={rightBlockSaving} className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition disabled:opacity-50">
-              {rightBlockSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder le bloc publicitaire'}
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* ===== SECTION LOGO DU SITE ===== */}
       <div className="mt-8">
         <h2 className="text-xl font-bold text-slate-100">Logo du site</h2>
@@ -3226,7 +3394,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
           <p className="text-slate-400 text-center py-4">Chargement...</p>
         ) : (
           <div className="space-y-5">
-            {/* Aperçu du gradient */}
             <div>
               <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
               <div
@@ -3239,7 +3406,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
               />
             </div>
 
-            {/* Couleurs du gradient */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-slate-300 block mb-2">Couleur de départ</label>
@@ -3279,7 +3445,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
               </div>
             </div>
 
-            {/* Image de fond personnalisée */}
             <div>
               <label className="text-sm text-slate-300 block mb-2">Image de fond (optionnel)</label>
               <div className="flex gap-4 items-start flex-wrap">
@@ -3319,7 +3484,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
               </div>
             </div>
 
-            {/* Effets animés */}
             <div className="pt-2 border-t border-slate-700">
               <label className="flex items-center gap-2 cursor-pointer text-slate-200">
                 <input
