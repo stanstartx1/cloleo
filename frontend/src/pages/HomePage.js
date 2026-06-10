@@ -685,27 +685,29 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories */}
-      <div className="max-w-screen-xl mx-auto px-4 pt-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
-          {/* Sidebar Catégories - À gauche */}
-          <div className="hidden lg:block">
-            <CategorySidebar />
-          </div>
-          
-          {/* Colonne droite : Hero + Bannières publicitaires horizontales */}
-          <div className="flex flex-col gap-4">
-            {/* Hero Section - Diaporama uniquement */}
-            <HeroSection categories={categories} />
+      {/* Hero Section avec sidebar catégories - PLEINE LARGEUR */}
+      <div className="w-full bg-gradient-to-b from-slate-50 to-white">
+        <div className="w-full px-4 pt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 max-w-[1600px] mx-auto">
+            {/* Sidebar Catégories - À gauche */}
+            <div className="hidden lg:block">
+              <CategorySidebar />
+            </div>
             
-            {/* 4 Bannières publicitaires horizontales */}
-            {activeAdStrips.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {activeAdStrips.map((strip) => (
-                  <AdHorizontalStrip key={strip.id} strip={strip} />
-                ))}
-              </div>
-            )}
+            {/* Colonne droite : Hero + Bannières publicitaires horizontales */}
+            <div className="flex flex-col gap-4">
+              {/* Hero Section - Diaporama + blocs pub à droite */}
+              <HeroSection categories={categories} />
+              
+              {/* 4 Bannières publicitaires horizontales */}
+              {activeAdStrips.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {activeAdStrips.map((strip) => (
+                    <AdHorizontalStrip key={strip.id} strip={strip} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
