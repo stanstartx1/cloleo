@@ -1198,8 +1198,7 @@ async def admin_upload_trending_bg(
 
 
 # ═══════════════════════════════════════════════════════════════
-# ═══════════════════════════════════════════════════════════════
-# RIGHT BLOCK (image/vidéo) — bloc publicitaire de droite
+# RIGHT BLOCK (image/vidéo) — BLOC PUBLICITAIRE ORIGINAL (COLONNE DROITE)
 # ═══════════════════════════════════════════════════════════════
 
 @api.get("/right-block-settings")
@@ -1285,7 +1284,7 @@ async def admin_upload_right_block_image(
 
 
 # ═══════════════════════════════════════════════════════════════
-# AD STRIPS — 4 zones publicitaires horizontales sous la hero
+# AD STRIPS — 4 ZONES PUBLICITAIRES HORIZONTALES (SOUS LA HERO)
 # ═══════════════════════════════════════════════════════════════
 
 DEFAULT_AD_STRIPS = [
@@ -1618,10 +1617,6 @@ async def admin_upload_right_block_bottom_image(
     
     print(f"✅ Right block BOTTOM image uploaded: {url}")
     return {"url": url, "filename": filename}
-
-
-
-
 
 @api.get("/admin/settings/platform")
 async def admin_platform_settings(user: dict = Depends(require_admin)):
