@@ -99,7 +99,7 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   );
 };
 
-// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - ALIGNÉ AVEC MENU =====
+// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT CARRÉ =====
 const AdHorizontalStrip = ({ strip, index }) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -128,12 +128,12 @@ const AdHorizontalStrip = ({ strip, index }) => {
 
   const content = (
     <div 
-      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} h-full`}
+      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} aspect-square`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {strip.media_type === 'image' && mediaUrl ? (
-        <div className="relative h-28 w-full">
+        <div className="relative w-full h-full">
           <img 
             src={mediaUrl} 
             alt={strip.title}
@@ -143,7 +143,7 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="relative h-28 w-full">
+        <div className="relative w-full h-full">
           <video 
             src={mediaUrl} 
             className="w-full h-full object-cover"
@@ -155,8 +155,8 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : (
-        <div className={`h-28 w-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-xl md:text-2xl font-black opacity-30">
+        <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
+          <span className="text-white text-2xl md:text-3xl font-black opacity-30">
             {strip.title?.charAt(0) || 'A'}
           </span>
         </div>
