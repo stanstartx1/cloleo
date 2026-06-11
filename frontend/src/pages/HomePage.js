@@ -706,14 +706,12 @@ const HomePage = () => {
 
       {/* Hero Section avec sidebar catégories - ESPACE ZÉRO AVEC LA NAVBAR */}
       <div className="w-full bg-transparent">
-        <div className="w-full px-4 pt-0">  {/* Changé : pt-4 → pt-0 */}
+        <div className="w-full px-4 pt-0">
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 max-w-[1600px] mx-auto">
-            {/* Sidebar Catégories - Largeur fixe 260px */}
             <div className="hidden lg:block">
               <CategorySidebar />
             </div>
             
-            {/* Colonne droite : Hero + Bannières publicitaires horizontales */}
             <div className="flex flex-col gap-3">
               <HeroSection categories={categories} />
               
@@ -736,14 +734,63 @@ const HomePage = () => {
         </div>
       </div>
 
-      <section className="py-5 bg-white border-b border-slate-100 overflow-hidden hidden md:block">
-        <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
-          <div className="continuous-marquee">
-            <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-main-a')}</div>
-            <div className="continuous-marquee-track continuous-marquee-track-cats hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-main-b')}</div>
+      {/* ===== SECTION LES MIEUX NOTÉS - DÉPLACÉ ICI (SUPPRESSION DE LA BANDE) ===== */}
+      <motion.section
+        className="py-12 bg-white"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionMotion}
+        transition={{ duration: 0.55, ease: 'easeOut' }}
+      >
+        <div className="max-w-screen-xl mx-auto px-4">
+          <div className="mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-800">⭐ Les mieux notés</h2>
+            <p className="text-slate-500 mt-1">Les produits préférés de notre communauté</p>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+              {[...Array(14)].map((_, i) => (
+                <div key={`top-skeleton-${i}`} className="bg-white p-2">
+                  <Skeleton className="aspect-square rounded-xl" />
+                  <Skeleton className="mt-2 h-3 w-11/12" />
+                  <Skeleton className="mt-2 h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : topRatedProducts.length === 0 ? (
+            <div className="py-14 text-center text-slate-400">
+              <Star className="mx-auto mb-3 h-12 w-12 opacity-20" />
+              <p className="font-semibold">Aucun produit disponible pour le moment</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+              {topRatedProducts.map((product, index) => (
+                <HomeTopProductCard
+                  key={`top-rated-${product.id}`}
+                  product={product}
+                  index={index}
+                  onImageMissing={(productId) => {
+                    setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 text-center">
+            <Button asChild variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50">
+              <Link to="/produits?sort_by=sales_count">
+                Voir tous les produits <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </Button>
           </div>
         </div>
-      </section>
+      </motion.section>
+
+      {/* ===== CARROUSEL DES CATÉGORIES (SUPPRIMÉ) ===== */}
+      {/* La section continuous-marquee a été supprimée */}
 
       <motion.section
         ref={trendingRef}
@@ -808,68 +855,6 @@ const HomePage = () => {
       <div className="w-full">
         <div className="w-full">
           <div className="max-w-screen-xl mx-auto px-4" />
-
-          <motion.section
-            className="py-8 bg-[#f5f5f5] border-y border-red-100"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.15 }}
-            variants={sectionMotion}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
-          >
-            <div className="max-w-screen-xl mx-auto overflow-hidden border-x border-slate-100">
-              <div className="max-w-screen-xl mx-auto px-3 md:px-4">
-                <div className="overflow-hidden rounded-[1.4rem] border border-red-200 bg-white shadow-[0_20px_70px_-35px_rgba(220,38,38,0.55)]">
-                  <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 px-4 py-3 text-white md:px-5">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/30 sm:flex">
-                        <Star className="h-5 w-5 fill-white text-white" />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="truncate text-base font-black tracking-tight md:text-xl">Les mieux notés ! 14 ans avec vous</h2>
-                        <p className="hidden text-xs font-medium text-white/85 sm:block">Promos, nouveautés et coups de coeur sélectionnés pour vous</p>
-                      </div>
-                    </div>
-                    <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full bg-white/15 px-3 text-xs font-bold text-white hover:bg-white hover:text-red-600">
-                      <Link to="/produits?sort_by=sales_count">
-                        Voir plus <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  </div>
-
-                  {loading ? (
-                    <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-                      {[...Array(21)].map((_, i) => (
-                        <div key={`top-skeleton-${i}`} className="bg-white p-2">
-                          <Skeleton className="aspect-square rounded-xl" />
-                          <Skeleton className="mt-2 h-3 w-11/12" />
-                          <Skeleton className="mt-2 h-4 w-20" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : topRatedProducts.length === 0 ? (
-                    <div className="py-14 text-center text-slate-400">
-                      <Star className="mx-auto mb-3 h-12 w-12 opacity-20" />
-                      <p className="font-semibold">Aucun produit disponible pour le moment</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-px bg-slate-100 p-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-                      {topRatedProducts.map((product, index) => (
-                        <HomeTopProductCard
-                          key={`top-rated-${product.id}`}
-                          product={product}
-                          index={index}
-                          onImageMissing={(productId) => {
-                            setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.section>
 
           <NotificationFeed notifications={[
             { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
