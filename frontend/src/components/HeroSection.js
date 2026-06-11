@@ -13,7 +13,6 @@ const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
   
-  // États pour les deux blocs avec chargement
   const [rightBlockTop, setRightBlockTop] = useState({
     type_content: 'image',
     image: '',
@@ -32,7 +31,6 @@ const HeroSection = ({ categories = [] }) => {
     loading: true
   });
 
-  // Chargement des images hero
   useEffect(() => {
     axios.get(`${API}/hero-settings`)
       .then(res => {
@@ -42,7 +40,6 @@ const HeroSection = ({ categories = [] }) => {
       .catch(() => setHeroImages([]));
   }, []);
 
-  // Chargement du bloc HAUT
   useEffect(() => {
     const fetchTopBlock = async () => {
       try {
@@ -64,7 +61,6 @@ const HeroSection = ({ categories = [] }) => {
     fetchTopBlock();
   }, []);
 
-  // Chargement du bloc BAS
   useEffect(() => {
     const fetchBottomBlock = async () => {
       try {
@@ -86,7 +82,6 @@ const HeroSection = ({ categories = [] }) => {
     fetchBottomBlock();
   }, []);
 
-  // Rotation du diaporama
   useEffect(() => {
     if (heroImages.length <= 1) return;
     const t = setInterval(() => setBgIdx(i => (i + 1) % heroImages.length), 5000);
@@ -117,7 +112,6 @@ const HeroSection = ({ categories = [] }) => {
   const currentBgLink = getImageLink(currentImage);
   const currentBgTitle = getImageTitle(currentImage);
 
-  // Composant pour un bloc pub
   const PubBlock = ({ data, position }) => {
     const [imgError, setImgError] = useState(false);
     const imageUrl = getImageUrl(data.image);
@@ -160,7 +154,6 @@ const HeroSection = ({ categories = [] }) => {
             <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg flex flex-col items-center justify-center p-4 text-center">
               <ShoppingBag className="w-10 h-10 text-orange-400 mb-2" />
               <p className="text-sm font-semibold text-slate-600">{data.title || "Espace pub"}</p>
-              <p className="text-xs text-slate-400 mt-1">Configurez cet espace</p>
             </div>
           )}
         </div>
@@ -180,7 +173,7 @@ const HeroSection = ({ categories = [] }) => {
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
-        {/* COLONNE GAUCHE : DIAPORAMA HERO - SANS AUCUN FOND GRIS */}
+        {/* COLONNE GAUCHE : DIAPORAMA HERO - AUCUN FOND GRIS */}
         <div className="relative rounded-xl overflow-hidden">
           {currentBgUrl ? (
             currentBgLink ? (
@@ -194,7 +187,6 @@ const HeroSection = ({ categories = [] }) => {
                   src={currentBgUrl} 
                   alt={currentBgTitle}
                   className="w-full h-[280px] lg:h-[340px] object-cover"
-                  style={{ display: 'block' }}
                 />
               </a>
             ) : (
@@ -202,7 +194,6 @@ const HeroSection = ({ categories = [] }) => {
                 src={currentBgUrl} 
                 alt={currentBgTitle}
                 className="w-full h-[280px] lg:h-[340px] object-cover"
-                style={{ display: 'block' }}
               />
             )
           ) : (
@@ -210,11 +201,10 @@ const HeroSection = ({ categories = [] }) => {
               <div className="text-center text-orange-400/50">
                 <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-50" />
                 <p className="text-base font-medium">Aucune image configurée</p>
-                <p className="text-sm mt-1 opacity-70">Ajoutez des images dans l'admin</p>
               </div>
             </div>
           )}
-          {/* Overlay texte - uniquement le dégradé noir, pas de fond gris */}
+          {/* Overlay texte - uniquement dégradé noir, pas de fond gris */}
           <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/60 via-black/30 to-transparent rounded-xl">
             <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-[320px] drop-shadow-lg">
               L'Afrique à portée<br />

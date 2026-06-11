@@ -99,7 +99,7 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   );
 };
 
-// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT CARRÉ AVEC TEXTE DYNAMIQUE =====
+// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT RECTANGLE (COMME CATÉGORIES) =====
 const AdHorizontalStrip = ({ strip, index }) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -123,21 +123,18 @@ const AdHorizontalStrip = ({ strip, index }) => {
   const mediaUrl = getImageUrl(strip.media_url);
   const toneGradient = getToneStyles(strip.tone);
   
-  // Vérifier si le titre est personnalisé (différent du titre par défaut)
-  const isTitleCustom = strip.title && strip.title !== DEFAULT_TITLES[index] && strip.title !== 'Espace Publicitaire - Offres du Jour' && strip.title !== 'Espace Publicitaire - Marques Partenaires' && strip.title !== 'Espace Publicitaire - Sélection Premium' && strip.title !== 'Espace Publicitaire - Ventes Flash';
-  
-  // Vérifier si le sous-titre est personnalisé
-  const isSubtitleCustom = strip.subtitle && strip.subtitle !== DEFAULT_SUBTITLES[index] && strip.subtitle !== 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.' && strip.subtitle !== 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.' && strip.subtitle !== 'Emplacements premium pour opérations spéciales, événements et mises en avant.' && strip.subtitle !== 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !';
+  const isTitleCustom = strip.title && strip.title !== DEFAULT_TITLES[index];
+  const isSubtitleCustom = strip.subtitle && strip.subtitle !== DEFAULT_SUBTITLES[index];
 
   const content = (
     <div 
-      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} aspect-square`}
+      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} h-full`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Fond dégradé ou média - format carré */}
+      {/* Format rectangulaire comme les catégories (h-40) */}
       {strip.media_type === 'image' && mediaUrl ? (
-        <div className="relative w-full h-full">
+        <div className="relative h-40 w-full">
           <img 
             src={mediaUrl} 
             alt={strip.title}
@@ -147,7 +144,7 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="relative w-full h-full">
+        <div className="relative h-40 w-full">
           <video 
             src={mediaUrl} 
             className="w-full h-full object-cover"
@@ -159,22 +156,22 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : (
-        <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-4xl md:text-5xl font-black opacity-30">
+        <div className={`h-40 w-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
+          <span className="text-white text-3xl md:text-4xl font-black opacity-30">
             {strip.title?.charAt(0) || 'A'}
           </span>
         </div>
       )}
       
       {/* Texte superposé - AFFICHÉ UNIQUEMENT SI PERSONNALISÉ */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
         {isTitleCustom && (
           <h3 className="text-sm md:text-base font-bold line-clamp-1">{strip.title}</h3>
         )}
         {isSubtitleCustom && (
           <p className="text-xs opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
         )}
-        <span className={`inline-block mt-2 text-[10px] font-bold bg-white/20 rounded-full px-2.5 py-1 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-3.5' : ''}`}>
+        <span className={`inline-block mt-1.5 text-[10px] font-bold bg-white/20 rounded-full px-2.5 py-1 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-3.5' : ''}`}>
           Découvrir →
         </span>
       </div>
@@ -724,7 +721,7 @@ const HomePage = () => {
               {/* Hero Section - Diaporama + blocs pub à droite */}
               <HeroSection categories={categories} />
               
-              {/* 4 Bannières publicitaires horizontales - FORMAT CARRÉ */}
+              {/* 4 Bannières publicitaires horizontales - FORMAT RECTANGLE (h-40) */}
               {activeAdStrips.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {activeAdStrips.map((strip, idx) => (
