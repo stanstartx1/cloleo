@@ -734,9 +734,9 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ===== SECTION LES MIEUX NOTÉS - SANS TITRE, COLLÉ AUX CATÉGORIES, PLEINE LARGEUR ===== */}
+      {/* ===== SECTION LES MIEUX NOTÉS - SANS TITRE, PLEINE LARGEUR ===== */}
       <div className="w-full bg-white">
-        <div className="max-w-[1600px] mx-auto px-4 pb-12">
+        <div className="max-w-[1600px] mx-auto px-4">
           {loading ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {[...Array(14)].map((_, i) => (
@@ -763,6 +763,38 @@ const HomePage = () => {
                     setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
                   }}
                 />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ===== SECTION NOUVEAUTÉS - SANS TITRE, COLLÉE EN DESSOUS, PLEINE LARGEUR ===== */}
+      <div className="w-full bg-white">
+        <div className="max-w-[1600px] mx-auto px-4 pb-12">
+          {loading ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+              {[...Array(20)].map((_, i) => (
+                <div key={`new-skeleton-${i}`} className="bg-white p-2">
+                  <Skeleton className="aspect-square rounded-xl" />
+                  <Skeleton className="mt-2 h-3 w-11/12" />
+                  <Skeleton className="mt-2 h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : filteredNewProducts.length === 0 ? (
+            <div className="py-14 text-center text-slate-400">
+              <Sparkles className="mx-auto mb-3 h-12 w-12 opacity-20" />
+              <p className="font-semibold">Aucun nouveau produit disponible</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+              {filteredNewProducts.slice(0, 20).map((product, index) => (
+                <div key={`new-${product.id}`}
+                  className={`transition-all duration-700 ${newProductsInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+                  style={{ transitionDelay: `${index * 75}ms` }}>
+                  <ProductCard product={product} className="scale-[0.94]" />
+                </div>
               ))}
             </div>
           )}
@@ -893,112 +925,6 @@ const HomePage = () => {
           </section>
 
           <AdStrip stripId="premium" tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
-
-          <motion.section
-            ref={newProductsRef}
-            className="py-20 bg-gradient-to-b from-white via-emerald-50/30 to-white"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          >
-            <div className="max-w-screen-xl mx-auto px-4">
-              <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                    <Sparkles className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="w-full">
-                    <div className={`transition-all duration-700 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                      <SectionBand title="Nouveautés" tone="green" />
-                    </div>
-                    <p className={`text-muted-foreground mt-1 transition-all duration-700 delay-100 ${newProductsInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                      Les dernières créations de nos artisans
-                    </p>
-                  </div>
-                </div>
-                <Button asChild variant="ghost" className="hidden md:flex text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
-                  <Link to="/produits?sort_by=created_at">Voir tout <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                </Button>
-              </div>
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {filteredNewProducts.slice(0, 20).map((product, index) => (
-                    <div key={product.id}
-                      className={`transition-all duration-700 ${newProductsInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                      style={{ transitionDelay: `${index * 75}ms` }}>
-                      <ProductCard product={product} className="scale-[0.94]" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="mt-10 text-center">
-                <Button asChild size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full px-10 shadow-lg shadow-emerald-500/30">
-                  <Link to="/produits">Voir tous les produits <ArrowRight className="ml-2 w-5 h-5" /></Link>
-                </Button>
-              </div>
-            </div>
-          </motion.section>
-
-          <motion.section
-            className="py-24 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 relative overflow-hidden"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          >
-            <div className="absolute inset-0">
-              <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />
-              <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-            </div>
-            <div className="max-w-screen-xl mx-auto px-4 relative z-10 text-center text-white">
-              <h2 className="text-4xl md:text-6xl font-bold mb-6">Rejoignez notre communauté</h2>
-              <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto">
-                Vendez vos créations à des milliers d'acheteurs passionnés ou découvrez des produits uniques du continent africain.
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Button asChild size="lg" className="bg-white text-orange-600 hover:bg-white/90 rounded-full px-10 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                  <Link to="/connexion"><Zap className="w-5 h-5 mr-2" />Commencer à vendre</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 rounded-full px-10 py-6 text-lg font-semibold transition-all duration-300 hover:-translate-y-1">
-                  <Link to="/devenir-revendeur">Devenir Revendeur</Link>
-                </Button>
-              </div>
-            </div>
-          </motion.section>
-
-          <section className="py-4 bg-gradient-to-r from-slate-900 to-slate-800 overflow-hidden">
-            <div className="relative flex overflow-hidden">
-              <div className="animate-marquee flex items-center whitespace-nowrap">
-                {[...Array(2)].map((_, setIndex) => (
-                  <div key={setIndex} className="flex items-center">
-                    {[
-                      { text: "Livraison rapide", icon: "🚀" },
-                      { text: "Paiement sécurisé", icon: "🔒" },
-                      { text: "Artisans vérifiés", icon: "✨" },
-                      { text: "Support 24/7", icon: "💬" },
-                      { text: "Retours gratuits", icon: "↩️" },
-                      { text: "Qualité garantie", icon: "⭐" },
-                      { text: "Made in Africa", icon: "🌍" },
-                      { text: "Prix justes", icon: "💰" },
-                    ].map((item, index) => (
-                      <span key={index} className="flex items-center gap-2 mx-8 text-white/80 text-sm font-medium">
-                        <span className="text-lg">{item.icon}</span>
-                        <span>{item.text}</span>
-                        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full ml-8" />
-                      </span>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
           <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
             <div className="max-w-screen-xl mx-auto px-4 mb-8">
