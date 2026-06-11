@@ -8,7 +8,7 @@ import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Composant HeroSection - Diaporama plein écran sans bande grise, blocs pub carrés stables
+// Composant HeroSection - Diaporama sans bande grise, blocs pub carrés stables
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
@@ -117,7 +117,7 @@ const HeroSection = ({ categories = [] }) => {
   const currentBgLink = getImageLink(currentImage);
   const currentBgTitle = getImageTitle(currentImage);
 
-  // Composant pour un bloc pub - format carré
+  // Composant pour un bloc pub - format carré sans texte si absent
   const PubBlock = ({ data, position }) => {
     const [imgError, setImgError] = useState(false);
     const imageUrl = getImageUrl(data.image);
@@ -162,7 +162,6 @@ const HeroSection = ({ categories = [] }) => {
             <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg flex flex-col items-center justify-center p-4 text-center">
               <ShoppingBag className="w-10 h-10 text-orange-400 mb-2" />
               <p className="text-sm font-semibold text-slate-600">{data.title || "Espace pub"}</p>
-              <p className="text-xs text-slate-400 mt-1">Configurez cet espace</p>
             </div>
           )}
         </div>
@@ -182,8 +181,8 @@ const HeroSection = ({ categories = [] }) => {
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
-        {/* COLONNE GAUCHE : DIAPORAMA HERO - PLEIN ÉCRAN SANS BANDE GRISE */}
-        <div className="relative rounded-xl overflow-hidden">
+        {/* COLONNE GAUCHE : DIAPORAMA HERO - SANS AUCUNE BANDE GRISE */}
+        <div className="relative rounded-xl overflow-hidden bg-transparent">
           {currentBgUrl ? (
             currentBgLink ? (
               <a 
@@ -206,16 +205,16 @@ const HeroSection = ({ categories = [] }) => {
               />
             )
           ) : (
-            <div className="w-full h-[340px] lg:h-[420px] bg-gradient-to-r from-slate-700 to-slate-800 flex items-center justify-center">
-              <div className="text-center text-white/50">
-                <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                <p className="text-base">Aucune image configurée</p>
-                <p className="text-sm mt-1 opacity-50">Ajoutez des images dans l'admin</p>
+            <div className="w-full h-[340px] lg:h-[420px] bg-gradient-to-r from-orange-100 to-amber-100 flex items-center justify-center rounded-xl">
+              <div className="text-center text-orange-400/50">
+                <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                <p className="text-base font-medium">Aucune image configurée</p>
+                <p className="text-sm mt-1 opacity-70">Ajoutez des images dans l'admin</p>
               </div>
             </div>
           )}
-          {/* Overlay texte - dégradé plus propre */}
-          <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/60 via-black/30 to-transparent">
+          {/* Overlay texte - transparent, pas de fond gris */}
+          <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/50 via-black/20 to-transparent">
             <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-[320px] drop-shadow-lg">
               L'Afrique à portée<br />
               <span className="text-orange-400">de clic</span>

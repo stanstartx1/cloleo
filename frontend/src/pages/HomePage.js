@@ -24,6 +24,20 @@ const DEFAULT_HOME_AD_STRIPS = [
   { id: 'flash', title: 'Espace Publicitaire - Ventes Flash', subtitle: 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !', tone: 'red', enabled: true, media_type: 'none', media_url: '', link: '' },
 ];
 
+const DEFAULT_TITLES = [
+  'Espace Publicitaire - Offres du Jour',
+  'Espace Publicitaire - Marques Partenaires',
+  'Espace Publicitaire - Sélection Premium',
+  'Espace Publicitaire - Ventes Flash'
+];
+
+const DEFAULT_SUBTITLES = [
+  'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.',
+  'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.',
+  'Emplacements premium pour opérations spéciales, événements et mises en avant.',
+  'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !'
+];
+
 const sectionMotion = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0 },
@@ -85,8 +99,8 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   );
 };
 
-// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX =====
-const AdHorizontalStrip = ({ strip }) => {
+// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT CARRÉ AVEC TEXTE DYNAMIQUE =====
+const AdHorizontalStrip = ({ strip, index }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   const getToneStyles = (tone) => {
@@ -108,26 +122,32 @@ const AdHorizontalStrip = ({ strip }) => {
 
   const mediaUrl = getImageUrl(strip.media_url);
   const toneGradient = getToneStyles(strip.tone);
+  
+  // Vérifier si le titre est personnalisé (différent du titre par défaut)
+  const isTitleCustom = strip.title && strip.title !== DEFAULT_TITLES[index] && strip.title !== 'Espace Publicitaire - Offres du Jour' && strip.title !== 'Espace Publicitaire - Marques Partenaires' && strip.title !== 'Espace Publicitaire - Sélection Premium' && strip.title !== 'Espace Publicitaire - Ventes Flash';
+  
+  // Vérifier si le sous-titre est personnalisé
+  const isSubtitleCustom = strip.subtitle && strip.subtitle !== DEFAULT_SUBTITLES[index] && strip.subtitle !== 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.' && strip.subtitle !== 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.' && strip.subtitle !== 'Emplacements premium pour opérations spéciales, événements et mises en avant.' && strip.subtitle !== 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !';
 
   const content = (
     <div 
-      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} h-full`}
+      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} aspect-square`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Fond dégradé ou média */}
+      {/* Fond dégradé ou média - format carré */}
       {strip.media_type === 'image' && mediaUrl ? (
-        <div className="relative h-32 md:h-36 lg:h-40">
+        <div className="relative w-full h-full">
           <img 
             src={mediaUrl} 
             alt={strip.title}
             className="w-full h-full object-cover transition-transform duration-500"
             style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="relative h-32 md:h-36 lg:h-40">
+        <div className="relative w-full h-full">
           <video 
             src={mediaUrl} 
             className="w-full h-full object-cover"
@@ -136,21 +156,25 @@ const AdHorizontalStrip = ({ strip }) => {
             loop
             playsInline
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : (
-        <div className={`h-32 md:h-36 lg:h-40 bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-3xl md:text-4xl font-black opacity-30">
+        <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
+          <span className="text-white text-4xl md:text-5xl font-black opacity-30">
             {strip.title?.charAt(0) || 'A'}
           </span>
         </div>
       )}
       
-      {/* Texte superposé */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-        <h3 className="text-sm md:text-base font-bold line-clamp-1">{strip.title}</h3>
-        <p className="text-xs opacity-90 line-clamp-1">{strip.subtitle}</p>
-        <span className={`inline-block mt-1.5 text-[10px] font-bold bg-white/20 rounded-full px-2 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-3' : ''}`}>
+      {/* Texte superposé - AFFICHÉ UNIQUEMENT SI PERSONNALISÉ */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+        {isTitleCustom && (
+          <h3 className="text-sm md:text-base font-bold line-clamp-1">{strip.title}</h3>
+        )}
+        {isSubtitleCustom && (
+          <p className="text-xs opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
+        )}
+        <span className={`inline-block mt-2 text-[10px] font-bold bg-white/20 rounded-full px-2.5 py-1 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-3.5' : ''}`}>
           Découvrir →
         </span>
       </div>
@@ -700,11 +724,11 @@ const HomePage = () => {
               {/* Hero Section - Diaporama + blocs pub à droite */}
               <HeroSection categories={categories} />
               
-              {/* 4 Bannières publicitaires horizontales */}
+              {/* 4 Bannières publicitaires horizontales - FORMAT CARRÉ */}
               {activeAdStrips.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {activeAdStrips.map((strip) => (
-                    <AdHorizontalStrip key={strip.id} strip={strip} />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {activeAdStrips.map((strip, idx) => (
+                    <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
                   ))}
                 </div>
               )}
