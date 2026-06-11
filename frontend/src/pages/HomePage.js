@@ -728,27 +728,15 @@ const HomePage = () => {
       </div>
 
       {/* ===== SECTION CATÉGORIES - 6 PAR LIGNE ===== */}
-      <div className="w-full bg-white py-12">
+      <div className="w-full bg-white">
         <div className="max-w-[1600px] mx-auto px-4">
           <CategoriesGrid />
         </div>
       </div>
 
-      {/* ===== SECTION LES MIEUX NOTÉS - DÉPLACÉ ICI (SUPPRESSION DE LA BANDE) ===== */}
-      <motion.section
-        className="py-12 bg-white"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.15 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.55, ease: 'easeOut' }}
-      >
-        <div className="max-w-screen-xl mx-auto px-4">
-          <div className="mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800">⭐ Les mieux notés</h2>
-            <p className="text-slate-500 mt-1">Les produits préférés de notre communauté</p>
-          </div>
-
+      {/* ===== SECTION LES MIEUX NOTÉS - SANS TITRE, COLLÉ AUX CATÉGORIES, PLEINE LARGEUR ===== */}
+      <div className="w-full bg-white">
+        <div className="max-w-[1600px] mx-auto px-4 pb-12">
           {loading ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {[...Array(14)].map((_, i) => (
@@ -778,19 +766,10 @@ const HomePage = () => {
               ))}
             </div>
           )}
-
-          <div className="mt-8 text-center">
-            <Button asChild variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50">
-              <Link to="/produits?sort_by=sales_count">
-                Voir tous les produits <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
-      </motion.section>
+      </div>
 
       {/* ===== CARROUSEL DES CATÉGORIES (SUPPRIMÉ) ===== */}
-      {/* La section continuous-marquee a été supprimée */}
 
       <motion.section
         ref={trendingRef}
