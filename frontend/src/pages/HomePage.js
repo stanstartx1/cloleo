@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles, Zap, TrendingUp, Star } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
+import CategoriesGrid from '../components/CategoriesGrid';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
@@ -709,6 +710,13 @@ const HomePage = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ===== SECTION CATÉGORIES - 6 PAR LIGNE ===== */}
+      <div className="w-full bg-white py-12">
+        <div className="max-w-[1600px] mx-auto px-4">
+          <CategoriesGrid />
         </div>
       </div>
 
