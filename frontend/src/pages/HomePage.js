@@ -704,9 +704,9 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - ALIGNEMENT PARFAIT */}
+      {/* Hero Section avec sidebar catégories - ESPACE ZÉRO AVEC LA NAVBAR */}
       <div className="w-full bg-transparent">
-        <div className="w-full px-4 pt-4">
+        <div className="w-full px-4 pt-0">  {/* Changé : pt-4 → pt-0 */}
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 max-w-[1600px] mx-auto">
             {/* Sidebar Catégories - Largeur fixe 260px */}
             <div className="hidden lg:block">

@@ -173,7 +173,7 @@ const HeroSection = ({ categories = [] }) => {
   return (
     <div className="hero-section-container w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px] gap-2">
-        {/* COLONNE GAUCHE : DIAPORAMA - HAUTEUR RADICALEMENT RÉDUITE */}
+        {/* COLONNE GAUCHE : DIAPORAMA - HAUTEUR TRÈS RÉDUITE POUR COLLER */}
         <div className="hero-image-container relative rounded-xl overflow-hidden">
           {currentBgUrl ? (
             currentBgLink ? (
@@ -186,18 +186,18 @@ const HeroSection = ({ categories = [] }) => {
                 <img 
                   src={currentBgUrl} 
                   alt={currentBgTitle}
-                  className="w-full h-[160px] lg:h-[180px] object-cover"
+                  className="w-full h-[140px] lg:h-[160px] object-cover"
                 />
               </a>
             ) : (
               <img 
                 src={currentBgUrl} 
                 alt={currentBgTitle}
-                className="w-full h-[160px] lg:h-[180px] object-cover"
+                className="w-full h-[140px] lg:h-[160px] object-cover"
               />
             )
           ) : (
-            <div className="w-full h-[160px] lg:h-[180px] bg-gradient-to-r from-orange-100 to-amber-100 flex items-center justify-center rounded-xl">
+            <div className="w-full h-[140px] lg:h-[160px] bg-gradient-to-r from-orange-100 to-amber-100 flex items-center justify-center rounded-xl">
               <div className="text-center text-orange-400/50">
                 <ShoppingBag className="w-8 h-8 mx-auto mb-1 opacity-50" />
                 <p className="text-[10px] font-medium">Aucune image</p>
@@ -205,17 +205,17 @@ const HeroSection = ({ categories = [] }) => {
             </div>
           )}
           <div className="absolute inset-0 flex flex-col justify-center px-3 lg:px-4 bg-gradient-to-r from-black/60 via-black/30 to-transparent rounded-xl">
-            <h1 className="text-white text-sm md:text-base lg:text-lg font-black leading-tight max-w-[200px] drop-shadow-lg">
+            <h1 className="text-white text-xs md:text-sm lg:text-base font-black leading-tight max-w-[180px] drop-shadow-lg">
               L'Afrique à portée<br />
               <span className="text-orange-400">de clic</span>
             </h1>
-            <Button asChild size="sm" className="mt-1 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-[10px] h-6 px-2 shadow-lg">
-              <Link to="/produits">Explorer <ArrowRight className="w-2.5 h-2.5 ml-0.5" /></Link>
+            <Button asChild size="sm" className="mt-0.5 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-[9px] h-5 px-2 shadow-lg">
+              <Link to="/produits">Explorer <ArrowRight className="w-2 h-2 ml-0.5" /></Link>
             </Button>
           </div>
         </div>
 
-        {/* COLONNE DROITE : DEUX BLOCS PUB - HAUTEUR RÉDUITE À 96px */}
+        {/* COLONNE DROITE : DEUX BLOCS PUB */}
         <div className="flex flex-col gap-1.5">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />

@@ -33,7 +33,6 @@ const CategorySidebar = () => {
   };
 
   const handleMouseEnter = (category) => {
-    // Clear any pending hide timeout
     if (hoverTimeout.current) {
       clearTimeout(hoverTimeout.current);
       hoverTimeout.current = null;
@@ -47,7 +46,6 @@ const CategorySidebar = () => {
   };
 
   const handleMouseLeave = () => {
-    // Small delay before hiding to allow moving to mega-menu
     hoverTimeout.current = setTimeout(() => {
       setMenuVisible(false);
       setHoveredCategory(null);
@@ -57,7 +55,6 @@ const CategorySidebar = () => {
   };
 
   const handleMegaMenuMouseEnter = () => {
-    // Cancel hide when entering mega-menu
     if (hoverTimeout.current) {
       clearTimeout(hoverTimeout.current);
       hoverTimeout.current = null;
@@ -73,7 +70,8 @@ const CategorySidebar = () => {
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-24 z-40">
+      {/* Menu des catégories - sticky top-0 pour coller parfaitement en haut */}
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-0 z-40">
         <div className="p-2 max-h-[600px] overflow-y-auto">
           {visibleCategories.map(cat => {
             const subCats = getSubCategories(cat.slug);
@@ -112,7 +110,7 @@ const CategorySidebar = () => {
         )}
       </div>
 
-      {/* Mega-menu flottant - position fixe au-dessus de tout */}
+      {/* Mega-menu flottant */}
       {menuVisible && hoveredCategoryData && (
         <div 
           onMouseEnter={handleMegaMenuMouseEnter}
