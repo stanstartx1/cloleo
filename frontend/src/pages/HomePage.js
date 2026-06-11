@@ -782,19 +782,16 @@ const HomePage = () => {
                 </div>
               ))}
             </div>
-          ) : newProducts.length === 0 ? (
+          ) : !newProducts || newProducts.length === 0 ? (
             <div className="py-14 text-center text-slate-400">
               <Sparkles className="mx-auto mb-3 h-12 w-12 opacity-20" />
               <p className="font-semibold">Aucun nouveau produit disponible</p>
+              <p className="text-sm mt-2">Les derniers produits apparaîtront ici</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {newProducts.slice(0, 20).map((product, index) => (
-                <div key={`new-${product.id}`}
-                  className={`transition-all duration-700 ${newProductsInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                  style={{ transitionDelay: `${index * 75}ms` }}>
-                  <ProductCard product={product} className="scale-[0.94]" />
-                </div>
+                <ProductCard key={product.id} product={product} className="scale-[0.94]" />
               ))}
             </div>
           )}
