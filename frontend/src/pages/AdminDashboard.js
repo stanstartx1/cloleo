@@ -2323,8 +2323,19 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
   );
 };
 
-// ─── Composant Apparence du site (carrousel Hero + Blocs publicitaires droite (haut/bas) + Logo) ───
+// ──────────────────────────────────────────────────────────────
+// COMPOSANT : APPARENCE DU SITE (ADMIN)
+// ──────────────────────────────────────────────────────────────
+// Ce composant permet à l'administrateur de configurer tous les
+// éléments visuels du site : logo, carrousel hero, blocs publicitaires,
+// et bloc "Tendances du moment".
+// ──────────────────────────────────────────────────────────────
+
 const LayoutAppearanceSection = ({ token, API }) => {
+  // ============================================================
+  // 1. CONFIGURATION PAR DÉFAUT DES 4 BLOCS PUBLICITAIRES HORIZONTAUX
+  //    (Situés sous la zone hero - 4 blocs côte à côte)
+  // ============================================================
   const defaultAdStrips = [
     { id: 'offers', label: 'Offres du Jour', title: 'Espace Publicitaire - Offres du Jour', subtitle: 'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.', tone: 'orange', enabled: true, media_type: 'none', media_url: '', link: '' },
     { id: 'partners', label: 'Marques Partenaires', title: 'Espace Publicitaire - Marques Partenaires', subtitle: 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.', tone: 'blue', enabled: true, media_type: 'none', media_url: '', link: '' },
@@ -2332,19 +2343,23 @@ const LayoutAppearanceSection = ({ token, API }) => {
     { id: 'flash', label: 'Ventes Flash', title: 'Espace Publicitaire - Ventes Flash', subtitle: 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !', tone: 'red', enabled: true, media_type: 'none', media_url: '', link: '' },
   ];
 
-  // ===== HERO CARROUSEL STATES =====
+  // ============================================================
+  // 2. ÉTATS DU COMPOSANT
+  // ============================================================
+
+  // --- 2.1 CARROUSEL HERO (Diaporama principal) ---
   const [heroImages, setHeroImages] = React.useState([]);
   const [heroLoading, setHeroLoading] = React.useState(false);
   const [heroUploading, setHeroUploading] = React.useState(false);
   const [dragOverIndex, setDragOverIndex] = React.useState(null);
 
-  // ===== HOME AD STRIPS STATES =====
+  // --- 2.2 BLOCS PUBLICITAIRES HORIZONTAUX (4 blocs sous la hero) ---
   const [adStrips, setAdStrips] = React.useState(defaultAdStrips);
   const [adStripsLoading, setAdStripsLoading] = React.useState(false);
   const [adStripsSaving, setAdStripsSaving] = React.useState(false);
   const [adStripUploading, setAdStripUploading] = React.useState(null);
 
-  // ===== RIGHT BLOCK TOP STATES (Bloc publicitaire HAUT) =====
+  // --- 2.3 BLOC PUBLICITAIRE DROITE - HAUT (Colonne droite, bloc supérieur) ---
   const [rightBlockTopType, setRightBlockTopType] = React.useState('image');
   const [rightBlockTopImage, setRightBlockTopImage] = React.useState('');
   const [rightBlockTopVideo, setRightBlockTopVideo] = React.useState('');
@@ -2354,7 +2369,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [rightBlockTopSaving, setRightBlockTopSaving] = React.useState(false);
   const [rightBlockTopUploading, setRightBlockTopUploading] = React.useState(false);
 
-  // ===== RIGHT BLOCK BOTTOM STATES (Bloc publicitaire BAS) =====
+  // --- 2.4 BLOC PUBLICITAIRE DROITE - BAS (Colonne droite, bloc inférieur) ---
   const [rightBlockBottomType, setRightBlockBottomType] = React.useState('image');
   const [rightBlockBottomImage, setRightBlockBottomImage] = React.useState('');
   const [rightBlockBottomVideo, setRightBlockBottomVideo] = React.useState('');
@@ -2364,7 +2379,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [rightBlockBottomSaving, setRightBlockBottomSaving] = React.useState(false);
   const [rightBlockBottomUploading, setRightBlockBottomUploading] = React.useState(false);
 
-  // ===== TRENDING BLOCK STATES =====
+  // --- 2.5 BLOC TENDANCES DU MOMENT ---
   const [trendingGradientFrom, setTrendingGradientFrom] = React.useState('#1e293b');
   const [trendingGradientTo, setTrendingGradientTo] = React.useState('#0f172a');
   const [trendingBackgroundImage, setTrendingBackgroundImage] = React.useState('');
@@ -2373,13 +2388,15 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [trendingUploading, setTrendingUploading] = React.useState(false);
   const [trendingSaving, setTrendingSaving] = React.useState(false);
 
-  // ===== LOGO STATES =====
+  // --- 2.6 LOGO DU SITE ---
   const [logoUrl, setLogoUrl] = React.useState('');
   const [logoLoading, setLogoLoading] = React.useState(false);
   const [logoSaving, setLogoSaving] = React.useState(false);
   const [logoUploading, setLogoUploading] = React.useState(false);
 
-  // ===== HERO FUNCTIONS =====
+  // ============================================================
+  // 3. FONCTIONS DU CARROUSEL HERO
+  // ============================================================
   const fetchHeroImages = async () => {
     setHeroLoading(true);
     try {
@@ -2502,7 +2519,10 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
-  // ===== HOME AD STRIPS FUNCTIONS =====
+  // ============================================================
+  // 4. FONCTIONS DES 4 BLOCS PUBLICITAIRES HORIZONTAUX
+  //    (Situés sous la zone hero)
+  // ============================================================
   const fetchAdStrips = async () => {
     setAdStripsLoading(true);
     try {
@@ -2584,7 +2604,10 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
-  // ===== RIGHT BLOCK TOP FUNCTIONS (Bloc HAUT) =====
+  // ============================================================
+  // 5. FONCTIONS DU BLOC PUBLICITAIRE DROITE - HAUT
+  //    (Colonne droite, bloc supérieur - à côté du diaporama)
+  // ============================================================
   const fetchRightBlockTopSettings = async () => {
     setRightBlockTopLoading(true);
     try {
@@ -2664,7 +2687,10 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
-  // ===== RIGHT BLOCK BOTTOM FUNCTIONS (Bloc BAS) =====
+  // ============================================================
+  // 6. FONCTIONS DU BLOC PUBLICITAIRE DROITE - BAS
+  //    (Colonne droite, bloc inférieur - sous le bloc haut)
+  // ============================================================
   const fetchRightBlockBottomSettings = async () => {
     setRightBlockBottomLoading(true);
     try {
@@ -2744,7 +2770,9 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
-  // ===== TRENDING BLOCK FUNCTIONS =====
+  // ============================================================
+  // 7. FONCTIONS DU BLOC TENDANCES DU MOMENT
+  // ============================================================
   const fetchTrendingSettings = async () => {
     setTrendingLoading(true);
     try {
@@ -2823,7 +2851,9 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
-  // ===== LOGO FUNCTIONS =====
+  // ============================================================
+  // 8. FONCTIONS DU LOGO DU SITE
+  // ============================================================
   const fetchLogoSettings = async () => {
     setLogoLoading(true);
     try {
@@ -2892,6 +2922,9 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
+  // ============================================================
+  // 9. FONCTIONS UTILITAIRES
+  // ============================================================
   const getImageUrl = (img) => {
     if (!img) return '';
     if (typeof img === 'object') img = img.url || '';
@@ -2899,16 +2932,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
     return img;
   };
 
-  React.useEffect(() => {
-    fetchHeroImages();
-    fetchAdStrips();
-    fetchRightBlockTopSettings();
-    fetchRightBlockBottomSettings();
-    fetchTrendingSettings();
-    fetchLogoSettings();
-  }, [token, API]);
-
-  // Fonction pour obtenir la couleur de fond en fonction du tone
   const getToneColor = (tone) => {
     switch (tone) {
       case 'orange': return 'from-orange-500 to-amber-500';
@@ -2919,22 +2942,41 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
+  // ============================================================
+  // 10. CHARGEMENT INITIAL DES DONNÉES
+  // ============================================================
+  React.useEffect(() => {
+    fetchHeroImages();
+    fetchAdStrips();
+    fetchRightBlockTopSettings();
+    fetchRightBlockBottomSettings();
+    fetchTrendingSettings();
+    fetchLogoSettings();
+  }, [token, API]);
+
+  // ============================================================
+  // 11. RENDU DE L'INTERFACE ADMIN
+  // ============================================================
   return (
     <div className="space-y-6 p-6">
-      {/* ===== SECTION CARROUSEL HERO ===== */}
+      
+      // =========================================================
+      // SECTION 1 : CARROUSEL HERO (DIAPORAMA PRINCIPAL)
+      // =========================================================
       <div>
-        <h2 className="text-xl font-bold text-slate-100">Carrousel Hero (Diaporama)</h2>
+        <h2 className="text-xl font-bold text-slate-100">🎠 Carrousel Hero (Diaporama principal)</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Gérez les images qui défileront en haut de la page d'accueil.
+          Gérez les images qui défileront en haut de la page d'accueil (zone principale).
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl p-5 border border-purple-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-purple-300">
-          <Image className="w-5 h-5" /> 🎠 Images du diaporama
+          <Image className="w-5 h-5" /> Images du diaporama
         </h3>
         <p className="text-slate-400 text-sm mb-4">
-          Ajoutez des images (GIF, PNG, JPEG, JPG). Glissez-déposez pour les réordonner. Cliquez sur une image pour modifier son lien et son titre.
+          Ajoutez des images (GIF, PNG, JPEG, JPG). Glissez-déposez pour les réordonner. 
+          Cliquez sur une image pour modifier son lien et son titre.
         </p>
 
         <div className="mb-5 p-4 border-2 border-dashed border-purple-500/40 rounded-lg text-center bg-slate-800/30">
@@ -2956,7 +2998,6 @@ const LayoutAppearanceSection = ({ token, API }) => {
           <p className="text-xs text-slate-500 mt-2">Glissez les images pour les réordonner</p>
         </div>
 
-        {/* Liste des images avec liens et titres */}
         {heroLoading ? (
           <p className="text-slate-400 text-center py-4">Chargement...</p>
         ) : heroImages.length === 0 ? (
@@ -3047,17 +3088,24 @@ const LayoutAppearanceSection = ({ token, API }) => {
         Rafraîchir les images
       </button>
 
-      {/* ===== SECTION BLOC PUBLICITAIRE DROITE HAUT ===== */}
+      // =========================================================
+      // SECTION 2 : BLOCS PUBLICITAIRES DE LA COLONNE DROITE
+      //            (Bloc HAUT et Bloc BAS - à côté du diaporama)
+      // =========================================================
+      
+      // ---------------------------------------------------------
+      // 2.1 BLOC PUBLICITAIRE HAUT (Colonne droite)
+      // ---------------------------------------------------------
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Bloc publicitaire (colonne droite - HAUT)</h2>
+        <h2 className="text-xl font-bold text-slate-100">📺 Bloc publicitaire - Colonne droite (HAUT)</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez l'image ou la vidéo qui apparaîtra en HAUT de la colonne droite sur la page d'accueil (à côté du diaporama).
+          Configurez l'image ou la vidéo qui apparaîtra en HAUT de la colonne droite, à côté du diaporama.
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 rounded-xl p-5 border border-emerald-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-emerald-300">
-          <Image className="w-5 h-5" /> 📺 Bloc HAUT
+          <Image className="w-5 h-5" /> Bloc HAUT
         </h3>
 
         {rightBlockTopLoading ? (
@@ -3122,17 +3170,19 @@ const LayoutAppearanceSection = ({ token, API }) => {
         )}
       </div>
 
-      {/* ===== SECTION BLOC PUBLICITAIRE DROITE BAS ===== */}
+      // ---------------------------------------------------------
+      // 2.2 BLOC PUBLICITAIRE BAS (Colonne droite)
+      // ---------------------------------------------------------
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Bloc publicitaire (colonne droite - BAS)</h2>
+        <h2 className="text-xl font-bold text-slate-100">📺 Bloc publicitaire - Colonne droite (BAS)</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez l'image ou la vidéo qui apparaîtra en BAS de la colonne droite sur la page d'accueil (sous le premier bloc).
+          Configurez l'image ou la vidéo qui apparaîtra en BAS de la colonne droite, sous le bloc haut.
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl p-5 border border-blue-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-300">
-          <Image className="w-5 h-5" /> 📺 Bloc BAS
+          <Image className="w-5 h-5" /> Bloc BAS
         </h3>
 
         {rightBlockBottomLoading ? (
@@ -3197,17 +3247,21 @@ const LayoutAppearanceSection = ({ token, API }) => {
         )}
       </div>
 
-      {/* ===== SECTION ZONES PUBLICITAIRES HOME (4 BLOCS) ===== */}
+      // =========================================================
+      // SECTION 3 : ZONES PUBLICITAIRES HORIZONTALES (4 BLOCS)
+      //            (Situés sous la zone hero)
+      // =========================================================
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Zones publicitaires horizontales (sous la hero)</h2>
+        <h2 className="text-xl font-bold text-slate-100">📢 Zones publicitaires horizontales (sous la hero)</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez les 4 espaces publicitaires horizontaux du site. Formats images acceptés : GIF, WEBP, PNG, JPEG, JPG. Vidéos : MP4, WEBM, OGG, MOV.
+          Configurez les 4 espaces publicitaires horizontaux qui apparaissent sous la zone hero.
+          Formats acceptés : GIF, WEBP, PNG, JPEG, JPG (images) / MP4, WEBM, OGG, MOV (vidéos).
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-xl p-5 border border-cyan-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-cyan-300">
-          <Image className="w-5 h-5" /> Espaces pubs horizontaux (4 blocs)
+          <Image className="w-5 h-5" /> 4 espaces publicitaires horizontaux
         </h3>
 
         {adStripsLoading ? (
@@ -3340,15 +3394,17 @@ const LayoutAppearanceSection = ({ token, API }) => {
               disabled={adStripsSaving}
               className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition disabled:opacity-50"
             >
-              {adStripsSaving ? 'Sauvegarde...' : 'Sauvegarder les 4 zones publicitaires'}
+              {adStripsSaving ? 'Sauvegarde...' : '💾 Sauvegarder les 4 zones publicitaires'}
             </button>
           </div>
         )}
       </div>
 
-      {/* ===== SECTION LOGO DU SITE ===== */}
+      // =========================================================
+      // SECTION 4 : LOGO DU SITE
+      // =========================================================
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Logo du site</h2>
+        <h2 className="text-xl font-bold text-slate-100">🏷️ Logo du site</h2>
         <p className="text-slate-400 text-sm mt-1">
           Gérez le logo qui apparaît dans la barre de navigation. Formats acceptés : GIF, PNG, JPEG, JPG, WEBP (max 2 Mo).
         </p>
@@ -3356,7 +3412,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
 
       <div className="bg-gradient-to-r from-amber-900/30 to-orange-900/30 rounded-xl p-5 border border-amber-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-amber-300">
-          <Image className="w-5 h-5" /> 🖼️ Logo du site
+          <Image className="w-5 h-5" /> Logo
         </h3>
 
         <div className="space-y-4">
@@ -3392,17 +3448,20 @@ const LayoutAppearanceSection = ({ token, API }) => {
         </div>
       </div>
 
-      {/* ===== SECTION BLOC TENDANCE DU MOMENT ===== */}
+      // =========================================================
+      // SECTION 5 : BLOC TENDANCES DU MOMENT
+      // =========================================================
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-slate-100">Bloc Tendance du moment</h2>
+        <h2 className="text-xl font-bold text-slate-100">🔥 Bloc Tendance du moment</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Personnalisez l'apparence du bloc qui affiche les produits tendances. Changez les couleurs du dégradé, ajoutez une image de fond, et gérez les effets visuels.
+          Personnalisez l'apparence du bloc qui affiche les produits tendances. 
+          Changez les couleurs du dégradé, ajoutez une image de fond, et gérez les effets visuels.
         </p>
       </div>
 
       <div className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-xl p-5 border border-purple-500/30">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-purple-300">
-          <Palette className="w-5 h-5" /> 🎨 Personnalisation du bloc
+          <Palette className="w-5 h-5" /> Personnalisation du bloc
         </h3>
 
         {trendingLoading ? (
