@@ -8,7 +8,7 @@ import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Composant HeroSection - Diaporama sans bande grise, blocs pub carrés stables
+// Composant HeroSection - Diaporama aligné avec blocs pub carrés
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
@@ -117,7 +117,7 @@ const HeroSection = ({ categories = [] }) => {
   const currentBgLink = getImageLink(currentImage);
   const currentBgTitle = getImageTitle(currentImage);
 
-  // Composant pour un bloc pub - format carré sans texte si absent
+  // Composant pour un bloc pub - format carré aligné
   const PubBlock = ({ data, position }) => {
     const [imgError, setImgError] = useState(false);
     const imageUrl = getImageUrl(data.image);
@@ -125,7 +125,7 @@ const HeroSection = ({ categories = [] }) => {
     // Afficher le chargement
     if (data.loading) {
       return (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 h-full">
           <div className="aspect-square p-2">
             <Skeleton className="w-full h-full rounded-lg" />
           </div>
@@ -162,6 +162,7 @@ const HeroSection = ({ categories = [] }) => {
             <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg flex flex-col items-center justify-center p-4 text-center">
               <ShoppingBag className="w-10 h-10 text-orange-400 mb-2" />
               <p className="text-sm font-semibold text-slate-600">{data.title || "Espace pub"}</p>
+              <p className="text-xs text-slate-400 mt-1">Configurez cet espace</p>
             </div>
           )}
         </div>
@@ -181,7 +182,7 @@ const HeroSection = ({ categories = [] }) => {
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
-        {/* COLONNE GAUCHE : DIAPORAMA HERO - SANS AUCUNE BANDE GRISE */}
+        {/* COLONNE GAUCHE : DIAPORAMA HERO - HAUTEUR RÉDUITE ET ALIGNÉE */}
         <div className="relative rounded-xl overflow-hidden bg-transparent">
           {currentBgUrl ? (
             currentBgLink ? (
@@ -194,18 +195,18 @@ const HeroSection = ({ categories = [] }) => {
                 <img 
                   src={currentBgUrl} 
                   alt={currentBgTitle}
-                  className="w-full h-[340px] lg:h-[420px] object-cover"
+                  className="w-full h-[280px] lg:h-[340px] object-cover"
                 />
               </a>
             ) : (
               <img 
                 src={currentBgUrl} 
                 alt={currentBgTitle}
-                className="w-full h-[340px] lg:h-[420px] object-cover"
+                className="w-full h-[280px] lg:h-[340px] object-cover"
               />
             )
           ) : (
-            <div className="w-full h-[340px] lg:h-[420px] bg-gradient-to-r from-orange-100 to-amber-100 flex items-center justify-center rounded-xl">
+            <div className="w-full h-[280px] lg:h-[340px] bg-gradient-to-r from-orange-100 to-amber-100 flex items-center justify-center rounded-xl">
               <div className="text-center text-orange-400/50">
                 <ShoppingBag className="w-16 h-16 mx-auto mb-3 opacity-50" />
                 <p className="text-base font-medium">Aucune image configurée</p>
@@ -213,7 +214,7 @@ const HeroSection = ({ categories = [] }) => {
               </div>
             </div>
           )}
-          {/* Overlay texte - transparent, pas de fond gris */}
+          {/* Overlay texte */}
           <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/50 via-black/20 to-transparent">
             <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-[320px] drop-shadow-lg">
               L'Afrique à portée<br />
@@ -225,7 +226,7 @@ const HeroSection = ({ categories = [] }) => {
           </div>
         </div>
 
-        {/* COLONNE DROITE : DEUX BLOCS PUB CARRÉS */}
+        {/* COLONNE DROITE : DEUX BLOCS PUB CARRÉS ALIGNÉS */}
         <div className="flex flex-col gap-3">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />

@@ -73,7 +73,7 @@ const CategorySidebar = () => {
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-40 z-40">
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-24 z-40">
         <div className="p-2 max-h-[600px] overflow-y-auto">
           {visibleCategories.map(cat => {
             const subCats = getSubCategories(cat.slug);
