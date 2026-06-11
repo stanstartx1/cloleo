@@ -99,7 +99,7 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   );
 };
 
-// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT COMPACT (h-32) =====
+// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - ALIGNÉ AVEC MENU =====
 const AdHorizontalStrip = ({ strip, index }) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -132,9 +132,8 @@ const AdHorizontalStrip = ({ strip, index }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Format compact - hauteur 32 (128px) comme le reste */}
       {strip.media_type === 'image' && mediaUrl ? (
-        <div className="relative h-32 w-full">
+        <div className="relative h-28 w-full">
           <img 
             src={mediaUrl} 
             alt={strip.title}
@@ -144,7 +143,7 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="relative h-32 w-full">
+        <div className="relative h-28 w-full">
           <video 
             src={mediaUrl} 
             className="w-full h-full object-cover"
@@ -156,8 +155,8 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : (
-        <div className={`h-32 w-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-2xl md:text-3xl font-black opacity-30">
+        <div className={`h-28 w-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
+          <span className="text-white text-xl md:text-2xl font-black opacity-30">
             {strip.title?.charAt(0) || 'A'}
           </span>
         </div>
@@ -165,13 +164,13 @@ const AdHorizontalStrip = ({ strip, index }) => {
       
       <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
         {isTitleCustom && (
-          <h3 className="text-xs md:text-sm font-bold line-clamp-1">{strip.title}</h3>
+          <h3 className="text-[10px] md:text-xs font-bold line-clamp-1">{strip.title}</h3>
         )}
         {isSubtitleCustom && (
-          <p className="text-[10px] opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
+          <p className="text-[8px] opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
         )}
-        <span className={`inline-block mt-1 text-[9px] font-bold bg-white/20 rounded-full px-2 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-2.5' : ''}`}>
-          Découvrir →
+        <span className={`inline-block mt-0.5 text-[8px] font-bold bg-white/20 rounded-full px-1.5 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30' : ''}`}>
+          →
         </span>
       </div>
     </div>
@@ -705,21 +704,21 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - PLEINE LARGEUR SANS FOND GRIS */}
+      {/* Hero Section avec sidebar catégories - ALIGNEMENT PARFAIT */}
       <div className="w-full bg-transparent">
         <div className="w-full px-4 pt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 max-w-[1600px] mx-auto">
-            {/* Sidebar Catégories - À gauche */}
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 max-w-[1600px] mx-auto">
+            {/* Sidebar Catégories - Largeur fixe 260px */}
             <div className="hidden lg:block">
               <CategorySidebar />
             </div>
             
             {/* Colonne droite : Hero + Bannières publicitaires horizontales */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               <HeroSection categories={categories} />
               
               {activeAdStrips.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {activeAdStrips.map((strip, idx) => (
                     <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
                   ))}

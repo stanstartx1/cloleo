@@ -119,7 +119,7 @@ const HeroSection = ({ categories = [] }) => {
     if (data.loading) {
       return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 h-full">
-          <div className="h-32 p-2">
+          <div className="h-28 p-1.5">
             <Skeleton className="w-full h-full rounded-lg" />
           </div>
         </div>
@@ -128,7 +128,7 @@ const HeroSection = ({ categories = [] }) => {
     
     const content = (
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-all duration-300 hover:shadow-lg h-full">
-        <div className="h-32 p-2 flex items-center justify-center">
+        <div className="h-28 p-1.5 flex items-center justify-center">
           {data.type_content === 'video' && data.video ? (
             <div className="rounded-lg overflow-hidden w-full h-full">
               <iframe 
@@ -141,7 +141,7 @@ const HeroSection = ({ categories = [] }) => {
               />
             </div>
           ) : imageUrl && !imgError ? (
-            <div className="relative w-full h-full rounded-lg overflow-hidden flex items-center justify-center">
+            <div className="relative w-full h-full rounded-lg overflow-hidden flex items-center justify-center bg-slate-50">
               <img 
                 src={imageUrl} 
                 alt={data.title || `Publicité ${position}`}
@@ -151,9 +151,9 @@ const HeroSection = ({ categories = [] }) => {
               />
             </div>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg flex flex-col items-center justify-center p-3 text-center">
-              <ShoppingBag className="w-8 h-8 text-orange-400 mb-1" />
-              <p className="text-xs font-semibold text-slate-600">{data.title || "Espace pub"}</p>
+            <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg flex flex-col items-center justify-center p-2 text-center">
+              <ShoppingBag className="w-6 h-6 text-orange-400 mb-1" />
+              <p className="text-[10px] font-semibold text-slate-600">{data.title || "Espace pub"}</p>
             </div>
           )}
         </div>
@@ -172,8 +172,8 @@ const HeroSection = ({ categories = [] }) => {
 
   return (
     <div className="hero-section-container w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-3">
-        {/* COLONNE GAUCHE : DIAPORAMA - HAUTEUR RÉDUITE */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-3">
+        {/* COLONNE GAUCHE : DIAPORAMA */}
         <div className="hero-image-container relative rounded-xl overflow-hidden">
           {currentBgUrl ? (
             currentBgLink ? (
@@ -199,24 +199,23 @@ const HeroSection = ({ categories = [] }) => {
           ) : (
             <div className="w-full h-[220px] lg:h-[260px] bg-gradient-to-r from-orange-100 to-amber-100 flex items-center justify-center rounded-xl">
               <div className="text-center text-orange-400/50">
-                <ShoppingBag className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium">Aucune image configurée</p>
+                <ShoppingBag className="w-10 h-10 mx-auto mb-1 opacity-50" />
+                <p className="text-xs font-medium">Aucune image</p>
               </div>
             </div>
           )}
-          {/* Overlay texte */}
-          <div className="absolute inset-0 flex flex-col justify-center px-5 lg:px-8 bg-gradient-to-r from-black/60 via-black/30 to-transparent rounded-xl">
-            <h1 className="text-white text-xl md:text-2xl lg:text-3xl font-black leading-tight max-w-[280px] drop-shadow-lg">
+          <div className="absolute inset-0 flex flex-col justify-center px-4 lg:px-6 bg-gradient-to-r from-black/60 via-black/30 to-transparent rounded-xl">
+            <h1 className="text-white text-lg md:text-xl lg:text-2xl font-black leading-tight max-w-[250px] drop-shadow-lg">
               L'Afrique à portée<br />
               <span className="text-orange-400">de clic</span>
             </h1>
-            <Button asChild size="default" className="mt-2 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-sm h-9 px-4 shadow-lg">
+            <Button asChild size="sm" className="mt-1 w-fit rounded-full bg-orange-500 hover:bg-orange-600 text-xs h-8 px-3 shadow-lg">
               <Link to="/produits">Explorer <ArrowRight className="w-3 h-3 ml-1" /></Link>
             </Button>
           </div>
         </div>
 
-        {/* COLONNE DROITE : DEUX BLOCS PUB - IMAGES CENTRÉES */}
+        {/* COLONNE DROITE : DEUX BLOCS PUB */}
         <div className="flex flex-col gap-2">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />
