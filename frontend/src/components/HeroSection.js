@@ -128,7 +128,7 @@ const HeroSection = ({ categories = [] }) => {
     
     const content = (
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-all duration-300 hover:shadow-lg h-full">
-        <div className="h-32 p-2">
+        <div className="h-32 p-2 flex items-center justify-center">
           {data.type_content === 'video' && data.video ? (
             <div className="rounded-lg overflow-hidden w-full h-full">
               <iframe 
@@ -141,11 +141,11 @@ const HeroSection = ({ categories = [] }) => {
               />
             </div>
           ) : imageUrl && !imgError ? (
-            <div className="relative w-full h-full rounded-lg overflow-hidden">
+            <div className="relative w-full h-full rounded-lg overflow-hidden flex items-center justify-center">
               <img 
                 src={imageUrl} 
                 alt={data.title || `Publicité ${position}`}
-                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                className="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105"
                 onError={() => setImgError(true)}
                 loading="eager"
               />
@@ -216,7 +216,7 @@ const HeroSection = ({ categories = [] }) => {
           </div>
         </div>
 
-        {/* COLONNE DROITE : DEUX BLOCS PUB - HAUTEUR RÉDUITE */}
+        {/* COLONNE DROITE : DEUX BLOCS PUB - IMAGES CENTRÉES */}
         <div className="flex flex-col gap-2">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />
