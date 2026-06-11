@@ -1,0 +1,25 @@
+/* HeroSection - Suppression totale de tout fond gris */
+.hero-section-container {
+  background: transparent !important;
+}
+
+.hero-section-container * {
+  background: transparent !important;
+}
+
+.hero-image-container {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hero-image-container img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Forcer le parent à ne pas avoir de fond */
+.home-page-hero-wrapper {
+  background: transparent !important;
+}

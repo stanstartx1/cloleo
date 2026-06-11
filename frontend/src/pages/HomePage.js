@@ -132,7 +132,6 @@ const AdHorizontalStrip = ({ strip, index }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Format rectangulaire comme les catégories (h-40) */}
       {strip.media_type === 'image' && mediaUrl ? (
         <div className="relative h-40 w-full">
           <img 
@@ -163,7 +162,6 @@ const AdHorizontalStrip = ({ strip, index }) => {
         </div>
       )}
       
-      {/* Texte superposé - AFFICHÉ UNIQUEMENT SI PERSONNALISÉ */}
       <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
         {isTitleCustom && (
           <h3 className="text-sm md:text-base font-bold line-clamp-1">{strip.title}</h3>
@@ -698,11 +696,10 @@ const HomePage = () => {
     return () => { clearTimeout(t); window.removeEventListener('resize', updateTop); };
   }, [layoutSettings, loading]);
 
-  // Filtrer les strips actifs
   const activeAdStrips = adStrips.filter(strip => strip.enabled !== false);
 
   return (
-    <div className="min-h-screen overflow-hidden home-premium-gradient" data-testid="home-page">
+    <div className="min-h-screen overflow-hidden bg-transparent" data-testid="home-page">
       <ScrollProgress />
       <FloatingBadges />
       <PromoBanner />
@@ -718,10 +715,8 @@ const HomePage = () => {
             
             {/* Colonne droite : Hero + Bannières publicitaires horizontales */}
             <div className="flex flex-col gap-4">
-              {/* Hero Section - Diaporama + blocs pub à droite */}
               <HeroSection categories={categories} />
               
-              {/* 4 Bannières publicitaires horizontales - FORMAT RECTANGLE (h-40) */}
               {activeAdStrips.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {activeAdStrips.map((strip, idx) => (
@@ -750,7 +745,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ===== BLOC TENDANCES DU MOMENT - DÉPLACÉ ICI ===== */}
       <motion.section
         ref={trendingRef}
         className="py-20 relative overflow-hidden"
@@ -813,9 +807,7 @@ const HomePage = () => {
 
       <div className="w-full">
         <div className="w-full">
-          <div className="max-w-screen-xl mx-auto px-4">
-            {/* SECTION SUPPRIMÉE : Les 4 blocs de catégories (themeSections) ont été retirés */}
-          </div>
+          <div className="max-w-screen-xl mx-auto px-4" />
 
           <motion.section
             className="py-8 bg-[#f5f5f5] border-y border-red-100"

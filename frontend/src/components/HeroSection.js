@@ -5,10 +5,10 @@ import { ArrowRight, ShoppingBag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
 import { API_BASE, API_URL } from '../config/api';
+import './HeroSection.css';
 
 const API = API_URL;
 
-// Composant HeroSection - COMPLÈTEMENT SANS AUCUNE BANDE GRISE
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
@@ -119,7 +119,7 @@ const HeroSection = ({ categories = [] }) => {
     if (data.loading) {
       return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 h-full">
-          <div className="aspect-square p-2">
+          <div className="h-40 p-2">
             <Skeleton className="w-full h-full rounded-lg" />
           </div>
         </div>
@@ -128,7 +128,7 @@ const HeroSection = ({ categories = [] }) => {
     
     const content = (
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-all duration-300 hover:shadow-lg h-full">
-        <div className="aspect-square p-2">
+        <div className="h-40 p-2">
           {data.type_content === 'video' && data.video ? (
             <div className="rounded-lg overflow-hidden w-full h-full">
               <iframe 
@@ -171,10 +171,10 @@ const HeroSection = ({ categories = [] }) => {
   };
 
   return (
-    <div className="w-full">
+    <div className="hero-section-container w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
-        {/* COLONNE GAUCHE : DIAPORAMA HERO - AUCUN FOND GRIS */}
-        <div className="relative rounded-xl overflow-hidden">
+        {/* COLONNE GAUCHE : DIAPORAMA */}
+        <div className="hero-image-container relative rounded-xl overflow-hidden">
           {currentBgUrl ? (
             currentBgLink ? (
               <a 
@@ -204,7 +204,7 @@ const HeroSection = ({ categories = [] }) => {
               </div>
             </div>
           )}
-          {/* Overlay texte - uniquement dégradé noir, pas de fond gris */}
+          {/* Overlay texte - uniquement dégradé noir */}
           <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/60 via-black/30 to-transparent rounded-xl">
             <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-[320px] drop-shadow-lg">
               L'Afrique à portée<br />
@@ -216,7 +216,7 @@ const HeroSection = ({ categories = [] }) => {
           </div>
         </div>
 
-        {/* COLONNE DROITE : DEUX BLOCS PUB CARRÉS */}
+        {/* COLONNE DROITE : DEUX BLOCS PUB */}
         <div className="flex flex-col gap-3">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />
