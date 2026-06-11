@@ -710,8 +710,8 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - PLEINE LARGEUR */}
-      <div className="w-full bg-gradient-to-b from-slate-50 to-white">
+      {/* Hero Section avec sidebar catégories - PLEINE LARGEUR SANS FOND GRIS */}
+      <div className="w-full bg-transparent">
         <div className="w-full px-4 pt-4">
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 max-w-[1600px] mx-auto">
             {/* Sidebar Catégories - À gauche */}

@@ -8,7 +8,7 @@ import { API_BASE, API_URL } from '../config/api';
 
 const API = API_URL;
 
-// Composant HeroSection - Diaporama aligné avec blocs pub carrés
+// Composant HeroSection - COMPLÈTEMENT SANS AUCUNE BANDE GRISE
 const HeroSection = ({ categories = [] }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
@@ -117,12 +117,11 @@ const HeroSection = ({ categories = [] }) => {
   const currentBgLink = getImageLink(currentImage);
   const currentBgTitle = getImageTitle(currentImage);
 
-  // Composant pour un bloc pub - format carré aligné
+  // Composant pour un bloc pub
   const PubBlock = ({ data, position }) => {
     const [imgError, setImgError] = useState(false);
     const imageUrl = getImageUrl(data.image);
     
-    // Afficher le chargement
     if (data.loading) {
       return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 h-full">
@@ -133,7 +132,6 @@ const HeroSection = ({ categories = [] }) => {
       );
     }
     
-    // Contenu du bloc - format carré
     const content = (
       <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-all duration-300 hover:shadow-lg h-full">
         <div className="aspect-square p-2">
@@ -182,8 +180,8 @@ const HeroSection = ({ categories = [] }) => {
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
-        {/* COLONNE GAUCHE : DIAPORAMA HERO - HAUTEUR RÉDUITE ET ALIGNÉE */}
-        <div className="relative rounded-xl overflow-hidden bg-transparent">
+        {/* COLONNE GAUCHE : DIAPORAMA HERO - SANS AUCUN FOND GRIS */}
+        <div className="relative rounded-xl overflow-hidden">
           {currentBgUrl ? (
             currentBgLink ? (
               <a 
@@ -196,6 +194,7 @@ const HeroSection = ({ categories = [] }) => {
                   src={currentBgUrl} 
                   alt={currentBgTitle}
                   className="w-full h-[280px] lg:h-[340px] object-cover"
+                  style={{ display: 'block' }}
                 />
               </a>
             ) : (
@@ -203,6 +202,7 @@ const HeroSection = ({ categories = [] }) => {
                 src={currentBgUrl} 
                 alt={currentBgTitle}
                 className="w-full h-[280px] lg:h-[340px] object-cover"
+                style={{ display: 'block' }}
               />
             )
           ) : (
@@ -214,8 +214,8 @@ const HeroSection = ({ categories = [] }) => {
               </div>
             </div>
           )}
-          {/* Overlay texte */}
-          <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/50 via-black/20 to-transparent">
+          {/* Overlay texte - uniquement le dégradé noir, pas de fond gris */}
+          <div className="absolute inset-0 flex flex-col justify-center px-6 lg:px-10 bg-gradient-to-r from-black/60 via-black/30 to-transparent rounded-xl">
             <h1 className="text-white text-2xl md:text-3xl lg:text-4xl font-black leading-tight max-w-[320px] drop-shadow-lg">
               L'Afrique à portée<br />
               <span className="text-orange-400">de clic</span>
@@ -226,7 +226,7 @@ const HeroSection = ({ categories = [] }) => {
           </div>
         </div>
 
-        {/* COLONNE DROITE : DEUX BLOCS PUB CARRÉS ALIGNÉS */}
+        {/* COLONNE DROITE : DEUX BLOCS PUB CARRÉS */}
         <div className="flex flex-col gap-3">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />
