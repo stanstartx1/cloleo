@@ -99,7 +99,7 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   );
 };
 
-// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT RECTANGLE (COMME CATÉGORIES) =====
+// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT COMPACT (h-32) =====
 const AdHorizontalStrip = ({ strip, index }) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -132,8 +132,9 @@ const AdHorizontalStrip = ({ strip, index }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Format compact - hauteur 32 (128px) comme le reste */}
       {strip.media_type === 'image' && mediaUrl ? (
-        <div className="relative h-40 w-full">
+        <div className="relative h-32 w-full">
           <img 
             src={mediaUrl} 
             alt={strip.title}
@@ -143,7 +144,7 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="relative h-40 w-full">
+        <div className="relative h-32 w-full">
           <video 
             src={mediaUrl} 
             className="w-full h-full object-cover"
@@ -155,21 +156,21 @@ const AdHorizontalStrip = ({ strip, index }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         </div>
       ) : (
-        <div className={`h-40 w-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-3xl md:text-4xl font-black opacity-30">
+        <div className={`h-32 w-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
+          <span className="text-white text-2xl md:text-3xl font-black opacity-30">
             {strip.title?.charAt(0) || 'A'}
           </span>
         </div>
       )}
       
-      <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+      <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
         {isTitleCustom && (
-          <h3 className="text-sm md:text-base font-bold line-clamp-1">{strip.title}</h3>
+          <h3 className="text-xs md:text-sm font-bold line-clamp-1">{strip.title}</h3>
         )}
         {isSubtitleCustom && (
-          <p className="text-xs opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
+          <p className="text-[10px] opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
         )}
-        <span className={`inline-block mt-1.5 text-[10px] font-bold bg-white/20 rounded-full px-2.5 py-1 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-3.5' : ''}`}>
+        <span className={`inline-block mt-1 text-[9px] font-bold bg-white/20 rounded-full px-2 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30 px-2.5' : ''}`}>
           Découvrir →
         </span>
       </div>
