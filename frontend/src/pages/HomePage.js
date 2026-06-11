@@ -729,6 +729,67 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* ===== BLOC TENDANCES DU MOMENT - DÉPLACÉ ICI ===== */}
+      <motion.section
+        ref={trendingRef}
+        className="py-20 relative overflow-hidden"
+        style={{
+          background: trendingBlockSettings.background_image
+            ? `linear-gradient(135deg, ${trendingBlockSettings.gradient_from}, ${trendingBlockSettings.gradient_to}), url(${trendingBlockSettings.background_image})`
+            : `linear-gradient(135deg, ${trendingBlockSettings.gradient_from}, ${trendingBlockSettings.gradient_to})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundBlendMode: 'overlay',
+        }}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+        variants={sectionMotion}
+        transition={{ duration: 0.7, ease: 'easeOut' }}
+      >
+        {trendingBlockSettings.enable_blurs && (
+          <div className="absolute inset-0">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+        )}
+        <div className="max-w-screen-xl mx-auto px-4 relative z-10">
+          <div className="flex items-center justify-between mb-12">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <TrendingUp className="w-7 h-7 text-white" />
+              </div>
+              <div className="w-full">
+                <div className={`transition-all duration-700 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
+                  <SectionBand title="Tendances du moment" tone="purple" />
+                </div>
+                <p className={`text-slate-400 mt-1 transition-all duration-700 delay-100 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
+                  Les produits les plus populaires
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" className="hidden md:flex border-white/30 text-white hover:bg-white/10">
+              <Link to="/produits?sort_by=sales_count">Voir tout <ArrowRight className="ml-2 w-4 h-4" /></Link>
+            </Button>
+          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl bg-slate-700" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
+              {filteredTrendingProducts.slice(0, 10).map((product, index) => (
+                <div key={product.id}
+                  className={`transition-all duration-700 ${trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
+                  style={{ transitionDelay: `${index * 100}ms` }}>
+                  <ProductCard product={product} className="scale-[0.94]" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.section>
+
       <div className="w-full">
         <div className="w-full">
           <div className="max-w-screen-xl mx-auto px-4">
@@ -844,66 +905,6 @@ const HomePage = () => {
           </section>
 
           <AdStrip stripId="partners" tone="blue" title="Espace Publicitaire - Marques Partenaires" subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans." />
-
-          <motion.section
-            ref={trendingRef}
-            className="py-20 relative overflow-hidden"
-            style={{
-              background: trendingBlockSettings.background_image
-                ? `linear-gradient(135deg, ${trendingBlockSettings.gradient_from}, ${trendingBlockSettings.gradient_to}), url(${trendingBlockSettings.background_image})`
-                : `linear-gradient(135deg, ${trendingBlockSettings.gradient_from}, ${trendingBlockSettings.gradient_to})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundBlendMode: 'overlay',
-            }}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={sectionMotion}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          >
-            {trendingBlockSettings.enable_blurs && (
-              <div className="absolute inset-0">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-              </div>
-            )}
-            <div className="max-w-screen-xl mx-auto px-4 relative z-10">
-              <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                    <TrendingUp className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="w-full">
-                    <div className={`transition-all duration-700 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                      <SectionBand title="Tendances du moment" tone="purple" />
-                    </div>
-                    <p className={`text-slate-400 mt-1 transition-all duration-700 delay-100 ${trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                      Les produits les plus populaires
-                    </p>
-                  </div>
-                </div>
-                <Button asChild variant="outline" className="hidden md:flex border-white/30 text-white hover:bg-white/10">
-                  <Link to="/produits?sort_by=sales_count">Voir tout <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                </Button>
-              </div>
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl bg-slate-700" />)}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {filteredTrendingProducts.slice(0, 10).map((product, index) => (
-                    <div key={product.id}
-                      className={`transition-all duration-700 ${trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-                      style={{ transitionDelay: `${index * 100}ms` }}>
-                      <ProductCard product={product} className="scale-[0.94]" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.section>
 
           <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
             <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
