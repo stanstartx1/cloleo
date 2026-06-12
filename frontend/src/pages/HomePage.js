@@ -127,52 +127,35 @@ const AdHorizontalStrip = ({ strip, index }) => {
   const isSubtitleCustom = strip.subtitle && strip.subtitle !== DEFAULT_SUBTITLES[index];
 
   const content = (
-    <div 
-      className={`relative overflow-hidden rounded-lg shadow-sm transition-all duration-300 ${isHovered ? 'shadow-md -translate-y-0.5' : ''} h-[56px] sm:h-[64px] md:h-[72px] lg:h-[76px]`}
+    <div
+      className={`relative overflow-hidden rounded-sm border border-gray-200 bg-white transition-shadow duration-300 ${isHovered ? 'shadow-md' : ''} h-[90px] sm:h-[100px] md:h-[110px] lg:h-[120px]`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {strip.media_type === 'image' && mediaUrl ? (
-        <div className="relative w-full h-full">
-          <img 
-            src={mediaUrl} 
-            alt={strip.title}
-            className="w-full h-full object-cover transition-transform duration-500"
-            style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-        </div>
+        <img
+          src={mediaUrl}
+          alt={strip.title}
+          className="w-full h-full object-cover transition-transform duration-500"
+          style={{ transform: isHovered ? 'scale(1.03)' : 'scale(1)' }}
+        />
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="relative w-full h-full">
-          <video 
-            src={mediaUrl} 
-            className="w-full h-full object-cover"
-            autoPlay={isHovered}
-            muted
-            loop
-            playsInline
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-        </div>
+        <video
+          src={mediaUrl}
+          className="w-full h-full object-cover"
+          autoPlay={isHovered}
+          muted
+          loop
+          playsInline
+        />
       ) : (
-        <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-lg md:text-xl font-black opacity-30">
-            {strip.title?.charAt(0) || 'A'}
-          </span>
+        <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex flex-col items-center justify-center p-2 text-center`}>
+          <span className="text-white text-sm md:text-base font-bold line-clamp-2">{strip.title}</span>
+          {isSubtitleCustom && (
+            <span className="text-white/80 text-[10px] mt-1 line-clamp-1">{strip.subtitle}</span>
+          )}
         </div>
       )}
-      
-      <div className="absolute bottom-0 left-0 right-0 p-1 text-white">
-        {isTitleCustom && (
-          <h3 className="text-[9px] md:text-[10px] font-bold line-clamp-1">{strip.title}</h3>
-        )}
-        {isSubtitleCustom && (
-          <p className="hidden sm:block text-[7px] opacity-90 line-clamp-1">{strip.subtitle}</p>
-        )}
-        <span className={`inline-block text-[7px] font-bold bg-white/20 rounded-full px-1 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30' : ''}`}>
-          →
-        </span>
-      </div>
     </div>
   );
 
@@ -704,26 +687,23 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - bloc compact unifié */}
-      <div className="w-full bg-transparent home-page-hero-wrapper">
-        <div className="w-full px-3 lg:px-4 pt-0 pb-2">
-          <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-2 lg:items-stretch w-full">
-            <div className="hidden lg:flex lg:flex-col self-stretch min-h-0">
+      {/* Hero Section — layout 3 colonnes type Ivory */}
+      <div className="w-full home-page-hero-wrapper">
+        <div className="w-full px-3 lg:px-4 pt-2 pb-3">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
+            <div className="hidden lg:block">
               <CategorySidebar />
             </div>
-
-            <div className="flex flex-col gap-1.5 min-w-0">
-              <HeroSection categories={categories} />
-
-              {activeAdStrips.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
-                  {activeAdStrips.map((strip, idx) => (
-                    <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
-                  ))}
-                </div>
-              )}
-            </div>
+            <HeroSection />
           </div>
+
+          {activeAdStrips.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              {activeAdStrips.map((strip, idx) => (
+                <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
