@@ -7,6 +7,7 @@ import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
 import CategoriesGrid from '../components/CategoriesGrid';
+import SubCategorySpotlight from '../components/SubCategorySpotlight';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
@@ -729,6 +730,9 @@ const HomePage = () => {
           <CategoriesGrid />
         </div>
       </div>
+
+      {/* ===== SOUS-CATÉGORIE ALÉATOIRE (style marketplace) ===== */}
+      <SubCategorySpotlight />
 
       {/* ===== SECTION LES MIEUX NOTÉS - SANS TITRE, PLEINE LARGEUR ===== */}
       <div className="w-full bg-white">
