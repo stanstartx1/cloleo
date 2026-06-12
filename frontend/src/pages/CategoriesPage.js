@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Grid3X3, ChevronDown } from 'lucide-react';
+import { ArrowRight, Grid3X3, ChevronDown } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 
 const API = API_URL;
@@ -67,10 +67,10 @@ const CategoriesPage = () => {
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
-          <nav className="flex items-center text-sm text-slate-400 mb-6">
+          <nav className="inline-flex items-center text-sm mb-6 px-3 py-2 rounded-md border-2 border-white/30 bg-white/10 text-slate-200">
             <Link to="/" className="hover:text-white transition-colors">Accueil</Link>
-            <span className="mx-2">/</span>
-            <span className="text-amber-400">Catégories</span>
+            <span className="mx-2 text-white/50">/</span>
+            <span className="text-amber-300 font-semibold">Catégories</span>
           </nav>
 
           <div className="flex items-center gap-4 mb-4">
@@ -78,8 +78,10 @@ const CategoriesPage = () => {
               <Grid3X3 className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold">Toutes les catégories</h1>
-              <p className="text-slate-400 mt-1">{parentCategories.length} univers à explorer</p>
+              <h1 className="inline-block text-4xl md:text-5xl font-bold px-4 py-2 rounded-md border-2 border-white/30 bg-white/10">
+                Toutes les catégories
+              </h1>
+              <p className="text-slate-400 mt-3">{parentCategories.length} univers à explorer</p>
             </div>
           </div>
         </div>
@@ -104,24 +106,23 @@ const CategoriesPage = () => {
                   className="rounded-2xl overflow-hidden border border-border bg-card opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]"
                   style={{ animationDelay: `${index * 90}ms` }}
                 >
-                  <div className="relative">
+                  <div className="relative min-h-[148px]">
                     <img
                       src={imageSrc}
                       alt={category.name}
-                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
-                        hoveredCategory === category.slug ? 'scale-105 brightness-75' : 'scale-100 brightness-50'
+                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${
+                        hoveredCategory === category.slug ? 'scale-105' : 'scale-100'
                       }`}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30" />
 
                     <div className="relative z-10 p-5 md:p-6 flex items-start md:items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <div className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-sm rounded-full text-xs mb-3 text-white/90">
-                          <Sparkles className="w-3 h-3" />
-                          {category.product_count || 0} produits
-                        </div>
-                        <h2 className="text-2xl font-bold text-white truncate">{category.name}</h2>
-                        <p className="text-sm text-white/80 mt-1 line-clamp-2">{category.description || 'Explorez cette catégorie.'}</p>
+                        <h2 className="inline-block text-2xl font-bold text-slate-900 truncate px-3 py-1.5 rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
+                          {category.name}
+                        </h2>
+                        <p className="text-sm text-slate-800 mt-3 max-w-xl px-3 py-1.5 rounded-md border border-white/80 bg-white/85 line-clamp-2">
+                          {category.description || 'Explorez cette catégorie.'}
+                        </p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">

@@ -208,29 +208,24 @@ const CategoryPage = () => {
             />
           ))}
 
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black/80" />
-
           <div className="absolute inset-0 flex items-center">
             <div className="container mx-auto px-4 relative z-10">
-              <nav className="flex items-center text-sm text-white/70 mb-6">
-                <Link to="/" className="hover:text-white transition-colors">Accueil</Link>
-                <span className="mx-2">/</span>
-                <Link to="/categories" className="hover:text-white transition-colors">Catégories</Link>
-                <span className="mx-2">/</span>
-                <span className="text-amber-400 font-medium">{category?.name || slug}</span>
+              <nav className="inline-flex items-center flex-wrap text-sm mb-4 px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
+                <Link to="/" className="hover:text-orange-600 transition-colors">Accueil</Link>
+                <span className="mx-2 text-slate-400">/</span>
+                <Link to="/categories" className="hover:text-orange-600 transition-colors">Catégories</Link>
+                <span className="mx-2 text-slate-400">/</span>
+                <span className="text-orange-600 font-semibold">{category?.name || slug}</span>
               </nav>
 
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              <h1 className="inline-block text-4xl md:text-5xl font-bold text-slate-900 mb-4 px-4 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 shadow-sm">
                 {category?.name}
               </h1>
               {category?.description && (
-                <p className="text-white/90 text-lg max-w-2xl">{category.description}</p>
+                <p className="text-slate-700 text-lg max-w-2xl bg-white/90 px-4 py-2 rounded-md border border-slate-200/80">
+                  {category.description}
+                </p>
               )}
-              <div className="flex items-center gap-4 mt-4">
-                <span className="px-4 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-sm">
-                  {totalProducts} produits
-                </span>
-              </div>
             </div>
           </div>
 
