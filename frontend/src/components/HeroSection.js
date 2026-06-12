@@ -188,52 +188,48 @@ const HeroSection = ({ bottomBlocks = null }) => {
   return (
     <div className="hero-section-container w-full">
       <div className="hero-main-grid">
-        {/* Colonne gauche : diaporama + 4 carrés en dessous uniquement */}
-        <div className="hero-left-column">
-          <div className="hero-carousel">
-            {carouselImage}
+        <div className="hero-carousel">
+          {carouselImage}
 
-            {heroImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="hero-nav-btn hero-nav-btn--prev"
-                  onClick={goPrev}
-                  aria-label="Slide précédent"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  className="hero-nav-btn hero-nav-btn--next"
-                  onClick={goNext}
-                  aria-label="Slide suivant"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-                <div className="hero-dots">
-                  {heroImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      className={`hero-dot${idx === bgIdx ? ' is-active' : ''}`}
-                      onClick={() => goTo(idx)}
-                      aria-label={`Aller au slide ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {bottomBlocks && (
-            <div className="hero-bottom-grid">
-              {bottomBlocks}
-            </div>
+          {heroImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                className="hero-nav-btn hero-nav-btn--prev"
+                onClick={goPrev}
+                aria-label="Slide précédent"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                className="hero-nav-btn hero-nav-btn--next"
+                onClick={goNext}
+                aria-label="Slide suivant"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <div className="hero-dots">
+                {heroImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`hero-dot${idx === bgIdx ? ' is-active' : ''}`}
+                    onClick={() => goTo(idx)}
+                    aria-label={`Aller au slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
 
-        {/* Colonne droite : 2 blocs pleine hauteur */}
+        {bottomBlocks && (
+          <div className="hero-bottom-grid">
+            {bottomBlocks}
+          </div>
+        )}
+
         <div className="hero-side-ads">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />

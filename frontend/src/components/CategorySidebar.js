@@ -80,7 +80,7 @@ const CategorySidebar = () => {
   return (
     <>
       <div className="category-sidebar-panel bg-white border border-gray-200 rounded-sm overflow-hidden h-full max-h-full flex flex-col">
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="category-sidebar-list">
           {parentCategories.map((cat) => {
             const subCats = getSubCategories(cat.slug);
             const hasSub = subCats.length > 0;
@@ -88,13 +88,13 @@ const CategorySidebar = () => {
             return (
               <div
                 key={cat.id}
-                className="relative border-b border-gray-100 last:border-b-0"
+                className="category-sidebar-item relative border-b border-gray-100 last:border-b-0"
                 onMouseEnter={() => hasSub && handleMouseEnter(cat)}
                 onMouseLeave={handleMouseLeave}
               >
                 <Link
                   to={`/categories/${cat.slug}`}
-                  className="flex items-center gap-2.5 py-2.5 px-3 text-[13px] font-bold text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition-colors group"
+                  className="gap-2.5 py-2 px-3 text-[13px] font-bold text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition-colors group"
                 >
                   <CategoryIcon category={cat} />
                   <span className="flex-1 truncate">{cat.name}</span>
