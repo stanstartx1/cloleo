@@ -79,7 +79,7 @@ const CategorySidebar = () => {
 
   return (
     <>
-      <div className="category-sidebar-panel bg-white border border-gray-200 rounded-sm overflow-hidden h-full flex flex-col">
+      <div className="category-sidebar-panel bg-white border border-gray-200 rounded-sm overflow-hidden h-full max-h-full flex flex-col">
         <div className="flex-1 min-h-0 overflow-y-auto">
           {parentCategories.map((cat) => {
             const subCats = getSubCategories(cat.slug);

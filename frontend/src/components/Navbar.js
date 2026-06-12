@@ -317,7 +317,7 @@ const Navbar = () => {
         className="sticky top-0 z-40 bg-white shadow-md transition-all duration-300 border-b-2 border-orange-100"
         data-testid="navbar"
       >
-        <div className="container mx-auto px-4 md:px-6">
+        <div className="site-container">
           <div className="flex items-center h-20 md:h-28 gap-3 md:gap-4 lg:gap-6">
             
             {/* ── Logo ── */}

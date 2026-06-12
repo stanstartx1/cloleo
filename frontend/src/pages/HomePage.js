@@ -639,7 +639,7 @@ const HomePage = () => {
 
     return (
       <section className="py-5 bg-white">
-        <div className="max-w-screen-xl mx-auto px-4">
+        <div className="site-container">
           {strip.link ? (
             strip.link.startsWith('http') ? (
               <a href={strip.link} target="_blank" rel="noopener noreferrer" className="block">{content}</a>
@@ -669,18 +669,25 @@ const HomePage = () => {
   const sidebarW = layoutSettings?.sidebar_width || 0;
   const showSidebars = layoutSettings !== null && sidebarW > 0;
 
-  const centeredZoneRef = useRef(null);
-  const [sidebarTop, setSidebarTop] = React.useState(0);
+  const heroContentRef = useRef(null);
+  const [heroSidebarHeight, setHeroSidebarHeight] = useState(null);
+
   useEffect(() => {
-    const updateTop = () => {
-      if (!centeredZoneRef.current) return;
-      const rect = centeredZoneRef.current.getBoundingClientRect();
-      setSidebarTop(rect.top + window.scrollY);
+    const el = heroContentRef.current;
+    if (!el) return;
+
+    const updateHeight = () => setHeroSidebarHeight(el.offsetHeight);
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateHeight);
     };
-    const t = setTimeout(updateTop, 100);
-    window.addEventListener('resize', updateTop);
-    return () => { clearTimeout(t); window.removeEventListener('resize', updateTop); };
-  }, [layoutSettings, loading]);
+  }, [adStrips.length, loading]);
 
   const activeAdStrips = adStrips.filter(strip => strip.enabled !== false);
 
@@ -690,15 +697,18 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section — layout 3 colonnes, centré avec marges */}
+      {/* Hero Section — layout 3 colonnes, marges site unifiées */}
       <div className="w-full home-page-hero-wrapper">
-        <div className="hero-zone-centered max-w-[1380px] mx-auto px-5 sm:px-8 lg:px-12 pt-2 pb-3">
+        <div className="site-container pt-2 pb-3">
           <div className="hero-zone-grid grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
-            <div className="hidden lg:block h-full min-h-0">
+            <div
+              className="hidden lg:block overflow-hidden shrink-0"
+              style={heroSidebarHeight ? { height: `${heroSidebarHeight}px` } : undefined}
+            >
               <CategorySidebar />
             </div>
 
-            <div className="hero-zone-content flex flex-col gap-1.5 min-w-0">
+            <div ref={heroContentRef} className="hero-zone-content flex flex-col gap-1.5 min-w-0">
               <HeroSection />
 
               {activeAdStrips.length > 0 && (
@@ -715,14 +725,14 @@ const HomePage = () => {
 
       {/* ===== SECTION CATÉGORIES - 6 PAR LIGNE ===== */}
       <div className="w-full bg-white">
-        <div className="w-full px-3 lg:px-4 pt-1">
+        <div className="site-container pt-1">
           <CategoriesGrid />
         </div>
       </div>
 
       {/* ===== SECTION LES MIEUX NOTÉS - SANS TITRE, PLEINE LARGEUR ===== */}
       <div className="w-full bg-white">
-        <div className="max-w-[1600px] mx-auto px-4">
+        <div className="site-container">
           {loading ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {[...Array(14)].map((_, i) => (
@@ -757,7 +767,7 @@ const HomePage = () => {
 
       {/* ===== SECTION NOUVEAUTÉS - SANS TITRE, COLLÉE EN DESSOUS, PLEINE LARGEUR ===== */}
       <div className="w-full bg-white">
-        <div className="max-w-[1600px] mx-auto px-4 pb-12">
+        <div className="site-container pb-12">
           {loading ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {[...Array(20)].map((_, i) => (
@@ -809,7 +819,7 @@ const HomePage = () => {
             <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
           </div>
         )}
-        <div className="max-w-screen-xl mx-auto px-4 relative z-10">
+        <div className="site-container relative z-10">
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
@@ -848,7 +858,7 @@ const HomePage = () => {
 
       <div className="w-full">
         <div className="w-full">
-          <div className="max-w-screen-xl mx-auto px-4" />
+          <div className="site-container" />
 
           <NotificationFeed notifications={[
             { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
@@ -858,7 +868,7 @@ const HomePage = () => {
           ]} />
 
           <section className="bg-white hidden md:block">
-            <div className="max-w-screen-xl mx-auto overflow-hidden border-x border-slate-100">
+            <div className="site-container overflow-hidden border-x border-slate-100">
               {loading ? (
                 <div className="space-y-1 py-2">
                   {[...Array(4)].map((_, blockIndex) => (
@@ -910,7 +920,7 @@ const HomePage = () => {
           <AdStrip stripId="premium" tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
 
           <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
-            <div className="max-w-screen-xl mx-auto px-4 mb-8">
+            <div className="site-container mb-8">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Ce que disent nos clients</h2>
               <p className="text-muted-foreground text-center">Des milliers de clients satisfaits chaque jour</p>
             </div>

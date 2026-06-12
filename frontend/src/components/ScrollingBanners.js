@@ -25,7 +25,7 @@ export const PromoBanner = () => {
 
   return (
     <div className={`${current.bg} text-white py-2.5 overflow-hidden relative`}>
-      <div className="max-w-screen-xl mx-auto px-4">
+      <div className="site-container">
         <div className="flex items-center justify-center gap-3">
           <div className="text-sm md:text-base font-semibold animate-pulse">
             {current.text}
@@ -49,7 +49,7 @@ export const TrustBanner = () => {
 
   return (
     <div className="bg-white py-6 border-y border-slate-100">
-      <div className="max-w-screen-xl mx-auto px-4">
+      <div className="site-container">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {trustItems.map((item, idx) => (
             <div key={idx} className="flex flex-col items-center text-center">
@@ -84,7 +84,7 @@ export const NotificationFeed = ({ notifications = [] }) => {
 
   return (
     <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-y border-amber-100 py-2">
-      <div className="max-w-screen-xl mx-auto px-4">
+      <div className="site-container">
         <div className="flex items-center justify-center gap-2 text-sm">
           <Bell className="w-4 h-4 text-orange-500" />
           <span className="font-medium text-slate-700">{current.user}</span>
@@ -165,7 +165,7 @@ export const TestimonialsBanner = ({ testimonials = [] }) => {
 
   return (
     <div className="bg-gradient-to-r from-orange-50 to-amber-50 py-8">
-      <div className="max-w-screen-xl mx-auto px-4">
+      <div className="site-container">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}
