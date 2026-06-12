@@ -94,7 +94,7 @@ const CategorySidebar = () => {
               >
                 <Link
                   to={`/categories/${cat.slug}`}
-                  className="flex items-center gap-2.5 py-2.5 px-3 text-[13px] font-normal text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition-colors group"
+                  className="flex items-center gap-2.5 py-2.5 px-3 text-[13px] font-bold text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition-colors group"
                 >
                   <CategoryIcon category={cat} />
                   <span className="flex-1 truncate">{cat.name}</span>

@@ -127,7 +127,7 @@ const AdHorizontalStrip = ({ strip, index }) => {
 
   const content = (
     <div
-      className={`hero-bottom-block relative aspect-square w-full overflow-hidden rounded-sm border border-gray-200 bg-white transition-shadow duration-300 ${isHovered ? 'shadow-md' : ''}`}
+      className={`hero-bottom-block relative overflow-hidden rounded-sm border border-gray-200 bg-white transition-shadow duration-300 ${isHovered ? 'shadow-md' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -708,16 +708,16 @@ const HomePage = () => {
               <CategorySidebar />
             </div>
 
-            <div ref={heroContentRef} className="hero-zone-content flex flex-col gap-1.5 min-w-0">
-              <HeroSection />
-
-              {activeAdStrips.length > 0 && (
-                <div className="hero-bottom-grid grid grid-cols-2 md:grid-cols-4 gap-1.5">
-                  {activeAdStrips.map((strip, idx) => (
-                    <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
-                  ))}
-                </div>
-              )}
+            <div ref={heroContentRef} className="hero-zone-content min-w-0">
+              <HeroSection
+                bottomBlocks={
+                  activeAdStrips.length > 0
+                    ? activeAdStrips.map((strip, idx) => (
+                        <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
+                      ))
+                    : null
+                }
+              />
             </div>
           </div>
         </div>

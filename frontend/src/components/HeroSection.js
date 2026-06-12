@@ -41,25 +41,29 @@ const PubBlock = ({ data, position }) => {
   const inner = (
     <div className="hero-pub-block h-full">
       {data.type_content === 'video' && data.video ? (
-        <iframe
-          src={data.video}
-          className="w-full h-full"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          title={data.title}
-        />
+        <div className="hero-pub-media-wrap">
+          <iframe
+            src={data.video}
+            className="w-full h-full max-h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={data.title}
+          />
+        </div>
       ) : imageUrl && !imgError ? (
-        <img
-          src={imageUrl}
-          alt={data.title || `Publicité ${position}`}
-          onError={() => setImgError(true)}
-          loading="eager"
-        />
+        <div className="hero-pub-media-wrap">
+          <img
+            src={imageUrl}
+            alt={data.title || `Publicité ${position}`}
+            onError={() => setImgError(true)}
+            loading="eager"
+          />
+        </div>
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center p-3 text-center">
-          <ShoppingBag className="w-8 h-8 text-slate-300 mb-2" />
-          <p className="text-xs font-medium text-slate-500 line-clamp-2">
+        <div className="hero-pub-media-wrap bg-gradient-to-br from-slate-50 to-slate-100">
+          <ShoppingBag className="w-8 h-8 text-slate-300 mb-1" />
+          <p className="text-[10px] font-medium text-slate-500 line-clamp-2 px-2 text-center">
             {data.title || 'Espace publicitaire'}
           </p>
         </div>
@@ -77,7 +81,7 @@ const PubBlock = ({ data, position }) => {
   return inner;
 };
 
-const HeroSection = () => {
+const HeroSection = ({ bottomBlocks = null }) => {
   const [heroImages, setHeroImages] = useState([]);
   const [bgIdx, setBgIdx] = useState(0);
 
@@ -183,46 +187,54 @@ const HeroSection = () => {
 
   return (
     <div className="hero-section-container w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_minmax(160px,200px)] gap-2">
-        {/* Carrousel central — pleine largeur sur mobile, colonne principale sur desktop */}
-        <div className="hero-carousel md:col-span-2 lg:col-span-1">
-          {carouselImage}
+      <div className="hero-main-grid">
+        {/* Colonne gauche : diaporama + 4 carrés en dessous uniquement */}
+        <div className="hero-left-column">
+          <div className="hero-carousel">
+            {carouselImage}
 
-          {heroImages.length > 1 && (
-            <>
-              <button
-                type="button"
-                className="hero-nav-btn hero-nav-btn--prev"
-                onClick={goPrev}
-                aria-label="Slide précédent"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                className="hero-nav-btn hero-nav-btn--next"
-                onClick={goNext}
-                aria-label="Slide suivant"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              <div className="hero-dots">
-                {heroImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`hero-dot${idx === bgIdx ? ' is-active' : ''}`}
-                    onClick={() => goTo(idx)}
-                    aria-label={`Aller au slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            </>
+            {heroImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="hero-nav-btn hero-nav-btn--prev"
+                  onClick={goPrev}
+                  aria-label="Slide précédent"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  className="hero-nav-btn hero-nav-btn--next"
+                  onClick={goNext}
+                  aria-label="Slide suivant"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                <div className="hero-dots">
+                  {heroImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`hero-dot${idx === bgIdx ? ' is-active' : ''}`}
+                      onClick={() => goTo(idx)}
+                      aria-label={`Aller au slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {bottomBlocks && (
+            <div className="hero-bottom-grid">
+              {bottomBlocks}
+            </div>
           )}
         </div>
 
-        {/* Blocs promo empilés à droite (côte à côte sur tablette) */}
-        <div className="hero-side-ads md:col-span-2 lg:col-span-1">
+        {/* Colonne droite : 2 blocs pleine hauteur */}
+        <div className="hero-side-ads">
           <PubBlock data={rightBlockTop} position="haut" />
           <PubBlock data={rightBlockBottom} position="bas" />
         </div>
