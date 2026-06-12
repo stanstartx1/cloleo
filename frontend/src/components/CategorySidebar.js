@@ -71,8 +71,8 @@ const CategorySidebar = () => {
   return (
     <>
       {/* Menu des catégories - sticky top-0 pour coller parfaitement en haut */}
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden sticky top-0 z-40">
-        <div className="p-2 max-h-[600px] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden sticky top-0 z-40 h-full flex flex-col min-h-0">
+        <div className="p-1.5 flex-1 min-h-0 overflow-y-auto">
           {visibleCategories.map(cat => {
             const subCats = getSubCategories(cat.slug);
             const hasSub = subCats.length > 0;
@@ -86,7 +86,7 @@ const CategorySidebar = () => {
               >
                 <Link 
                   to={`/categories/${cat.slug}`}
-                  className="flex items-center justify-between py-3 px-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors group"
+                  className="flex items-center justify-between py-2 px-2.5 rounded-md text-xs font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors group"
                 >
                   <span className="truncate">{cat.name}</span>
                   {hasSub && <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-2 text-slate-400 group-hover:text-orange-500" />}
@@ -99,7 +99,7 @@ const CategorySidebar = () => {
         {hasMoreCategories && (
           <button
             onClick={() => setShowAllCategories(!showAllCategories)}
-            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-colors border-t border-slate-100"
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors border-t border-slate-100 shrink-0"
           >
             {showAllCategories ? (
               <>Voir moins <ChevronDown className="w-4 h-4" /></>

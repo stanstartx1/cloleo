@@ -128,7 +128,7 @@ const AdHorizontalStrip = ({ strip, index }) => {
 
   const content = (
     <div 
-      className={`relative overflow-hidden rounded-xl shadow-md transition-all duration-300 ${isHovered ? 'shadow-xl -translate-y-1' : ''} aspect-square`}
+      className={`relative overflow-hidden rounded-lg shadow-sm transition-all duration-300 ${isHovered ? 'shadow-md -translate-y-0.5' : ''} h-[56px] sm:h-[64px] md:h-[72px] lg:h-[76px]`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -156,20 +156,20 @@ const AdHorizontalStrip = ({ strip, index }) => {
         </div>
       ) : (
         <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex items-center justify-center`}>
-          <span className="text-white text-2xl md:text-3xl font-black opacity-30">
+          <span className="text-white text-lg md:text-xl font-black opacity-30">
             {strip.title?.charAt(0) || 'A'}
           </span>
         </div>
       )}
       
-      <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+      <div className="absolute bottom-0 left-0 right-0 p-1 text-white">
         {isTitleCustom && (
-          <h3 className="text-[10px] md:text-xs font-bold line-clamp-1">{strip.title}</h3>
+          <h3 className="text-[9px] md:text-[10px] font-bold line-clamp-1">{strip.title}</h3>
         )}
         {isSubtitleCustom && (
-          <p className="text-[8px] opacity-90 line-clamp-1 mt-0.5">{strip.subtitle}</p>
+          <p className="hidden sm:block text-[7px] opacity-90 line-clamp-1">{strip.subtitle}</p>
         )}
-        <span className={`inline-block mt-0.5 text-[8px] font-bold bg-white/20 rounded-full px-1.5 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30' : ''}`}>
+        <span className={`inline-block text-[7px] font-bold bg-white/20 rounded-full px-1 py-0.5 backdrop-blur-sm transition-all duration-300 ${isHovered ? 'bg-white/30' : ''}`}>
           →
         </span>
       </div>
@@ -704,19 +704,19 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section avec sidebar catégories - ESPACE ZÉRO AVEC LA NAVBAR */}
-      <div className="w-full bg-transparent">
-        <div className="w-full px-4 pt-0">
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4 max-w-[1600px] mx-auto">
-            <div className="hidden lg:block">
+      {/* Hero Section avec sidebar catégories - bloc compact unifié */}
+      <div className="w-full bg-transparent home-page-hero-wrapper">
+        <div className="w-full px-3 lg:px-4 pt-0 pb-2">
+          <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-2 lg:items-stretch w-full">
+            <div className="hidden lg:flex lg:flex-col self-stretch min-h-0">
               <CategorySidebar />
             </div>
-            
-            <div className="flex flex-col gap-3">
+
+            <div className="flex flex-col gap-1.5 min-w-0">
               <HeroSection categories={categories} />
-              
+
               {activeAdStrips.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2">
                   {activeAdStrips.map((strip, idx) => (
                     <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
                   ))}
@@ -729,7 +729,7 @@ const HomePage = () => {
 
       {/* ===== SECTION CATÉGORIES - 6 PAR LIGNE ===== */}
       <div className="w-full bg-white">
-        <div className="max-w-[1600px] mx-auto px-4">
+        <div className="w-full px-3 lg:px-4 pt-1">
           <CategoriesGrid />
         </div>
       </div>
