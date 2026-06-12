@@ -123,36 +123,39 @@ const AdHorizontalStrip = ({ strip, index }) => {
   const mediaUrl = getImageUrl(strip.media_url);
   const toneGradient = getToneStyles(strip.tone);
   
-  const isTitleCustom = strip.title && strip.title !== DEFAULT_TITLES[index];
   const isSubtitleCustom = strip.subtitle && strip.subtitle !== DEFAULT_SUBTITLES[index];
 
   const content = (
     <div
-      className={`relative overflow-hidden rounded-sm border border-gray-200 bg-white transition-shadow duration-300 ${isHovered ? 'shadow-md' : ''} h-[90px] sm:h-[100px] md:h-[110px] lg:h-[120px]`}
+      className={`hero-bottom-block relative aspect-square w-full overflow-hidden rounded-sm border border-gray-200 bg-white transition-shadow duration-300 ${isHovered ? 'shadow-md' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {strip.media_type === 'image' && mediaUrl ? (
-        <img
-          src={mediaUrl}
-          alt={strip.title}
-          className="w-full h-full object-cover transition-transform duration-500"
-          style={{ transform: isHovered ? 'scale(1.03)' : 'scale(1)' }}
-        />
+        <div className="absolute inset-0 flex items-center justify-center p-3">
+          <img
+            src={mediaUrl}
+            alt={strip.title}
+            className="max-w-full max-h-full object-contain transition-transform duration-500"
+            style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
+          />
+        </div>
       ) : strip.media_type === 'video' && mediaUrl ? (
-        <video
-          src={mediaUrl}
-          className="w-full h-full object-cover"
-          autoPlay={isHovered}
-          muted
-          loop
-          playsInline
-        />
+        <div className="absolute inset-0 flex items-center justify-center p-2">
+          <video
+            src={mediaUrl}
+            className="max-w-full max-h-full object-contain"
+            autoPlay={isHovered}
+            muted
+            loop
+            playsInline
+          />
+        </div>
       ) : (
-        <div className={`w-full h-full bg-gradient-to-r ${toneGradient} flex flex-col items-center justify-center p-2 text-center`}>
-          <span className="text-white text-sm md:text-base font-bold line-clamp-2">{strip.title}</span>
+        <div className={`absolute inset-0 bg-gradient-to-br ${toneGradient} flex flex-col items-center justify-center p-3 text-center`}>
+          <span className="text-white text-xs md:text-sm font-bold line-clamp-3">{strip.title}</span>
           {isSubtitleCustom && (
-            <span className="text-white/80 text-[10px] mt-1 line-clamp-1">{strip.subtitle}</span>
+            <span className="text-white/80 text-[10px] mt-1 line-clamp-2">{strip.subtitle}</span>
           )}
         </div>
       )}
@@ -687,23 +690,26 @@ const HomePage = () => {
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section — layout 3 colonnes type Ivory */}
+      {/* Hero Section — layout 3 colonnes, centré avec marges */}
       <div className="w-full home-page-hero-wrapper">
-        <div className="w-full px-3 lg:px-4 pt-2 pb-3">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
-            <div className="hidden lg:block">
+        <div className="hero-zone-centered max-w-[1380px] mx-auto px-5 sm:px-8 lg:px-12 pt-2 pb-3">
+          <div className="hero-zone-grid grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
+            <div className="hidden lg:block h-full min-h-0">
               <CategorySidebar />
             </div>
-            <HeroSection />
-          </div>
 
-          {activeAdStrips.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-              {activeAdStrips.map((strip, idx) => (
-                <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
-              ))}
+            <div className="hero-zone-content flex flex-col gap-1.5 min-w-0">
+              <HeroSection />
+
+              {activeAdStrips.length > 0 && (
+                <div className="hero-bottom-grid grid grid-cols-2 md:grid-cols-4 gap-1.5">
+                  {activeAdStrips.map((strip, idx) => (
+                    <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 

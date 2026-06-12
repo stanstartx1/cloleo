@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import * as LucideIcons from 'lucide-react';
-import { ChevronRight, ChevronDown, Tag } from 'lucide-react';
+import { ChevronRight, Tag } from 'lucide-react';
 import { API_URL, API_BASE } from '../config/api';
 import CategoryMegaMenu from './CategoryMegaMenu';
 
@@ -28,13 +28,11 @@ const CategoryIcon = ({ category }) => {
 
 const CategorySidebar = () => {
   const [categories, setCategories] = useState([]);
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [hoveredCategoryData, setHoveredCategoryData] = useState(null);
   const [hoveredSubs, setHoveredSubs] = useState([]);
   const [menuVisible, setMenuVisible] = useState(false);
 
   const hoverTimeout = useRef(null);
-  const MAX_VISIBLE_CATEGORIES = 14;
 
   useEffect(() => {
     axios
@@ -75,20 +73,15 @@ const CategorySidebar = () => {
     }
   };
 
-  const visibleCategories = showAllCategories
-    ? parentCategories
-    : parentCategories.slice(0, MAX_VISIBLE_CATEGORIES);
-  const hasMoreCategories = parentCategories.length > MAX_VISIBLE_CATEGORIES;
-
   if (parentCategories.length === 0) {
     return null;
   }
 
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-sm overflow-hidden h-[220px] sm:h-[280px] lg:h-[340px] flex flex-col">
+      <div className="category-sidebar-panel bg-white border border-gray-200 rounded-sm overflow-hidden h-full flex flex-col">
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {visibleCategories.map((cat) => {
+          {parentCategories.map((cat) => {
             const subCats = getSubCategories(cat.slug);
             const hasSub = subCats.length > 0;
 
@@ -113,20 +106,6 @@ const CategorySidebar = () => {
             );
           })}
         </div>
-
-        {hasMoreCategories && (
-          <button
-            type="button"
-            onClick={() => setShowAllCategories(!showAllCategories)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors border-t border-gray-100 shrink-0"
-          >
-            {showAllCategories ? (
-              <>Voir moins <ChevronDown className="w-3.5 h-3.5 rotate-180" /></>
-            ) : (
-              <>Voir plus ({parentCategories.length - MAX_VISIBLE_CATEGORIES}) <ChevronDown className="w-3.5 h-3.5" /></>
-            )}
-          </button>
-        )}
       </div>
 
       {menuVisible && hoveredCategoryData && (

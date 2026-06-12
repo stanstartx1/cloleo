@@ -3,6 +3,31 @@
   background: #f5f5f5;
 }
 
+.hero-zone-centered {
+  width: 100%;
+}
+
+.hero-zone-grid {
+  align-items: stretch;
+}
+
+.hero-zone-content {
+  min-width: 0;
+}
+
+.category-sidebar-panel {
+  min-height: 100%;
+}
+
+.hero-bottom-block {
+  background: #fff;
+}
+
+.hero-bottom-block img,
+.hero-bottom-block video {
+  object-fit: contain;
+}
+
 .hero-section-container {
   background: transparent;
   min-width: 0;
