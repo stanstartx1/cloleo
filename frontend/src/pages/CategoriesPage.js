@@ -115,12 +115,12 @@ const CategoriesPage = () => {
                       }`}
                     />
 
-                    <div className="relative z-10 p-5 md:p-6 flex items-start md:items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="inline-block text-2xl font-bold text-slate-900 truncate px-3 py-1.5 rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
+                    <div className="relative z-10 min-h-[148px] p-5 md:p-6 flex items-end justify-between gap-4">
+                      <div className="min-w-0 self-end">
+                        <h2 className="inline-block text-xl md:text-2xl font-bold text-slate-900 truncate px-3 py-1.5 rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
                           {category.name}
                         </h2>
-                        <p className="text-sm text-slate-800 mt-3 max-w-xl px-3 py-1.5 rounded-md border border-white/80 bg-white/85 line-clamp-2">
+                        <p className="text-sm text-slate-800 mt-2 max-w-xl px-3 py-1.5 rounded-md border border-white/80 bg-white/85 line-clamp-2">
                           {category.description || 'Explorez cette catégorie.'}
                         </p>
                       </div>

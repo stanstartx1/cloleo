@@ -208,9 +208,9 @@ const CategoryPage = () => {
             />
           ))}
 
-          <div className="absolute inset-0 flex items-center">
-            <div className="container mx-auto px-4 relative z-10">
-              <nav className="inline-flex items-center flex-wrap text-sm mb-4 px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
+          <div className="absolute inset-0 flex items-end">
+            <div className={`container mx-auto px-4 relative z-10 w-full ${banners.length > 1 ? 'pb-14 md:pb-16' : 'pb-6 md:pb-8'}`}>
+              <nav className="inline-flex items-center flex-wrap text-sm mb-3 px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
                 <Link to="/" className="hover:text-orange-600 transition-colors">Accueil</Link>
                 <span className="mx-2 text-slate-400">/</span>
                 <Link to="/categories" className="hover:text-orange-600 transition-colors">Catégories</Link>
@@ -218,11 +218,11 @@ const CategoryPage = () => {
                 <span className="text-orange-600 font-semibold">{category?.name || slug}</span>
               </nav>
 
-              <h1 className="inline-block text-4xl md:text-5xl font-bold text-slate-900 mb-4 px-4 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 shadow-sm">
+              <h1 className="inline-block text-3xl md:text-4xl font-bold text-slate-900 px-4 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 shadow-sm">
                 {category?.name}
               </h1>
               {category?.description && (
-                <p className="text-slate-700 text-lg max-w-2xl bg-white/90 px-4 py-2 rounded-md border border-slate-200/80">
+                <p className="text-slate-700 text-base max-w-2xl mt-3 bg-white/90 px-4 py-2 rounded-md border border-slate-200/80">
                   {category.description}
                 </p>
               )}
