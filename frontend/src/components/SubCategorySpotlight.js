@@ -47,7 +47,7 @@ const formatPrice = (value) => {
 };
 
 // ─── Bloc individuel (une sous-catégorie) ───────────────────────────────────
-const SpotlightBlock = ({ subCategory, parentCategory, products }) => {
+const SpotlightBlock = ({ subCategory, products }) => {
   const mainImage = getSubCategoryImage(subCategory);
   const featuredProduct = products[0] || null;
   const sideProducts = products.slice(1, 3);
@@ -58,52 +58,37 @@ const SpotlightBlock = ({ subCategory, parentCategory, products }) => {
 
   return (
     <div className="flex-1 min-w-0 border border-gray-200 bg-white flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-900 truncate">
-          {subCategory.name}
-          {parentCategory && (
-            <span className="ml-1 font-normal text-slate-400 text-xs">
-              — {parentCategory.name}
-            </span>
-          )}
-        </h2>
-      </div>
 
       {/* Body */}
       <div className="flex flex-1 min-h-0">
         {/* Grande image / produit vedette à gauche */}
-        <div className="flex flex-col w-[52%] border-r border-gray-200 p-3">
+        <div className="flex flex-col w-[52%] border-r border-gray-200 p-4">
           <Link
             to={`/categories/${subCategory.slug}`}
-            className="relative flex items-center justify-center bg-white flex-1 min-h-[160px]"
+            className="flex items-center justify-center bg-white"
+            style={{ minHeight: '260px' }}
           >
-            {/* Badge "Ends tomorrow" */}
-            <span className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 shadow-sm whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
-              Ends tomorrow
-            </span>
             {mainImage ? (
               <img
                 src={mainImage}
                 alt={subCategory.name}
-                className="max-w-full max-h-[180px] object-contain mt-6"
+                className="w-full h-[260px] object-contain"
               />
             ) : featuredProduct ? (
               <img
                 src={getProductImage(featuredProduct)}
                 alt={subCategory.name}
-                className="max-w-full max-h-[180px] object-contain mt-6"
+                className="w-full h-[260px] object-contain"
               />
             ) : (
-              <div className="text-xs text-slate-400 mt-6">Aucune image</div>
+              <div className="text-xs text-slate-400">Aucune image</div>
             )}
           </Link>
 
           {featuredProduct && (
             <Link
               to={`/produit/${featuredProduct.id}`}
-              className="mt-2 pt-2 border-t border-gray-100 hover:opacity-80 transition-opacity"
+              className="mt-3 pt-3 border-t border-gray-100 hover:opacity-80 transition-opacity"
             >
               <p className="text-xs font-medium text-slate-800 line-clamp-2 leading-snug">
                 {featuredProduct.name}
@@ -138,9 +123,9 @@ const SpotlightBlock = ({ subCategory, parentCategory, products }) => {
                 <Link
                   key={product.id}
                   to={`/produit/${product.id}`}
-                  className="flex gap-2 p-3 hover:bg-slate-50 transition-colors flex-1 min-h-0 items-center"
+                  className="flex gap-3 p-4 hover:bg-slate-50 transition-colors flex-1 min-h-0 items-center"
                 >
-                  <div className="w-[70px] h-[70px] shrink-0 border border-gray-100 bg-white flex items-center justify-center p-1">
+                  <div className="w-[110px] h-[110px] shrink-0 border border-gray-100 bg-white flex items-center justify-center p-2">
                     <img
                       src={getProductImage(product)}
                       alt={product.name}
@@ -148,15 +133,15 @@ const SpotlightBlock = ({ subCategory, parentCategory, products }) => {
                     />
                   </div>
                   <div className="flex flex-col justify-center min-w-0 flex-1">
-                    <p className="text-xs font-medium text-slate-800 line-clamp-2 leading-snug">
+                    <p className="text-xs font-medium text-slate-800 line-clamp-3 leading-snug">
                       {product.name}
                     </p>
-                    <div className="mt-1.5 flex items-baseline gap-1.5 flex-wrap">
+                    <div className="mt-2 flex items-baseline gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-red-600">
                         {formatPrice(displayPrice)}
                       </span>
                       {basePrice > displayPrice && (
-                        <span className="text-[10px] text-slate-400 line-through">
+                        <span className="text-[11px] text-slate-400 line-through">
                           {formatPrice(basePrice)}
                         </span>
                       )}
@@ -179,7 +164,7 @@ const SpotlightBlock = ({ subCategory, parentCategory, products }) => {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 py-2.5 text-center">
+      <div className="border-t border-gray-200 py-3 text-center">
         <Link
           to={`/categories/${subCategory.slug}`}
           className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
@@ -208,7 +193,6 @@ const loadSpotlightBlock = async (subs, usedSlugs = new Set()) => {
     }
   }
 
-  // fallback : premier disponible même sans produits
   if (shuffled.length > 0) {
     return { subCategory: shuffled[0], products: [] };
   }
@@ -218,7 +202,7 @@ const loadSpotlightBlock = async (subs, usedSlugs = new Set()) => {
 // ─── Composant principal ─────────────────────────────────────────────────────
 const SubCategorySpotlight = () => {
   const [loading, setLoading] = useState(true);
-  const [blocks, setBlocks] = useState([]); // [{ subCategory, parentCategory, products }]
+  const [blocks, setBlocks] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,12 +226,7 @@ const SubCategorySpotlight = () => {
 
         const block2 = await loadSpotlightBlock(subs, usedSlugs);
 
-        const result = [block1, block2]
-          .filter(Boolean)
-          .map((b) => ({
-            ...b,
-            parentCategory: all.find((c) => c.slug === b.subCategory.parent_slug) || null,
-          }));
+        const result = [block1, block2].filter(Boolean);
 
         if (!cancelled) setBlocks(result);
       } catch (error) {
@@ -266,8 +245,8 @@ const SubCategorySpotlight = () => {
       <section className="w-full bg-white py-4">
         <div className="site-container">
           <div className="flex gap-4">
-            <Skeleton className="flex-1 h-[300px] rounded-sm" />
-            <Skeleton className="flex-1 h-[300px] rounded-sm" />
+            <Skeleton className="flex-1 h-[400px] rounded-sm" />
+            <Skeleton className="flex-1 h-[400px] rounded-sm" />
           </div>
         </div>
       </section>
@@ -280,11 +259,10 @@ const SubCategorySpotlight = () => {
     <section className="w-full bg-white py-4" data-testid="subcategory-spotlight">
       <div className="site-container">
         <div className="flex flex-col md:flex-row gap-4">
-          {blocks.map(({ subCategory, parentCategory, products }) => (
+          {blocks.map(({ subCategory, products }) => (
             <SpotlightBlock
               key={subCategory.slug}
               subCategory={subCategory}
-              parentCategory={parentCategory}
               products={products}
             />
           ))}
