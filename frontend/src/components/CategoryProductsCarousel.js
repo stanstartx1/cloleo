@@ -2,8 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteMediaUrl } from '../utils/media';
 
-const CARD_WIDTH = 240;
-const CARD_GAP = 16;
+const CARD_WIDTH = 260;
+const CARD_GAP = 14;
 const LEFT_PANEL_WIDTH = 280;
 
 /* ─── Carte produit ─────────────────────────────────────────────────────────── */
@@ -16,13 +16,13 @@ const DropCard = ({ product }) => {
 
   return (
     <Link
-      to={`/produits/${product.slug || product.id}`}
+      to={`/produit/${product.id}`}
       style={{
         display: 'flex', flexDirection: 'column',
         backgroundColor: '#fff', borderRadius: '18px',
         overflow: 'hidden',
         width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`,
-        height: '320px',
+        height: '360px',
         textDecoration: 'none', color: 'inherit', flexShrink: 0,
         boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
         transition: 'transform 0.2s, box-shadow 0.2s',
@@ -42,13 +42,13 @@ const DropCard = ({ product }) => {
         width: '100%', flex: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backgroundColor: '#fff',
-        padding: '24px 24px 16px',
+        padding: '16px 20px 12px',
       }}>
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={product.name}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '230px' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '260px' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
         ) : (
@@ -146,7 +146,7 @@ const CategoryProductsCarousel = ({ categories, products }) => {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div style={{ position: 'relative', minHeight: '400px', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'relative', minHeight: '440px', display: 'flex', alignItems: 'center' }}>
 
         {/* Panneau gauche flottant */}
         <div style={{
@@ -228,7 +228,7 @@ const CategoryProductsCarousel = ({ categories, products }) => {
             style={{
               display: 'flex',
               gap: `${CARD_GAP}px`,
-              padding: '32px 32px 32px 0',
+              padding: '36px 32px 36px 0',
               transform: `translateX(-${offset}px)`,
               transition: paused ? 'none' : 'transform 0.75s cubic-bezier(0.4, 0, 0.2, 1)',
               willChange: 'transform',
