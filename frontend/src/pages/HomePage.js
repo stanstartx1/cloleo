@@ -170,6 +170,33 @@ const HomePage = () => {
     return map;
   }, [allVisibleProducts]);
 
+  // Fonction pour filtrer les produits par mots-clés
+  const filterProductsByKeywords = (products, keywords) => {
+    if (!keywords || keywords.length === 0) return products;
+    const keywordList = keywords.map(k => k.toLowerCase());
+    return products.filter(product => {
+      const haystack = [
+        product.name,
+        product.category_name,
+        product.category_slug,
+        product.subcategory_name,
+        product.subcategory_slug,
+        ...(product.tags || [])
+      ].filter(Boolean).join(' ').toLowerCase();
+      return keywordList.some(k => haystack.includes(k));
+    });
+  };
+
+  // Fonction pour mélanger un tableau
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
   const activeCategories = categories.filter(c => c.is_active !== false);
   const parentCategories = activeCategories.filter(c => !c.parent_slug);
   const subCategories = activeCategories.filter(c => c.parent_slug);
@@ -325,7 +352,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 1 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["smartphone", "laptop", "ecouteurs"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["smartphone", "laptop", "ecouteurs"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 2 - 5 colonnes */}
       <AdSection 
@@ -372,7 +403,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 2 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["mode", "chaussures", "vetements"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["mode", "chaussures", "vetements"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 3 - 3 colonnes */}
       <AdSection 
@@ -405,7 +440,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 3 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["tv", "audio", "video"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["tv", "audio", "video"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 4 - 5 colonnes */}
       <AdSection 
@@ -452,7 +491,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 4 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["maison", "decoration", "mobilier"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["maison", "decoration", "mobilier"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 5 - 3 colonnes */}
       <AdSection 
@@ -485,7 +528,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 5 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["sport", "fitness", "exercice"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["sport", "fitness", "exercice"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 6 - 5 colonnes */}
       <AdSection 
@@ -532,7 +579,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 6 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["beaute", "cosmetique", "soin"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["beaute", "cosmetique", "soin"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 7 - 3 colonnes */}
       <AdSection 
@@ -565,7 +616,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 7 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["auto", "moto", "accessoires-auto"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["auto", "moto", "accessoires-auto"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       {/* Section 8 - 5 colonnes */}
       <AdSection 
@@ -612,7 +667,11 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 8 - Carrousel animé */}
-      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["electronique", "gadget", "tech"]} interval={1000} />
+      <ProductCarousel 
+        products={shuffleArray(filterProductsByKeywords(allProductsMerged, ["electronique", "gadget", "tech"]))} 
+        limit={12} 
+        interval={1000} 
+      />
 
       <style>{`
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
