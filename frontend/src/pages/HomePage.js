@@ -17,6 +17,7 @@ import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import MarketplaceProductStrips from '../components/MarketplaceProductStrips';
 import CategoryMarquee from '../components/CategoryMarquee';
 import AdStrip from '../components/AdStrip';
+import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
 import { API_URL, API_BASE } from '../config/api';
@@ -428,7 +429,9 @@ const HomePage = () => {
         topRatedProducts={topRatedProducts}
         onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
       />
+<CategoryProductsCarousel categories={categories} products={allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts]} />
 
+      
       {/* ===== SECTION NOUVEAUTÉS - SANS TITRE, COLLÉE EN DESSOUS, PLEINE LARGEUR ===== */}
       <div className="w-full bg-white">
         <div className="site-container pb-12">
