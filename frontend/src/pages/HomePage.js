@@ -18,6 +18,7 @@ import MarketplaceProductStrips from '../components/MarketplaceProductStrips';
 import CategoryMarquee from '../components/CategoryMarquee';
 import AdStrip from '../components/AdStrip';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
+import OutletCarousel from '../components/OutletCarousel';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
 import { API_URL, API_BASE } from '../config/api';
@@ -382,13 +383,17 @@ const HomePage = () => {
 
   const activeAdStrips = adStrips.filter(strip => strip.enabled !== false);
 
+  const allProductsMerged = allProducts.length
+    ? allProducts
+    : [...featuredProducts, ...newProducts, ...trendingProducts];
+
   return (
     <div className="min-h-screen overflow-hidden bg-transparent" data-testid="home-page">
       <ScrollProgress />
       <FloatingBadges />
       <PromoBanner />
 
-      {/* Hero Section — layout 3 colonnes, marges site unifiées */}
+      {/* Hero Section */}
       <div className="w-full home-page-hero-wrapper">
         <div className="site-container pt-2 pb-3">
           <div className="hero-zone-grid grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
@@ -398,7 +403,6 @@ const HomePage = () => {
             >
               <CategorySidebar />
             </div>
-
             <div ref={heroContentRef} className="hero-zone-content min-w-0">
               <HeroSection
                 bottomBlocks={
@@ -414,25 +418,30 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ===== SECTION CATÉGORIES - 6 PAR LIGNE ===== */}
+      {/* ===== CATÉGORIES ===== */}
       <div className="w-full bg-white">
         <div className="site-container pt-1">
           <CategoriesGrid />
         </div>
       </div>
 
-      {/* ===== SOUS-CATÉGORIE ALÉATOIRE (style marketplace) ===== */}
+      {/* ===== SOUS-CATÉGORIE ALÉATOIRE ===== */}
       <SubCategorySpotlight />
 
+      {/* ===== TOP PRODUITS ===== */}
       <HomeTopRatedProducts
         loading={loading}
         topRatedProducts={topRatedProducts}
         onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
       />
-<CategoryProductsCarousel categories={categories} products={allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts]} />
 
-      
-      {/* ===== SECTION NOUVEAUTÉS - SANS TITRE, COLLÉE EN DESSOUS, PLEINE LARGEUR ===== */}
+      {/* ===== DROPS CAROUSEL (fond sombre) ===== */}
+      <CategoryProductsCarousel
+        categories={categories}
+        products={allProductsMerged}
+      />
+
+      {/* ===== SECTION NOUVEAUTÉS ===== */}
       <div className="w-full bg-white">
         <div className="site-container pb-12">
           {loading ? (
@@ -453,7 +462,7 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-              {newProducts.slice(0, 20).map((product, index) => (
+              {newProducts.slice(0, 20).map((product) => (
                 <ProductCard key={product.id} product={product} className="scale-[0.94]" />
               ))}
             </div>
@@ -461,8 +470,13 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ===== CARROUSEL DES CATÉGORIES (SUPPRIMÉ) ===== */}
+      {/* ===== OUTLET CAROUSEL (fond blanc, filtres condition) ===== */}
+      <OutletCarousel
+        categories={categories}
+        products={allProductsMerged}
+      />
 
+      {/* ===== RESTE DE LA PAGE ===== */}
       <div className="w-full">
         <div className="w-full">
           <div className="site-container" />
@@ -596,19 +610,13 @@ const HomePage = () => {
           }
         }
         @media (max-width: 767px) {
-          .continuous-marquee {
-            width: max-content;
-          }
-          .continuous-marquee-track {
-            animation: none;
-          }
-          .selection-products-track {
-            animation-duration: 38s;
-          }
+          .continuous-marquee { width: max-content; }
+          .continuous-marquee-track { animation: none; }
+          .selection-products-track { animation-duration: 38s; }
         }
       `}</style>
     </div>
   );
 };
 
-export default HomePage;
+export default HomePage;s
