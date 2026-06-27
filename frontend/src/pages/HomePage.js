@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Zap, TrendingUp, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, Star } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
@@ -12,6 +12,11 @@ import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
+import AdHorizontalStrip from '../components/AdHorizontalStrip';
+import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
+import MarketplaceProductStrips from '../components/MarketplaceProductStrips';
+import CategoryMarquee from '../components/CategoryMarquee';
+import AdStrip from '../components/AdStrip';
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
 import { API_URL, API_BASE } from '../config/api';
@@ -97,226 +102,6 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
       ...baseStyle,
       backgroundColor: color,
     }} />
-  );
-};
-
-// ===== COMPOSANT POUR LES 4 BLOCS PUBLICITAIRES HORIZONTAUX - FORMAT CARRÉ =====
-const AdHorizontalStrip = ({ strip, index }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  
-  const getToneStyles = (tone) => {
-    const tones = {
-      orange: 'from-orange-500 via-amber-500 to-orange-600',
-      blue: 'from-blue-500 via-cyan-500 to-blue-600',
-      green: 'from-emerald-500 via-teal-500 to-green-600',
-      red: 'from-red-500 via-rose-500 to-red-600',
-    };
-    return tones[tone] || tones.orange;
-  };
-
-  const getImageUrl = (url) => {
-    if (!url) return '';
-    if (typeof url === 'object') url = url.url || '';
-    if (url.startsWith('/')) return `${API_BASE}${url}`;
-    return url;
-  };
-
-  const mediaUrl = getImageUrl(strip.media_url);
-  const toneGradient = getToneStyles(strip.tone);
-  
-  const isSubtitleCustom = strip.subtitle && strip.subtitle !== DEFAULT_SUBTITLES[index];
-
-  const content = (
-    <div
-      className={`hero-bottom-block relative overflow-hidden rounded-sm border border-gray-200 bg-white transition-shadow duration-300 ${isHovered ? 'shadow-md' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {strip.media_type === 'image' && mediaUrl ? (
-        <div className="absolute inset-0 flex items-center justify-center p-3">
-          <img
-            src={mediaUrl}
-            alt={strip.title}
-            className="max-w-full max-h-full object-contain transition-transform duration-500"
-            style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
-          />
-        </div>
-      ) : strip.media_type === 'video' && mediaUrl ? (
-        <div className="absolute inset-0 flex items-center justify-center p-2">
-          <video
-            src={mediaUrl}
-            className="max-w-full max-h-full object-contain"
-            autoPlay={isHovered}
-            muted
-            loop
-            playsInline
-          />
-        </div>
-      ) : (
-        <div className={`absolute inset-0 bg-gradient-to-br ${toneGradient} flex flex-col items-center justify-center p-3 text-center`}>
-          <span className="text-white text-xs md:text-sm font-bold line-clamp-3">{strip.title}</span>
-          {isSubtitleCustom && (
-            <span className="text-white/80 text-[10px] mt-1 line-clamp-2">{strip.subtitle}</span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  if (strip.link) {
-    return (
-      <Link to={strip.link} className="block h-full">
-        {content}
-      </Link>
-    );
-  }
-  return content;
-};
-
-const getHomeProductDisplayPrice = (product) => {
-  const promoFcfa = Number(product.promo_price_fcfa || 0);
-  const priceFcfa = Number(product.price_fcfa || 0);
-  const discountPrice = Number(product.discount_price || 0);
-  const legacyPrice = Number(product.price || 0);
-  if (promoFcfa > 0 && priceFcfa > 0 && promoFcfa < priceFcfa) return promoFcfa;
-  if (priceFcfa > 0) return priceFcfa;
-  if (discountPrice > 0) return discountPrice;
-  if (legacyPrice > 0) return legacyPrice;
-  return 0;
-};
-
-const getHomeProductBasePrice = (product) => {
-  const priceFcfa = Number(product.price_fcfa || 0);
-  const legacyPrice = Number(product.price || 0);
-  return priceFcfa > 0 ? priceFcfa : legacyPrice;
-};
-
-const getHomeProductDiscount = (product) => {
-  const base = getHomeProductBasePrice(product);
-  const display = getHomeProductDisplayPrice(product);
-  if (!base || !display || display >= base) return null;
-  return Math.round((1 - display / base) * 100);
-};
-
-const getHomeProductImage = (product) =>
-  toAbsoluteMediaUrl(product.images?.[0] || product.main_image || product.image || '');
-
-const HomeTopProductCard = ({ product, index, onImageMissing }) => {
-  const price = getHomeProductDisplayPrice(product);
-  const basePrice = getHomeProductBasePrice(product);
-  const discount = getHomeProductDiscount(product);
-  const badgeText = discount ? `-${discount}%` : product.is_featured ? 'Top' : index < 4 ? 'Hot' : null;
-
-  return (
-    <Link
-      to={`/produit/${product.id}`}
-      className="group relative block bg-white p-1 transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="relative overflow-hidden rounded-lg bg-slate-50">
-        <img
-          src={getHomeProductImage(product)}
-          alt={product.name}
-          className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-          onError={() => onImageMissing(product.id)}
-        />
-        {badgeText && (
-          <span className="absolute right-1 top-1 rounded-full bg-orange-500 px-1 py-0.5 text-[9px] font-bold text-white shadow-sm">
-            {badgeText}
-          </span>
-        )}
-        {product.is_featured && (
-          <span className="absolute left-1 top-1 rounded bg-red-600 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-            Choix
-          </span>
-        )}
-      </div>
-      <div className="pt-1">
-        <p className="line-clamp-2 min-h-[2rem] text-[10px] font-medium leading-tight text-slate-700 group-hover:text-red-600 md:text-[11px]">
-          {product.name}
-        </p>
-        <p className="mt-1 text-[13px] font-black text-slate-950 md:text-[14px]">
-          {price.toLocaleString()} FCFA
-        </p>
-        {basePrice > price && (
-          <p className="text-[9px] text-slate-400 line-through">
-            {basePrice.toLocaleString()} FCFA
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-};
-
-const MarketplaceStripProductCard = ({ product, index, onImageMissing }) => {
-  const price = getHomeProductDisplayPrice(product);
-  const basePrice = getHomeProductBasePrice(product);
-  const discount = getHomeProductDiscount(product);
-  const badgeText = discount ? `-${discount}%` : index < 2 ? 'Smart' : null;
-
-  return (
-    <Link
-      to={`/produit/${product.id}`}
-      className="group relative min-w-[142px] max-w-[142px] bg-white p-1.5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:min-w-[158px] sm:max-w-[158px] md:min-w-0 md:max-w-none"
-    >
-      <div className="relative aspect-[1.08] overflow-hidden rounded-md bg-slate-50">
-        <img
-          src={getHomeProductImage(product)}
-          alt={product.name}
-          className="h-full w-full object-contain object-center p-1.5 transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          onError={() => onImageMissing(product.id)}
-        />
-        {badgeText && (
-          <span className="absolute left-1 top-1 rounded-sm bg-red-600 px-1.5 py-0.5 text-[8px] font-black uppercase text-white">
-            {badgeText}
-          </span>
-        )}
-      </div>
-      <p className="mt-1.5 line-clamp-2 min-h-[1.9rem] text-[10px] font-semibold leading-tight text-slate-800 group-hover:text-orange-600">
-        {product.name}
-      </p>
-      <p className="mt-0.5 text-[11px] font-black leading-tight text-slate-950">
-        {price.toLocaleString()} FCFA
-      </p>
-      {basePrice > price && (
-        <p className="text-[9px] leading-tight text-slate-400 line-through">
-          {basePrice.toLocaleString()} FCFA
-        </p>
-      )}
-    </Link>
-  );
-};
-
-const MarketplaceProductStrip = ({ title, href, products, tone = 'orange', onImageMissing }) => {
-  const tones = {
-    red: 'bg-red-600 text-white',
-    orange: 'bg-amber-400 text-slate-950',
-    green: 'bg-emerald-500 text-white',
-    cyan: 'bg-cyan-500 text-white',
-  };
-
-  if (!products.length) return null;
-
-  return (
-    <section className="border-b-4 border-cyan-500 bg-white">
-      <div className={`flex items-center justify-between px-3 py-2 text-xs font-black md:px-4 ${tones[tone] || tones.orange}`}>
-        <h2 className="truncate">{title}</h2>
-        <Link to={href} className="ml-3 shrink-0 text-[10px] font-bold hover:underline">
-          Voir plus <ArrowRight className="ml-1 inline h-3 w-3" />
-        </Link>
-      </div>
-      <div className="grid grid-flow-col auto-cols-[142px] gap-2 overflow-x-auto px-2 py-2 no-scrollbar sm:auto-cols-[158px] md:grid-flow-row md:grid-cols-6 lg:grid-cols-7">
-        {products.map((product, index) => (
-          <MarketplaceStripProductCard
-            key={`${title}-${product.id}`}
-            product={product}
-            index={index}
-            onImageMissing={onImageMissing}
-          />
-        ))}
-      </div>
-    </section>
   );
 };
 
@@ -571,102 +356,6 @@ const HomePage = () => {
     },
   ]), [pickMarketplaceProducts]);
 
-  const renderCategoryItems = (keyPrefix = 'cat') => (
-    <>
-      {parentLoopItems.map((category, index) => {
-        const banners = category.banner_images || [];
-        const img = banners.length > 0
-          ? banners[(categorySlideTick + index) % banners.length]
-          : (category.image || `https://source.unsplash.com/200x200/?africa,${encodeURIComponent(category.name)}`);
-        return (
-          <Link
-            key={`${keyPrefix}-${index}`}
-            to={`/categories/${category.slug}`}
-            className="flex-shrink-0 w-64 md:w-72 group snap-start"
-          >
-            <div className="w-full h-40 md:h-44 rounded-2xl overflow-hidden border-2 border-orange-100 group-hover:border-orange-400 transition-all duration-300 shadow-md group-hover:scale-[1.03]">
-              <img src={img} alt={category.name} className="w-full h-full object-cover" />
-            </div>
-            <span className="mt-2 block text-sm font-semibold text-slate-700 group-hover:text-orange-600 transition-colors truncate">
-              {category.name}
-            </span>
-          </Link>
-        );
-      })}
-    </>
-  );
-
-  const AdStrip = ({ stripId, tone = 'orange', title, subtitle }) => {
-    const configuredStrip = adStrips.find((strip) => strip.id === stripId);
-    const strip = {
-      title,
-      subtitle,
-      tone,
-      enabled: true,
-      media_type: 'none',
-      media_url: '',
-      link: '',
-      ...(configuredStrip || {}),
-    };
-    const tones = {
-      orange: 'from-orange-50 via-amber-50 to-orange-100 border-orange-200',
-      blue: 'from-sky-50 via-cyan-50 to-blue-100 border-sky-200',
-      green: 'from-emerald-50 via-teal-50 to-green-100 border-emerald-200',
-    };
-    if (!strip.enabled) return null;
-
-    const mediaUrl = strip.media_url ? toAbsoluteMediaUrl(strip.media_url) : '';
-    const content = (
-      <div className={`relative min-h-[150px] overflow-hidden rounded-2xl border bg-gradient-to-r ${tones[strip.tone] || tones[tone]} px-5 py-6 md:min-h-[210px] md:px-8 md:py-8`}>
-        {strip.media_type === 'image' && mediaUrl && (
-          <img src={mediaUrl} alt={strip.title} className="absolute inset-0 h-full w-full object-cover" />
-        )}
-        {strip.media_type === 'video' && mediaUrl && (
-          <video src={mediaUrl} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
-        )}
-        {(strip.media_type === 'image' || strip.media_type === 'video') && mediaUrl && (
-          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
-        )}
-        <div className="relative z-10 flex h-full min-h-[102px] flex-col justify-center md:min-h-[150px]">
-          <p className={`text-base font-black md:text-2xl ${(strip.media_type !== 'none' && mediaUrl) ? 'text-white drop-shadow' : 'text-slate-800'}`}>
-            {strip.title}
-          </p>
-          <p className={`mt-2 max-w-2xl text-sm md:text-base ${(strip.media_type !== 'none' && mediaUrl) ? 'text-white/90' : 'text-slate-600'}`}>
-            {strip.subtitle}
-          </p>
-        </div>
-      </div>
-    );
-
-    return (
-      <section className="py-5 bg-white">
-        <div className="site-container">
-          {strip.link ? (
-            strip.link.startsWith('http') ? (
-              <a href={strip.link} target="_blank" rel="noopener noreferrer" className="block">{content}</a>
-            ) : (
-              <Link to={strip.link} className="block">{content}</Link>
-            )
-          ) : content}
-        </div>
-      </section>
-    );
-  };
-
-  const SectionBand = ({ title, tone = 'orange' }) => {
-    const tones = {
-      orange: 'from-orange-500 via-amber-500 to-orange-600',
-      purple: 'from-fuchsia-500 via-purple-500 to-indigo-600',
-      green: 'from-emerald-500 via-teal-500 to-green-600',
-      blue: 'from-sky-500 via-cyan-500 to-blue-600',
-    };
-    return (
-      <div className={`w-full flex items-center px-4 py-3 md:px-5 md:py-3 text-white font-bold text-sm md:text-base bg-gradient-to-r ${tones[tone]} shadow-md rounded-xl`}>
-        {title}
-      </div>
-    );
-  };
-
   const sidebarW = layoutSettings?.sidebar_width || 0;
   const showSidebars = layoutSettings !== null && sidebarW > 0;
 
@@ -734,40 +423,11 @@ const HomePage = () => {
       {/* ===== SOUS-CATÉGORIE ALÉATOIRE (style marketplace) ===== */}
       <SubCategorySpotlight />
 
-      {/* ===== SECTION LES MIEUX NOTÉS - SANS TITRE, PLEINE LARGEUR ===== */}
-      <div className="w-full bg-white">
-        <div className="site-container">
-          {loading ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-              {[...Array(14)].map((_, i) => (
-                <div key={`top-skeleton-${i}`} className="bg-white p-2">
-                  <Skeleton className="aspect-square rounded-xl" />
-                  <Skeleton className="mt-2 h-3 w-11/12" />
-                  <Skeleton className="mt-2 h-4 w-20" />
-                </div>
-              ))}
-            </div>
-          ) : topRatedProducts.length === 0 ? (
-            <div className="py-14 text-center text-slate-400">
-              <Star className="mx-auto mb-3 h-12 w-12 opacity-20" />
-              <p className="font-semibold">Aucun produit disponible pour le moment</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-              {topRatedProducts.map((product, index) => (
-                <HomeTopProductCard
-                  key={`top-rated-${product.id}`}
-                  product={product}
-                  index={index}
-                  onImageMissing={(productId) => {
-                    setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }));
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <HomeTopRatedProducts
+        loading={loading}
+        topRatedProducts={topRatedProducts}
+        onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
+      />
 
       {/* ===== SECTION NOUVEAUTÉS - SANS TITRE, COLLÉE EN DESSOUS, PLEINE LARGEUR ===== */}
       <div className="w-full bg-white">
@@ -800,153 +460,6 @@ const HomePage = () => {
 
       {/* ===== CARROUSEL DES CATÉGORIES (SUPPRIMÉ) ===== */}
 
-      <motion.section
-        ref={trendingRef}
-        className="py-16 bg-white border-b border-slate-200"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={sectionMotion}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        <div className="site-container relative">
-          <div className="mb-10">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-orange-500/10 text-orange-600 rounded-2xl flex items-center justify-center shadow-sm">
-                  <TrendingUp className="w-7 h-7" />
-                </div>
-                <div>
-                  <h2 className={`text-3xl md:text-4xl font-bold text-slate-900 transition-all duration-700 ${
-                    trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-                  }`}>
-                    Tendances du moment
-                  </h2>
-                  <p className={`text-slate-500 mt-2 transition-all duration-700 delay-100 ${
-                    trendingInView ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'
-                  }`}>
-                    Les produits les plus populaires
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-start lg:justify-end">
-                <Link
-                  to="/produits?sort_by=sales_count"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50"
-                >
-                  Voir tous les articles
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
-              <div className="grid grid-cols-2 gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} className="aspect-[4/3] rounded-3xl" />
-                ))}
-              </div>
-              <div className="grid gap-6">
-                <Skeleton className="aspect-[4/3] rounded-[32px]" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <Skeleton className="aspect-[4/3] rounded-3xl" />
-                  <Skeleton className="aspect-[4/3] rounded-3xl" />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  {filteredTrendingProducts.slice(0, 4).map((product, index) => (
-                    <Link
-                      key={product.id}
-                      to={`/produit/${product.id}`}
-                      className={`group block rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 ${
-                        trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-                      }`}
-                      style={{ transitionDelay: `${index * 80}ms` }}
-                    >
-                      <div className="overflow-hidden rounded-t-3xl bg-slate-100">
-                        <img
-                          src={product.images?.[0] || product.main_image || 'https://via.placeholder.com/400'}
-                          alt={product.name}
-                          className="h-40 w-full object-cover transition-all duration-500 group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-slate-500 line-clamp-2">{product.name}</p>
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <span className="text-base font-semibold text-slate-900">{(product.promo_price_fcfa || product.price_fcfa || product.price || 0).toLocaleString()} FCFA</span>
-                          {product.promo_price_fcfa && (
-                            <span className="text-xs text-red-500 line-through">{product.price_fcfa?.toLocaleString()} FCFA</span>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-6">
-                {filteredTrendingProducts[4] && (
-                  <Link
-                    to={`/produit/${filteredTrendingProducts[4].id}`}
-                    className={`group block overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm transition-all duration-300 ${
-                      trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-                    }`}
-                    style={{ transitionDelay: '0ms' }}
-                  >
-                    <div className="relative overflow-hidden bg-slate-100">
-                      <img
-                        src={filteredTrendingProducts[4].images?.[0] || filteredTrendingProducts[4].main_image || 'https://via.placeholder.com/600'}
-                        alt={filteredTrendingProducts[4].name}
-                        className="h-[22rem] md:h-96 w-full object-cover transition-all duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="p-5">
-                      <p className="text-sm uppercase tracking-[0.24em] text-orange-500">Top vente</p>
-                      <h3 className="mt-4 text-xl md:text-2xl font-bold text-slate-900">{filteredTrendingProducts[4].name}</h3>
-                      <p className="mt-3 text-sm leading-6 text-slate-600 line-clamp-3">{filteredTrendingProducts[4].description || 'Produit populaire mis en avant pour cette semaine.'}</p>
-                      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-2xl font-bold text-slate-900">{(filteredTrendingProducts[4].promo_price_fcfa || filteredTrendingProducts[4].price_fcfa || filteredTrendingProducts[4].price || 0).toLocaleString()} FCFA</span>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-slate-600">Hot</span>
-                      </div>
-                    </div>
-                  </Link>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {filteredTrendingProducts.slice(5, 7).map((product, index) => (
-                    <Link
-                      key={product.id}
-                      to={`/produit/${product.id}`}
-                      className={`group block overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 ${
-                        trendingInView ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
-                      }`}
-                      style={{ transitionDelay: `${index * 80}ms` }}
-                    >
-                      <div className="overflow-hidden rounded-t-3xl bg-slate-100">
-                        <img
-                          src={product.images?.[0] || product.main_image || 'https://via.placeholder.com/400'}
-                          alt={product.name}
-                          className="h-36 w-full object-cover transition-all duration-500 group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
-                        <p className="mt-2 text-sm text-slate-500">{(product.promo_price_fcfa || product.price_fcfa || product.price || 0).toLocaleString()} FCFA</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </motion.section>
-
       <div className="w-full">
         <div className="w-full">
           <div className="site-container" />
@@ -974,39 +487,34 @@ const HomePage = () => {
                   ))}
                 </div>
               ) : (
-                marketplaceProductStrips.map((strip) => (
-                  <MarketplaceProductStrip
-                    key={strip.title}
-                    title={strip.title}
-                    href={strip.href}
-                    tone={strip.tone}
-                    products={strip.products}
-                    onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
-                  />
-                ))
-              )}
-            </div>
-          </section>
-
+            <MarketplaceProductStrips
+              marketplaceProductStrips={marketplaceProductStrips}
+              onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
+            />
+          )}
           <section className="py-5 bg-white border-y border-slate-100 overflow-hidden hidden md:block">
-            <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
-              <div className="continuous-marquee">
-                <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-mid-a')}</div>
-                <div className="continuous-marquee-track continuous-marquee-track-cats hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-mid-b')}</div>
-              </div>
-            </div>
+            <CategoryMarquee
+              parentLoopItems={parentLoopItems}
+              categorySlideTick={categorySlideTick}
+              prefix="mid"
+              sectionClassName="py-5 bg-white border-y border-slate-100 overflow-hidden hidden md:block"
+            />
           </section>
 
-          <AdStrip stripId="partners" tone="blue" title="Espace Publicitaire - Marques Partenaires" subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans." />
+          <AdStrip
+            adStrips={adStrips}
+            stripId="partners"
+            tone="blue"
+            title="Espace Publicitaire - Marques Partenaires"
+            subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans."
+          />
 
-          <section className="py-5 bg-white border-y border-slate-100 overflow-hidden">
-            <div className="relative overflow-x-auto touch-scroll-x no-scrollbar md:overflow-hidden">
-              <div className="continuous-marquee">
-                <div className="continuous-marquee-track continuous-marquee-track-cats">{renderCategoryItems('cat-bottom-a')}</div>
-                <div className="continuous-marquee-track continuous-marquee-track-cats hidden md:flex" aria-hidden="true">{renderCategoryItems('cat-bottom-b')}</div>
-              </div>
-            </div>
-          </section>
+          <CategoryMarquee
+            parentLoopItems={parentLoopItems}
+            categorySlideTick={categorySlideTick}
+            prefix="bottom"
+            sectionClassName="py-5 bg-white border-y border-slate-100 overflow-hidden"
+          />
 
           <AdStrip stripId="premium" tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
 
