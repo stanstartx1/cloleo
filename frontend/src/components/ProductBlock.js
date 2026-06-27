@@ -5,7 +5,7 @@ import { API_URL } from '../config/api';
 
 const API = API_URL;
 
-const ProductBlock = ({ title, limit = 8, category = null, keywords = [] }) => {
+const ProductBlock = ({ title, limit = 12, category = null, keywords = [] }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,7 +13,7 @@ const ProductBlock = ({ title, limit = 8, category = null, keywords = [] }) => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        let params = { limit: limit.toString() };
+        let params = { limit: '100' };
         
         if (category) {
           params.category = category;
@@ -23,19 +23,11 @@ const ProductBlock = ({ title, limit = 8, category = null, keywords = [] }) => {
           params.search = keywords.join(' ');
         }
         
-        // Si ni catégorie ni mots-clés, on récupère des produits aléatoires
-        if (!category && keywords.length === 0) {
-          params.sort_by = 'created_at';
-          params.sort_order = 'desc';
-        }
-        
         const response = await axios.get(`${API}/products`, { params });
         let allProducts = response.data?.products || response.data || [];
         
         // Mélanger les produits pour avoir des résultats différents à chaque chargement
-        if (!category && keywords.length === 0) {
-          allProducts = shuffleArray(allProducts);
-        }
+        allProducts = shuffleArray(allProducts);
         
         setProducts(allProducts.slice(0, limit));
       } catch (error) {
@@ -61,10 +53,9 @@ const ProductBlock = ({ title, limit = 8, category = null, keywords = [] }) => {
 
   if (loading) {
     return (
-      <section className="w-full bg-white py-8">
+      <section className="w-full bg-white py-4">
         <div className="site-container">
-          {title && <h2 className="text-2xl font-bold mb-6">{title}</h2>}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
             {[...Array(limit)].map((_, i) => (
               <div key={i} className="bg-white p-2">
                 <div className="aspect-square bg-slate-200 rounded-xl animate-pulse" />
@@ -83,14 +74,9 @@ const ProductBlock = ({ title, limit = 8, category = null, keywords = [] }) => {
   }
 
   return (
-    <section className="w-full bg-white py-8">
+    <section className="w-full bg-white py-4">
       <div className="site-container">
-        {title && (
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} className="scale-[0.94]" />
           ))}

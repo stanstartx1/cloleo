@@ -299,7 +299,6 @@ const HomePage = () => {
           {
             title: "Écouteurs Premium",
             brand: "Audio",
-            subtitle: "Son haute qualité pour vos sessions d'écoute",
             badge: "Nouveau",
             cta: "Découvrir",
             link: "/produits?search=ecouteurs",
@@ -308,7 +307,6 @@ const HomePage = () => {
           {
             title: "Ordinateurs Portables",
             brand: "Informatique",
-            subtitle: "Performance et mobilité réunies",
             badge: "-15%",
             cta: "Voir les offres",
             link: "/produits?search=ordinateur",
@@ -317,7 +315,6 @@ const HomePage = () => {
           {
             title: "Écrans 4K",
             brand: "Display",
-            subtitle: "Une qualité d'image exceptionnelle",
             badge: "Offre",
             cta: "En savoir plus",
             link: "/produits?search=ecran",
@@ -327,11 +324,7 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 1 */}
-      <ProductBlock 
-        title="Nos Sélections du Moment" 
-        limit={8}
-        keywords={["smartphone", "laptop", "ecouteurs"]}
-      />
+      <ProductBlock limit={12} keywords={["smartphone", "laptop", "ecouteurs"]} />
 
       {/* Section 2 - 5 colonnes */}
       <AdSection 
@@ -340,7 +333,6 @@ const HomePage = () => {
           {
             title: "Jouets & Jeux",
             brand: "Enfants",
-            subtitle: "Pour des heures de plaisir",
             cta: "Explorer",
             link: "/produits?search=jouets",
             bgColor: "bg-gradient-to-br from-pink-100 to-pink-200"
@@ -348,7 +340,6 @@ const HomePage = () => {
           {
             title: "Caméras & Vidéo",
             brand: "Photographie",
-            subtitle: "Capturez chaque instant",
             badge: "-10%",
             cta: "Découvrir",
             link: "/produits?search=camera",
@@ -357,7 +348,6 @@ const HomePage = () => {
           {
             title: "Accessoires PC",
             brand: "Bureau",
-            subtitle: "Équipez votre espace de travail",
             cta: "Acheter",
             link: "/produits?search=accessoires",
             bgColor: "bg-gradient-to-br from-yellow-100 to-yellow-200"
@@ -365,7 +355,6 @@ const HomePage = () => {
           {
             title: "Enceintes Bluetooth",
             brand: "Audio",
-            subtitle: "Musique partout avec vous",
             cta: "Voir",
             link: "/produits?search=enceinte",
             bgColor: "bg-gradient-to-br from-cyan-100 to-cyan-200"
@@ -373,7 +362,6 @@ const HomePage = () => {
           {
             title: "Reprise iPhone",
             brand: "Service",
-            subtitle: "Échangez votre ancien iPhone",
             badge: "Éco-responsable",
             cta: "En savoir plus",
             link: "/produits?search=iphone",
@@ -383,11 +371,7 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 2 */}
-      <ProductBlock 
-        title="Offres Spéciales" 
-        limit={8}
-        keywords={["mode", "chaussures", "vetements"]}
-      />
+      <ProductBlock limit={12} keywords={["mode", "chaussures", "vetements"]} />
 
       {/* Section 3 - 3 colonnes */}
       <AdSection 
@@ -396,7 +380,6 @@ const HomePage = () => {
           {
             title: "Montres Connectées",
             brand: "Wearable",
-            subtitle: "Suivez votre santé au quotidien",
             badge: "Tendance",
             cta: "Découvrir",
             link: "/produits?search=montre",
@@ -405,7 +388,6 @@ const HomePage = () => {
           {
             title: "Consoles de Jeu",
             brand: "Gaming",
-            subtitle: "Des expériences immersives",
             badge: "Stock limité",
             cta: "Commander",
             link: "/produits?search=console",
@@ -414,7 +396,6 @@ const HomePage = () => {
           {
             title: "Tablettes",
             brand: "Mobile",
-            subtitle: "Productivité et divertissement",
             cta: "Explorer",
             link: "/produits?search=tablette",
             bgColor: "bg-gradient-to-br from-amber-100 to-amber-200"
@@ -423,10 +404,214 @@ const HomePage = () => {
       />
 
       {/* Bloc de produits aléatoires 3 */}
-      <ProductBlock 
-        title="Dernières Arrivées" 
-        limit={8}
+      <ProductBlock limit={12} keywords={["tv", "audio", "video"]} />
+
+      {/* Section 4 - 5 colonnes */}
+      <AdSection 
+        layout="row-5"
+        items={[
+          {
+            title: "Sacs à Main",
+            brand: "Mode",
+            cta: "Voir",
+            link: "/produits?search=sac",
+            bgColor: "bg-gradient-to-br from-rose-100 to-rose-200"
+          },
+          {
+            title: "Lunettes",
+            brand: "Accessoires",
+            badge: "-20%",
+            cta: "Découvrir",
+            link: "/produits?search=lunettes",
+            bgColor: "bg-gradient-to-br from-violet-100 to-violet-200"
+          },
+          {
+            title: "Montres",
+            brand: "Luxe",
+            cta: "Explorer",
+            link: "/produits?search=montre-luxe",
+            bgColor: "bg-gradient-to-br from-fuchsia-100 to-fuchsia-200"
+          },
+          {
+            title: "Bijoux",
+            brand: "Parure",
+            cta: "Acheter",
+            link: "/produits?search=bijoux",
+            bgColor: "bg-gradient-to-br from-pink-100 to-pink-200"
+          },
+          {
+            title: "Ceintures",
+            brand: "Mode",
+            badge: "Nouveau",
+            cta: "Voir",
+            link: "/produits?search=ceinture",
+            bgColor: "bg-gradient-to-br from-orange-100 to-orange-200"
+          }
+        ]}
       />
+
+      {/* Bloc de produits aléatoires 4 */}
+      <ProductBlock limit={12} keywords={["maison", "decoration", "mobilier"]} />
+
+      {/* Section 5 - 3 colonnes */}
+      <AdSection 
+        layout="row-3"
+        items={[
+          {
+            title: "Cuisine",
+            brand: "Maison",
+            badge: "Promo",
+            cta: "Découvrir",
+            link: "/produits?search=cuisine",
+            bgColor: "bg-gradient-to-br from-emerald-100 to-emerald-200"
+          },
+          {
+            title: "Salle de Bain",
+            brand: "Maison",
+            cta: "Explorer",
+            link: "/produits?search=salle-de-bain",
+            bgColor: "bg-gradient-to-br from-cyan-100 to-cyan-200"
+          },
+          {
+            title: "Jardin",
+            brand: "Extérieur",
+            badge: "Saison",
+            cta: "Voir",
+            link: "/produits?search=jardin",
+            bgColor: "bg-gradient-to-br from-green-100 to-green-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 5 */}
+      <ProductBlock limit={12} keywords={["sport", "fitness", "exercice"]} />
+
+      {/* Section 6 - 5 colonnes */}
+      <AdSection 
+        layout="row-5"
+        items={[
+          {
+            title: "Livres",
+            brand: "Culture",
+            cta: "Explorer",
+            link: "/produits?search=livres",
+            bgColor: "bg-gradient-to-br from-amber-100 to-amber-200"
+          },
+          {
+            title: "Musique",
+            brand: "Divertissement",
+            badge: "-15%",
+            cta: "Découvrir",
+            link: "/produits?search=musique",
+            bgColor: "bg-gradient-to-br from-yellow-100 to-yellow-200"
+          },
+          {
+            title: "Films",
+            brand: "Cinéma",
+            cta: "Voir",
+            link: "/produits?search=films",
+            bgColor: "bg-gradient-to-br from-orange-100 to-orange-200"
+          },
+          {
+            title: "Jeux Vidéo",
+            brand: "Gaming",
+            badge: "Nouveauté",
+            cta: "Acheter",
+            link: "/produits?search=jeux-video",
+            bgColor: "bg-gradient-to-br from-red-100 to-red-200"
+          },
+          {
+            title: "Instruments",
+            brand: "Musique",
+            cta: "Explorer",
+            link: "/produits?search=instruments",
+            bgColor: "bg-gradient-to-br from-purple-100 to-purple-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 6 */}
+      <ProductBlock limit={12} keywords={["beaute", "cosmetique", "soin"]} />
+
+      {/* Section 7 - 3 colonnes */}
+      <AdSection 
+        layout="row-3"
+        items={[
+          {
+            title: "Bébé",
+            brand: "Famille",
+            badge: "-25%",
+            cta: "Découvrir",
+            link: "/produits?search=bebe",
+            bgColor: "bg-gradient-to-br from-sky-100 to-sky-200"
+          },
+          {
+            title: "Enfants",
+            brand: "Famille",
+            cta: "Explorer",
+            link: "/produits?search=enfants",
+            bgColor: "bg-gradient-to-br from-blue-100 to-blue-200"
+          },
+          {
+            title: "Ados",
+            brand: "Famille",
+            badge: "Tendance",
+            cta: "Voir",
+            link: "/produits?search=ados",
+            bgColor: "bg-gradient-to-br from-indigo-100 to-indigo-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 7 */}
+      <ProductBlock limit={12} keywords={["auto", "moto", "accessoires-auto"]} />
+
+      {/* Section 8 - 5 colonnes */}
+      <AdSection 
+        layout="row-5"
+        items={[
+          {
+            title: "Alimentation",
+            brand: "Épicerie",
+            cta: "Explorer",
+            link: "/produits?search=alimentation",
+            bgColor: "bg-gradient-to-br from-lime-100 to-lime-200"
+          },
+          {
+            title: "Boissons",
+            brand: "Épicerie",
+            badge: "-10%",
+            cta: "Découvrir",
+            link: "/produits?search=boissons",
+            bgColor: "bg-gradient-to-br from-green-100 to-green-200"
+          },
+          {
+            title: "Snacks",
+            brand: "Gourmandise",
+            cta: "Voir",
+            link: "/produits?search=snacks",
+            bgColor: "bg-gradient-to-br from-yellow-100 to-yellow-200"
+          },
+          {
+            title: "Bio",
+            brand: "Santé",
+            badge: "Bio",
+            cta: "Acheter",
+            link: "/produits?search=bio",
+            bgColor: "bg-gradient-to-br from-emerald-100 to-emerald-200"
+          },
+          {
+            title: "Frais",
+            brand: "Épicerie",
+            cta: "Explorer",
+            link: "/produits?search=frais",
+            bgColor: "bg-gradient-to-br from-teal-100 to-teal-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 8 */}
+      <ProductBlock limit={12} keywords={["electronique", "gadget", "tech"]} />
 
       <style>{`
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
