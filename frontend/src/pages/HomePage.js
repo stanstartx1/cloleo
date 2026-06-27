@@ -1,28 +1,21 @@
-﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Sparkles, Zap, Star } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
 import CategoriesGrid from '../components/CategoriesGrid';
 import SubCategorySpotlight from '../components/SubCategorySpotlight';
-import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
-import { PromoBanner, TrustBanner, NotificationFeed, FloatingBadges, TestimonialsBanner } from '../components/ScrollingBanners';
+import { PromoBanner, FloatingBadges } from '../components/ScrollingBanners';
 import AdHorizontalStrip from '../components/AdHorizontalStrip';
 import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
-import MarketplaceProductStrips from '../components/MarketplaceProductStrips';
-import CategoryMarquee from '../components/CategoryMarquee';
-import AdStrip from '../components/AdStrip';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
 
-import { toAbsoluteMediaUrl } from '../utils/media';
-import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
 import { API_URL, API_BASE } from '../config/api';
 
 const API = API_URL;
@@ -33,24 +26,6 @@ const DEFAULT_HOME_AD_STRIPS = [
   { id: 'premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
   { id: 'flash', title: 'Espace Publicitaire - Ventes Flash', subtitle: 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !', tone: 'red', enabled: true, media_type: 'none', media_url: '', link: '' },
 ];
-
-const sectionMotion = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const useInView = () => {
-  const ref = useRef(null);
-  const [isInView, setIsInView] = useState(false);
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) setIsInView(true);
-    }, { threshold: 0.1 });
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-  return [ref, isInView];
-};
 
 const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   const width = layoutSettings?.sidebar_width || 160;
@@ -99,7 +74,6 @@ const HomePage = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [brokenTopProductImages, setBrokenTopProductImages] = useState({});
-  const [categorySlideTick, setCategorySlideTick] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [conditionFilters, setConditionFilters] = useState({
     neuf: false,
@@ -108,16 +82,6 @@ const HomePage = () => {
   });
   const [layoutSettings, setLayoutSettings] = useState(null);
   const [adStrips, setAdStrips] = useState(DEFAULT_HOME_AD_STRIPS);
-  const [trendingBlockSettings, setTrendingBlockSettings] = useState({
-    gradient_from: '#1e293b',
-    gradient_to: '#0f172a',
-    background_image: '',
-    enable_blurs: true,
-  });
-  const [layoutVariant, setLayoutVariant] = useState(getRandomLayoutVariant());
-
-  const [newProductsRef, newProductsInView] = useInView();
-  const [trendingRef, trendingInView] = useInView();
 
   // === FETCH SETTINGS ===
   useEffect(() => {
@@ -134,10 +98,6 @@ const HomePage = () => {
         })));
       })
       .catch(() => setAdStrips(DEFAULT_HOME_AD_STRIPS));
-
-    axios.get(`${API}/trending-block-settings`)
-      .then(res => setTrendingBlockSettings(res.data || {}))
-      .catch(() => {});
   }, []);
 
   // === FETCH DATA ===
@@ -177,16 +137,6 @@ const HomePage = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => setCategorySlideTick(p => p + 1), 3500);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => setLayoutVariant(getRandomLayoutVariant()), 300000);
-    return () => clearInterval(interval);
-  }, []);
-
   const toggleConditionFilter = (key) => {
     setConditionFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -221,23 +171,6 @@ const HomePage = () => {
   const parentCategories = activeCategories.filter(c => !c.parent_slug);
   const subCategories = activeCategories.filter(c => c.parent_slug);
 
-  const subCategoriesByParent = useMemo(() => {
-    const grouped = {};
-    subCategories.forEach(sub => {
-      if (!grouped[sub.parent_slug]) grouped[sub.parent_slug] = [];
-      grouped[sub.parent_slug].push(sub);
-    });
-    return grouped;
-  }, [subCategories]);
-
-  const buildLoopItems = useCallback((items, minBaseCount = 12) => {
-    if (!items?.length) return [];
-    const repeats = Math.max(2, Math.ceil(minBaseCount / items.length));
-    const base = Array.from({ length: repeats }).flatMap(() => items);
-    return [...base, ...base];
-  }, []);
-
-  const parentLoopItems = useMemo(() => buildLoopItems(parentCategories, 14), [parentCategories, buildLoopItems]);
 
   const topRatedProducts = useMemo(() => {
     const merged = allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts];
@@ -250,36 +183,6 @@ const HomePage = () => {
       .slice(0, 30);
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
-  const marketplaceStripSourceProducts = useMemo(() => {
-    const merged = allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts];
-    const deduped = merged.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
-    return applyProductFilters(deduped).filter(p => {
-      const img = p.images?.[0] || p.main_image || p.image;
-      return img && !brokenTopProductImages[p.id];
-    });
-  }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
-
-  const pickMarketplaceProducts = useCallback((keywords) => {
-    const keywordList = keywords.map(k => k.toLowerCase());
-    const matches = marketplaceStripSourceProducts.filter(product => {
-      const haystack = [
-        product.name, product.category_name, product.category_slug,
-        product.subcategory_name, product.subcategory_slug,
-        ...(product.tags || [])
-      ].filter(Boolean).join(' ').toLowerCase();
-      return keywordList.some(k => haystack.includes(k));
-    });
-    return [...new Set(matches.map(m => m.id))]
-      .map(id => matches.find(m => m.id === id))
-      .slice(0, 7);
-  }, [marketplaceStripSourceProducts]);
-
-  const marketplaceProductStrips = useMemo(() => ([
-    { title: 'Sponsor officiel | Smart Technology', href: '/produits?search=smart', tone: 'red', products: pickMarketplaceProducts(['smart', 'tech', 'ordinateur', 'pc', 'laptop']) },
-    { title: 'Les vrais kiens du moment | 14 ans avec vous', href: '/produits?sort_by=sales_count', tone: 'orange', products: pickMarketplaceProducts(['mode', 'chaussure', 'vetement', 'fashion', 'accessoire']) },
-    { title: 'Smartphones | 14 ans avec vous', href: '/produits?search=smartphone', tone: 'green', products: pickMarketplaceProducts(['phone', 'iphone', 'samsung', 'smartphone', 'xiaomi', 'redmi']) },
-    { title: 'TVs & Audio | 14 ans avec vous', href: '/produits?search=audio', tone: 'orange', products: pickMarketplaceProducts(['tv', 'audio', 'speaker', 'casque', 'ecouteur', 'sound']) },
-  ]), [pickMarketplaceProducts]);
 
   const allProductsMerged = useMemo(() => 
     allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts],
@@ -385,89 +288,6 @@ const HomePage = () => {
         />
       )}
 
-      {/* ===== RESTE DE LA PAGE ===== */}
-      <div className="w-full">
-        <div className="w-full">
-          <div className="site-container" />
-          <NotificationFeed notifications={[
-            { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
-            { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
-            { user: 'Awa S.', action: 'vient de commander', product: 'iPhone 14', time: 'il y a 8 min' },
-            { user: 'Jean P.', action: 'a laissé un avis 5★ sur', product: 'Sac à main', time: 'il y a 12 min' },
-          ]} />
-
-          <section className="bg-white hidden md:block">
-            <div className="site-container overflow-hidden border-x border-slate-100">
-              {loading ? (
-                <div className="space-y-1 py-2">
-                  {[...Array(4)].map((_, blockIndex) => (
-                    <div key={`market-strip-skeleton-${blockIndex}`} className="border-b-4 border-cyan-500 bg-white">
-                      <Skeleton className="h-8 w-full rounded-none" />
-                      <div className="grid grid-cols-3 gap-2 p-2 md:grid-cols-7">
-                        {[...Array(7)].map((_, itemIndex) => (
-                          <Skeleton key={`market-strip-item-${blockIndex}-${itemIndex}`} className="h-36 rounded-md" />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <MarketplaceProductStrips
-                  marketplaceProductStrips={marketplaceProductStrips}
-                  onImageMissing={(productId) => setBrokenTopProductImages(prev => ({ ...prev, [productId]: true }))}
-                />
-              )}
-            </div>
-          </section>
-
-          <section className="py-5 bg-white border-y border-slate-100 overflow-hidden hidden md:block">
-            <CategoryMarquee
-              parentLoopItems={parentLoopItems}
-              categorySlideTick={categorySlideTick}
-              prefix="mid"
-              sectionClassName="py-5 bg-white border-y border-slate-100 overflow-hidden hidden md:block"
-            />
-          </section>
-
-          <AdStrip
-            adStrips={adStrips}
-            stripId="partners"
-            tone="blue"
-            title="Espace Publicitaire - Marques Partenaires"
-            subtitle="Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans."
-          />
-
-          <CategoryMarquee
-            parentLoopItems={parentLoopItems}
-            categorySlideTick={categorySlideTick}
-            prefix="bottom"
-            sectionClassName="py-5 bg-white border-y border-slate-100 overflow-hidden"
-          />
-
-          <AdStrip 
-            stripId="premium" 
-            tone="green" 
-            title="Espace Publicitaire - Sélection Premium" 
-            subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." 
-          />
-
-          <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
-            <div className="site-container mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Ce que disent nos clients</h2>
-              <p className="text-muted-foreground text-center">Des milliers de clients satisfaits chaque jour</p>
-            </div>
-            <TestimonialsBanner testimonials={[
-              { name: 'Marie Dupont', location: 'Abidjan', rating: 5, comment: 'Service excellent ! Ma commande est arrivée en 2 jours.' },
-              { name: 'Kofi Mensah', location: 'Dakar', rating: 5, comment: 'Je recommande vivement ! Les vendeurs sont très professionnels.' },
-              { name: 'Awa Diallo', location: 'Bamako', rating: 4, comment: 'Très satisfaite de mon achat. Le suivi en temps réel est pratique.' },
-              { name: 'Jean-Pierre K.', location: 'Douala', rating: 5, comment: "Cloléo a changé ma façon de faire du shopping !" },
-              { name: 'Fatou Ndiaye', location: 'Conakry', rating: 5, comment: 'Les produits artisanaux sont magnifiques.' },
-            ]} />
-          </section>
-
-          <TrustBanner />
-        </div>
-      </div>
 
       <style>{`
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
