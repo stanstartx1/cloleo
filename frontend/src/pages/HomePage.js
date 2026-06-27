@@ -15,6 +15,8 @@ import AdHorizontalStrip from '../components/AdHorizontalStrip';
 import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
+import AdSection from '../components/AdSection';
+import ProductBlock from '../components/ProductBlock';
 
 import { API_URL, API_BASE } from '../config/api';
 
@@ -288,6 +290,143 @@ const HomePage = () => {
         />
       )}
 
+      {/* ===== NOUVELLES SECTIONS PUBLICITAIRES ===== */}
+      
+      {/* Section 1 - 3 colonnes */}
+      <AdSection 
+        layout="row-3"
+        items={[
+          {
+            title: "Écouteurs Premium",
+            brand: "Audio",
+            subtitle: "Son haute qualité pour vos sessions d'écoute",
+            badge: "Nouveau",
+            cta: "Découvrir",
+            link: "/produits?search=ecouteurs",
+            bgColor: "bg-gradient-to-br from-blue-100 to-blue-200"
+          },
+          {
+            title: "Ordinateurs Portables",
+            brand: "Informatique",
+            subtitle: "Performance et mobilité réunies",
+            badge: "-15%",
+            cta: "Voir les offres",
+            link: "/produits?search=ordinateur",
+            bgColor: "bg-gradient-to-br from-purple-100 to-purple-200"
+          },
+          {
+            title: "Écrans 4K",
+            brand: "Display",
+            subtitle: "Une qualité d'image exceptionnelle",
+            badge: "Offre",
+            cta: "En savoir plus",
+            link: "/produits?search=ecran",
+            bgColor: "bg-gradient-to-br from-indigo-100 to-indigo-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 1 */}
+      <ProductBlock 
+        title="Nos Sélections du Moment" 
+        limit={8}
+        keywords={["smartphone", "laptop", "ecouteurs"]}
+      />
+
+      {/* Section 2 - 5 colonnes */}
+      <AdSection 
+        layout="row-5"
+        items={[
+          {
+            title: "Jouets & Jeux",
+            brand: "Enfants",
+            subtitle: "Pour des heures de plaisir",
+            cta: "Explorer",
+            link: "/produits?search=jouets",
+            bgColor: "bg-gradient-to-br from-pink-100 to-pink-200"
+          },
+          {
+            title: "Caméras & Vidéo",
+            brand: "Photographie",
+            subtitle: "Capturez chaque instant",
+            badge: "-10%",
+            cta: "Découvrir",
+            link: "/produits?search=camera",
+            bgColor: "bg-gradient-to-br from-orange-100 to-orange-200"
+          },
+          {
+            title: "Accessoires PC",
+            brand: "Bureau",
+            subtitle: "Équipez votre espace de travail",
+            cta: "Acheter",
+            link: "/produits?search=accessoires",
+            bgColor: "bg-gradient-to-br from-yellow-100 to-yellow-200"
+          },
+          {
+            title: "Enceintes Bluetooth",
+            brand: "Audio",
+            subtitle: "Musique partout avec vous",
+            cta: "Voir",
+            link: "/produits?search=enceinte",
+            bgColor: "bg-gradient-to-br from-cyan-100 to-cyan-200"
+          },
+          {
+            title: "Reprise iPhone",
+            brand: "Service",
+            subtitle: "Échangez votre ancien iPhone",
+            badge: "Éco-responsable",
+            cta: "En savoir plus",
+            link: "/produits?search=iphone",
+            bgColor: "bg-gradient-to-br from-green-100 to-green-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 2 */}
+      <ProductBlock 
+        title="Offres Spéciales" 
+        limit={8}
+        keywords={["mode", "chaussures", "vetements"]}
+      />
+
+      {/* Section 3 - 3 colonnes */}
+      <AdSection 
+        layout="row-3"
+        items={[
+          {
+            title: "Montres Connectées",
+            brand: "Wearable",
+            subtitle: "Suivez votre santé au quotidien",
+            badge: "Tendance",
+            cta: "Découvrir",
+            link: "/produits?search=montre",
+            bgColor: "bg-gradient-to-br from-teal-100 to-teal-200"
+          },
+          {
+            title: "Consoles de Jeu",
+            brand: "Gaming",
+            subtitle: "Des expériences immersives",
+            badge: "Stock limité",
+            cta: "Commander",
+            link: "/produits?search=console",
+            bgColor: "bg-gradient-to-br from-red-100 to-red-200"
+          },
+          {
+            title: "Tablettes",
+            brand: "Mobile",
+            subtitle: "Productivité et divertissement",
+            cta: "Explorer",
+            link: "/produits?search=tablette",
+            bgColor: "bg-gradient-to-br from-amber-100 to-amber-200"
+          }
+        ]}
+      />
+
+      {/* Bloc de produits aléatoires 3 */}
+      <ProductBlock 
+        title="Dernières Arrivées" 
+        limit={8}
+      />
 
       <style>{`
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
