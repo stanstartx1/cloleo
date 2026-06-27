@@ -487,11 +487,14 @@ const HomePage = () => {
                   ))}
                 </div>
               ) : (
-            <MarketplaceProductStrips
-              marketplaceProductStrips={marketplaceProductStrips}
-              onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
-            />
-          )}
+                <MarketplaceProductStrips
+                  marketplaceProductStrips={marketplaceProductStrips}
+                  onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
+                />
+              )}
+            </div>
+          </section>
+
           <section className="py-5 bg-white border-y border-slate-100 overflow-hidden hidden md:block">
             <CategoryMarquee
               parentLoopItems={parentLoopItems}
