@@ -7,7 +7,7 @@ const CARD_GAP = 16;
 const LEFT_PANEL_WIDTH = 280;
 
 /* ─── Carte produit ─────────────────────────────────────────────────────────── */
-const DropCard = ({ product, isLive }) => {
+const DropCard = ({ product }) => {
   const image = product.images?.[0] || product.main_image || product.image || null;
   const imageUrl = image ? toAbsoluteMediaUrl(image) : null;
   const price = product.price
@@ -22,7 +22,7 @@ const DropCard = ({ product, isLive }) => {
         backgroundColor: '#fff', borderRadius: '18px',
         overflow: 'hidden',
         width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`,
-        height: '340px',
+        height: '320px',
         textDecoration: 'none', color: 'inherit', flexShrink: 0,
         boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
         transition: 'transform 0.2s, box-shadow 0.2s',
@@ -37,34 +37,18 @@ const DropCard = ({ product, isLive }) => {
         e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.22)';
       }}
     >
-      {/* Badge */}
-      <div style={{ padding: '12px 14px 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
-        {isLive ? (
-          <>
-            <span style={{
-              width: '7px', height: '7px', borderRadius: '50%',
-              backgroundColor: '#ff3b3b', display: 'inline-block', flexShrink: 0,
-              animation: 'dropsPulse 1.4s ease-in-out infinite',
-            }} />
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#ff3b3b', letterSpacing: '0.08em' }}>EN DIRECT</span>
-          </>
-        ) : (
-          <span style={{ fontSize: '10px', fontWeight: 600, color: '#bbb', letterSpacing: '0.08em' }}>NOUVEAUTÉ</span>
-        )}
-      </div>
-
       {/* Image — même fond blanc que la carte */}
       <div style={{
         width: '100%', flex: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backgroundColor: '#fff',
-        padding: '16px 20px',
+        padding: '24px 24px 16px',
       }}>
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={product.name}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '200px' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '230px' }}
             onError={e => { e.target.style.display = 'none'; }}
           />
         ) : (
@@ -254,7 +238,6 @@ const CategoryProductsCarousel = ({ categories, products }) => {
               <DropCard
                 key={`${product.id}-${i}`}
                 product={product}
-                isLive={i % categoryProducts.length === 0}
               />
             ))}
           </div>
