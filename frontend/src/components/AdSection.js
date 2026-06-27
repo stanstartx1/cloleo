@@ -34,17 +34,8 @@ const AdItem = ({ item, layout }) => {
       to={item.link || '#'}
       className={`group relative overflow-hidden rounded-xl ${isRow5 ? 'aspect-[4/3]' : 'aspect-[16/9]'} ${bgColor} transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}
     >
-      {/* Background Image */}
-      {item.image && (
-        <img
-          src={item.image}
-          alt={item.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      )}
-      
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+      {/* Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/30" />
       
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4">
@@ -60,7 +51,7 @@ const AdItem = ({ item, layout }) => {
           </p>
         )}
         
-        <h3 className={`text-sm md:text-base font-bold ${textColor} mb-1 line-clamp-1`}>
+        <h3 className={`text-sm md:text-base font-bold text-white mb-1 line-clamp-1`}>
           {item.title}
         </h3>
         
