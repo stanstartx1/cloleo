@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowRight, Sparkles, Zap, Star } from 'lucide-react';
+
 import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
@@ -19,6 +20,7 @@ import CategoryMarquee from '../components/CategoryMarquee';
 import AdStrip from '../components/AdStrip';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
+
 import { toAbsoluteMediaUrl } from '../utils/media';
 import { HOME_LAYOUT_VARIANTS, getRandomLayoutVariant } from '../config/homeLayoutVariants';
 import { API_URL, API_BASE } from '../config/api';
@@ -30,20 +32,6 @@ const DEFAULT_HOME_AD_STRIPS = [
   { id: 'partners', title: 'Espace Publicitaire - Marques Partenaires', subtitle: 'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.', tone: 'blue', enabled: true, media_type: 'none', media_url: '', link: '' },
   { id: 'premium', title: 'Espace Publicitaire - Sélection Premium', subtitle: 'Emplacements premium pour opérations spéciales, événements et mises en avant.', tone: 'green', enabled: true, media_type: 'none', media_url: '', link: '' },
   { id: 'flash', title: 'Espace Publicitaire - Ventes Flash', subtitle: 'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !', tone: 'red', enabled: true, media_type: 'none', media_url: '', link: '' },
-];
-
-const DEFAULT_TITLES = [
-  'Espace Publicitaire - Offres du Jour',
-  'Espace Publicitaire - Marques Partenaires',
-  'Espace Publicitaire - Sélection Premium',
-  'Espace Publicitaire - Ventes Flash'
-];
-
-const DEFAULT_SUBTITLES = [
-  'Mettez ici vos promos, annonces flash et nouveautés sponsorisées.',
-  'Zone dédiée aux campagnes partenaires, bannières saisonnières et bons plans.',
-  'Emplacements premium pour opérations spéciales, événements et mises en avant.',
-  'Offres limitées dans le temps, ne manquez pas ces bonnes affaires !'
 ];
 
 const sectionMotion = {
@@ -73,10 +61,10 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
   const imageRaw = side === 'left'
     ? (layoutSettings?.sidebar_image_left || '')
     : (layoutSettings?.sidebar_image_right || '');
-
   const image = imageRaw && imageRaw.startsWith('/')
     ? `${API_BASE}${imageRaw}`
     : imageRaw;
+
   const baseStyle = {
     position: 'fixed',
     top: topOffset,
@@ -98,12 +86,8 @@ const PageSidebar = ({ side = 'left', layoutSettings, topOffset = 0 }) => {
       }} />
     );
   }
-
   return (
-    <div style={{
-      ...baseStyle,
-      backgroundColor: color,
-    }} />
+    <div style={{ ...baseStyle, backgroundColor: color }} />
   );
 };
 
@@ -135,59 +119,39 @@ const HomePage = () => {
   const [newProductsRef, newProductsInView] = useInView();
   const [trendingRef, trendingInView] = useInView();
 
+  // === FETCH SETTINGS ===
   useEffect(() => {
     axios.get(`${API}/layout-settings`)
       .then(res => setLayoutSettings(res.data))
-      .catch(() => setLayoutSettings({
-        sidebar_type: 'color',
-        sidebar_color_left: '#f97316',
-        sidebar_color_right: '#f97316',
-        sidebar_image_left: '',
-        sidebar_image_right: '',
-        sidebar_width: 160,
-      }));
-  }, []);
+      .catch(() => setLayoutSettings({ sidebar_type: 'color', sidebar_color_left: '#f97316', sidebar_color_right: '#f97316', sidebar_width: 160 }));
 
-  useEffect(() => {
     axios.get(`${API}/ad-strip-settings`)
       .then(res => {
         const strips = Array.isArray(res.data?.strips) ? res.data.strips : DEFAULT_HOME_AD_STRIPS;
-        setAdStrips(DEFAULT_HOME_AD_STRIPS.map((fallback) => ({
+        setAdStrips(DEFAULT_HOME_AD_STRIPS.map(fallback => ({
           ...fallback,
-          ...(strips.find((strip) => strip.id === fallback.id) || {}),
+          ...(strips.find(s => s.id === fallback.id) || {}),
         })));
       })
       .catch(() => setAdStrips(DEFAULT_HOME_AD_STRIPS));
-  }, []);
 
-  useEffect(() => {
     axios.get(`${API}/trending-block-settings`)
-      .then(res => setTrendingBlockSettings(res.data || {
-        gradient_from: '#1e293b',
-        gradient_to: '#0f172a',
-        background_image: '',
-        enable_blurs: true,
-      }))
-      .catch(() => setTrendingBlockSettings({
-        gradient_from: '#1e293b',
-        gradient_to: '#0f172a',
-        background_image: '',
-        enable_blurs: true,
-      }));
+      .then(res => setTrendingBlockSettings(res.data || {}))
+      .catch(() => {});
   }, []);
 
+  // === FETCH DATA ===
   useEffect(() => {
     const fetchData = async () => {
       try {
         const fetchFeatured = async () => {
           try {
             const res = await axios.get(`${API}/products/featured?limit=12`);
-            const products = Array.isArray(res.data) ? res.data : (res.data?.products || []);
-            return products;
-          } catch (err) {
+            return Array.isArray(res.data) ? res.data : (res.data?.products || []);
+          } catch {
             const res = await axios.get(`${API}/products?limit=100`);
-            const allProducts = Array.isArray(res.data) ? res.data : (res.data?.products || []);
-            return allProducts.filter(p => p.is_featured === true);
+            const prods = Array.isArray(res.data) ? res.data : (res.data?.products || []);
+            return prods.filter(p => p.is_featured === true);
           }
         };
 
@@ -199,7 +163,7 @@ const HomePage = () => {
           axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
         ]);
 
-        setCategories(catRes.data);
+        setCategories(catRes.data || []);
         setFeaturedProducts(featured);
         setAllProducts(allRes.data?.products || allRes.data || []);
         setNewProducts(newRes.data?.products || newRes.data || []);
@@ -214,21 +178,17 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCategorySlideTick((prev) => prev + 1);
-    }, 3500);
+    const interval = setInterval(() => setCategorySlideTick(p => p + 1), 3500);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLayoutVariant(getRandomLayoutVariant());
-    }, 300000);
+    const interval = setInterval(() => setLayoutVariant(getRandomLayoutVariant()), 300000);
     return () => clearInterval(interval);
   }, []);
 
   const toggleConditionFilter = (key) => {
-    setConditionFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+    setConditionFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const activeConditions = Object.entries(conditionFilters)
@@ -239,24 +199,31 @@ const HomePage = () => {
     products.filter((product) => {
       const byCategory = selectedCategory === 'all' || product.category_slug === selectedCategory;
       const productCondition = (product.condition || '').toLowerCase();
-      const byCondition =
-        activeConditions.length === 0 ||
-        activeConditions.some((c) => {
-          if (c === 'presque_neuf') return productCondition.includes('presque');
-          return productCondition === c;
-        });
+      const byCondition = activeConditions.length === 0 ||
+        activeConditions.some(c => c === 'presque_neuf' ? productCondition.includes('presque') : productCondition === c);
       return byCategory && byCondition;
     });
 
-  const filteredTrendingProducts = applyProductFilters(trendingProducts);
-  const filteredNewProducts = applyProductFilters(newProducts);
+  const allVisibleProducts = useMemo(() => applyProductFilters([...featuredProducts, ...trendingProducts, ...newProducts]),
+    [featuredProducts, trendingProducts, newProducts, selectedCategory, conditionFilters]
+  );
+
+  const productByCategorySlug = useMemo(() => {
+    const map = {};
+    allVisibleProducts.forEach(product => {
+      if (!map[product.category_slug]) map[product.category_slug] = [];
+      map[product.category_slug].push(product);
+    });
+    return map;
+  }, [allVisibleProducts]);
+
   const activeCategories = categories.filter(c => c.is_active !== false);
-  const parentCategories = activeCategories.filter((c) => !c.parent_slug);
-  const subCategories = activeCategories.filter((c) => c.parent_slug);
+  const parentCategories = activeCategories.filter(c => !c.parent_slug);
+  const subCategories = activeCategories.filter(c => c.parent_slug);
 
   const subCategoriesByParent = useMemo(() => {
     const grouped = {};
-    subCategories.forEach((sub) => {
+    subCategories.forEach(sub => {
       if (!grouped[sub.parent_slug]) grouped[sub.parent_slug] = [];
       grouped[sub.parent_slug].push(sub);
     });
@@ -264,99 +231,60 @@ const HomePage = () => {
   }, [subCategories]);
 
   const buildLoopItems = useCallback((items, minBaseCount = 12) => {
-    if (!items || items.length === 0) return [];
+    if (!items?.length) return [];
     const repeats = Math.max(2, Math.ceil(minBaseCount / items.length));
     const base = Array.from({ length: repeats }).flatMap(() => items);
     return [...base, ...base];
   }, []);
 
-  const allVisibleProducts = useMemo(
-    () => applyProductFilters([...featuredProducts, ...trendingProducts, ...newProducts]),
-    [featuredProducts, trendingProducts, newProducts, selectedCategory, conditionFilters]
-  );
-
-  const productByCategorySlug = useMemo(() => {
-    const map = {};
-    allVisibleProducts.forEach((product) => {
-      if (!map[product.category_slug]) map[product.category_slug] = [];
-      map[product.category_slug].push(product);
-    });
-    return map;
-  }, [allVisibleProducts]);
-
-  const parentLoopItems = useMemo(
-    () => buildLoopItems(parentCategories, 14),
-    [parentCategories, buildLoopItems]
-  );
+  const parentLoopItems = useMemo(() => buildLoopItems(parentCategories, 14), [parentCategories, buildLoopItems]);
 
   const topRatedProducts = useMemo(() => {
-    const merged = allProducts.length
-      ? allProducts
-      : [...featuredProducts, ...newProducts, ...trendingProducts];
-    const deduped = merged.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
+    const merged = allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts];
+    const deduped = merged.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
     return applyProductFilters(deduped)
-      .filter((product) => {
-        const image = product.images?.[0] || product.main_image || product.image;
-        return image && !brokenTopProductImages[product.id];
+      .filter(p => {
+        const img = p.images?.[0] || p.main_image || p.image;
+        return img && !brokenTopProductImages[p.id];
       })
       .slice(0, 30);
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
   const marketplaceStripSourceProducts = useMemo(() => {
-    const merged = allProducts.length
-      ? allProducts
-      : [...featuredProducts, ...newProducts, ...trendingProducts];
-    const deduped = merged.filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i);
-    return applyProductFilters(deduped).filter((product) => {
-      const image = product.images?.[0] || product.main_image || product.image;
-      return image && !brokenTopProductImages[product.id];
+    const merged = allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts];
+    const deduped = merged.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
+    return applyProductFilters(deduped).filter(p => {
+      const img = p.images?.[0] || p.main_image || p.image;
+      return img && !brokenTopProductImages[p.id];
     });
   }, [allProducts, featuredProducts, newProducts, trendingProducts, selectedCategory, conditionFilters, brokenTopProductImages]);
 
   const pickMarketplaceProducts = useCallback((keywords) => {
-    const keywordList = keywords.map((keyword) => keyword.toLowerCase());
-    const matches = marketplaceStripSourceProducts.filter((product) => {
+    const keywordList = keywords.map(k => k.toLowerCase());
+    const matches = marketplaceStripSourceProducts.filter(product => {
       const haystack = [
-        product.name,
-        product.category_name,
-        product.category_slug,
-        product.subcategory_name,
-        product.subcategory_slug,
-        ...(product.tags || []),
+        product.name, product.category_name, product.category_slug,
+        product.subcategory_name, product.subcategory_slug,
+        ...(product.tags || [])
       ].filter(Boolean).join(' ').toLowerCase();
-      return keywordList.some((keyword) => haystack.includes(keyword));
+      return keywordList.some(k => haystack.includes(k));
     });
-    return [...matches]
-      .filter((product, index, arr) => arr.findIndex((item) => item.id === product.id) === index)
+    return [...new Set(matches.map(m => m.id))]
+      .map(id => matches.find(m => m.id === id))
       .slice(0, 7);
   }, [marketplaceStripSourceProducts]);
 
   const marketplaceProductStrips = useMemo(() => ([
-    {
-      title: 'Sponsor officiel | Smart Technology',
-      href: '/produits?search=smart',
-      tone: 'red',
-      products: pickMarketplaceProducts(['smart', 'tech', 'ordinateur', 'pc', 'laptop'], 0),
-    },
-    {
-      title: 'Les vrais kiens du moment | 14 ans avec vous',
-      href: '/produits?sort_by=sales_count',
-      tone: 'orange',
-      products: pickMarketplaceProducts(['mode', 'chaussure', 'vetement', 'fashion', 'accessoire'], 7),
-    },
-    {
-      title: 'Smartphones | 14 ans avec vous',
-      href: '/produits?search=smartphone',
-      tone: 'green',
-      products: pickMarketplaceProducts(['phone', 'iphone', 'samsung', 'smartphone', 'xiaomi', 'redmi'], 14),
-    },
-    {
-      title: 'TVs & Audio | 14 ans avec vous',
-      href: '/produits?search=audio',
-      tone: 'orange',
-      products: pickMarketplaceProducts(['tv', 'audio', 'speaker', 'casque', 'ecouteur', 'sound'], 21),
-    },
+    { title: 'Sponsor officiel | Smart Technology', href: '/produits?search=smart', tone: 'red', products: pickMarketplaceProducts(['smart', 'tech', 'ordinateur', 'pc', 'laptop']) },
+    { title: 'Les vrais kiens du moment | 14 ans avec vous', href: '/produits?sort_by=sales_count', tone: 'orange', products: pickMarketplaceProducts(['mode', 'chaussure', 'vetement', 'fashion', 'accessoire']) },
+    { title: 'Smartphones | 14 ans avec vous', href: '/produits?search=smartphone', tone: 'green', products: pickMarketplaceProducts(['phone', 'iphone', 'samsung', 'smartphone', 'xiaomi', 'redmi']) },
+    { title: 'TVs & Audio | 14 ans avec vous', href: '/produits?search=audio', tone: 'orange', products: pickMarketplaceProducts(['tv', 'audio', 'speaker', 'casque', 'ecouteur', 'sound']) },
   ]), [pickMarketplaceProducts]);
+
+  const allProductsMerged = useMemo(() => 
+    allProducts.length ? allProducts : [...featuredProducts, ...newProducts, ...trendingProducts],
+    [allProducts, featuredProducts, newProducts, trendingProducts]
+  );
 
   const sidebarW = layoutSettings?.sidebar_width || 0;
   const showSidebars = layoutSettings !== null && sidebarW > 0;
@@ -367,25 +295,18 @@ const HomePage = () => {
   useEffect(() => {
     const el = heroContentRef.current;
     if (!el) return;
-
     const updateHeight = () => setHeroSidebarHeight(el.offsetHeight);
-
     updateHeight();
     const observer = new ResizeObserver(updateHeight);
     observer.observe(el);
     window.addEventListener('resize', updateHeight);
-
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', updateHeight);
     };
-  }, [adStrips.length, loading]);
+  }, [loading]);
 
   const activeAdStrips = adStrips.filter(strip => strip.enabled !== false);
-
-  const allProductsMerged = allProducts.length
-    ? allProducts
-    : [...featuredProducts, ...newProducts, ...trendingProducts];
 
   return (
     <div className="min-h-screen overflow-hidden bg-transparent" data-testid="home-page">
@@ -397,51 +318,37 @@ const HomePage = () => {
       <div className="w-full home-page-hero-wrapper">
         <div className="site-container pt-2 pb-3">
           <div className="hero-zone-grid grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
-            <div
-              className="hidden lg:block overflow-hidden shrink-0"
-              style={heroSidebarHeight ? { height: `${heroSidebarHeight}px` } : undefined}
-            >
+            <div className="hidden lg:block overflow-hidden shrink-0" style={heroSidebarHeight ? { height: `${heroSidebarHeight}px` } : undefined}>
               <CategorySidebar />
             </div>
             <div ref={heroContentRef} className="hero-zone-content min-w-0">
               <HeroSection
-                bottomBlocks={
-                  activeAdStrips.length > 0
-                    ? activeAdStrips.map((strip, idx) => (
-                        <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
-                      ))
-                    : null
-                }
+                bottomBlocks={activeAdStrips.length > 0 ? activeAdStrips.map((strip, idx) => (
+                  <AdHorizontalStrip key={strip.id} strip={strip} index={idx} />
+                )) : null}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ===== CATÉGORIES ===== */}
       <div className="w-full bg-white">
         <div className="site-container pt-1">
           <CategoriesGrid />
         </div>
       </div>
 
-      {/* ===== SOUS-CATÉGORIE ALÉATOIRE ===== */}
       <SubCategorySpotlight />
 
-      {/* ===== TOP PRODUITS ===== */}
       <HomeTopRatedProducts
         loading={loading}
         topRatedProducts={topRatedProducts}
-        onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
+        onImageMissing={(productId) => setBrokenTopProductImages(prev => ({ ...prev, [productId]: true }))}
       />
 
-      {/* ===== DROPS CAROUSEL (fond sombre) ===== */}
-      <CategoryProductsCarousel
-        categories={categories}
-        products={allProductsMerged}
-      />
+      <CategoryProductsCarousel categories={categories} products={allProductsMerged} />
 
-      {/* ===== SECTION NOUVEAUTÉS ===== */}
+      {/* Section Nouveautés */}
       <div className="w-full bg-white">
         <div className="site-container pb-12">
           {loading ? (
@@ -454,7 +361,7 @@ const HomePage = () => {
                 </div>
               ))}
             </div>
-          ) : !newProducts || newProducts.length === 0 ? (
+          ) : !newProducts?.length ? (
             <div className="py-14 text-center text-slate-400">
               <Sparkles className="mx-auto mb-3 h-12 w-12 opacity-20" />
               <p className="font-semibold">Aucun nouveau produit disponible</p>
@@ -462,7 +369,7 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-              {newProducts.slice(0, 20).map((product) => (
+              {newProducts.slice(0, 20).map(product => (
                 <ProductCard key={product.id} product={product} className="scale-[0.94]" />
               ))}
             </div>
@@ -470,17 +377,18 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ===== OUTLET CAROUSEL (fond blanc, filtres condition) ===== */}
-      <OutletCarousel
-        categories={categories}
-        products={allProductsMerged}
-      />
+      {/* ===== OUTLET CAROUSEL - Protégé ===== */}
+      {!loading && allProductsMerged.length > 0 && (
+        <OutletCarousel
+          categories={categories}
+          products={allProductsMerged}
+        />
+      )}
 
       {/* ===== RESTE DE LA PAGE ===== */}
       <div className="w-full">
         <div className="w-full">
           <div className="site-container" />
-
           <NotificationFeed notifications={[
             { user: 'Marie D.', action: "vient d'acheter", product: 'Robe Africaine', time: 'il y a 2 min' },
             { user: 'Kofi A.', action: 'a ajouté aux favoris', product: 'Montre Casio', time: 'il y a 5 min' },
@@ -506,7 +414,7 @@ const HomePage = () => {
               ) : (
                 <MarketplaceProductStrips
                   marketplaceProductStrips={marketplaceProductStrips}
-                  onImageMissing={(productId) => setBrokenTopProductImages((prev) => ({ ...prev, [productId]: true }))}
+                  onImageMissing={(productId) => setBrokenTopProductImages(prev => ({ ...prev, [productId]: true }))}
                 />
               )}
             </div>
@@ -536,7 +444,12 @@ const HomePage = () => {
             sectionClassName="py-5 bg-white border-y border-slate-100 overflow-hidden"
           />
 
-          <AdStrip stripId="premium" tone="green" title="Espace Publicitaire - Sélection Premium" subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." />
+          <AdStrip 
+            stripId="premium" 
+            tone="green" 
+            title="Espace Publicitaire - Sélection Premium" 
+            subtitle="Emplacements premium pour opérations spéciales, événements et mises en avant." 
+          />
 
           <section className="py-16 bg-gradient-to-b from-orange-50 to-white overflow-hidden">
             <div className="site-container mb-8">
@@ -557,58 +470,19 @@ const HomePage = () => {
       </div>
 
       <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
-        }
+        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
         .animate-float { animation: float 4s ease-in-out infinite; }
-        @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
+        @keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
         .animate-marquee { animation: marquee 30s linear infinite; }
-        @keyframes marquee-cats {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-100% - 1.25rem)); }
-        }
-        .continuous-marquee {
-          display: flex;
-          width: max-content;
-          gap: 1.25rem;
-          padding: 0 1rem;
-        }
-        .continuous-marquee-track {
-          display: flex;
-          gap: 1.25rem;
-          flex-shrink: 0;
-          will-change: transform;
-        }
-        .continuous-marquee-track-cats {
-          animation: marquee-cats 150s linear infinite;
-        }
-        @keyframes selection-products-scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-50% - 0.5rem)); }
-        }
-        .selection-products-marquee {
-          overflow: hidden;
-          width: 100%;
-        }
-        .selection-products-track {
-          display: flex;
-          width: max-content;
-          gap: 1rem;
-          will-change: transform;
-          animation: selection-products-scroll 56s linear infinite;
-        }
-        .selection-products-marquee:hover .selection-products-track {
-          animation-play-state: paused;
-        }
-        @media (min-width: 768px) {
-          .continuous-marquee:hover .continuous-marquee-track {
-            animation-play-state: paused;
-          }
-        }
+        @keyframes marquee-cats { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-100% - 1.25rem)); } }
+        .continuous-marquee { display: flex; width: max-content; gap: 1.25rem; padding: 0 1rem; }
+        .continuous-marquee-track { display: flex; gap: 1.25rem; flex-shrink: 0; will-change: transform; }
+        .continuous-marquee-track-cats { animation: marquee-cats 150s linear infinite; }
+        @keyframes selection-products-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50% - 0.5rem)); } }
+        .selection-products-marquee { overflow: hidden; width: 100%; }
+        .selection-products-track { display: flex; width: max-content; gap: 1rem; will-change: transform; animation: selection-products-scroll 56s linear infinite; }
+        .selection-products-marquee:hover .selection-products-track { animation-play-state: paused; }
+        @media (min-width: 768px) { .continuous-marquee:hover .continuous-marquee-track { animation-play-state: paused; } }
         @media (max-width: 767px) {
           .continuous-marquee { width: max-content; }
           .continuous-marquee-track { animation: none; }
@@ -619,4 +493,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;s
+export default HomePage;
