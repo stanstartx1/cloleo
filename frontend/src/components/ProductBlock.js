@@ -1,46 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import React, { useMemo } from 'react';
 import ProductCard from './ProductCard';
-import { API_URL } from '../config/api';
 
-const API = API_URL;
-
-const ProductBlock = ({ title, limit = 12, category = null, keywords = [] }) => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        let params = { limit: '100' };
-        
-        if (category) {
-          params.category = category;
-        }
-        
-        if (keywords.length > 0) {
-          params.search = keywords.join(' ');
-        }
-        
-        const response = await axios.get(`${API}/products`, { params });
-        let allProducts = response.data?.products || response.data || [];
-        
-        // Mélanger les produits pour avoir des résultats différents à chaque chargement
-        allProducts = shuffleArray(allProducts);
-        
-        setProducts(allProducts.slice(0, limit));
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [limit, category, keywords]);
-
+const ProductBlock = ({ allProducts, limit = 12, category = null, keywords = [] }) => {
   // Fonction pour mélanger un tableau (Fisher-Yates shuffle)
   const shuffleArray = (array) => {
     const shuffled = [...array];
@@ -51,25 +12,39 @@ const ProductBlock = ({ title, limit = 12, category = null, keywords = [] }) => 
     return shuffled;
   };
 
-  if (loading) {
-    return (
-      <section className="w-full bg-white py-4">
-        <div className="site-container">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-            {[...Array(limit)].map((_, i) => (
-              <div key={i} className="bg-white p-2">
-                <div className="aspect-square bg-slate-200 rounded-xl animate-pulse" />
-                <div className="mt-2 h-4 bg-slate-200 rounded animate-pulse" />
-                <div className="mt-2 h-4 w-20 bg-slate-200 rounded animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const filteredProducts = useMemo(() => {
+    if (!allProducts || allProducts.length === 0) return [];
+    
+    let products = [...allProducts];
+    
+    // Filtrer par catégorie si spécifiée
+    if (category) {
+      products = products.filter(p => p.category_slug === category);
+    }
+    
+    // Filtrer par mots-clés si spécifiés
+    if (keywords.length > 0) {
+      const keywordList = keywords.map(k => k.toLowerCase());
+      products = products.filter(product => {
+        const haystack = [
+          product.name,
+          product.category_name,
+          product.category_slug,
+          product.subcategory_name,
+          product.subcategory_slug,
+          ...(product.tags || [])
+        ].filter(Boolean).join(' ').toLowerCase();
+        return keywordList.some(k => haystack.includes(k));
+      });
+    }
+    
+    // Mélanger pour avoir des résultats différents
+    products = shuffleArray(products);
+    
+    return products.slice(0, limit);
+  }, [allProducts, limit, category, keywords]);
 
-  if (products.length === 0) {
+  if (filteredProducts.length === 0) {
     return null;
   }
 
@@ -77,7 +52,7 @@ const ProductBlock = ({ title, limit = 12, category = null, keywords = [] }) => 
     <section className="w-full bg-white py-4">
       <div className="site-container">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} className="scale-[0.94]" />
           ))}
         </div>

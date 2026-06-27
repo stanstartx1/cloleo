@@ -17,6 +17,7 @@ import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
 import AdSection from '../components/AdSection';
 import ProductBlock from '../components/ProductBlock';
+import ProductCarousel from '../components/ProductCarousel';
 
 import { API_URL, API_BASE } from '../config/api';
 
@@ -323,8 +324,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 1 */}
-      <ProductBlock limit={12} keywords={["smartphone", "laptop", "ecouteurs"]} />
+      {/* Bloc de produits aléatoires 1 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["smartphone", "laptop", "ecouteurs"]} interval={1000} />
 
       {/* Section 2 - 5 colonnes */}
       <AdSection 
@@ -370,8 +371,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 2 */}
-      <ProductBlock limit={12} keywords={["mode", "chaussures", "vetements"]} />
+      {/* Bloc de produits aléatoires 2 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["mode", "chaussures", "vetements"]} interval={1000} />
 
       {/* Section 3 - 3 colonnes */}
       <AdSection 
@@ -403,8 +404,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 3 */}
-      <ProductBlock limit={12} keywords={["tv", "audio", "video"]} />
+      {/* Bloc de produits aléatoires 3 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["tv", "audio", "video"]} interval={1000} />
 
       {/* Section 4 - 5 colonnes */}
       <AdSection 
@@ -450,8 +451,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 4 */}
-      <ProductBlock limit={12} keywords={["maison", "decoration", "mobilier"]} />
+      {/* Bloc de produits aléatoires 4 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["maison", "decoration", "mobilier"]} interval={1000} />
 
       {/* Section 5 - 3 colonnes */}
       <AdSection 
@@ -483,8 +484,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 5 */}
-      <ProductBlock limit={12} keywords={["sport", "fitness", "exercice"]} />
+      {/* Bloc de produits aléatoires 5 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["sport", "fitness", "exercice"]} interval={1000} />
 
       {/* Section 6 - 5 colonnes */}
       <AdSection 
@@ -530,8 +531,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 6 */}
-      <ProductBlock limit={12} keywords={["beaute", "cosmetique", "soin"]} />
+      {/* Bloc de produits aléatoires 6 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["beaute", "cosmetique", "soin"]} interval={1000} />
 
       {/* Section 7 - 3 colonnes */}
       <AdSection 
@@ -563,8 +564,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 7 */}
-      <ProductBlock limit={12} keywords={["auto", "moto", "accessoires-auto"]} />
+      {/* Bloc de produits aléatoires 7 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["auto", "moto", "accessoires-auto"]} interval={1000} />
 
       {/* Section 8 - 5 colonnes */}
       <AdSection 
@@ -610,8 +611,8 @@ const HomePage = () => {
         ]}
       />
 
-      {/* Bloc de produits aléatoires 8 */}
-      <ProductBlock limit={12} keywords={["electronique", "gadget", "tech"]} />
+      {/* Bloc de produits aléatoires 8 - Carrousel animé */}
+      <ProductCarousel allProducts={allProductsMerged} limit={12} keywords={["electronique", "gadget", "tech"]} interval={1000} />
 
       <style>{`
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
