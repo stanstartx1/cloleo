@@ -2,45 +2,41 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteMediaUrl } from '../utils/media';
 
-const CARD_WIDTH = 160;
-const CARD_GAP = 12;
-const LEFT_PANEL_WIDTH = 240;
+const CARD_WIDTH = 190;
+const CARD_GAP = 14;
+const LEFT_PANEL_WIDTH = 260;
 
-/* ─── Carte produit taille fixe ─────────────────────────────────────────────── */
+/* ─── Carte produit ─────────────────────────────────────────────────────────── */
 const DropCard = ({ product, isLive }) => {
   const image = product.images?.[0] || product.main_image || product.image || null;
   const imageUrl = image ? toAbsoluteMediaUrl(image) : null;
-  const price = product.price ? Number(product.price).toLocaleString('fr-FR') + ' FCFA' : null;
+  const price = product.price
+    ? Number(product.price).toLocaleString('fr-FR') + ' FCFA'
+    : null;
 
   return (
     <Link
       to={`/produits/${product.slug || product.id}`}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#fff',
-        borderRadius: '12px',
+        display: 'flex', flexDirection: 'column',
+        backgroundColor: '#fff', borderRadius: '14px',
         overflow: 'hidden',
-        width: `${CARD_WIDTH}px`,
-        minWidth: `${CARD_WIDTH}px`,
-        height: '220px',
-        textDecoration: 'none',
-        color: 'inherit',
-        flexShrink: 0,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-        transition: 'transform 0.18s, box-shadow 0.18s',
+        width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`, height: '265px',
+        textDecoration: 'none', color: 'inherit', flexShrink: 0,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        transition: 'transform 0.2s, box-shadow 0.2s',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-3px)';
-        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.22)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.28)';
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.18)';
       }}
     >
       {/* Badge */}
-      <div style={{ padding: '7px 10px 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+      <div style={{ padding: '8px 12px 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
         {isLive ? (
           <>
             <span style={{
@@ -48,39 +44,48 @@ const DropCard = ({ product, isLive }) => {
               backgroundColor: '#ff3b3b', display: 'inline-block', flexShrink: 0,
               animation: 'dropsPulse 1.4s ease-in-out infinite',
             }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: '#ff3b3b', whiteSpace: 'nowrap' }}>En direct</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: '#ff3b3b', letterSpacing: '0.03em' }}>EN DIRECT</span>
           </>
         ) : (
-          <span style={{ fontSize: '10px', color: '#bbb', whiteSpace: 'nowrap' }}>○ Nouveauté</span>
+          <span style={{ fontSize: '10px', color: '#bbb', letterSpacing: '0.03em' }}>NOUVEAUTÉ</span>
         )}
       </div>
 
-      {/* Image — taille fixe */}
+      {/* Image */}
       <div style={{
-        width: '100%', height: '120px', flexShrink: 0,
+        width: '100%', height: '148px', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: '#f5f5f5', padding: '8px',
+        backgroundColor: '#f7f7f7', padding: '10px',
       }}>
         {imageUrl ? (
           <img src={imageUrl} alt={product.name}
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             onError={e => { e.target.style.display = 'none'; }} />
         ) : (
-          <span style={{ fontSize: '32px' }}>📦</span>
+          <span style={{ fontSize: '40px', opacity: 0.3 }}>📦</span>
         )}
       </div>
 
-      {/* Texte */}
-      <div style={{ padding: '6px 10px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: '3px', overflow: 'hidden' }}>
+      {/* Séparateur */}
+      <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '0 12px' }} />
+
+      {/* Nom + Prix */}
+      <div style={{ padding: '9px 12px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <p style={{
-          margin: 0, fontSize: '11px', fontWeight: 500, color: '#222',
-          lineHeight: 1.35, display: '-webkit-box',
-          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          margin: 0, fontSize: '12px', fontWeight: 500, color: '#333',
+          lineHeight: 1.4,
+          display: '-webkit-box', WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>
           {product.name}
         </p>
         {price && (
-          <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#111' }}>{price}</p>
+          <p style={{
+            margin: '6px 0 0', fontSize: '14px', fontWeight: 800,
+            color: '#111', letterSpacing: '-0.01em',
+          }}>
+            {price}
+          </p>
         )}
       </div>
     </Link>
@@ -91,7 +96,6 @@ const DropCard = ({ product, isLive }) => {
 const CategoryProductsCarousel = ({ categories, products }) => {
   const [offset, setOffset] = useState(0);
   const [paused, setPaused] = useState(false);
-  const trackRef = useRef(null);
 
   /* Catégories parentes actives */
   const parentCategories = useMemo(
@@ -99,19 +103,21 @@ const CategoryProductsCarousel = ({ categories, products }) => {
     [categories]
   );
 
-  /* Catégorie aléatoire (stable par session) */
+  /* Catégorie aléatoire stable par session */
   const pickedCategory = useMemo(() => {
     if (!parentCategories.length) return null;
     return parentCategories[Math.floor(Math.random() * parentCategories.length)];
   }, [parentCategories]);
 
-  /* Sous-catégories */
+  /* Sous-catégories de cette catégorie */
   const subSlugs = useMemo(() => {
     if (!pickedCategory) return new Set();
-    return new Set(categories.filter(c => c.parent_slug === pickedCategory.slug).map(c => c.slug));
+    return new Set(
+      categories.filter(c => c.parent_slug === pickedCategory.slug).map(c => c.slug)
+    );
   }, [categories, pickedCategory]);
 
-  /* Produits de la catégorie + sous-catégories */
+  /* Produits catégorie + sous-catégories */
   const categoryProducts = useMemo(() => {
     if (!pickedCategory || !Array.isArray(products)) return [];
     const filtered = products.filter(p =>
@@ -126,101 +132,105 @@ const CategoryProductsCarousel = ({ categories, products }) => {
   /* Avance d'une carte par seconde */
   useEffect(() => {
     if (!categoryProducts.length || paused) return;
-    const maxOffset = categoryProducts.length * (CARD_WIDTH + CARD_GAP);
+    const step = CARD_WIDTH + CARD_GAP;
+    const maxOffset = categoryProducts.length * step;
     const interval = setInterval(() => {
-      setOffset(prev => (prev + CARD_WIDTH + CARD_GAP) % maxOffset);
-    }, 1000);
+      setOffset(prev => (prev + step) % maxOffset);
+    }, 1800);
     return () => clearInterval(interval);
   }, [categoryProducts, paused]);
 
   if (!pickedCategory || !categoryProducts.length) return null;
 
   const categoryLink = pickedCategory.slug ? `/categories/${pickedCategory.slug}` : '/produits';
-
-  /* On duplique les produits pour l'effet infini */
   const loopedProducts = [...categoryProducts, ...categoryProducts];
 
   return (
     <section
-      style={{ width: '100%', backgroundColor: '#111', color: '#fff', position: 'relative', overflow: 'hidden' }}
+      style={{ width: '100%', background: 'linear-gradient(135deg, #0d1117 0%, #161b22 100%)', color: '#fff', position: 'relative', overflow: 'hidden', margin: 0, padding: 0 }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* ── Bandeau top ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px',
-        padding: '11px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)',
-      }}>
-        <span style={{
-          backgroundColor: '#C8F000', color: '#111', fontWeight: 900,
-          fontSize: '12px', padding: '2px 9px', borderRadius: '4px', letterSpacing: '0.06em',
-        }}>DROPS</span>
-        <span style={{ fontSize: '13px', color: '#C8F000', fontWeight: 600 }}>⚡ Exclusivité du moment</span>
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
-          Sélection <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{pickedCategory.name}</strong> — actualisée à chaque visite.
-        </span>
-      </div>
-
       {/* ── Corps ── */}
-      <div style={{ position: 'relative', minHeight: '270px' }}>
+      <div style={{ position: 'relative', minHeight: '320px', display: 'flex', alignItems: 'center' }}>
 
-        {/* Panneau gauche — flottant par-dessus les cartes */}
+        {/* Panneau gauche flottant */}
         <div style={{
           position: 'absolute', top: 0, left: 0, bottom: 0,
-          width: `${LEFT_PANEL_WIDTH}px`,
-          zIndex: 10,
-          background: 'linear-gradient(to right, #111 78%, transparent)',
-          padding: '22px 20px',
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px',
+          width: `${LEFT_PANEL_WIDTH}px`, zIndex: 10,
+          background: `linear-gradient(to right, #0d1117 65%, transparent)`,
+          padding: '32px 28px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '18px',
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <span style={{
-                width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ff3b3b',
-                display: 'inline-block', flexShrink: 0,
-                animation: 'dropsPulse 1.4s ease-in-out infinite',
-              }} />
-              <span style={{ fontWeight: 700, fontSize: '13px' }}>Lâcher en direct</span>
-            </div>
-            <h3 style={{ margin: 0, fontSize: '19px', fontWeight: 800, lineHeight: 1.2, color: '#fff' }}>
-              {pickedCategory.name}
-            </h3>
-            <p style={{ margin: 0, fontSize: '11.5px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
-              Les meilleures pièces de cette catégorie et ses sous-catégories. Ne laisse pas passer ta chance.
-            </p>
+          {/* Badge DROPS */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', width: 'fit-content' }}>
+            <span style={{
+              backgroundColor: '#C8F000', color: '#0d1117',
+              fontWeight: 900, fontSize: '11px', padding: '3px 9px',
+              borderRadius: '4px', letterSpacing: '0.08em',
+            }}>DROPS</span>
+            <span style={{
+              width: '7px', height: '7px', borderRadius: '50%',
+              backgroundColor: '#ff3b3b', display: 'inline-block',
+              animation: 'dropsPulse 1.4s ease-in-out infinite',
+            }} />
           </div>
 
-          <Link to={categoryLink} style={{ textDecoration: 'none' }}>
+          {/* Titre */}
+          <div>
+            <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              Sélection du moment
+            </p>
+            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 900, lineHeight: 1.15, color: '#fff', letterSpacing: '-0.02em' }}>
+              {pickedCategory.name}
+            </h2>
+          </div>
+
+          {/* Description */}
+          <p style={{ margin: 0, fontSize: '12.5px', color: 'rgba(255,255,255,0.42)', lineHeight: 1.65, maxWidth: '200px' }}>
+            Les meilleures pièces de cette catégorie, actualisées à chaque visite. Ne passe pas à côté.
+          </p>
+
+          {/* CTA */}
+          <Link to={categoryLink} style={{ textDecoration: 'none', marginTop: '4px' }}>
             <button
               style={{
-                width: '100%', padding: '9px 0',
-                border: '1px solid rgba(255,255,255,0.18)', borderRadius: '8px',
-                backgroundColor: 'transparent', color: '#fff',
-                fontWeight: 600, fontSize: '12px', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '10px 18px',
+                background: 'rgba(200,240,0,0.12)',
+                border: '1px solid rgba(200,240,0,0.35)',
+                borderRadius: '8px',
+                color: '#C8F000', fontWeight: 700, fontSize: '12px',
+                cursor: 'pointer', transition: 'background 0.2s, border-color 0.2s',
+                letterSpacing: '0.01em',
               }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(200,240,0,0.2)';
+                e.currentTarget.style.borderColor = 'rgba(200,240,0,0.6)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(200,240,0,0.12)';
+                e.currentTarget.style.borderColor = 'rgba(200,240,0,0.35)';
+              }}
             >
-              Voir toute la sélection →
+              Voir la sélection <span style={{ fontSize: '14px' }}>→</span>
             </button>
           </Link>
         </div>
 
-        {/* Track des cartes — commence sous le panneau gauche */}
-        <div style={{ overflow: 'hidden', paddingLeft: `${LEFT_PANEL_WIDTH - 20}px` }}>
+        {/* Track des cartes */}
+        <div style={{ overflow: 'hidden', paddingLeft: `${LEFT_PANEL_WIDTH - 30}px`, width: '100%' }}>
           <div
-            ref={trackRef}
             style={{
-              display: 'flex',
-              gap: `${CARD_GAP}px`,
-              padding: '24px 24px 24px 0',
+              display: 'flex', gap: `${CARD_GAP}px`,
+              padding: '28px 28px 28px 0',
               transform: `translateX(-${offset}px)`,
-              transition: paused ? 'none' : 'transform 0.6s cubic-bezier(0.4,0,0.2,1)',
+              transition: paused ? 'none' : 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
               willChange: 'transform',
             }}
           >
             {loopedProducts.map((product, i) => (
-              <DropCard key={`${product.id}-${i}`} product={product} isLive={i === 0} />
+              <DropCard key={`${product.id}-${i}`} product={product} isLive={i % categoryProducts.length === 0} />
             ))}
           </div>
         </div>
@@ -229,7 +239,7 @@ const CategoryProductsCarousel = ({ categories, products }) => {
       <style>{`
         @keyframes dropsPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 0.25; transform: scale(0.75); }
         }
       `}</style>
     </section>
