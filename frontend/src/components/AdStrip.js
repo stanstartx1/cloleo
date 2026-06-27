@@ -2,8 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteMediaUrl } from '../utils/media';
 
-const AdStrip = ({ stripId, tone = 'orange', title, subtitle, adStrips }) => {
-  const configuredStrip = adStrips.find((strip) => strip.id === stripId);
+const AdStrip = ({ stripId, tone = 'orange', title, subtitle, adStrips = [] }) => {
+  const configuredStrip = Array.isArray(adStrips)
+    ? adStrips.find((strip) => strip.id === stripId)
+    : undefined;
   const strip = {
     title,
     subtitle,
