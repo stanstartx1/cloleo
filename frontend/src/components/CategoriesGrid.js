@@ -73,11 +73,16 @@ const CategoriesGrid = () => {
         const imageUrl = getCategoryImage(category);
         const subCount = category.subcategories_count || 0;
         
+        if (!category.slug) {
+          console.warn('Category missing slug:', category);
+          return null;
+        }
+        
         return (
           <Link
             key={category.id}
             to={`/categories/${category.slug}`}
-            className="group flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1"
+            className="group flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 relative z-10"
           >
             {/* Conteneur image - format carré avec bord arrondi */}
             <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 shadow-md group-hover:shadow-xl transition-all duration-300">
