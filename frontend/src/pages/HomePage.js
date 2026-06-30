@@ -16,7 +16,7 @@ import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
 import CategorySplitPromoBanner from '../components/CategorySplitPromoBanner';
-import PopularCategoryCarousels from '../components/PopularCategoryCarousels';
+import HomeRandomLayoutProducts from '../components/HomeRandomLayoutProducts';
 
 import { API_URL, API_BASE } from '../config/api';
 
@@ -37,6 +37,7 @@ const HomePage = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading,          setLoading]          = useState(true);
   const [brokenTopProductImages, setBrokenTopProductImages] = useState({});
+  const [brokenRandomLayoutImages, setBrokenRandomLayoutImages] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [conditionFilters, setConditionFilters] = useState({ neuf: false, occasion: false, presque_neuf: false });
   const [layoutSettings,   setLayoutSettings]   = useState(null);
@@ -119,6 +120,15 @@ const HomePage = () => {
       .slice(0, 30);
   }, [allProductsMerged, applyProductFilters, brokenTopProductImages]);
 
+  const randomLayoutProducts = useMemo(() => {
+    const deduped = allProductsMerged.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
+    return deduped
+      .filter(p => {
+        const img = p.images?.[0] || p.main_image || p.image;
+        return img && !brokenRandomLayoutImages[p.id];
+      });
+  }, [allProductsMerged, brokenRandomLayoutImages]);
+
   const heroContentRef = useRef(null);
   const [heroSidebarHeight, setHeroSidebarHeight] = useState(null);
   useEffect(() => {
@@ -175,11 +185,6 @@ const HomePage = () => {
       {/* ── DROPS Carousel ── */}
       <CategoryProductsCarousel categories={categories} products={allProductsMerged} />
 
-      {/* ── Bannière promo catégorie (style KSP) ── */}
-      {!loading && categories.length > 0 && (
-        <CategorySplitPromoBanner categories={categories} products={allProductsMerged} />
-      )}
-
       {/* ── Nouveautés ── */}
       <div className="w-full bg-white">
         <div className="site-container pb-12">
@@ -206,10 +211,17 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ── Populaires par catégorie (carrousel par saut) ── */}
-      {!loading && categories.length > 0 && allProductsMerged.length > 0 && (
-        <PopularCategoryCarousels categories={categories} products={allProductsMerged} />
+      {/* ── Bannière promo catégorie (style KSP) ── */}
+      {!loading && categories.length > 0 && (
+        <CategorySplitPromoBanner categories={categories} products={allProductsMerged} />
       )}
+
+      {/* ── Produits disposition aléatoire (entre carrousels) ── */}
+      <HomeRandomLayoutProducts
+        loading={loading}
+        products={randomLayoutProducts}
+        onImageMissing={id => setBrokenRandomLayoutImages(p => ({ ...p, [id]: true }))}
+      />
 
       {/* ── Outlet Carousel ── */}
       {!loading && allProductsMerged.length > 0 && (
