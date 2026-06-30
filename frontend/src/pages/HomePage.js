@@ -15,7 +15,6 @@ import AdHorizontalStrip from '../components/AdHorizontalStrip';
 import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
-import CategorySplitPromoBanner from '../components/CategorySplitPromoBanner';
 import HomeRandomLayoutProducts from '../components/HomeRandomLayoutProducts';
 
 import { API_URL, API_BASE } from '../config/api';
@@ -38,6 +37,7 @@ const HomePage = () => {
   const [loading,          setLoading]          = useState(true);
   const [brokenTopProductImages, setBrokenTopProductImages] = useState({});
   const [brokenRandomLayoutImages, setBrokenRandomLayoutImages] = useState({});
+  const [upperOutletSlug, setUpperOutletSlug] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [conditionFilters, setConditionFilters] = useState({ neuf: false, occasion: false, presque_neuf: false });
   const [layoutSettings,   setLayoutSettings]   = useState(null);
@@ -211,9 +211,13 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ── Bannière promo catégorie (style KSP) ── */}
-      {!loading && categories.length > 0 && (
-        <CategorySplitPromoBanner categories={categories} products={allProductsMerged} />
+      {/* ── Carrousel catégorie (style Outlet) ── */}
+      {!loading && allProductsMerged.length > 0 && (
+        <OutletCarousel
+          categories={categories}
+          products={allProductsMerged}
+          onCategoryPick={setUpperOutletSlug}
+        />
       )}
 
       {/* ── Produits disposition aléatoire (entre carrousels) ── */}
@@ -225,7 +229,11 @@ const HomePage = () => {
 
       {/* ── Outlet Carousel ── */}
       {!loading && allProductsMerged.length > 0 && (
-        <OutletCarousel categories={categories} products={allProductsMerged} />
+        <OutletCarousel
+          categories={categories}
+          products={allProductsMerged}
+          excludeSlug={upperOutletSlug}
+        />
       )}
 
       <style>{`

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteMediaUrl } from '../utils/media';
 
@@ -148,10 +148,11 @@ const OutletCard = ({ product }) => {
 };
 
 /* ─── Composant principal ───────────────────────────────────────────────────── */
-const OutletCarousel = ({ categories, products }) => {
+const OutletCarousel = ({ categories, products, excludeSlug = null, onCategoryPick }) => {
   const [activeCondition, setActiveCondition] = useState('all');
   const [offset, setOffset] = useState(0);
   const [paused, setPaused] = useState(false);
+  const pickRef = useRef(null);
 
   /* Catégorie aléatoire parente */
   const parentCategories = useMemo(
@@ -161,8 +162,21 @@ const OutletCarousel = ({ categories, products }) => {
 
   const pickedCategory = useMemo(() => {
     if (!parentCategories.length) return null;
-    return parentCategories[Math.floor(Math.random() * parentCategories.length)];
-  }, [parentCategories]);
+    if (pickRef.current) return pickRef.current;
+
+    const pool = excludeSlug
+      ? parentCategories.filter(c => c.slug !== excludeSlug)
+      : parentCategories;
+    const candidates = pool.length ? pool : parentCategories;
+    pickRef.current = candidates[Math.floor(Math.random() * candidates.length)];
+    return pickRef.current;
+  }, [parentCategories, excludeSlug]);
+
+  useEffect(() => {
+    if (pickedCategory?.slug && onCategoryPick) {
+      onCategoryPick(pickedCategory.slug);
+    }
+  }, [pickedCategory, onCategoryPick]);
 
   /* Sous-catégories */
   const subSlugs = useMemo(() => {
