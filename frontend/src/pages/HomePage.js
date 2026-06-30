@@ -15,9 +15,8 @@ import AdHorizontalStrip from '../components/AdHorizontalStrip';
 import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
-import InspirationBanner from '../components/InspirationBanner';
-import PopularProductsStrip from '../components/PopularProductsStrip';
-import PromoBannerGrid from '../components/PromoBannerGrid';
+import CategorySplitPromoBanner from '../components/CategorySplitPromoBanner';
+import PopularCategoryCarousels from '../components/PopularCategoryCarousels';
 
 import { API_URL, API_BASE } from '../config/api';
 
@@ -110,30 +109,6 @@ const HomePage = () => {
     [allProducts, featuredProducts, newProducts, trendingProducts]
   );
 
-  /* Filtre par mots-clés */
-  const filterByKeywords = useCallback((products, keywords) => {
-    if (!keywords?.length) return products;
-    const kw = keywords.map(k => k.toLowerCase());
-    return products.filter(p => {
-      const hay = [p.name, p.category_name, p.category_slug, p.subcategory_name, p.subcategory_slug, ...(p.tags || [])]
-        .filter(Boolean).join(' ').toLowerCase();
-      return kw.some(k => hay.includes(k));
-    });
-  }, []);
-
-  /* Mélange déterministe par seed */
-  const sliceShuffled = useCallback((products, seed, limit = 12) => {
-    if (!products.length) return [];
-    const arr = [...products];
-    let s = seed;
-    for (let i = arr.length - 1; i > 0; i--) {
-      s = (s * 1664525 + 1013904223) & 0xffffffff;
-      const j = Math.abs(s) % (i + 1);
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr.slice(0, limit);
-  }, []);
-
   const topRatedProducts = useMemo(() => {
     const deduped = allProductsMerged.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
     return applyProductFilters(deduped)
@@ -143,34 +118,6 @@ const HomePage = () => {
       })
       .slice(0, 30);
   }, [allProductsMerged, applyProductFilters, brokenTopProductImages]);
-
-  /* Strips par thème */
-  const fallback = useMemo(() => sliceShuffled(allProductsMerged, 99, 14), [allProductsMerged, sliceShuffled]);
-
-  const stripSmartphones = useMemo(() => {
-    const r = filterByKeywords(allProductsMerged, ['smartphone', 'telephone', 'iphone', 'samsung', 'mobile']);
-    return sliceShuffled(r.length ? r : allProductsMerged, 1, 14);
-  }, [allProductsMerged, filterByKeywords, sliceShuffled]);
-
-  const stripMode = useMemo(() => {
-    const r = filterByKeywords(allProductsMerged, ['mode', 'chaussure', 'vetement', 'fashion', 'sac']);
-    return sliceShuffled(r.length ? r : allProductsMerged, 2, 14);
-  }, [allProductsMerged, filterByKeywords, sliceShuffled]);
-
-  const stripTV = useMemo(() => {
-    const r = filterByKeywords(allProductsMerged, ['tv', 'television', 'ecran', 'audio', 'son']);
-    return sliceShuffled(r.length ? r : allProductsMerged, 3, 14);
-  }, [allProductsMerged, filterByKeywords, sliceShuffled]);
-
-  const stripInfo = useMemo(() => {
-    const r = filterByKeywords(allProductsMerged, ['informatique', 'ordinateur', 'laptop', 'pc', 'bureau']);
-    return sliceShuffled(r.length ? r : allProductsMerged, 4, 14);
-  }, [allProductsMerged, filterByKeywords, sliceShuffled]);
-
-  const stripSport = useMemo(() => {
-    const r = filterByKeywords(allProductsMerged, ['sport', 'fitness', 'maison', 'cuisine', 'jardin']);
-    return sliceShuffled(r.length ? r : allProductsMerged, 5, 14);
-  }, [allProductsMerged, filterByKeywords, sliceShuffled]);
 
   const heroContentRef = useRef(null);
   const [heroSidebarHeight, setHeroSidebarHeight] = useState(null);
@@ -228,6 +175,11 @@ const HomePage = () => {
       {/* ── DROPS Carousel ── */}
       <CategoryProductsCarousel categories={categories} products={allProductsMerged} />
 
+      {/* ── Bannière promo catégorie (style KSP) ── */}
+      {!loading && categories.length > 0 && (
+        <CategorySplitPromoBanner categories={categories} products={allProductsMerged} />
+      )}
+
       {/* ── Nouveautés ── */}
       <div className="w-full bg-white">
         <div className="site-container pb-12">
@@ -254,101 +206,15 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* ── Populaires par catégorie (carrousel par saut) ── */}
+      {!loading && categories.length > 0 && allProductsMerged.length > 0 && (
+        <PopularCategoryCarousels categories={categories} products={allProductsMerged} />
+      )}
+
       {/* ── Outlet Carousel ── */}
       {!loading && allProductsMerged.length > 0 && (
         <OutletCarousel categories={categories} products={allProductsMerged} />
       )}
-
-      {/* ════════════════════════════════════════════════
-          BLOCS INTERMÉDIAIRES — 3 nouveaux composants
-          ════════════════════════════════════════════════ */}
-
-      {/* 1 — Bannière inspiration violette (Capture 1) */}
-      {!loading && (
-        <InspirationBanner
-          products={allProductsMerged}
-          title="des idées et de l'inspiration pour votre prochaine aventure."
-          ctaLabel="Commencez à explorer"
-          ctaLink="/produits"
-        />
-      )}
-
-      {/* 2 — Populaires Smartphones (Capture 2) */}
-      <PopularProductsStrip
-        title="Populaires · Smartphones & Téléphones"
-        products={stripSmartphones}
-        link="/produits?search=smartphone"
-      />
-
-      {/* 3 — Grille bannières promo (Capture 3) */}
-      <PromoBannerGrid
-        topBanners={[
-          { title: 'AirPods & Écouteurs',    brand: 'Audio Premium',    badge: 'Nouveau',       cta: 'Découvrir',      link: '/produits?search=ecouteurs',  gradient: 'linear-gradient(135deg,#f8fafc,#e2e8f0)', imageUrl: '' },
-          { title: 'Lenovo Yoga & IdeaCentre',brand: 'Informatique',    badge: 'Offre spéciale',cta: 'Voir les détails',link: '/produits?search=ordinateur', gradient: 'linear-gradient(135deg,#1e1b4b,#4338ca)' },
-          { title: 'Écrans 4K Ultra HD',      brand: 'Display & Video', badge: '-15%',          cta: 'Comparer',       link: '/produits?search=ecran',      gradient: 'linear-gradient(135deg,#701a75,#a21caf)' },
-        ]}
-        bottomBanners={[
-          { title: 'LEGO Friends',     brand: 'Jouets',      badge: 'Enfants',    cta: 'Explorer',   link: '/produits?search=lego',    gradient: 'linear-gradient(135deg,#ec4899,#f43f5e)' },
-          { title: 'Stabilisateurs',   brand: 'Vidéo Pro',   badge: '-10%',       cta: 'Voir',       link: '/produits?search=camera',  gradient: 'linear-gradient(135deg,#f97316,#ea580c)' },
-          { title: 'Claviers & Souris',brand: 'Bureau',                           cta: 'Acheter',    link: '/produits?search=clavier', gradient: 'linear-gradient(135deg,#e2e8f0,#cbd5e1)' },
-          { title: 'Ultimate Ears',    brand: 'Audio',       badge: 'Tendance',   cta: 'Découvrir',  link: '/produits?search=enceinte',gradient: 'linear-gradient(135deg,#0ea5e9,#6366f1)' },
-          { title: 'iPhone Reprise',   brand: 'Service',     badge: 'Trade-in',   cta: 'En savoir +',link: '/produits?search=iphone',  gradient: 'linear-gradient(135deg,#1c1917,#44403c)' },
-        ]}
-      />
-
-      {/* 4 — Populaires Mode (Capture 2) */}
-      <PopularProductsStrip
-        title="Populaires · Mode & Vêtements"
-        products={stripMode}
-        link="/produits?search=mode"
-      />
-
-      {/* 5 — Bannière inspiration 2 */}
-      {!loading && (
-        <InspirationBanner
-          products={allProductsMerged}
-          title="des tendances et des nouveautés qui vont vous surprendre."
-          ctaLabel="Voir les tendances"
-          ctaLink="/produits?sort_by=sales_count"
-        />
-      )}
-
-      {/* 6 — Populaires TV & Audio (Capture 2) */}
-      <PopularProductsStrip
-        title="Populaires · TV & Audio"
-        products={stripTV}
-        link="/produits?search=tv"
-      />
-
-      {/* 7 — Grille bannières promo 2 */}
-      <PromoBannerGrid
-        topBanners={[
-          { title: 'Montres Connectées',  brand: 'Wearable',     badge: 'Tendance',     cta: 'Découvrir',  link: '/produits?search=montre',   gradient: 'linear-gradient(135deg,#064e3b,#10b981)' },
-          { title: 'Consoles de Jeu',     brand: 'Gaming',       badge: 'Stock limité', cta: 'Commander',  link: '/produits?search=console',  gradient: 'linear-gradient(135deg,#1e3a5f,#3b82f6)' },
-          { title: 'Tablettes & iPad',    brand: 'Mobile',       badge: '-20%',         cta: 'Explorer',   link: '/produits?search=tablette', gradient: 'linear-gradient(135deg,#7f1d1d,#ef4444)' },
-        ]}
-        bottomBanners={[
-          { title: 'Sacs à Main',  brand: 'Mode',       cta: 'Voir',       link: '/produits?search=sac',      gradient: 'linear-gradient(135deg,#fce7f3,#fbcfe8)' },
-          { title: 'Lunettes',     brand: 'Accessoires',badge: '-20%',     cta: 'Découvrir', link: '/produits?search=lunettes',  gradient: 'linear-gradient(135deg,#ede9fe,#ddd6fe)' },
-          { title: 'Bijoux',       brand: 'Parure',     cta: 'Acheter',    link: '/produits?search=bijoux',   gradient: 'linear-gradient(135deg,#fef9c3,#fde68a)' },
-          { title: 'Sport & Fitness',brand:'Sport',     badge:'Nouveauté', cta: 'Explorer',  link: '/produits?search=sport',    gradient: 'linear-gradient(135deg,#dcfce7,#bbf7d0)' },
-          { title: 'Maison & Déco',brand: 'Maison',     cta: 'Voir',       link: '/produits?search=maison',   gradient: 'linear-gradient(135deg,#fff7ed,#fed7aa)' },
-        ]}
-      />
-
-      {/* 8 — Populaires Informatique (Capture 2) */}
-      <PopularProductsStrip
-        title="Populaires · Informatique & Bureautique"
-        products={stripInfo}
-        link="/produits?search=ordinateur"
-      />
-
-      {/* 9 — Populaires Sport & Maison (Capture 2) */}
-      <PopularProductsStrip
-        title="Populaires · Sport, Maison & Bien-être"
-        products={stripSport}
-        link="/produits?search=sport"
-      />
 
       <style>{`
         @keyframes float { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-20px) rotate(5deg)} }
