@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { Clock } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { API_URL, API_BASE } from '../config/api';
 import { toAbsoluteMediaUrl } from '../utils/media';
@@ -34,127 +35,179 @@ const getBasePrice = (product) => {
   return price > 0 ? price : null;
 };
 
-const getDiscount = (product) => {
-  const base = getBasePrice(product);
-  const display = getDisplayPrice(product);
-  if (!base || !display || display >= base) return null;
-  return Math.round((1 - display / base) * 100);
-};
-
 const formatPrice = (value) => {
   if (!value) return '';
   return `${new Intl.NumberFormat('fr-FR').format(value)} FCFA`;
 };
 
-// ─── Bloc individuel (une sous-catégorie) ───────────────────────────────────
-const SpotlightBlock = ({ subCategory, products }) => {
-  const mainImage = getSubCategoryImage(subCategory);
-  const featuredProduct = products[0] || null;
-  const sideProducts = products.slice(1, 3);
-
-  const featuredDiscount = featuredProduct ? getDiscount(featuredProduct) : null;
-  const featuredDisplayPrice = featuredProduct ? getDisplayPrice(featuredProduct) : null;
-  const featuredBasePrice = featuredProduct ? getBasePrice(featuredProduct) : null;
+const ProductPrice = ({ product, size = 'sm' }) => {
+  const display = getDisplayPrice(product);
+  const base = getBasePrice(product);
+  const hasDiscount = base && display && display < base;
 
   return (
-    <div className="flex-1 min-w-0 border border-gray-200 bg-white flex flex-col overflow-hidden">
+    <div className={`flex flex-wrap items-baseline gap-1.5 ${size === 'lg' ? 'gap-2' : ''}`}>
+      <span className={`font-bold text-red-600 ${size === 'lg' ? 'text-base' : 'text-sm'}`}>
+        {formatPrice(display)}
+      </span>
+      {hasDiscount && (
+        <span className={`text-slate-400 line-through ${size === 'lg' ? 'text-sm' : 'text-xs'}`}>
+          {formatPrice(base)}
+        </span>
+      )}
+    </div>
+  );
+};
 
-      {/* Body */}
-      <div className="flex flex-1 min-h-0">
-        {/* Grande image / produit vedette à gauche */}
-        <div className="flex flex-col w-[52%] border-r border-gray-200 p-4">
+const BlockFooter = ({ slug }) => (
+  <div className="border-t border-gray-200 py-3 text-center">
+    <Link
+      to={`/categories/${slug}`}
+      className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline md:text-[13px]"
+    >
+      Voir tous les articles
+    </Link>
+  </div>
+);
+
+/* ─── Bloc grille 2×2 (style ARIETE) ─────────────────────────────────────── */
+const GridSpotlightBlock = ({ subCategory, products }) => {
+  const gridProducts = products.slice(0, 4);
+  const placeholders = Math.max(0, 4 - gridProducts.length);
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col border border-gray-200 bg-white">
+      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+        <h3 className="text-sm font-bold text-slate-900 md:text-base">{subCategory.name}</h3>
+        <span className="flex shrink-0 items-center gap-1 rounded bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white md:text-[11px]">
+          <Clock className="h-3 w-3" />
+          Fin demain
+        </span>
+      </div>
+
+      <div className="grid flex-1 grid-cols-2">
+        {gridProducts.map((product, index) => (
           <Link
-            to={`/categories/${subCategory.slug}`}
-            className="flex items-center justify-center bg-white"
-            style={{ minHeight: '260px' }}
+            key={product.id}
+            to={`/produit/${product.id}`}
+            className={`group flex flex-col border-gray-200 p-3 transition hover:bg-slate-50 ${
+              index % 2 === 0 ? 'border-r' : ''
+            } ${index < 2 ? 'border-b' : ''}`}
           >
-            {mainImage ? (
+            <div className="flex h-[110px] items-center justify-center md:h-[130px]">
               <img
-                src={mainImage}
-                alt={subCategory.name}
-                className="w-full h-[260px] object-contain"
+                src={getProductImage(product)}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain transition-transform duration-200 group-hover:scale-105"
               />
-            ) : featuredProduct ? (
-              <img
-                src={getProductImage(featuredProduct)}
-                alt={subCategory.name}
-                className="w-full h-[260px] object-contain"
-              />
-            ) : (
-              <div className="text-xs text-slate-400">Aucune image</div>
-            )}
+            </div>
+            <p className="mt-2 line-clamp-2 min-h-[2rem] text-[11px] font-medium leading-snug text-slate-800 md:text-xs">
+              {product.name}
+            </p>
+            <div className="mt-auto pt-2">
+              <ProductPrice product={product} />
+            </div>
           </Link>
+        ))}
+        {placeholders > 0 &&
+          [...Array(placeholders)].map((_, i) => (
+            <div
+              key={`empty-${i}`}
+              className={`flex items-center justify-center border-gray-200 p-3 text-xs text-slate-300 ${
+                (gridProducts.length + i) % 2 === 0 ? 'border-r' : ''
+              } ${gridProducts.length + i < 2 ? 'border-b' : ''}`}
+            >
+              —
+            </div>
+          ))}
+      </div>
 
-          {featuredProduct && (
+      <BlockFooter slug={subCategory.slug} />
+    </div>
+  );
+};
+
+/* ─── Bloc vedette + sidebar (style Lenovo Legion) ─────────────────────────── */
+const FeaturedSpotlightBlock = ({ subCategory, products }) => {
+  const featuredProduct = products[0] || null;
+  const sideProducts = products.slice(1, 3);
+  const mainImage = getSubCategoryImage(subCategory);
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col border border-gray-200 bg-white">
+      <div className="border-b border-gray-200 px-4 py-3">
+        <h3 className="text-sm font-bold text-slate-900 md:text-base">{subCategory.name}</h3>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+        {/* Produit vedette */}
+        <div className="flex w-full flex-col border-gray-200 sm:w-[62%] sm:border-r">
+          {featuredProduct ? (
             <Link
               to={`/produit/${featuredProduct.id}`}
-              className="mt-3 pt-3 border-t border-gray-100 hover:opacity-80 transition-opacity"
+              className="group flex flex-1 flex-col hover:bg-slate-50/50"
             >
-              <p className="text-xs font-medium text-slate-800 line-clamp-2 leading-snug">
-                {featuredProduct.name}
-              </p>
-              <div className="mt-1 flex items-baseline gap-2 flex-wrap">
-                <span className="text-sm font-bold text-red-600">
-                  {formatPrice(featuredDisplayPrice)}
-                </span>
-                {featuredBasePrice > featuredDisplayPrice && (
-                  <span className="text-xs text-slate-400 line-through">
-                    {formatPrice(featuredBasePrice)}
-                  </span>
-                )}
-                {featuredDiscount && (
-                  <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                    -{featuredDiscount}%
-                  </span>
-                )}
+              <div className="relative flex items-center justify-center bg-white p-4 md:p-5" style={{ minHeight: '200px' }}>
+                <img
+                  src={getProductImage(featuredProduct)}
+                  alt={featuredProduct.name}
+                  className="max-h-[180px] w-full max-w-full object-contain transition-transform duration-200 group-hover:scale-105 md:max-h-[220px]"
+                />
+              </div>
+              <div className="border-t border-gray-100 px-4 py-3">
+                <p className="line-clamp-2 text-xs font-medium leading-snug text-slate-800 md:text-sm">
+                  {featuredProduct.name}
+                </p>
+                <div className="mt-2">
+                  <ProductPrice product={featuredProduct} size="lg" />
+                </div>
               </div>
             </Link>
+          ) : (
+            <div className="flex flex-1 flex-col">
+              <Link
+                to={`/categories/${subCategory.slug}`}
+                className="flex flex-1 items-center justify-center p-4"
+                style={{ minHeight: '200px' }}
+              >
+                {mainImage ? (
+                  <img src={mainImage} alt={subCategory.name} className="max-h-[200px] object-contain" />
+                ) : (
+                  <span className="text-xs text-slate-400">Aucun produit</span>
+                )}
+              </Link>
+            </div>
           )}
         </div>
 
-        {/* Petits produits à droite */}
-        <div className="flex flex-col flex-1 min-w-0 divide-y divide-gray-100">
+        {/* Sidebar — 2 petits produits */}
+        <div className="flex w-full flex-col sm:w-[38%]">
           {sideProducts.length > 0 ? (
-            sideProducts.map((product) => {
-              const displayPrice = getDisplayPrice(product);
-              const basePrice = getBasePrice(product);
-              const discount = getDiscount(product);
-              return (
-                <Link
-                  key={product.id}
-                  to={`/produit/${product.id}`}
-                  className="flex gap-3 p-4 hover:bg-slate-50 transition-colors flex-1 min-h-0 items-center"
-                >
-                  <div className="w-[110px] h-[110px] shrink-0 border border-gray-100 bg-white flex items-center justify-center p-2">
-                    <img
-                      src={getProductImage(product)}
-                      alt={product.name}
-                      className="max-w-full max-h-full object-contain"
-                    />
+            sideProducts.map((product, index) => (
+              <Link
+                key={product.id}
+                to={`/produit/${product.id}`}
+                className={`group flex flex-1 flex-col hover:bg-slate-50/50 ${
+                  index === 0 ? 'border-b border-gray-200' : ''
+                }`}
+              >
+                <div className="flex flex-1 items-center justify-center p-3 md:p-4">
+                  <img
+                    src={getProductImage(product)}
+                    alt={product.name}
+                    className="max-h-[90px] max-w-full object-contain transition-transform duration-200 group-hover:scale-105 md:max-h-[110px]"
+                  />
+                </div>
+                <div className="border-t border-gray-100 px-3 py-2.5 md:px-4">
+                  <p className="line-clamp-2 text-[10px] font-medium leading-snug text-slate-800 md:text-[11px]">
+                    {product.name}
+                  </p>
+                  <div className="mt-1.5">
+                    <ProductPrice product={product} />
                   </div>
-                  <div className="flex flex-col justify-center min-w-0 flex-1">
-                    <p className="text-xs font-medium text-slate-800 line-clamp-3 leading-snug">
-                      {product.name}
-                    </p>
-                    <div className="mt-2 flex items-baseline gap-1.5 flex-wrap">
-                      <span className="text-sm font-bold text-red-600">
-                        {formatPrice(displayPrice)}
-                      </span>
-                      {basePrice > displayPrice && (
-                        <span className="text-[11px] text-slate-400 line-through">
-                          {formatPrice(basePrice)}
-                        </span>
-                      )}
-                      {discount && (
-                        <span className="text-[9px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                          -{discount}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })
+                </div>
+              </Link>
+            ))
           ) : (
             <div className="flex flex-1 items-center justify-center p-4 text-xs text-slate-400">
               Aucun produit disponible
@@ -163,23 +216,26 @@ const SpotlightBlock = ({ subCategory, products }) => {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 py-3 text-center">
-        <Link
-          to={`/categories/${subCategory.slug}`}
-          className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-        >
-          Show all items
-        </Link>
-      </div>
+      <BlockFooter slug={subCategory.slug} />
     </div>
   );
 };
 
-// ─── Loader pour un bloc ─────────────────────────────────────────────────────
-const loadSpotlightBlock = async (subs, usedSlugs = new Set()) => {
-  const available = subs.filter((s) => !usedSlugs.has(s.slug));
+const loadSpotlightBlock = async (subs, usedSlugs = new Set(), minProducts = 1) => {
+  const available = subs.filter(s => !usedSlugs.has(s.slug));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
+
+  for (const sub of shuffled) {
+    try {
+      const prodRes = await axios.get(`${API}/products?category=${sub.slug}&limit=4`);
+      const list = prodRes.data?.products || prodRes.data || [];
+      if (list.length >= minProducts) {
+        return { subCategory: sub, products: list };
+      }
+    } catch {
+      /* essayer la suivante */
+    }
+  }
 
   for (const sub of shuffled) {
     try {
@@ -199,10 +255,10 @@ const loadSpotlightBlock = async (subs, usedSlugs = new Set()) => {
   return null;
 };
 
-// ─── Composant principal ─────────────────────────────────────────────────────
 const SubCategorySpotlight = () => {
   const [loading, setLoading] = useState(true);
-  const [blocks, setBlocks] = useState([]);
+  const [gridBlock, setGridBlock] = useState(null);
+  const [featuredBlock, setFeaturedBlock] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,7 +268,7 @@ const SubCategorySpotlight = () => {
       try {
         const catRes = await axios.get(`${API}/categories`);
         const all = catRes.data || [];
-        const subs = all.filter((c) => c.parent_slug && c.is_active !== false);
+        const subs = all.filter(c => c.parent_slug && c.is_active !== false);
 
         if (subs.length === 0) {
           if (!cancelled) setLoading(false);
@@ -221,14 +277,15 @@ const SubCategorySpotlight = () => {
 
         const usedSlugs = new Set();
 
-        const block1 = await loadSpotlightBlock(subs, usedSlugs);
+        const block1 = await loadSpotlightBlock(subs, usedSlugs, 4);
         if (block1) usedSlugs.add(block1.subCategory.slug);
 
-        const block2 = await loadSpotlightBlock(subs, usedSlugs);
+        const block2 = await loadSpotlightBlock(subs, usedSlugs, 3);
 
-        const result = [block1, block2].filter(Boolean);
-
-        if (!cancelled) setBlocks(result);
+        if (!cancelled) {
+          setGridBlock(block1);
+          setFeaturedBlock(block2);
+        }
       } catch (error) {
         console.error('Erreur chargement sous-catégorie spotlight:', error);
       } finally {
@@ -244,28 +301,33 @@ const SubCategorySpotlight = () => {
     return (
       <section className="w-full bg-white py-4">
         <div className="site-container">
-          <div className="flex gap-4">
-            <Skeleton className="flex-1 h-[400px] rounded-sm" />
-            <Skeleton className="flex-1 h-[400px] rounded-sm" />
+          <div className="flex flex-col gap-4 md:flex-row">
+            <Skeleton className="h-[380px] flex-1 rounded-sm" />
+            <Skeleton className="h-[380px] flex-1 rounded-sm" />
           </div>
         </div>
       </section>
     );
   }
 
-  if (blocks.length === 0) return null;
+  if (!gridBlock && !featuredBlock) return null;
 
   return (
     <section className="w-full bg-white py-4" data-testid="subcategory-spotlight">
       <div className="site-container">
-        <div className="flex flex-col md:flex-row gap-4">
-          {blocks.map(({ subCategory, products }) => (
-            <SpotlightBlock
-              key={subCategory.slug}
-              subCategory={subCategory}
-              products={products}
+        <div className="flex flex-col gap-4 md:flex-row md:gap-5">
+          {gridBlock && (
+            <GridSpotlightBlock
+              subCategory={gridBlock.subCategory}
+              products={gridBlock.products}
             />
-          ))}
+          )}
+          {featuredBlock && (
+            <FeaturedSpotlightBlock
+              subCategory={featuredBlock.subCategory}
+              products={featuredBlock.products}
+            />
+          )}
         </div>
       </div>
     </section>
