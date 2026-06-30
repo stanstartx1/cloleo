@@ -3,22 +3,21 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toAbsoluteMediaUrl } from '../utils/media';
 
-const GRADIENTS = [
-  'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #581c87 100%)',
-  'linear-gradient(135deg, #1e1b4b 0%, #4338ca 55%, #701a75 100%)',
-  'linear-gradient(135deg, #0c4a6e 0%, #1d4ed8 55%, #4338ca 100%)',
-  'linear-gradient(135deg, #14532d 0%, #065f46 55%, #134e4a 100%)',
-  'linear-gradient(135deg, #431407 0%, #9a3412 55%, #7c2d12 100%)',
+const RIGHT_GRADIENTS = [
+  'linear-gradient(90deg, #121830 0%, #1e2a5a 35%, #3b1d78 70%, #6d28d9 100%)',
+  'linear-gradient(90deg, #0f172a 0%, #1e3a5f 40%, #4338ca 75%, #7c3aed 100%)',
+  'linear-gradient(90deg, #1a1033 0%, #312e81 45%, #581c87 80%, #9333ea 100%)',
 ];
 
-const TILE_GRADIENTS = [
-  { bg: 'linear-gradient(145deg, #7c3aed 0%, #a855f7 45%, #ec4899 100%)', light: false },
-  { bg: 'linear-gradient(145deg, #0f172a 0%, #1e293b 55%, #334155 100%)', light: false },
-  { bg: 'linear-gradient(145deg, #fef9c3 0%, #fde68a 55%, #fcd34d 100%)', light: true },
-  { bg: 'linear-gradient(180deg, #0ea5e9 0%, #0ea5e9 48%, #84cc16 48%, #a3e635 100%)', light: false },
-  { bg: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 55%, #e2e8f0 100%)', light: true },
-  { bg: 'linear-gradient(145deg, #f97316 0%, #ea580c 55%, #c2410c 100%)', light: false },
-  { bg: 'linear-gradient(145deg, #ec4899 0%, #f43f5e 55%, #fb7185 100%)', light: false },
+const TILE_BACKGROUNDS = [
+  'linear-gradient(145deg, #7c3aed, #db2777)',
+  'linear-gradient(145deg, #0f172a, #334155)',
+  'linear-gradient(145deg, #fef3c7, #fde68a)',
+  'linear-gradient(180deg, #0284c7 0%, #0284c7 50%, #84cc16 50%, #a3e635 100%)',
+  'linear-gradient(145deg, #ffffff, #e2e8f0)',
+  'linear-gradient(145deg, #ea580c, #c2410c)',
+  'linear-gradient(145deg, #ec4899, #f43f5e)',
+  'linear-gradient(145deg, #059669, #047857)',
 ];
 
 const NavArrow = ({ direction, onClick, label, className = '' }) => (
@@ -26,7 +25,7 @@ const NavArrow = ({ direction, onClick, label, className = '' }) => (
     type="button"
     onClick={onClick}
     aria-label={label}
-    className={`absolute top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white text-slate-600 shadow-md transition hover:bg-slate-50 md:h-10 md:w-10 ${className}`}
+    className={`absolute top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:bg-slate-50 md:h-10 md:w-10 ${className}`}
   >
     {direction === 'left' ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
   </button>
@@ -54,19 +53,20 @@ const getProductsForCategory = (category, categories, products, limit = 3) => {
       subSlugs.has(p.category_slug) ||
       subSlugs.has(p.subcategory_slug)
     )
+    .filter(p => getProductImage(p))
     .slice(0, limit);
 };
 
 const pickRandomItems = (items, count) =>
   [...items].sort(() => Math.random() - 0.5).slice(0, count);
 
-/* ─── Rangée de 5 tuiles promo (capture KSP) ─────────────────────────────── */
+/* ─── Rangée de 5 tuiles (capture KSP — bas) ─────────────────────────────── */
 const PromoTilesRow = ({ categories, products }) => {
   const containerRef = useRef(null);
   const tilesRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [metrics, setMetrics] = useState({ tileWidth: 200, visible: 5, gap: 10 });
+  const [metrics, setMetrics] = useState({ tileWidth: 200, visible: 5, gap: 6 });
 
   const tiles = useMemo(() => {
     const subs = categories.filter(c => c.parent_slug && c.is_active !== false && c.slug);
@@ -75,17 +75,16 @@ const PromoTilesRow = ({ categories, products }) => {
     if (!pool.length) return [];
     if (tilesRef.current !== null) return tilesRef.current;
 
-    const picked = pickRandomItems(pool, Math.min(10, pool.length));
+    const picked = pickRandomItems(pool, Math.min(12, pool.length));
     tilesRef.current = picked.map((cat, i) => {
       const catProducts = getProductsForCategory(cat, categories, products, 1);
-      const productImg = catProducts[0] ? getProductImage(catProducts[0]) : null;
-      const style = TILE_GRADIENTS[i % TILE_GRADIENTS.length];
       return {
         id: cat.slug,
         name: cat.name,
         link: `/categories/${cat.slug}`,
-        image: getCategoryImage(cat) || productImg,
-        ...style,
+        image: getCategoryImage(cat) || (catProducts[0] ? getProductImage(catProducts[0]) : null),
+        bg: TILE_BACKGROUNDS[i % TILE_BACKGROUNDS.length],
+        light: i % 5 === 2 || i % 5 === 4,
       };
     });
     return tilesRef.current;
@@ -96,12 +95,12 @@ const PromoTilesRow = ({ categories, products }) => {
     if (!el) return;
     const width = el.offsetWidth;
     let visible = 5;
-    if (width < 640) visible = 1;
-    else if (width < 768) visible = 2;
-    else if (width < 1024) visible = 3;
-    else if (width < 1280) visible = 4;
+    if (width < 480) visible = 1;
+    else if (width < 640) visible = 2;
+    else if (width < 900) visible = 3;
+    else if (width < 1200) visible = 4;
 
-    const gap = width < 640 ? 8 : 10;
+    const gap = 6;
     const tileWidth = Math.floor((width - gap * (visible - 1)) / visible);
     setMetrics({ tileWidth, visible, gap });
   }, []);
@@ -126,18 +125,17 @@ const PromoTilesRow = ({ categories, products }) => {
     if (!tiles.length || paused || maxIndex === 0) return;
     const timer = setInterval(() => {
       setCurrentIndex(i => (i >= maxIndex ? 0 : i + 1));
-    }, 2000);
+    }, 2500);
     return () => clearInterval(timer);
   }, [tiles.length, paused, maxIndex]);
 
-  const goPrev = () => setCurrentIndex(i => (i <= 0 ? maxIndex : i - 1));
-  const goNext = () => setCurrentIndex(i => (i >= maxIndex ? 0 : i + 1));
-
   if (!tiles.length) return null;
+
+  const tileHeight = Math.round(metrics.tileWidth * 0.72);
 
   return (
     <div
-      className="relative mt-2.5 md:mt-3"
+      className="relative mt-2"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -145,13 +143,13 @@ const PromoTilesRow = ({ categories, products }) => {
         <>
           <NavArrow
             direction="left"
-            onClick={goPrev}
+            onClick={() => setCurrentIndex(i => (i <= 0 ? maxIndex : i - 1))}
             label="Tuiles précédentes"
             className="left-0 -translate-x-1/2"
           />
           <NavArrow
             direction="right"
-            onClick={goNext}
+            onClick={() => setCurrentIndex(i => (i >= maxIndex ? 0 : i + 1))}
             label="Tuiles suivantes"
             className="right-0 translate-x-1/2"
           />
@@ -160,7 +158,7 @@ const PromoTilesRow = ({ categories, products }) => {
 
       <div ref={containerRef} className="overflow-hidden">
         <div
-          className="flex transition-transform duration-500 ease-in-out will-change-transform"
+          className="flex transition-transform duration-500 ease-in-out"
           style={{
             gap: `${metrics.gap}px`,
             transform: `translateX(-${currentIndex * step}px)`,
@@ -170,10 +168,10 @@ const PromoTilesRow = ({ categories, products }) => {
             <Link
               key={tile.id}
               to={tile.link}
-              className="group relative shrink-0 overflow-hidden rounded-md"
+              className="group relative shrink-0 overflow-hidden"
               style={{
                 width: `${metrics.tileWidth}px`,
-                height: `${Math.round(metrics.tileWidth * 0.62)}px`,
+                height: `${tileHeight}px`,
                 background: tile.bg,
               }}
             >
@@ -181,26 +179,10 @@ const PromoTilesRow = ({ categories, products }) => {
                 <img
                   src={tile.image}
                   alt={tile.name}
-                  className="absolute inset-0 h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+                  className="absolute inset-0 h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03] md:p-3"
                   loading="lazy"
-                  onError={e => { e.target.style.display = 'none'; }}
                 />
               )}
-              <div
-                className={`absolute inset-x-0 bottom-0 z-10 px-3 py-2 ${
-                  tile.light
-                    ? 'bg-gradient-to-t from-white/95 via-white/70 to-transparent'
-                    : 'bg-gradient-to-t from-black/55 via-black/20 to-transparent'
-                }`}
-              >
-                <p
-                  className={`truncate text-xs font-bold md:text-sm ${
-                    tile.light ? 'text-slate-900' : 'text-white'
-                  }`}
-                >
-                  {tile.name}
-                </p>
-              </div>
             </Link>
           ))}
         </div>
@@ -209,7 +191,7 @@ const PromoTilesRow = ({ categories, products }) => {
   );
 };
 
-/* ─── Bloc complet : bannière split + tuiles ─────────────────────────────── */
+/* ─── Bannière split KSP : marque gauche + promo droite ──────────────────── */
 const CategorySplitPromoBanner = ({ categories = [], products = [] }) => {
   const parentCategories = useMemo(
     () => categories.filter(c => c && c.is_active !== false && !c.parent_slug && c.slug),
@@ -217,109 +199,100 @@ const CategorySplitPromoBanner = ({ categories = [], products = [] }) => {
   );
 
   const randomStartRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [slideIndex, setSlideIndex] = useState(0);
 
   useEffect(() => {
     if (!parentCategories.length || randomStartRef.current !== null) return;
     randomStartRef.current = Math.floor(Math.random() * parentCategories.length);
-    setActiveIndex(randomStartRef.current);
+    setSlideIndex(randomStartRef.current);
   }, [parentCategories]);
 
-  const activeCategory = parentCategories[activeIndex] || null;
+  const count = parentCategories.length;
+  const leftCategory = count ? parentCategories[slideIndex] : null;
+  const rightCategory = count ? parentCategories[(slideIndex + 1) % count] : null;
 
-  const categoryProducts = useMemo(
-    () => getProductsForCategory(activeCategory, categories, products, 3),
-    [activeCategory, products, categories]
+  const rightProducts = useMemo(
+    () => getProductsForCategory(rightCategory, categories, products, 3),
+    [rightCategory, categories, products]
   );
 
-  if (!activeCategory) return null;
+  const leftProducts = useMemo(
+    () => getProductsForCategory(leftCategory, categories, products, 1),
+    [leftCategory, categories, products]
+  );
 
-  const categoryImage = getCategoryImage(activeCategory);
-  const heroProduct = categoryProducts[0] || null;
-  const sideProduct = categoryProducts[1] || null;
-  const categoryLink = `/categories/${activeCategory.slug}`;
-  const gradient = GRADIENTS[activeIndex % GRADIENTS.length];
-  const subCount = activeCategory.subcategories_count || 0;
+  if (!leftCategory || !rightCategory) return null;
 
-  const goPrev = () => setActiveIndex(i => (i - 1 + parentCategories.length) % parentCategories.length);
-  const goNext = () => setActiveIndex(i => (i + 1) % parentCategories.length);
+  const leftImage = getCategoryImage(leftCategory) || (leftProducts[0] ? getProductImage(leftProducts[0]) : null);
+
+  const heroProduct = rightProducts[0] || null;
+  const sideProduct = rightProducts[1] || null;
+  const rightLink = `/categories/${rightCategory.slug}`;
+  const leftLink = `/categories/${leftCategory.slug}`;
+  const gradient = RIGHT_GRADIENTS[slideIndex % RIGHT_GRADIENTS.length];
+
+  const goPrev = () => setSlideIndex(i => (i - 1 + count) % count);
+  const goNext = () => setSlideIndex(i => (i + 1) % count);
 
   return (
-    <section className="w-full bg-white pb-4 pt-3 md:pb-5 md:pt-4" data-testid="category-split-promo-banner">
+    <section className="w-full bg-white pb-3 pt-2 md:pb-4 md:pt-3" data-testid="category-split-promo-banner">
       <div className="site-container">
-        {/* ── Bannière principale split ── */}
         <div className="relative">
-          {parentCategories.length > 1 && (
+          {count > 1 && (
             <>
-              <NavArrow
-                direction="left"
-                onClick={goPrev}
-                label="Catégorie précédente"
-                className="left-0 -translate-x-1/2"
-              />
-              <NavArrow
-                direction="right"
-                onClick={goNext}
-                label="Catégorie suivante"
-                className="right-0 translate-x-1/2"
-              />
+              <NavArrow direction="left" onClick={goPrev} label="Slide précédent" className="left-0 -translate-x-1/2" />
+              <NavArrow direction="right" onClick={goNext} label="Slide suivant" className="right-0 translate-x-1/2" />
             </>
           )}
 
-          <div className="flex h-[150px] overflow-hidden md:h-[175px] lg:h-[190px]">
-            {/* Panneau gauche */}
+          {/* ── Bannière principale ── */}
+          <div className="flex h-[130px] overflow-hidden sm:h-[145px] md:h-[160px] lg:h-[175px]">
+            {/* Panneau gauche — marque / catégorie (style AirPods) */}
             <Link
-              to={categoryLink}
-              className="group relative flex w-[26%] min-w-[100px] max-w-[260px] shrink-0 flex-col items-center justify-center bg-[#f2f2f2] px-3 transition hover:bg-[#eaeaea] md:px-5"
+              to={leftLink}
+              className="group flex w-[22%] min-w-[88px] max-w-[220px] shrink-0 flex-col items-center justify-center bg-white px-2 sm:w-[20%] sm:px-3"
             >
-              {categoryImage ? (
+              {leftImage ? (
                 <img
-                  src={categoryImage}
-                  alt={activeCategory.name}
-                  className="mb-1.5 max-h-[60px] max-w-[90%] object-contain transition-transform duration-300 group-hover:scale-105 md:mb-2 md:max-h-[78px]"
-                />
-              ) : heroProduct ? (
-                <img
-                  src={getProductImage(heroProduct)}
-                  alt={activeCategory.name}
-                  className="mb-1.5 max-h-[60px] max-w-[90%] object-contain md:mb-2 md:max-h-[78px]"
+                  src={leftImage}
+                  alt={leftCategory.name}
+                  className="mb-1 max-h-[52px] w-full max-w-[95%] object-contain sm:max-h-[62px] md:max-h-[72px] lg:max-h-[82px]"
                 />
               ) : (
-                <div className="mb-1.5 flex h-14 w-14 items-center justify-center rounded-full bg-white text-xl font-black text-slate-300 md:mb-2 md:h-16 md:w-16 md:text-2xl">
-                  {activeCategory.name?.charAt(0) || 'C'}
+                <div className="mb-1 flex h-12 w-12 items-center justify-center text-2xl font-black text-slate-200 md:h-14 md:w-14">
+                  {leftCategory.name?.charAt(0)}
                 </div>
               )}
-              <p className="text-center text-sm font-bold tracking-tight text-slate-900 md:text-base lg:text-lg">
-                {activeCategory.name}
+              <p className="line-clamp-2 text-center text-[11px] font-bold leading-tight text-slate-900 sm:text-xs md:text-sm lg:text-base">
+                {leftCategory.name}
               </p>
             </Link>
 
-            {/* Panneau droit */}
-            <div className="relative flex flex-1 items-stretch overflow-hidden" style={{ background: gradient }}>
-              <div className="relative z-10 flex h-full w-full items-center">
-                {/* CTA + sous-titre */}
-                <div className="flex shrink-0 flex-col justify-center gap-2.5 px-4 py-3 md:gap-3 md:px-7 lg:px-9">
+            {/* Panneau droit — promo (style Lenovo) */}
+            <div className="relative flex flex-1 overflow-hidden" style={{ background: gradient }}>
+              <div className="relative z-10 grid h-full w-full grid-cols-[auto_1fr] items-center gap-2 px-3 sm:grid-cols-[auto_1fr_auto] sm:gap-3 sm:px-5 md:px-8 lg:px-10">
+                {/* CTA */}
+                <div className="flex shrink-0 flex-col items-start justify-center gap-1.5 md:gap-2">
                   <Link
-                    to={categoryLink}
-                    className="inline-flex w-fit items-center gap-1.5 rounded bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 md:gap-2 md:px-5 md:py-2.5 md:text-[15px]"
+                    to={rightLink}
+                    className="inline-flex items-center gap-1 rounded-sm bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 sm:gap-1.5 sm:px-4 sm:py-2 sm:text-[13px] md:px-5 md:text-[14px]"
                   >
                     Voir les détails
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Link>
-                  <p className="max-w-[180px] text-[10px] font-medium uppercase tracking-[0.14em] text-white/65 md:text-[11px]">
-                    {subCount > 0
-                      ? `${subCount} sous-catégorie${subCount > 1 ? 's' : ''}`
-                      : 'Sélection Cloléo'}
+                  <p className="text-[8px] font-medium uppercase tracking-[0.16em] text-white/55 sm:text-[9px] md:text-[10px]">
+                    Sélection Cloléo
                   </p>
                 </div>
 
-                {/* Visuels produits centrés */}
-                <div className="relative flex flex-1 items-end justify-center pb-2 pt-4">
+                {/* Produits — centrés, chevauchés */}
+                <div className="relative flex h-full items-center justify-center">
                   {sideProduct && (
                     <img
                       src={getProductImage(sideProduct)}
                       alt={sideProduct.name}
-                      className="relative z-10 -mr-4 h-[70px] w-auto max-w-[80px] object-contain drop-shadow-lg md:-mr-6 md:h-[95px] md:max-w-[110px] lg:h-[110px]"
+                      className="relative z-10 h-[60px] w-auto max-w-[70px] -translate-y-1 object-contain drop-shadow-lg sm:h-[75px] sm:max-w-[90px] md:h-[95px] md:max-w-[110px] lg:h-[115px] lg:max-w-[130px]"
+                      style={{ marginRight: '-18px' }}
                     />
                   )}
                   {heroProduct && (
@@ -327,40 +300,28 @@ const CategorySplitPromoBanner = ({ categories = [], products = [] }) => {
                       <img
                         src={getProductImage(heroProduct)}
                         alt={heroProduct.name}
-                        className="h-[85px] w-auto max-w-[100px] object-contain drop-shadow-2xl md:h-[115px] md:max-w-[130px] lg:h-[135px] lg:max-w-[150px]"
+                        className="h-[72px] w-auto max-w-[80px] object-contain drop-shadow-2xl sm:h-[90px] sm:max-w-[100px] md:h-[115px] md:max-w-[125px] lg:h-[140px] lg:max-w-[150px]"
                       />
-                      <span className="absolute -right-1 top-0 flex h-12 w-12 flex-col items-center justify-center rounded-full bg-violet-200/95 text-center text-[8px] font-bold leading-tight text-violet-900 shadow md:-right-2 md:h-14 md:w-14 md:text-[9px]">
+                      <span className="absolute -right-1 -top-1 flex h-9 w-9 items-center justify-center rounded-full bg-violet-200/95 text-[7px] font-bold leading-none text-violet-900 shadow sm:-right-2 sm:-top-2 sm:h-11 sm:w-11 sm:text-[8px] md:text-[9px]">
                         Promo !
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* Titre à droite */}
-                <div className="hidden shrink-0 px-6 text-right lg:block xl:px-10">
-                  <p className="text-[26px] font-black leading-[1.08] tracking-tight text-white xl:text-[32px]">
-                    {activeCategory.name}
+                {/* Grand titre — masqué sur très petit écran */}
+                <div className="hidden shrink-0 pr-1 text-right sm:block md:pr-2">
+                  <p className="text-lg font-black leading-none tracking-tight text-white md:text-2xl lg:text-[28px] xl:text-[32px]">
+                    {rightCategory.name}
                   </p>
-                  {activeCategory.description && (
-                    <p className="mt-1.5 line-clamp-2 max-w-[240px] text-sm text-white/70">
-                      {activeCategory.description}
-                    </p>
-                  )}
                 </div>
               </div>
-
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background: 'radial-gradient(ellipse at 70% 50%, rgba(255,255,255,0.12) 0%, transparent 60%)',
-                }}
-              />
             </div>
           </div>
-        </div>
 
-        {/* ── Rangée de tuiles promo ── */}
-        <PromoTilesRow categories={categories} products={products} />
+          {/* ── 5 tuiles promo en dessous ── */}
+          <PromoTilesRow categories={categories} products={products} />
+        </div>
       </div>
     </section>
   );
