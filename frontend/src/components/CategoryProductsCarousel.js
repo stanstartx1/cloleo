@@ -117,12 +117,12 @@ const CategoryProductsCarousel = ({ categories, products }) => {
       subSlugs.has(p.subcategory_slug)
     );
     let result = filtered.length ? filtered : products.slice(0, 12);
-    result = result.slice(0, 18);
+    result = result.slice(0, 24);
 
-    // Ensure we have enough products to fill complete rows (6 per row)
+    // Ensure we have exactly a multiple of 6 products (6 per row)
     if (result.length > 0) {
       const targetCount = Math.ceil(result.length / PRODUCTS_PER_ROW) * PRODUCTS_PER_ROW;
-      if (result.length < targetCount) {
+      if (result.length !== targetCount) {
         const multiplier = Math.ceil(targetCount / result.length);
         result = Array(multiplier).fill(result).flat().slice(0, targetCount);
       }
