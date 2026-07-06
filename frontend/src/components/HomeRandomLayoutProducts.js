@@ -35,6 +35,7 @@ const DISPOSITIONS = [
     rounding: 'rounded-lg',
     padding: 'p-1',
     imageBg: 'bg-slate-50',
+    cols: 7,
   },
   {
     id: 'compact',
@@ -44,6 +45,7 @@ const DISPOSITIONS = [
     rounding: 'rounded-lg',
     padding: 'p-0.5',
     imageBg: 'bg-white border border-slate-100',
+    cols: 8,
   },
   {
     id: 'large',
@@ -53,6 +55,7 @@ const DISPOSITIONS = [
     rounding: 'rounded-xl',
     padding: 'p-1.5',
     imageBg: 'bg-slate-100',
+    cols: 5,
   },
   {
     id: 'showcase',
@@ -64,6 +67,7 @@ const DISPOSITIONS = [
     imageBg: 'bg-slate-50',
     featuredSpan: 'col-span-2 row-span-2',
     featuredImageClass: 'aspect-square object-cover min-h-[160px] sm:min-h-[200px]',
+    cols: 6,
   },
   {
     id: 'editorial',
@@ -73,15 +77,17 @@ const DISPOSITIONS = [
     rounding: 'rounded-xl',
     padding: 'p-1.5',
     imageBg: 'bg-neutral-100',
+    cols: 4,
   },
   {
     id: 'dense',
-    grid: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-08',
+    grid: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8',
     gap: 'gap-2',
     imageClass: 'aspect-square object-contain p-1',
     rounding: 'rounded-md',
     padding: 'p-0.5',
     imageBg: 'bg-white',
+    cols: 8,
   },
 ];
 
@@ -158,9 +164,11 @@ const HomeRandomLayoutProducts = ({ loading, products = [], onImageMissing }) =>
   const displayProducts = useMemo(() => {
     const withImage = products.filter(p => getImage(p));
     const shuffled = shuffleArray(withImage);
-    const count = session.disposition.id === 'showcase' ? 11 : session.disposition.id === 'large' ? 10 : 21;
+    const cols = session.disposition.cols || 7;
+    const targetRows = 3;
+    const count = session.disposition.id === 'showcase' ? 11 : session.disposition.id === 'large' ? 10 : cols * targetRows;
     return shuffled.slice(0, count);
-  }, [products, session.disposition.id]);
+  }, [products, session.disposition.id, session.disposition.cols]);
 
   const { disposition } = session;
 
