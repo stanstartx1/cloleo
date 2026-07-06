@@ -195,12 +195,12 @@ const OutletCarousel = ({ categories, products, excludeSlug = null, onCategoryPi
       subSlugs.has(p.category_slug) ||
       subSlugs.has(p.subcategory_slug)
     );
-    return filtered.length ? filtered : products.slice(0, 16);
+    return filtered.length ? filtered : products.slice(0, 20);
   }, [pickedCategory, products, subSlugs]);
 
   /* Filtrage par condition */
   const filteredProducts = useMemo(() => {
-    if (activeCondition === 'all') return baseProducts.slice(0, 16);
+    if (activeCondition === 'all') return baseProducts.slice(0, 18);
     return baseProducts
       .filter(p => {
         const cond = (p.condition || '').toLowerCase().replace(/[-\s]/g, '_');
@@ -208,7 +208,7 @@ const OutletCarousel = ({ categories, products, excludeSlug = null, onCategoryPi
         if (activeCondition === 'reconditionne') return cond.includes('recondition');
         return cond === activeCondition;
       })
-      .slice(0, 16);
+      .slice(0, 18);
   }, [baseProducts, activeCondition]);
 
   /* Avance d'une carte par seconde */
