@@ -152,7 +152,7 @@ const HomePage = () => {
 
       {/* ── Hero ── */}
       <div className="w-full home-page-hero-wrapper">
-        <div className="site-container pt-2 pb-3">
+        <div className="site-container py-4">
           <div className="hero-zone-grid grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_1fr] gap-2 w-full">
             <div className="hidden lg:block overflow-hidden shrink-0" style={heroSidebarHeight ? { height: `${heroSidebarHeight}px` } : undefined}>
               <CategorySidebar />
@@ -170,24 +170,32 @@ const HomePage = () => {
 
       {/* ── Catégories ── */}
       <div className="w-full bg-white">
-        <div className="site-container pt-1"><CategoriesGrid /></div>
+        <div className="site-container py-4"><CategoriesGrid /></div>
       </div>
 
       <SubCategorySpotlight />
 
       {/* ── Top produits ── */}
-      <HomeTopRatedProducts
-        loading={loading}
-        topRatedProducts={topRatedProducts}
-        onImageMissing={id => setBrokenTopProductImages(p => ({ ...p, [id]: true }))}
-      />
+      <div className="w-full bg-white">
+        <div className="site-container py-4">
+          <HomeTopRatedProducts
+            loading={loading}
+            topRatedProducts={topRatedProducts}
+            onImageMissing={id => setBrokenTopProductImages(p => ({ ...p, [id]: true }))}
+          />
+        </div>
+      </div>
 
       {/* ── DROPS Carousel ── */}
-      <CategoryProductsCarousel categories={categories} products={allProductsMerged} />
+      <div className="w-full bg-white">
+        <div className="site-container py-4">
+          <CategoryProductsCarousel categories={categories} products={allProductsMerged} />
+        </div>
+      </div>
 
       {/* ── Nouveautés ── */}
       <div className="w-full bg-white">
-        <div className="site-container pb-12">
+        <div className="site-container py-4">
           {loading ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
               {[...Array(14)].map((_, i) => (
@@ -213,27 +221,39 @@ const HomePage = () => {
 
       {/* ── Carrousel catégorie (style Outlet) ── */}
       {!loading && allProductsMerged.length > 0 && (
-        <OutletCarousel
-          categories={categories}
-          products={allProductsMerged}
-          onCategoryPick={setUpperOutletSlug}
-        />
+        <div className="w-full bg-white">
+          <div className="site-container py-4">
+            <OutletCarousel
+              categories={categories}
+              products={allProductsMerged}
+              onCategoryPick={setUpperOutletSlug}
+            />
+          </div>
+        </div>
       )}
 
       {/* ── Produits disposition aléatoire (entre carrousels) ── */}
-      <HomeRandomLayoutProducts
-        loading={loading}
-        products={randomLayoutProducts}
-        onImageMissing={id => setBrokenRandomLayoutImages(p => ({ ...p, [id]: true }))}
-      />
+      <div className="w-full bg-white">
+        <div className="site-container py-4">
+          <HomeRandomLayoutProducts
+            loading={loading}
+            products={randomLayoutProducts}
+            onImageMissing={id => setBrokenRandomLayoutImages(p => ({ ...p, [id]: true }))}
+          />
+        </div>
+      </div>
 
       {/* ── Outlet Carousel ── */}
       {!loading && allProductsMerged.length > 0 && (
-        <OutletCarousel
-          categories={categories}
-          products={allProductsMerged}
-          excludeSlug={upperOutletSlug}
-        />
+        <div className="w-full bg-white">
+          <div className="site-container py-4">
+            <OutletCarousel
+              categories={categories}
+              products={allProductsMerged}
+              excludeSlug={upperOutletSlug}
+            />
+          </div>
+        </div>
       )}
 
       <style>{`

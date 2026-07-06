@@ -225,30 +225,32 @@ const loadSpotlightBlock = async (subs, usedSlugs = new Set(), minProducts = 1) 
   const available = subs.filter(s => !usedSlugs.has(s.slug));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
 
-  for (const sub of shuffled) {
+  // Try to fetch products in parallel for better performance
+  const fetchPromises = shuffled.map(async (sub) => {
     try {
       const prodRes = await axios.get(`${API}/products?category=${sub.slug}&limit=4`);
       const list = prodRes.data?.products || prodRes.data || [];
-      if (list.length >= minProducts) {
-        return { subCategory: sub, products: list };
-      }
+      return { subCategory: sub, products: list, success: true };
     } catch {
-      /* essayer la suivante */
+      return { subCategory: sub, products: [], success: false };
     }
+  });
+
+  const results = await Promise.all(fetchPromises);
+
+  // First try to find a block with enough products
+  const validBlock = results.find(r => r.success && r.products.length >= minProducts);
+  if (validBlock) {
+    return { subCategory: validBlock.subCategory, products: validBlock.products };
   }
 
-  for (const sub of shuffled) {
-    try {
-      const prodRes = await axios.get(`${API}/products?category=${sub.slug}&limit=4`);
-      const list = prodRes.data?.products || prodRes.data || [];
-      if (list.length > 0) {
-        return { subCategory: sub, products: list };
-      }
-    } catch {
-      /* essayer la suivante */
-    }
+  // Fallback to any block with products
+  const anyBlock = results.find(r => r.success && r.products.length > 0);
+  if (anyBlock) {
+    return { subCategory: anyBlock.subCategory, products: anyBlock.products };
   }
 
+  // Last resort: return first subcategory with empty products
   if (shuffled.length > 0) {
     return { subCategory: shuffled[0], products: [] };
   }
@@ -299,8 +301,8 @@ const SubCategorySpotlight = () => {
 
   if (loading) {
     return (
-      <section className="w-full bg-white py-4">
-        <div className="site-container">
+      <section className="w-full bg-white">
+        <div className="site-container py-4">
           <div className="flex flex-col gap-4 md:flex-row">
             <Skeleton className="h-[380px] flex-1 rounded-sm" />
             <Skeleton className="h-[380px] flex-1 rounded-sm" />
@@ -313,8 +315,8 @@ const SubCategorySpotlight = () => {
   if (!gridBlock && !featuredBlock) return null;
 
   return (
-    <section className="w-full bg-white py-4" data-testid="subcategory-spotlight">
-      <div className="site-container">
+    <section className="w-full bg-white" data-testid="subcategory-spotlight">
+      <div className="site-container py-4">
         <div className="flex flex-col gap-4 md:flex-row md:gap-5">
           {gridBlock && (
             <GridSpotlightBlock
