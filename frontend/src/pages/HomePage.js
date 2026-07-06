@@ -16,7 +16,6 @@ import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
 import HomeRandomLayoutProducts from '../components/HomeRandomLayoutProducts';
-import FeaturedProductsSection from '../components/FeaturedProductsSection';
 
 import { API_URL, API_BASE } from '../config/api';
 
@@ -273,11 +272,6 @@ const HomePage = () => {
             />
           </div>
         </div>
-      )}
-
-      {/* ── Featured Products Section ── */}
-      {!loading && featuredProducts.length > 0 && (
-        <FeaturedProductsSection products={featuredProducts} />
       )}
 
       <style>{`

@@ -73,7 +73,7 @@ const PubBlock = ({ data, position }) => {
 
   if (data.link && !imgError) {
     return (
-      <a href={data.link} target="_blank" rel="noopener noreferrer" className="block flex-1 min-h-0">
+      <a href={data.link} className="block flex-1 min-h-0">
         {inner}
       </a>
     );
@@ -170,7 +170,7 @@ const HeroSection = ({ bottomBlocks = null }) => {
 
   const carouselImage = currentBgUrl ? (
     currentBgLink ? (
-      <a href={currentBgLink} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+      <a href={currentBgLink} className="block w-full h-full">
         <img src={currentBgUrl} alt={currentBgTitle} />
       </a>
     ) : (
