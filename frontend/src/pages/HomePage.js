@@ -74,45 +74,33 @@ const HomePage = () => {
           }
         };
 
-        const fetchSpotlightBlocks = async () => {
-          try {
-            const catRes = await axios.get(`${API}/categories`);
-            const all = catRes.data || [];
-            const subs = all.filter(c => c.parent_slug && c.is_active !== false);
-
-            if (subs.length === 0) {
-              return { gridBlock: null, featuredBlock: null };
-            }
-
-            const usedSlugs = new Set();
-
-            const block1 = await loadSpotlightBlock(subs, usedSlugs, 4);
-            if (block1) usedSlugs.add(block1.subCategory.slug);
-
-            const block2 = await loadSpotlightBlock(subs, usedSlugs, 3);
-
-            return { gridBlock: block1, featuredBlock: block2 };
-          } catch (error) {
-            console.error('Erreur chargement sous-catégorie spotlight:', error);
-            return { gridBlock: null, featuredBlock: null };
-          }
-        };
-
-        const [catRes, featured, allRes, newRes, trendingRes, spotlightData] = await Promise.all([
+        const [catRes, featured, allRes, newRes, trendingRes] = await Promise.all([
           axios.get(`${API}/categories`),
           fetchFeatured(),
           axios.get(`${API}/products?limit=100`),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=16`),
           axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
-          fetchSpotlightBlocks(),
         ]);
-        setCategories(catRes.data || []);
+
+        const allProducts = allRes.data?.products || allRes.data || [];
+        const all = catRes.data || [];
+        const subs = all.filter(c => c.parent_slug && c.is_active !== false);
+
+        setCategories(all);
         setFeaturedProducts(featured);
-        setAllProducts(allRes.data?.products || allRes.data || []);
+        setAllProducts(allProducts);
         setNewProducts(newRes.data?.products || newRes.data || []);
         setTrendingProducts(trendingRes.data?.products || trendingRes.data || []);
-        setGridBlock(spotlightData.gridBlock);
-        setFeaturedBlock(spotlightData.featuredBlock);
+
+        // Process spotlight blocks using already loaded products (synchronous, no API calls)
+        if (subs.length > 0) {
+          const usedSlugs = new Set();
+          const block1 = loadSpotlightBlock(subs, usedSlugs, 4, allProducts);
+          if (block1) usedSlugs.add(block1.subCategory.slug);
+          const block2 = loadSpotlightBlock(subs, usedSlugs, 3, allProducts);
+          setGridBlock(block1);
+          setFeaturedBlock(block2);
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
       } finally {

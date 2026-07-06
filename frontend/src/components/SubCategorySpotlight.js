@@ -221,31 +221,24 @@ const FeaturedSpotlightBlock = ({ subCategory, products }) => {
   );
 };
 
-export const loadSpotlightBlock = async (subs, usedSlugs = new Set(), minProducts = 1) => {
+export const loadSpotlightBlock = (subs, usedSlugs = new Set(), minProducts = 1, allProducts = []) => {
   const available = subs.filter(s => !usedSlugs.has(s.slug));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
 
-  // Try to fetch products in parallel for better performance
-  const fetchPromises = shuffled.map(async (sub) => {
-    try {
-      const prodRes = await axios.get(`${API}/products?category=${sub.slug}&limit=4`);
-      const list = prodRes.data?.products || prodRes.data || [];
-      return { subCategory: sub, products: list, success: true };
-    } catch {
-      return { subCategory: sub, products: [], success: false };
-    }
+  // Filter products locally from already loaded data
+  const results = shuffled.map(sub => {
+    const products = allProducts.filter(p => p.category_slug === sub.slug);
+    return { subCategory: sub, products, success: true };
   });
 
-  const results = await Promise.all(fetchPromises);
-
   // First try to find a block with enough products
-  const validBlock = results.find(r => r.success && r.products.length >= minProducts);
+  const validBlock = results.find(r => r.products.length >= minProducts);
   if (validBlock) {
     return { subCategory: validBlock.subCategory, products: validBlock.products };
   }
 
   // Fallback to any block with products
-  const anyBlock = results.find(r => r.success && r.products.length > 0);
+  const anyBlock = results.find(r => r.products.length > 0);
   if (anyBlock) {
     return { subCategory: anyBlock.subCategory, products: anyBlock.products };
   }
