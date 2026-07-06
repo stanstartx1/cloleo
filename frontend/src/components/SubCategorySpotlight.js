@@ -221,7 +221,7 @@ const FeaturedSpotlightBlock = ({ subCategory, products }) => {
   );
 };
 
-const loadSpotlightBlock = async (subs, usedSlugs = new Set(), minProducts = 1) => {
+export const loadSpotlightBlock = async (subs, usedSlugs = new Set(), minProducts = 1) => {
   const available = subs.filter(s => !usedSlugs.has(s.slug));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
 
