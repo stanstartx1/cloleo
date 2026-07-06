@@ -81,6 +81,16 @@ const HomeTopProductCard = ({ product, index, onImageMissing }) => {
 };
 
 const HomeTopRatedProducts = ({ loading, topRatedProducts, onImageMissing }) => {
+  // Calculate how many products we need to fill complete rows
+  const getProductsForFullRows = (products) => {
+    const cols = 7; // xl:grid-cols-7
+    const targetCount = Math.ceil(products.length / cols) * cols;
+    const multiplier = Math.ceil(targetCount / products.length);
+    return Array(multiplier).fill(products).flat().slice(0, targetCount);
+  };
+
+  const displayProducts = topRatedProducts.length > 0 ? getProductsForFullRows(topRatedProducts) : [];
+
   return (
     <div className="w-full bg-white">
       <div className="site-container">
@@ -101,9 +111,9 @@ const HomeTopRatedProducts = ({ loading, topRatedProducts, onImageMissing }) => 
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-            {topRatedProducts.map((product, index) => (
+            {displayProducts.map((product, index) => (
               <HomeTopProductCard
-                key={`top-rated-${product.id}`}
+                key={`top-rated-${product.id}-${index}`}
                 product={product}
                 index={index}
                 onImageMissing={onImageMissing}

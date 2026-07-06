@@ -321,7 +321,7 @@ const Navbar = () => {
           <div className="flex items-center h-20 md:h-28 gap-3 md:gap-4 lg:gap-6">
             
             {/* ── Logo ── */}
-            <Link to="/" className="flex items-center gap-2 group shrink-0" data-testid="logo">
+            <a href="/" className="flex items-center gap-2 group shrink-0" data-testid="logo" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>
               {!logoLoading && logoUrl ? (
                 <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-sm transition-all duration-300 group-hover:shadow-md">
                   <img 
@@ -345,7 +345,7 @@ const Navbar = () => {
                   </span>
                 </>
               )}
-            </Link>
+            </a>
 
             {/* ── Desktop Navigation ── (sans le menu Parcourir) */}
             <div className="hidden lg:flex items-center gap-5 shrink-0">
@@ -533,21 +533,23 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white" data-testid="mobile-menu">
           <div className="flex items-center justify-between p-4 border-b-2 border-orange-100 bg-white">
-            {logoUrl ? (
-              <div className="bg-white/80 rounded-lg p-1">
-                <img 
-                  src={logoUrl} 
-                  alt="Cloléo" 
-                  className="h-8 w-auto object-contain"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              </div>
-            ) : (
-              <span className="text-xl font-black">
-                <span className="text-orange-500">Clo</span>
-                <span className="text-amber-600">léo</span>
-              </span>
-            )}
+            <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>
+              {logoUrl ? (
+                <div className="bg-white/80 rounded-lg p-1">
+                  <img 
+                    src={logoUrl} 
+                    alt="Cloléo" 
+                    className="h-8 w-auto object-contain"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                </div>
+              ) : (
+                <span className="text-xl font-black">
+                  <span className="text-orange-500">Clo</span>
+                  <span className="text-amber-600">léo</span>
+                </span>
+              )}
+            </a>
             <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="rounded-full hover:bg-orange-50">
               <X className="w-5 h-5" />
             </Button>

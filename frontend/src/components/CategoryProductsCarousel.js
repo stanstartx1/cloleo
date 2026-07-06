@@ -114,7 +114,16 @@ const CategoryProductsCarousel = ({ categories, products }) => {
       subSlugs.has(p.category_slug) ||
       subSlugs.has(p.subcategory_slug)
     );
-    return (filtered.length ? filtered : products.slice(0, 12)).slice(0, 16);
+    let result = filtered.length ? filtered : products.slice(0, 12);
+    result = result.slice(0, 16);
+
+    // Ensure we have enough products to fill the row (at least 8 for good coverage)
+    if (result.length < 8 && result.length > 0) {
+      const multiplier = Math.ceil(8 / result.length);
+      result = Array(multiplier).fill(result).flat();
+    }
+
+    return result;
   }, [pickedCategory, products, subSlugs]);
 
   useEffect(() => {
