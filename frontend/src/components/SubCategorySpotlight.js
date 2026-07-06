@@ -257,48 +257,7 @@ const loadSpotlightBlock = async (subs, usedSlugs = new Set(), minProducts = 1) 
   return null;
 };
 
-const SubCategorySpotlight = () => {
-  const [loading, setLoading] = useState(true);
-  const [gridBlock, setGridBlock] = useState(null);
-  const [featuredBlock, setFeaturedBlock] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      try {
-        const catRes = await axios.get(`${API}/categories`);
-        const all = catRes.data || [];
-        const subs = all.filter(c => c.parent_slug && c.is_active !== false);
-
-        if (subs.length === 0) {
-          if (!cancelled) setLoading(false);
-          return;
-        }
-
-        const usedSlugs = new Set();
-
-        const block1 = await loadSpotlightBlock(subs, usedSlugs, 4);
-        if (block1) usedSlugs.add(block1.subCategory.slug);
-
-        const block2 = await loadSpotlightBlock(subs, usedSlugs, 3);
-
-        if (!cancelled) {
-          setGridBlock(block1);
-          setFeaturedBlock(block2);
-        }
-      } catch (error) {
-        console.error('Erreur chargement sous-catégorie spotlight:', error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
+const SubCategorySpotlight = ({ gridBlock, featuredBlock, loading }) => {
   if (loading) {
     return (
       <section className="w-full bg-white">

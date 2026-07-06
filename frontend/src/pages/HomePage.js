@@ -7,7 +7,7 @@ import ProductCard from '../components/ProductCard';
 import HeroSection from '../components/HeroSection';
 import CategorySidebar from '../components/CategorySidebar';
 import CategoriesGrid from '../components/CategoriesGrid';
-import SubCategorySpotlight from '../components/SubCategorySpotlight';
+import SubCategorySpotlight, { loadSpotlightBlock } from '../components/SubCategorySpotlight';
 import { Skeleton } from '../components/ui/skeleton';
 import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, FloatingBadges } from '../components/ScrollingBanners';
@@ -42,6 +42,8 @@ const HomePage = () => {
   const [conditionFilters, setConditionFilters] = useState({ neuf: false, occasion: false, presque_neuf: false });
   const [layoutSettings,   setLayoutSettings]   = useState(null);
   const [adStrips,         setAdStrips]         = useState(DEFAULT_HOME_AD_STRIPS);
+  const [gridBlock,        setGridBlock]        = useState(null);
+  const [featuredBlock,    setFeaturedBlock]    = useState(null);
 
   /* ── Fetch settings ── */
   useEffect(() => {
@@ -71,18 +73,46 @@ const HomePage = () => {
             return p.filter(x => x.is_featured === true);
           }
         };
-        const [catRes, featured, allRes, newRes, trendingRes] = await Promise.all([
+
+        const fetchSpotlightBlocks = async () => {
+          try {
+            const catRes = await axios.get(`${API}/categories`);
+            const all = catRes.data || [];
+            const subs = all.filter(c => c.parent_slug && c.is_active !== false);
+
+            if (subs.length === 0) {
+              return { gridBlock: null, featuredBlock: null };
+            }
+
+            const usedSlugs = new Set();
+
+            const block1 = await loadSpotlightBlock(subs, usedSlugs, 4);
+            if (block1) usedSlugs.add(block1.subCategory.slug);
+
+            const block2 = await loadSpotlightBlock(subs, usedSlugs, 3);
+
+            return { gridBlock: block1, featuredBlock: block2 };
+          } catch (error) {
+            console.error('Erreur chargement sous-catégorie spotlight:', error);
+            return { gridBlock: null, featuredBlock: null };
+          }
+        };
+
+        const [catRes, featured, allRes, newRes, trendingRes, spotlightData] = await Promise.all([
           axios.get(`${API}/categories`),
           fetchFeatured(),
           axios.get(`${API}/products?limit=100`),
           axios.get(`${API}/products?sort_by=created_at&sort_order=desc&limit=16`),
           axios.get(`${API}/products?sort_by=sales_count&sort_order=desc&limit=12`),
+          fetchSpotlightBlocks(),
         ]);
         setCategories(catRes.data || []);
         setFeaturedProducts(featured);
         setAllProducts(allRes.data?.products || allRes.data || []);
         setNewProducts(newRes.data?.products || newRes.data || []);
         setTrendingProducts(trendingRes.data?.products || trendingRes.data || []);
+        setGridBlock(spotlightData.gridBlock);
+        setFeaturedBlock(spotlightData.featuredBlock);
       } catch (err) {
         console.error('Error fetching data:', err);
       } finally {
@@ -173,7 +203,7 @@ const HomePage = () => {
         <div className="site-container py-4"><CategoriesGrid /></div>
       </div>
 
-      <SubCategorySpotlight />
+      <SubCategorySpotlight gridBlock={gridBlock} featuredBlock={featuredBlock} loading={loading} />
 
       {/* ── Top produits ── */}
       <div className="w-full bg-white">
