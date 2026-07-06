@@ -158,7 +158,7 @@ const HomeRandomLayoutProducts = ({ loading, products = [], onImageMissing }) =>
   const displayProducts = useMemo(() => {
     const withImage = products.filter(p => getImage(p));
     const shuffled = shuffleArray(withImage);
-    const count = session.disposition.id === 'showcase' ? 11 : session.disposition.id === 'large' ? 10 : 14;
+    const count = session.disposition.id === 'showcase' ? 11 : session.disposition.id === 'large' ? 10 : 21;
     return shuffled.slice(0, count);
   }, [products, session.disposition.id]);
 
