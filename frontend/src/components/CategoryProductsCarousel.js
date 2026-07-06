@@ -5,6 +5,7 @@ import { toAbsoluteMediaUrl } from '../utils/media';
 const CARD_WIDTH = 260;
 const CARD_GAP = 14;
 const LEFT_PANEL_WIDTH = 280;
+const PRODUCTS_PER_ROW = 6;
 
 /* ─── Carte produit ─────────────────────────────────────────────────────────── */
 const DropCard = ({ product }) => {
@@ -17,6 +18,7 @@ const DropCard = ({ product }) => {
   return (
     <Link
       to={`/produit/${product.id}`}
+      className="drop-card"
       style={{
         display: 'flex', flexDirection: 'column',
         backgroundColor: '#fff', borderRadius: '18px',
@@ -115,12 +117,15 @@ const CategoryProductsCarousel = ({ categories, products }) => {
       subSlugs.has(p.subcategory_slug)
     );
     let result = filtered.length ? filtered : products.slice(0, 12);
-    result = result.slice(0, 16);
+    result = result.slice(0, 18);
 
-    // Ensure we have enough products to fill the row (at least 8 for good coverage)
-    if (result.length < 8 && result.length > 0) {
-      const multiplier = Math.ceil(8 / result.length);
-      result = Array(multiplier).fill(result).flat();
+    // Ensure we have enough products to fill complete rows (6 per row)
+    if (result.length > 0) {
+      const targetCount = Math.ceil(result.length / PRODUCTS_PER_ROW) * PRODUCTS_PER_ROW;
+      if (result.length < targetCount) {
+        const multiplier = Math.ceil(targetCount / result.length);
+        result = Array(multiplier).fill(result).flat().slice(0, targetCount);
+      }
     }
 
     return result;
@@ -164,7 +169,7 @@ const CategoryProductsCarousel = ({ categories, products }) => {
           background: 'linear-gradient(to right, #0d1117 68%, transparent)',
           padding: '36px 32px',
           display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '20px',
-        }}>
+        }} className="left-panel">
           {/* Badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', width: 'fit-content' }}>
             <span style={{
@@ -257,6 +262,26 @@ const CategoryProductsCarousel = ({ categories, products }) => {
         @keyframes dropsPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.25; transform: scale(0.75); }
+        }
+
+        @media (max-width: 768px) {
+          .left-panel {
+            display: none !important;
+          }
+
+          .drop-card {
+            width: 160px !important;
+            min-width: 160px !important;
+            height: 280px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .drop-card {
+            width: 140px !important;
+            min-width: 140px !important;
+            height: 260px !important;
+          }
         }
       `}</style>
     </section>
