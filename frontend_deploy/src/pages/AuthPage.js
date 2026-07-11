@@ -185,9 +185,9 @@ const AuthPage = () => {
           {/* Auth Card */}
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Connexion</TabsTrigger>
-                <TabsTrigger value="register">Inscription</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-transparent">
+                <TabsTrigger value="login" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Connexion</TabsTrigger>
+                <TabsTrigger value="register" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Inscription</TabsTrigger>
               </TabsList>
 
               {/* Login Tab */}
@@ -383,6 +383,11 @@ const AuthPage = () => {
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* Slogan */}
+          <p className="text-center text-sm text-muted-foreground mt-8 font-medium">
+            La référence du e-commerce en Afrique
+          </p>
         </div>
       </div>
     </div>

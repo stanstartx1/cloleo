@@ -176,9 +176,9 @@ const AuthPage = () => {
           <div className="bg-white rounded-3xl shadow-2xl shadow-orange-500/10 overflow-hidden border border-orange-100">
             <div className="p-10">
               <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-8">
-                  <TabsTrigger value="login" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm">Connexion</TabsTrigger>
-                  <TabsTrigger value="register" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm">Inscription</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-transparent">
+                  <TabsTrigger value="login" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Connexion</TabsTrigger>
+                  <TabsTrigger value="register" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Inscription</TabsTrigger>
                 </TabsList>
 
                 {/* ====================== LOGIN TAB ====================== */}
@@ -352,6 +352,11 @@ const AuthPage = () => {
           <p className="text-center text-sm text-gray-500 mt-8">
             En continuant, vous acceptez nos{' '}
             <Link to="/terms" className="text-orange-600 hover:underline">Conditions d'utilisation</Link>
+          </p>
+
+          {/* Slogan */}
+          <p className="text-center text-sm text-muted-foreground mt-4 font-medium">
+            La référence du e-commerce en Afrique
           </p>
         </div>
       </div>
