@@ -2379,8 +2379,8 @@ async def ws_driver(websocket: WebSocket, driver_id: str):
         manager.disconnect(websocket, room)
 
 
-# Mount API
-app.mount("/api", api)
+# Mount API - désactivé pour éviter les conflits avec les routes définies sur app
+# app.mount("/api", api)
 
 
 @app.get("/")
