@@ -53,7 +53,27 @@ jobs:
             echo "✅ Frontend built successfully with HTTPS backend URL and Mapbox token"
             
             echo "== Restart services =="
-            systemctl restart cloleo-backend || echo "Backend warning"
-            systemctl reload nginx || echo "Nginx warning"
+            echo "Backend unit configuration:"
+            systemctl show cloleo-backend \
+              --property=ExecStart \
+              --property=WorkingDirectory \
+              --no-pager
+
+            systemctl restart cloleo-backend
+            systemctl is-active --quiet cloleo-backend
+
+            # The public API must expose the route that was just deployed.
+            # Do not report a successful deployment while an older service is running.
+            if ! curl --fail --silent --show-error --retry 5 --retry-connrefused \
+              https://cloleo.com/api/openapi.json | grep --quiet '"/auth-page-settings"'; then
+              echo "ERROR: cloleo-backend is not serving the code from this deployment."
+              exit 1
+            fi
+
+            if systemctl is-active --quiet apache2; then
+              systemctl reload apache2
+            else
+              echo "Apache is not managed by the apache2 systemd unit; no reload performed."
+            fi
             
             echo "✅ Deployment finished at $(date)"
