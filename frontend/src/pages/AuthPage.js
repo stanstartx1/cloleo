@@ -27,7 +27,8 @@ const AuthPage = () => {
         const response = await fetch(`${API}/logo-settings`);
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status} when fetching logo`);
+          console.warn('Logo endpoint not available, using fallback');
+          return;
         }
 
         const contentType = response.headers.get('content-type') || '';
@@ -49,7 +50,7 @@ const AuthPage = () => {
           setLogoUrl(logo);
         }
       } catch (error) {
-        console.error('Erreur chargement logo:', error);
+        console.warn('Erreur chargement logo, using fallback:', error.message);
       } finally {
         setLogoLoading(false);
       }
