@@ -2975,7 +2975,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
     }
   };
 
-  const uploadAuthPageBgImage = async (file) => {
+  const uploadAuthPageBgImage = async (file, position = null) => {
     if (!file) return;
     
     const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
@@ -2996,11 +2996,25 @@ const LayoutAppearanceSection = ({ token, API }) => {
         }
       });
       const newImageUrl = response.data.url;
-      setAuthPageBgImages([...authPageBgImages, newImageUrl]);
-      if (authPageBgImages.length === 0) {
-        setAuthPageLayoutType('single');
-      } else if (authPageBgImages.length === 1) {
-        setAuthPageLayoutType('split');
+      
+      if (position === 0) {
+        // Image de gauche
+        const updated = [...authPageBgImages];
+        updated[0] = newImageUrl;
+        setAuthPageBgImages(updated);
+      } else if (position === 1) {
+        // Image de droite
+        const updated = [...authPageBgImages];
+        updated[1] = newImageUrl;
+        setAuthPageBgImages(updated);
+      } else {
+        // Ajout à la fin (ancien comportement)
+        setAuthPageBgImages([...authPageBgImages, newImageUrl]);
+        if (authPageBgImages.length === 0) {
+          setAuthPageLayoutType('single');
+        } else if (authPageBgImages.length === 1) {
+          setAuthPageLayoutType('split');
+        }
       }
       toast.success('Image de fond uploadée !');
     } catch (error) {
@@ -3828,7 +3842,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                uploadAuthPageBgImage(file);
+                                uploadAuthPageBgImage(file, 0);
                               }
                               e.target.value = '';
                             }}
@@ -3880,7 +3894,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                uploadAuthPageBgImage(file);
+                                uploadAuthPageBgImage(file, 1);
                               }
                               e.target.value = '';
                             }}
