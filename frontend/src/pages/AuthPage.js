@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
+import { API_BASE, API_URL } from '../config/api';
+
+const API = API_URL;
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -15,6 +18,56 @@ const AuthPage = () => {
  
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch(`${API}/logo-settings`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} when fetching logo`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          console.warn('Logo endpoint returned non-JSON response:', contentType, text.slice(0, 200));
+          return;
+        }
+
+        if (data && data.logo_url && data.logo_url.trim()) {
+          let logo = data.logo_url;
+          if (logo.startsWith('/')) {
+            logo = `${API_BASE}${logo}`;
+          }
+          setLogoUrl(logo);
+        }
+      } catch (error) {
+        console.error('Erreur chargement logo:', error);
+      } finally {
+        setLogoLoading(false);
+      }
+    };
+    fetchLogo();
+  }, []);
+
+  const handleImageError = (e) => {
+    e.target.style.display = 'none';
+    const parent = e.target.parentElement;
+    if (parent && parent.parentElement) {
+      const fallback = parent.parentElement.querySelector('.logo-fallback');
+      if (fallback) {
+        e.target.style.display = 'none';
+        fallback.style.display = 'flex';
+      }
+    }
+  };
  
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -89,16 +142,32 @@ const AuthPage = () => {
           {/* Logo & Header */}
           <div className="text-center mb-10">
             <Link to="/" className="inline-flex items-center gap-3 group">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-orange-500/30 group-hover:scale-105 transition-transform">
-                <span className="text-4xl font-black">C</span>
-              </div>
-              <div>
-                <span className="text-4xl font-bold tracking-tight">
-                  <span className="text-orange-600">Clo</span>
-                  <span className="text-amber-600">léo</span>
-                </span>
-                <p className="text-sm text-muted-foreground">Marketplace Premium</p>
-              </div>
+              {!logoLoading && logoUrl ? (
+                <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                  <img 
+                    src={logoUrl} 
+                    alt="Cloléo" 
+                    className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    onError={handleImageError}
+                  />
+                  <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
+                    <span className="text-white font-black text-2xl">C</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-orange-500/30 group-hover:scale-105 transition-transform">
+                    <span className="text-4xl font-black">C</span>
+                  </div>
+                  <div>
+                    <span className="text-4xl font-bold tracking-tight">
+                      <span className="text-orange-600">Clo</span>
+                      <span className="text-amber-600">léo</span>
+                    </span>
+                    <p className="text-sm text-muted-foreground">Marketplace Premium</p>
+                  </div>
+                </>
+              )}
             </Link>
           </div>
 
@@ -106,7 +175,7 @@ const AuthPage = () => {
           <div className="bg-white rounded-3xl shadow-2xl shadow-orange-500/10 overflow-hidden border border-orange-100">
             <div className="p-10">
               <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 p-1 rounded-2xl">
+                <TabsList className="grid w-full grid-cols-2 mb-8">
                   <TabsTrigger value="login" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm">Connexion</TabsTrigger>
                   <TabsTrigger value="register" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm">Inscription</TabsTrigger>
                 </TabsList>

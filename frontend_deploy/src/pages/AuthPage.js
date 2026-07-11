@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
+import { API_BASE, API_URL } from '../config/api';
+
+const API = API_URL;
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -15,6 +18,56 @@ const AuthPage = () => {
   
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch(`${API}/logo-settings`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} when fetching logo`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          console.warn('Logo endpoint returned non-JSON response:', contentType, text.slice(0, 200));
+          return;
+        }
+
+        if (data && data.logo_url && data.logo_url.trim()) {
+          let logo = data.logo_url;
+          if (logo.startsWith('/')) {
+            logo = `${API_BASE}${logo}`;
+          }
+          setLogoUrl(logo);
+        }
+      } catch (error) {
+        console.error('Erreur chargement logo:', error);
+      } finally {
+        setLogoLoading(false);
+      }
+    };
+    fetchLogo();
+  }, []);
+
+  const handleImageError = (e) => {
+    e.target.style.display = 'none';
+    const parent = e.target.parentElement;
+    if (parent && parent.parentElement) {
+      const fallback = parent.parentElement.querySelector('.logo-fallback');
+      if (fallback) {
+        e.target.style.display = 'none';
+        fallback.style.display = 'flex';
+      }
+    }
+  };
   
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
@@ -101,14 +154,30 @@ const AuthPage = () => {
         <div className="max-w-md mx-auto">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-2xl">
-                C
-              </div>
-              <span className="text-3xl font-bold">
-                <span className="text-orange-500">Clo</span>
-                <span className="text-amber-600">léo</span>
-              </span>
+            <Link to="/" className="inline-flex items-center gap-2 group">
+              {!logoLoading && logoUrl ? (
+                <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                  <img 
+                    src={logoUrl} 
+                    alt="Cloléo" 
+                    className="h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    onError={handleImageError}
+                  />
+                  <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
+                    <span className="text-white font-black text-lg">C</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-2xl transition-all duration-500 group-hover:scale-110">
+                    C
+                  </div>
+                  <span className="text-3xl font-bold">
+                    <span className="text-orange-500">Clo</span>
+                    <span className="text-amber-600">léo</span>
+                  </span>
+                </>
+              )}
             </Link>
           </div>
 
