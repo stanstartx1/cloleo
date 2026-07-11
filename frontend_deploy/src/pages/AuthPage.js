@@ -21,6 +21,8 @@ const AuthPage = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoading, setLogoLoading] = useState(true);
   const [authPageSettings, setAuthPageSettings] = useState({
+    enabled: false,
+    background_type: 'color',
     background_color: '',
     background_images: [],
     layout_type: 'single'
@@ -80,15 +82,20 @@ const AuthPage = () => {
 
   // Calculer le style de fond
   const getBackgroundStyle = () => {
-    const { background_color, background_images, layout_type } = authPageSettings;
+    const { enabled, background_type, background_color, background_images, layout_type } = authPageSettings;
     
-    // Si une couleur est définie, elle prend priorité
-    if (background_color && background_color.trim()) {
+    // Si le fond n'est pas activé, utiliser le gradient par défaut
+    if (!enabled) {
+      return {};
+    }
+    
+    // Si type couleur et une couleur est définie
+    if (background_type === 'color' && background_color && background_color.trim()) {
       return { backgroundColor: background_color };
     }
     
-    // Si des images sont définies
-    if (background_images && background_images.length > 0) {
+    // Si type image et des images sont définies
+    if (background_type === 'image' && background_images && background_images.length > 0) {
       const images = background_images.map(img => 
         img.startsWith('/') ? `${API_BASE}${img}` : img
       );

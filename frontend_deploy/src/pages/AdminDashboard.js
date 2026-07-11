@@ -73,6 +73,8 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Auth page background settings
+  const [authPageEnabled, setAuthPageEnabled] = useState(false);
+  const [authPageBackgroundType, setAuthPageBackgroundType] = useState('color');
   const [authPageBgColor, setAuthPageBgColor] = useState('');
   const [authPageBgImages, setAuthPageBgImages] = useState([]);
   const [authPageLayoutType, setAuthPageLayoutType] = useState('single');
@@ -261,6 +263,8 @@ const AdminDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = response.data;
+      setAuthPageEnabled(data.enabled || false);
+      setAuthPageBackgroundType(data.background_type || 'color');
       setAuthPageBgColor(data.background_color || '');
       setAuthPageBgImages(data.background_images || []);
       setAuthPageLayoutType(data.layout_type || 'single');
@@ -275,6 +279,8 @@ const AdminDashboard = () => {
     setAuthPageSaving(true);
     try {
       await axios.put(`${API}/admin/settings/auth-page`, {
+        enabled: authPageEnabled,
+        background_type: authPageBackgroundType,
         background_color: authPageBgColor,
         background_images: authPageBgImages,
         layout_type: authPageLayoutType
@@ -582,6 +588,10 @@ const AdminDashboard = () => {
         return <SettingsSection type="platform" settings={settings.platform} onUpdate={(k, v) => updateSetting('platform', k, v)} onSave={() => handleSaveSettings('platform')} />;
       case 'settings-layout':
         return <AuthPageSettingsSection 
+          enabled={authPageEnabled}
+          setEnabled={setAuthPageEnabled}
+          backgroundType={authPageBackgroundType}
+          setBackgroundType={setAuthPageBackgroundType}
           bgColor={authPageBgColor}
           setBgColor={setAuthPageBgColor}
           bgImages={authPageBgImages}
@@ -1984,14 +1994,13 @@ const CategoriesSection = ({
 };
 
 // Composant pour la configuration du fond de page de connexion
-const AuthPageSettingsSection = ({ bgColor, setBgColor, bgImages, setBgImages, layoutType, setLayoutType, loading, saving, uploading, onImageChange, onRemoveImage, onSave, getImageUrl }) => {
+const AuthPageSettingsSection = ({ enabled, setEnabled, backgroundType, setBackgroundType, bgColor, setBgColor, bgImages, setBgImages, layoutType, setLayoutType, loading, saving, uploading, onImageChange, onRemoveImage, onSave, getImageUrl }) => {
   return (
     <div className="space-y-6 p-6">
       <div>
         <h2 className="text-xl font-bold text-slate-100">🔐 Fond de la page de connexion</h2>
         <p className="text-slate-400 text-sm mt-1">
-          Configurez le fond de la page de connexion. Vous pouvez utiliser une couleur de fond ou une/deux image(s).
-          Si vous utilisez deux images, elles seront disposées côte à côte (gauche/droite).
+          Configurez le fond de la page de connexion. Activez le fond personnalisé, puis choisissez entre une couleur ou des images.
         </p>
       </div>
 
@@ -2003,114 +2012,170 @@ const AuthPageSettingsSection = ({ bgColor, setBgColor, bgImages, setBgImages, l
         {loading ? (
           <p className="text-slate-400 text-center py-4">Chargement...</p>
         ) : (
-          <div className="space-y-5">
-            <div>
-              <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
-              <div
-                className="h-40 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
-                style={{
-                  background: bgColor
-                    ? bgColor
-                    : bgImages.length === 1
-                    ? `url(${getImageUrl(bgImages[0])}) center/cover`
-                    : bgImages.length === 2 && layoutType === 'split'
-                    ? `url(${getImageUrl(bgImages[0])}) 0 0 / 50% 100%, url(${getImageUrl(bgImages[1])}) 100% 0 / 50% 100%`
-                    : 'linear-gradient(135deg, #f97316, #fbbf24)',
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300 block mb-2">Couleur de fond (optionnel)</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="color"
-                  value={bgColor || '#ffffff'}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="w-12 h-10 rounded-lg cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  placeholder="#ffffff ou laisser vide pour utiliser des images"
-                  className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
-                />
+          <div className="space-y-6">
+            {/* Activation du fond */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+              <div>
+                <label className="text-sm font-medium text-slate-200 block mb-1">Activer le fond personnalisé</label>
+                <p className="text-xs text-slate-400">Désactivez pour utiliser le gradient par défaut</p>
               </div>
-              <p className="text-xs text-slate-500 mt-2">Si une couleur est définie, elle prend priorité sur les images.</p>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e) => setEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-rose-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+              </label>
             </div>
 
-            <div>
-              <label className="text-sm text-slate-300 block mb-2">Images de fond (max 2)</label>
-              <div className="space-y-3">
-                {bgImages.map((img, index) => (
-                  <div key={index} className="flex gap-3 items-center">
-                    <img src={getImageUrl(img)} alt={`Fond ${index + 1}`} className="w-24 h-16 object-cover rounded-lg" />
-                    <input
-                      type="text"
-                      value={img}
-                      onChange={(e) => {
-                        const updated = [...bgImages];
-                        updated[index] = e.target.value;
-                        setBgImages(updated);
-                      }}
-                      className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
-                    />
-                    <button
-                      onClick={() => onRemoveImage(index)}
-                      className="text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-900/30"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                {bgImages.length < 2 && (
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                      onChange={onImageChange}
-                      disabled={uploading}
-                      className="hidden"
-                      id="auth-page-bg-upload"
-                    />
-                    <label
-                      htmlFor="auth-page-bg-upload"
-                      className="inline-flex items-center gap-2 cursor-pointer bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition"
-                    >
-                      {uploading ? 'Upload en cours...' : '📁 Ajouter une image'}
+            {enabled && (
+              <>
+                {/* Type de fond */}
+                <div>
+                  <label className="text-sm text-slate-300 block mb-3">Type de fond</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="auth_bg_type"
+                        value="color"
+                        checked={backgroundType === 'color'}
+                        onChange={() => setBackgroundType('color')}
+                      />
+                      <span className="text-slate-200">Couleur unie</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="auth_bg_type"
+                        value="image"
+                        checked={backgroundType === 'image'}
+                        onChange={() => setBackgroundType('image')}
+                      />
+                      <span className="text-slate-200">Image(s)</span>
                     </label>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {bgImages.length === 2 && (
-              <div>
-                <label className="text-sm text-slate-300 block mb-2">Disposition des images</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="auth_page_layout"
-                      value="split"
-                      checked={layoutType === 'split'}
-                      onChange={() => setLayoutType('split')}
-                    />
-                    <span className="text-slate-200">Côte à côte (gauche/droite)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="auth_page_layout"
-                      value="single"
-                      checked={layoutType === 'single'}
-                      onChange={() => setLayoutType('single')}
-                    />
-                    <span className="text-slate-200">Image unique (première image)</span>
-                  </label>
                 </div>
-              </div>
+
+                {/* Aperçu */}
+                <div>
+                  <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
+                  <div
+                    className="h-40 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
+                    style={{
+                      background: backgroundType === 'color' && bgColor
+                        ? bgColor
+                        : backgroundType === 'image' && bgImages.length === 1
+                        ? `url(${getImageUrl(bgImages[0])}) center/cover`
+                        : backgroundType === 'image' && bgImages.length === 2 && layoutType === 'split'
+                        ? `url(${getImageUrl(bgImages[0])}) 0 0 / 50% 100%, url(${getImageUrl(bgImages[1])}) 100% 0 / 50% 100%`
+                        : 'linear-gradient(135deg, #f97316, #fbbf24)',
+                    }}
+                  />
+                </div>
+
+                {/* Configuration couleur */}
+                {backgroundType === 'color' && (
+                  <div>
+                    <label className="text-sm text-slate-300 block mb-2">Couleur de fond</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={bgColor || '#ffffff'}
+                        onChange={(e) => setBgColor(e.target.value)}
+                        className="w-12 h-10 rounded-lg cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={bgColor}
+                        onChange={(e) => setBgColor(e.target.value)}
+                        placeholder="#ffffff"
+                        className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Configuration images */}
+                {backgroundType === 'image' && (
+                  <>
+                    <div>
+                      <label className="text-sm text-slate-300 block mb-2">Images de fond (max 2)</label>
+                      <div className="space-y-3">
+                        {bgImages.map((img, index) => (
+                          <div key={index} className="flex gap-3 items-center">
+                            <img src={getImageUrl(img)} alt={`Fond ${index + 1}`} className="w-24 h-16 object-cover rounded-lg" />
+                            <input
+                              type="text"
+                              value={img}
+                              onChange={(e) => {
+                                const updated = [...bgImages];
+                                updated[index] = e.target.value;
+                                setBgImages(updated);
+                              }}
+                              className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                            />
+                            <button
+                              onClick={() => onRemoveImage(index)}
+                              className="text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-900/30"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        {bgImages.length < 2 && (
+                          <div>
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                              onChange={onImageChange}
+                              disabled={uploading}
+                              className="hidden"
+                              id="auth-page-bg-upload"
+                            />
+                            <label
+                              htmlFor="auth-page-bg-upload"
+                              className="inline-flex items-center gap-2 cursor-pointer bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition"
+                            >
+                              {uploading ? 'Upload en cours...' : '📁 Ajouter une image'}
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {bgImages.length === 2 && (
+                      <div>
+                        <label className="text-sm text-slate-300 block mb-2">Disposition des images</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="auth_page_layout"
+                              value="split"
+                              checked={layoutType === 'split'}
+                              onChange={() => setLayoutType('split')}
+                            />
+                            <span className="text-slate-200">Côte à côte (gauche/droite)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="auth_page_layout"
+                              value="single"
+                              checked={layoutType === 'single'}
+                              onChange={() => setLayoutType('single')}
+                            />
+                            <span className="text-slate-200">Image unique (première image)</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
             )}
 
             <button

@@ -1113,6 +1113,8 @@ async def public_auth_page_settings():
     doc = await db.settings.find_one({"type": "auth_page"}, {"_id": 0})
     return doc or {
         "type": "auth_page",
+        "enabled": False,
+        "background_type": "color",
         "background_color": "",
         "background_images": [],
         "layout_type": "single"
@@ -1125,6 +1127,8 @@ async def admin_auth_page_settings(user: dict = Depends(require_admin)):
     doc = await db.settings.find_one({"type": "auth_page"}, {"_id": 0})
     return doc or {
         "type": "auth_page",
+        "enabled": False,
+        "background_type": "color",
         "background_color": "",
         "background_images": [],
         "layout_type": "single"
@@ -1134,9 +1138,15 @@ async def admin_auth_page_settings(user: dict = Depends(require_admin)):
 @api.put("/admin/settings/auth-page")
 async def admin_save_auth_page_settings(payload: dict, user: dict = Depends(require_admin)):
     """Admin — sauvegarde la configuration du fond de la page de connexion"""
+    enabled = bool(payload.get("enabled", False))
+    background_type = str(payload.get("background_type", "color")).strip()
     background_color = str(payload.get("background_color", "")).strip()
     background_images = payload.get("background_images", [])
     layout_type = str(payload.get("layout_type", "single")).strip()
+    
+    # Valider background_type
+    if background_type not in ["color", "image"]:
+        background_type = "color"
     
     # Valider
     if not isinstance(background_images, list):
@@ -1151,6 +1161,8 @@ async def admin_save_auth_page_settings(payload: dict, user: dict = Depends(requ
     
     doc = {
         "type": "auth_page",
+        "enabled": enabled,
+        "background_type": background_type,
         "background_color": background_color,
         "background_images": background_images,
         "layout_type": layout_type,
