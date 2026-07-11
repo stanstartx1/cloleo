@@ -20,6 +20,11 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoading, setLogoLoading] = useState(true);
+  const [authPageSettings, setAuthPageSettings] = useState({
+    background_color: '',
+    background_images: [],
+    layout_type: 'single'
+  });
 
   useEffect(() => {
     const fetchLogo = async () => {
@@ -57,6 +62,55 @@ const AuthPage = () => {
     };
     fetchLogo();
   }, []);
+
+  useEffect(() => {
+    const fetchAuthPageSettings = async () => {
+      try {
+        const response = await fetch(`${API}/auth-page-settings`);
+        if (response.ok) {
+          const data = await response.json();
+          setAuthPageSettings(data);
+        }
+      } catch (error) {
+        console.warn('Erreur chargement auth page settings:', error.message);
+      }
+    };
+    fetchAuthPageSettings();
+  }, []);
+
+  // Calculer le style de fond
+  const getBackgroundStyle = () => {
+    const { background_color, background_images, layout_type } = authPageSettings;
+    
+    // Si une couleur est définie, elle prend priorité
+    if (background_color && background_color.trim()) {
+      return { backgroundColor: background_color };
+    }
+    
+    // Si des images sont définies
+    if (background_images && background_images.length > 0) {
+      const images = background_images.map(img => 
+        img.startsWith('/') ? `${API_BASE}${img}` : img
+      );
+      
+      if (images.length === 1) {
+        return { backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+      } else if (images.length === 2 && layout_type === 'split') {
+        return {
+          backgroundImage: `url(${images[0]}), url(${images[1]})`,
+          backgroundSize: '50% 100%, 50% 100%',
+          backgroundPosition: 'left, right',
+          backgroundRepeat: 'no-repeat, no-repeat'
+        };
+      } else {
+        // Par défaut, utiliser la première image en cover
+        return { backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+      }
+    }
+    
+    // Fallback : gradient par défaut
+    return {};
+  };
 
   const handleImageError = (e) => {
     e.target.style.display = 'none';
@@ -137,7 +191,10 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white py-12">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white py-12"
+      style={getBackgroundStyle()}
+    >
       <div className="container mx-auto px-4">
         <div className="max-w-lg mx-auto">
           {/* Logo & Header */}
@@ -148,7 +205,7 @@ const AuthPage = () => {
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    className="h-24 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                     onError={handleImageError}
                   />
                   <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
@@ -157,11 +214,11 @@ const AuthPage = () => {
                 </div>
               ) : (
                 <>
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-orange-500/30 group-hover:scale-105 transition-transform">
-                    <span className="text-4xl font-black">C</span>
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-orange-500/30 group-hover:scale-105 transition-transform">
+                    <span className="text-5xl font-black">C</span>
                   </div>
                   <div>
-                    <span className="text-4xl font-bold tracking-tight">
+                    <span className="text-5xl font-bold tracking-tight">
                       <span className="text-orange-600">Clo</span>
                       <span className="text-amber-600">léo</span>
                     </span>
@@ -173,7 +230,7 @@ const AuthPage = () => {
           </div>
 
           {/* Main Card */}
-          <div className="bg-white rounded-3xl shadow-2xl shadow-orange-500/10 overflow-hidden border border-orange-100">
+          <div className="bg-white rounded-3xl shadow-2xl shadow-orange-500/10 overflow-hidden border-4 border-blue-900">
             <div className="p-10">
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-8 bg-transparent">

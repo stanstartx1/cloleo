@@ -35,6 +35,7 @@ const SIDEBAR_ITEMS = [
   { id: 'settings-vendors', label: 'Paramètres vendeurs', icon: UserCog, color: 'text-orange-400' },
   { id: 'settings-drivers', label: 'Paramètres livreurs', icon: Settings, color: 'text-pink-400' },
   { id: 'settings-general', label: 'Paramètre général', icon: Cog, color: 'text-slate-400' },
+  { id: 'settings-layout', label: 'Apparence du site', icon: Cog, color: 'text-pink-400' },
 ];
 
 const AdminDashboard = () => {
@@ -71,6 +72,14 @@ const AdminDashboard = () => {
   const [productFilter, setProductFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Auth page background settings
+  const [authPageBgColor, setAuthPageBgColor] = useState('');
+  const [authPageBgImages, setAuthPageBgImages] = useState([]);
+  const [authPageLayoutType, setAuthPageLayoutType] = useState('single');
+  const [authPageLoading, setAuthPageLoading] = useState(false);
+  const [authPageSaving, setAuthPageSaving] = useState(false);
+  const [authPageUploading, setAuthPageUploading] = useState(false);
+
   useEffect(() => {
     if (!isAdmin) {
       navigate('/connexion');
@@ -97,6 +106,8 @@ const AdminDashboard = () => {
         axios.get(`${API}/admin/users`, { headers }).catch(() => ({ data: { users: [] } })),
         axios.get(`${API}/categories`, { headers }).catch(() => ({ data: [] }))
       ]);
+      
+      fetchAuthPageSettings();
       
       setStats(dashRes.data.stats);
       setVendors(vendorsRes.data.vendors || []);
@@ -240,6 +251,101 @@ const AdminDashboard = () => {
       ...prev,
       [type]: { ...prev[type], [key]: value }
     }));
+  };
+
+  // Auth page background functions
+  const fetchAuthPageSettings = async () => {
+    setAuthPageLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/auth-page`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      setAuthPageBgColor(data.background_color || '');
+      setAuthPageBgImages(data.background_images || []);
+      setAuthPageLayoutType(data.layout_type || 'single');
+    } catch (error) {
+      console.error('Erreur chargement paramètres page connexion:', error);
+    } finally {
+      setAuthPageLoading(false);
+    }
+  };
+
+  const saveAuthPageSettings = async () => {
+    setAuthPageSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/auth-page`, {
+        background_color: authPageBgColor,
+        background_images: authPageBgImages,
+        layout_type: authPageLayoutType
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Paramètres de la page de connexion sauvegardés !');
+    } catch (error) {
+      console.error('Erreur sauvegarde page connexion:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setAuthPageSaving(false);
+    }
+  };
+
+  const uploadAuthPageBgImage = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setAuthPageUploading(true);
+    try {
+      const response = await axios.post(`${API}/admin/upload/auth-page-bg`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.url;
+      setAuthPageBgImages([...authPageBgImages, newImageUrl]);
+      if (authPageBgImages.length === 0) {
+        setAuthPageLayoutType('single');
+      } else if (authPageBgImages.length === 1) {
+        setAuthPageLayoutType('split');
+      }
+      toast.success('Image de fond uploadée !');
+    } catch (error) {
+      console.error('Erreur upload image fond:', error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setAuthPageUploading(false);
+    }
+  };
+
+  const handleAuthPageBgImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadAuthPageBgImage(file);
+    }
+    e.target.value = '';
+  };
+
+  const removeAuthPageBgImage = (index) => {
+    const updatedImages = authPageBgImages.filter((_, idx) => idx !== index);
+    setAuthPageBgImages(updatedImages);
+    if (updatedImages.length <= 1) {
+      setAuthPageLayoutType('single');
+    }
+  };
+
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('/')) return `${BACKEND_URL}${img}`;
+    return img;
   };
 
   // ========== USER MANAGEMENT FUNCTIONS ==========
@@ -474,6 +580,22 @@ const AdminDashboard = () => {
         return <SettingsSection type="delivery" settings={settings.delivery} onUpdate={(k, v) => updateSetting('delivery', k, v)} onSave={() => handleSaveSettings('delivery')} />;
       case 'settings-general':
         return <SettingsSection type="platform" settings={settings.platform} onUpdate={(k, v) => updateSetting('platform', k, v)} onSave={() => handleSaveSettings('platform')} />;
+      case 'settings-layout':
+        return <AuthPageSettingsSection 
+          bgColor={authPageBgColor}
+          setBgColor={setAuthPageBgColor}
+          bgImages={authPageBgImages}
+          setBgImages={setAuthPageBgImages}
+          layoutType={authPageLayoutType}
+          setLayoutType={setAuthPageLayoutType}
+          loading={authPageLoading}
+          saving={authPageSaving}
+          uploading={authPageUploading}
+          onImageChange={handleAuthPageBgImageChange}
+          onRemoveImage={removeAuthPageBgImage}
+          onSave={saveAuthPageSettings}
+          getImageUrl={getImageUrl}
+        />;
       default:
         return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
     }
@@ -1856,6 +1978,150 @@ const CategoriesSection = ({
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Composant pour la configuration du fond de page de connexion
+const AuthPageSettingsSection = ({ bgColor, setBgColor, bgImages, setBgImages, layoutType, setLayoutType, loading, saving, uploading, onImageChange, onRemoveImage, onSave, getImageUrl }) => {
+  return (
+    <div className="space-y-6 p-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-100">🔐 Fond de la page de connexion</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez le fond de la page de connexion. Vous pouvez utiliser une couleur de fond ou une/deux image(s).
+          Si vous utilisez deux images, elles seront disposées côte à côte (gauche/droite).
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-rose-900/30 to-pink-900/30 rounded-xl p-5 border border-rose-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-rose-300">
+          Configuration du fond
+        </h3>
+
+        {loading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-5">
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
+              <div
+                className="h-40 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
+                style={{
+                  background: bgColor
+                    ? bgColor
+                    : bgImages.length === 1
+                    ? `url(${getImageUrl(bgImages[0])}) center/cover`
+                    : bgImages.length === 2 && layoutType === 'split'
+                    ? `url(${getImageUrl(bgImages[0])}) 0 0 / 50% 100%, url(${getImageUrl(bgImages[1])}) 100% 0 / 50% 100%`
+                    : 'linear-gradient(135deg, #f97316, #fbbf24)',
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Couleur de fond (optionnel)</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={bgColor || '#ffffff'}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-12 h-10 rounded-lg cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  placeholder="#ffffff ou laisser vide pour utiliser des images"
+                  className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Si une couleur est définie, elle prend priorité sur les images.</p>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Images de fond (max 2)</label>
+              <div className="space-y-3">
+                {bgImages.map((img, index) => (
+                  <div key={index} className="flex gap-3 items-center">
+                    <img src={getImageUrl(img)} alt={`Fond ${index + 1}`} className="w-24 h-16 object-cover rounded-lg" />
+                    <input
+                      type="text"
+                      value={img}
+                      onChange={(e) => {
+                        const updated = [...bgImages];
+                        updated[index] = e.target.value;
+                        setBgImages(updated);
+                      }}
+                      className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                    />
+                    <button
+                      onClick={() => onRemoveImage(index)}
+                      className="text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-900/30"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {bgImages.length < 2 && (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={onImageChange}
+                      disabled={uploading}
+                      className="hidden"
+                      id="auth-page-bg-upload"
+                    />
+                    <label
+                      htmlFor="auth-page-bg-upload"
+                      className="inline-flex items-center gap-2 cursor-pointer bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                      {uploading ? 'Upload en cours...' : '📁 Ajouter une image'}
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {bgImages.length === 2 && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Disposition des images</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="auth_page_layout"
+                      value="split"
+                      checked={layoutType === 'split'}
+                      onChange={() => setLayoutType('split')}
+                    />
+                    <span className="text-slate-200">Côte à côte (gauche/droite)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="auth_page_layout"
+                      value="single"
+                      checked={layoutType === 'single'}
+                      onChange={() => setLayoutType('single')}
+                    />
+                    <span className="text-slate-200">Image unique (première image)</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={onSave}
+              disabled={saving}
+              className="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium transition disabled:opacity-50"
+            >
+              {saving ? '⏳ Sauvegarde...' : '💾 Sauvegarder les paramètres'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

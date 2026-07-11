@@ -2394,6 +2394,14 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const [logoSaving, setLogoSaving] = React.useState(false);
   const [logoUploading, setLogoUploading] = React.useState(false);
 
+  // --- 2.7 FOND DE PAGE DE CONNEXION ---
+  const [authPageBgColor, setAuthPageBgColor] = React.useState('');
+  const [authPageBgImages, setAuthPageBgImages] = React.useState([]);
+  const [authPageLayoutType, setAuthPageLayoutType] = React.useState('single');
+  const [authPageLoading, setAuthPageLoading] = React.useState(false);
+  const [authPageSaving, setAuthPageSaving] = React.useState(false);
+  const [authPageUploading, setAuthPageUploading] = React.useState(false);
+
   // ============================================================
   // 3. FONCTIONS DU CARROUSEL HERO
   // ============================================================
@@ -2923,6 +2931,97 @@ const LayoutAppearanceSection = ({ token, API }) => {
   };
 
   // ============================================================
+  // 9. FONCTIONS DU FOND DE PAGE DE CONNEXION
+  // ============================================================
+  const fetchAuthPageSettings = async () => {
+    setAuthPageLoading(true);
+    try {
+      const response = await axios.get(`${API}/admin/settings/auth-page`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      setAuthPageBgColor(data.background_color || '');
+      setAuthPageBgImages(data.background_images || []);
+      setAuthPageLayoutType(data.layout_type || 'single');
+    } catch (error) {
+      console.error('Erreur chargement paramètres page connexion:', error);
+    } finally {
+      setAuthPageLoading(false);
+    }
+  };
+
+  const saveAuthPageSettings = async () => {
+    setAuthPageSaving(true);
+    try {
+      await axios.put(`${API}/admin/settings/auth-page`, {
+        background_color: authPageBgColor,
+        background_images: authPageBgImages,
+        layout_type: authPageLayoutType
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Paramètres de la page de connexion sauvegardés !');
+    } catch (error) {
+      console.error('Erreur sauvegarde page connexion:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setAuthPageSaving(false);
+    }
+  };
+
+  const uploadAuthPageBgImage = async (file) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setAuthPageUploading(true);
+    try {
+      const response = await axios.post(`${API}/admin/upload/auth-page-bg`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`, 
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      const newImageUrl = response.data.url;
+      setAuthPageBgImages([...authPageBgImages, newImageUrl]);
+      if (authPageBgImages.length === 0) {
+        setAuthPageLayoutType('single');
+      } else if (authPageBgImages.length === 1) {
+        setAuthPageLayoutType('split');
+      }
+      toast.success('Image de fond uploadée !');
+    } catch (error) {
+      console.error('Erreur upload image fond:', error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setAuthPageUploading(false);
+    }
+  };
+
+  const handleAuthPageBgImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadAuthPageBgImage(file);
+    }
+    e.target.value = '';
+  };
+
+  const removeAuthPageBgImage = (index) => {
+    const updatedImages = authPageBgImages.filter((_, idx) => idx !== index);
+    setAuthPageBgImages(updatedImages);
+    if (updatedImages.length <= 1) {
+      setAuthPageLayoutType('single');
+    }
+  };
+
+  // ============================================================
   // 9. FONCTIONS UTILITAIRES
   // ============================================================
   const getImageUrl = (img) => {
@@ -2952,6 +3051,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
     fetchRightBlockBottomSettings();
     fetchTrendingSettings();
     fetchLogoSettings();
+    fetchAuthPageSettings();
   }, [token, API]);
 
   // ============================================================
@@ -3577,6 +3677,147 @@ const LayoutAppearanceSection = ({ token, API }) => {
               className="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition disabled:opacity-50"
             >
               {trendingSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder les paramètres'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      // =========================================================
+      // SECTION 6 : FOND DE PAGE DE CONNEXION
+      // =========================================================
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-slate-100">🔐 Fond de la page de connexion</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Configurez le fond de la page de connexion. Vous pouvez utiliser une couleur de fond ou une/deux image(s).
+          Si vous utilisez deux images, elles seront disposées côte à côte (gauche/droite).
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-rose-900/30 to-pink-900/30 rounded-xl p-5 border border-rose-500/30">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-rose-300">
+          <Image className="w-5 h-5" /> Configuration du fond
+        </h3>
+
+        {authPageLoading ? (
+          <p className="text-slate-400 text-center py-4">Chargement...</p>
+        ) : (
+          <div className="space-y-5">
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
+              <div
+                className="h-40 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
+                style={{
+                  background: authPageBgColor
+                    ? authPageBgColor
+                    : authPageBgImages.length === 1
+                    ? `url(${getImageUrl(authPageBgImages[0])}) center/cover`
+                    : authPageBgImages.length === 2 && authPageLayoutType === 'split'
+                    ? `url(${getImageUrl(authPageBgImages[0])}) 0 0 / 50% 100%, url(${getImageUrl(authPageBgImages[1])}) 100% 0 / 50% 100%`
+                    : 'linear-gradient(135deg, #f97316, #fbbf24)',
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Couleur de fond (optionnel)</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={authPageBgColor || '#ffffff'}
+                  onChange={(e) => setAuthPageBgColor(e.target.value)}
+                  className="w-12 h-10 rounded-lg cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={authPageBgColor}
+                  onChange={(e) => setAuthPageBgColor(e.target.value)}
+                  placeholder="#ffffff ou laisser vide pour utiliser des images"
+                  className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Si une couleur est définie, elle prend priorité sur les images.</p>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-300 block mb-2">Images de fond (max 2)</label>
+              <div className="space-y-3">
+                {authPageBgImages.map((img, index) => (
+                  <div key={index} className="flex gap-3 items-center">
+                    <img src={getImageUrl(img)} alt={`Fond ${index + 1}`} className="w-24 h-16 object-cover rounded-lg" />
+                    <input
+                      type="text"
+                      value={img}
+                      onChange={(e) => {
+                        const updated = [...authPageBgImages];
+                        updated[index] = e.target.value;
+                        setAuthPageBgImages(updated);
+                      }}
+                      className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                    />
+                    <button
+                      onClick={() => removeAuthPageBgImage(index)}
+                      className="text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-900/30"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {authPageBgImages.length < 2 && (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={handleAuthPageBgImageChange}
+                      disabled={authPageUploading}
+                      className="hidden"
+                      id="auth-page-bg-upload"
+                    />
+                    <label
+                      htmlFor="auth-page-bg-upload"
+                      className="inline-flex items-center gap-2 cursor-pointer bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {authPageUploading ? 'Upload en cours...' : '📁 Ajouter une image'}
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {authPageBgImages.length === 2 && (
+              <div>
+                <label className="text-sm text-slate-300 block mb-2">Disposition des images</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="auth_page_layout"
+                      value="split"
+                      checked={authPageLayoutType === 'split'}
+                      onChange={() => setAuthPageLayoutType('split')}
+                    />
+                    <span className="text-slate-200">Côte à côte (gauche/droite)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="auth_page_layout"
+                      value="single"
+                      checked={authPageLayoutType === 'single'}
+                      onChange={() => setAuthPageLayoutType('single')}
+                    />
+                    <span className="text-slate-200">Image unique (première image)</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={saveAuthPageSettings}
+              disabled={authPageSaving}
+              className="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium transition disabled:opacity-50"
+            >
+              {authPageSaving ? '⏳ Sauvegarde...' : '💾 Sauvegarder les paramètres'}
             </button>
           </div>
         )}

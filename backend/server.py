@@ -1104,6 +1104,99 @@ async def admin_upload_logo(
 
 
 # ═══════════════════════════════════════════════════════════════
+# AUTH PAGE BACKGROUND — fond de la page de connexion
+# ═══════════════════════════════════════════════════════════════
+
+@api.get("/auth-page-settings")
+async def public_auth_page_settings():
+    """Route publique — récupère la configuration du fond de la page de connexion"""
+    doc = await db.settings.find_one({"type": "auth_page"}, {"_id": 0})
+    return doc or {
+        "type": "auth_page",
+        "background_color": "",
+        "background_images": [],
+        "layout_type": "single"
+    }
+
+
+@api.get("/admin/settings/auth-page")
+async def admin_auth_page_settings(user: dict = Depends(require_admin)):
+    """Admin — récupère la configuration du fond de la page de connexion"""
+    doc = await db.settings.find_one({"type": "auth_page"}, {"_id": 0})
+    return doc or {
+        "type": "auth_page",
+        "background_color": "",
+        "background_images": [],
+        "layout_type": "single"
+    }
+
+
+@api.put("/admin/settings/auth-page")
+async def admin_save_auth_page_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Admin — sauvegarde la configuration du fond de la page de connexion"""
+    background_color = str(payload.get("background_color", "")).strip()
+    background_images = payload.get("background_images", [])
+    layout_type = str(payload.get("layout_type", "single")).strip()
+    
+    # Valider
+    if not isinstance(background_images, list):
+        background_images = []
+    
+    # Limiter à 2 images
+    background_images = background_images[:2]
+    
+    # Valider layout_type
+    if layout_type not in ["single", "split"]:
+        layout_type = "single" if len(background_images) <= 1 else "split"
+    
+    doc = {
+        "type": "auth_page",
+        "background_color": background_color,
+        "background_images": background_images,
+        "layout_type": layout_type,
+        "updated_at": _utc()
+    }
+    await db.settings.update_one({"type": "auth_page"}, {"$set": doc}, upsert=True)
+    return {"ok": True, "settings": doc}
+
+
+@api.post("/admin/upload/auth-page-bg")
+async def admin_upload_auth_page_bg(
+    file: UploadFile = File(...),
+    user: dict = Depends(require_admin)
+):
+    """Admin — upload d'une image de fond pour la page de connexion"""
+    allowed_extensions = {".gif", ".png", ".jpeg", ".jpg", ".webp"}
+    allowed_mimetypes = {"image/gif", "image/png", "image/jpeg", "image/jpg", "image/webp"}
+    
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Format non supporté. Formats acceptés : GIF, PNG, JPEG, JPG, WEBP"
+        )
+    
+    if file.content_type and file.content_type not in allowed_mimetypes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type MIME non supporté : {file.content_type}"
+        )
+    
+    filename = f"authbg_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop lourd (max 10 Mo)")
+    
+    dest.write_bytes(content)
+    url = f"/uploads/{filename}"
+    
+    print(f"✅ Auth page background uploaded: {url}")
+    return {"url": url, "filename": filename}
+
+
+# ═══════════════════════════════════════════════════════════════
 # TRENDING BLOCK — bloc "Tendances du moment"
 # ═══════════════════════════════════════════════════════════════
 
