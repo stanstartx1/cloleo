@@ -601,10 +601,12 @@ const AdminDashboard = () => {
           loading={authPageLoading}
           saving={authPageSaving}
           uploading={authPageUploading}
-          onImageChange={handleAuthPageBgImageChange}
+          onUploadImage={uploadAuthPageBgImage}
           onRemoveImage={removeAuthPageBgImage}
           onSave={saveAuthPageSettings}
           getImageUrl={getImageUrl}
+          token={token}
+          API={API}
         />;
       default:
         return <StatsSection stats={stats} pendingCount={pendingProducts.length} pendingVendors={vendors.filter(v => !v.is_verified).length} />;
@@ -1994,7 +1996,7 @@ const CategoriesSection = ({
 };
 
 // Composant pour la configuration du fond de page de connexion
-const AuthPageSettingsSection = ({ enabled, setEnabled, backgroundType, setBackgroundType, bgColor, setBgColor, bgImages, setBgImages, layoutType, setLayoutType, loading, saving, uploading, onImageChange, onRemoveImage, onSave, getImageUrl }) => {
+const AuthPageSettingsSection = ({ enabled, setEnabled, backgroundType, setBackgroundType, bgColor, setBgColor, bgImages, setBgImages, layoutType, setLayoutType, loading, saving, uploading, onUploadImage, onRemoveImage, onSave, getImageUrl, token, API }) => {
   return (
     <div className="space-y-6 p-6">
       <div>
@@ -2100,80 +2102,122 @@ const AuthPageSettingsSection = ({ enabled, setEnabled, backgroundType, setBackg
 
                 {/* Configuration images */}
                 {backgroundType === 'image' && (
-                  <>
-                    <div>
-                      <label className="text-sm text-slate-300 block mb-2">Images de fond (max 2)</label>
-                      <div className="space-y-3">
-                        {bgImages.map((img, index) => (
-                          <div key={index} className="flex gap-3 items-center">
-                            <img src={getImageUrl(img)} alt={`Fond ${index + 1}`} className="w-24 h-16 object-cover rounded-lg" />
+                  <div className="space-y-4">
+                    {/* Image de gauche */}
+                    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                      <label className="text-sm font-medium text-slate-200 block mb-2">🖼️ Image de gauche</label>
+                      {bgImages[0] ? (
+                        <div className="space-y-3">
+                          <img src={getImageUrl(bgImages[0])} alt="Gauche" className="w-full h-32 object-cover rounded-lg" />
+                          <div className="flex gap-2">
                             <input
                               type="text"
-                              value={img}
+                              value={bgImages[0]}
                               onChange={(e) => {
                                 const updated = [...bgImages];
-                                updated[index] = e.target.value;
+                                updated[0] = e.target.value;
                                 setBgImages(updated);
                               }}
                               className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
                             />
                             <button
-                              onClick={() => onRemoveImage(index)}
-                              className="text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-900/30"
+                              onClick={() => onRemoveImage(0)}
+                              className="text-red-400 hover:text-red-300 px-3 py-2 rounded bg-red-900/30"
                             >
                               ✕
                             </button>
                           </div>
-                        ))}
-                        {bgImages.length < 2 && (
-                          <div>
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                              onChange={onImageChange}
-                              disabled={uploading}
-                              className="hidden"
-                              id="auth-page-bg-upload"
-                            />
-                            <label
-                              htmlFor="auth-page-bg-upload"
-                              className="inline-flex items-center gap-2 cursor-pointer bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition"
-                            >
-                              {uploading ? 'Upload en cours...' : '📁 Ajouter une image'}
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {bgImages.length === 2 && (
-                      <div>
-                        <label className="text-sm text-slate-300 block mb-2">Disposition des images</label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="auth_page_layout"
-                              value="split"
-                              checked={layoutType === 'split'}
-                              onChange={() => setLayoutType('split')}
-                            />
-                            <span className="text-slate-200">Côte à côte (gauche/droite)</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="auth_page_layout"
-                              value="single"
-                              checked={layoutType === 'single'}
-                              onChange={() => setLayoutType('single')}
-                            />
-                            <span className="text-slate-200">Image unique (première image)</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onUploadImage(file);
+                              }
+                              e.target.value = '';
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                            id="auth-page-bg-left"
+                          />
+                          <label
+                            htmlFor="auth-page-bg-left"
+                            className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                          >
+                            {uploading ? 'Upload en cours...' : '📁 Choisir l\'image de gauche'}
                           </label>
                         </div>
-                      </div>
-                    )}
-                  </>
+                      )}
+                    </div>
+
+                    {/* Image de droite */}
+                    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                      <label className="text-sm font-medium text-slate-200 block mb-2">🖼️ Image de droite</label>
+                      {bgImages[1] ? (
+                        <div className="space-y-3">
+                          <img src={getImageUrl(bgImages[1])} alt="Droite" className="w-full h-32 object-cover rounded-lg" />
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={bgImages[1]}
+                              onChange={(e) => {
+                                const updated = [...bgImages];
+                                updated[1] = e.target.value;
+                                setBgImages(updated);
+                              }}
+                              className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
+                            />
+                            <button
+                              onClick={() => onRemoveImage(1)}
+                              className="text-red-400 hover:text-red-300 px-3 py-2 rounded bg-red-900/30"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onUploadImage(file);
+                              }
+                              e.target.value = '';
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                            id="auth-page-bg-right"
+                          />
+                          <label
+                            htmlFor="auth-page-bg-right"
+                            className="inline-flex items-center gap-2 cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"
+                          >
+                            {uploading ? 'Upload en cours...' : '📁 Choisir l\'image de droite'}
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Option pour n'utiliser qu'une seule image */}
+                    <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-700">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={layoutType === 'single'}
+                          onChange={(e) => setLayoutType(e.target.checked ? 'single' : 'split')}
+                          className="w-4 h-4 rounded cursor-pointer"
+                        />
+                        <span className="text-sm text-slate-200">Utiliser uniquement l'image de gauche (plein écran)</span>
+                      </label>
+                    </div>
+                  </div>
                 )}
               </>
             )}
