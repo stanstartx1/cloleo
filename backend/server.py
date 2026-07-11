@@ -1107,7 +1107,7 @@ async def admin_upload_logo(
 # AUTH PAGE BACKGROUND — fond de la page de connexion
 # ═══════════════════════════════════════════════════════════════
 
-@api.get("/auth-page-settings")
+@app.get("/api/auth-page-settings")
 async def public_auth_page_settings():
     """Route publique — récupère la configuration du fond de la page de connexion"""
     doc = await db.settings.find_one({"type": "auth_page"}, {"_id": 0})
@@ -1121,7 +1121,7 @@ async def public_auth_page_settings():
     }
 
 
-@api.get("/admin/settings/auth-page")
+@app.get("/api/admin/settings/auth-page")
 async def admin_auth_page_settings(user: dict = Depends(require_admin)):
     """Admin — récupère la configuration du fond de la page de connexion"""
     doc = await db.settings.find_one({"type": "auth_page"}, {"_id": 0})
@@ -1135,7 +1135,7 @@ async def admin_auth_page_settings(user: dict = Depends(require_admin)):
     }
 
 
-@api.put("/admin/settings/auth-page")
+@app.put("/api/admin/settings/auth-page")
 async def admin_save_auth_page_settings(payload: dict, user: dict = Depends(require_admin)):
     """Admin — sauvegarde la configuration du fond de la page de connexion"""
     enabled = bool(payload.get("enabled", False))
@@ -1172,7 +1172,7 @@ async def admin_save_auth_page_settings(payload: dict, user: dict = Depends(requ
     return {"ok": True, "settings": doc}
 
 
-@api.post("/admin/upload/auth-page-bg")
+@app.post("/api/admin/upload/auth-page-bg")
 async def admin_upload_auth_page_bg(
     file: UploadFile = File(...),
     user: dict = Depends(require_admin)
