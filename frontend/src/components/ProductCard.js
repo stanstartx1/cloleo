@@ -178,6 +178,11 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
             Promo -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
           </span>
         )}
+        {product.wholesale_enabled && (
+          <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            En gros dès {product.wholesale_min_quantity}
+          </span>
+        )}
         {product.condition === 'neuf' && (
           <span className="rounded-full bg-gradient-to-r from-emerald-500 to-green-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
             Neuf

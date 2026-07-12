@@ -38,6 +38,9 @@ const VendorAddProduct = () => {
     description: '',
     price_fcfa: '',
     promo_price_fcfa: '',
+    wholesale_enabled: false,
+    wholesale_min_quantity: '',
+    wholesale_unit_price_fcfa: '',
     stock: '',
     condition: 'neuf',
     category_slug: '',
@@ -84,6 +87,9 @@ const VendorAddProduct = () => {
           description: product.description || '',
           price_fcfa: product.price_fcfa?.toString() || '',
           promo_price_fcfa: product.promo_price_fcfa?.toString() || '',
+          wholesale_enabled: Boolean(product.wholesale_enabled),
+          wholesale_min_quantity: product.wholesale_min_quantity?.toString() || '',
+          wholesale_unit_price_fcfa: product.wholesale_unit_price_fcfa?.toString() || '',
           stock: product.stock?.toString() || '',
           condition: product.condition || 'neuf',
           category_slug: product.category_slug || '',
@@ -175,6 +181,10 @@ const VendorAddProduct = () => {
       toast.error('Ajoutez au moins une image');
       return;
     }
+    if (formData.wholesale_enabled && (Number(formData.wholesale_min_quantity) < 2 || Number(formData.wholesale_unit_price_fcfa) <= 0)) {
+      toast.error('Indiquez une quantité minimum de 2 et un prix unitaire de gros');
+      return;
+    }
 
     const missingRequired = customFields.filter(f => f.required && !customAttributes[f.key]);
     if (missingRequired.length > 0) {
@@ -192,6 +202,9 @@ const VendorAddProduct = () => {
         description: formData.description,
         price_fcfa: parseInt(formData.price_fcfa),
         promo_price_fcfa: formData.promo_price_fcfa ? parseInt(formData.promo_price_fcfa) : null,
+        wholesale_enabled: Boolean(formData.wholesale_enabled),
+        wholesale_min_quantity: formData.wholesale_enabled ? parseInt(formData.wholesale_min_quantity) : null,
+        wholesale_unit_price_fcfa: formData.wholesale_enabled ? parseInt(formData.wholesale_unit_price_fcfa) : null,
         stock: parseInt(formData.stock),
         condition: formData.condition,
         category_slug: finalCategorySlug,
@@ -547,6 +560,30 @@ const VendorAddProduct = () => {
                 <Input id="promo_price_fcfa" name="promo_price_fcfa" type="number" value={formData.promo_price_fcfa}
                   onChange={handleInputChange} placeholder="8000" min="100" />
               </div>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <label className="flex cursor-pointer items-center gap-3 font-semibold text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={Boolean(formData.wholesale_enabled)}
+                  onChange={(e) => setFormData(prev => ({ ...prev, wholesale_enabled: e.target.checked }))}
+                  className="h-5 w-5 accent-amber-600"
+                />
+                Vente en gros
+              </label>
+              <p className="mt-1 text-sm text-amber-800">Activez un prix unitaire réduit à partir d'une quantité définie.</p>
+              {formData.wholesale_enabled && (
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="wholesale_min_quantity">À partir de (unités)</Label>
+                    <Input id="wholesale_min_quantity" name="wholesale_min_quantity" type="number" min="2" value={formData.wholesale_min_quantity} onChange={handleInputChange} placeholder="10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wholesale_unit_price_fcfa">Prix unitaire de gros (FCFA)</Label>
+                    <Input id="wholesale_unit_price_fcfa" name="wholesale_unit_price_fcfa" type="number" min="1" value={formData.wholesale_unit_price_fcfa} onChange={handleInputChange} placeholder="8500" />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="stock">Quantite en stock *</Label>

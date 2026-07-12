@@ -12,6 +12,17 @@ router = APIRouter(prefix="/cart", tags=["Cart"])
 FCFA_TO_USD = 0.0016
 
 
+def _unit_price(product: dict, quantity: int) -> int:
+    """Apply the wholesale price once the configured quantity is reached."""
+    if (
+        product.get("wholesale_enabled")
+        and quantity >= int(product.get("wholesale_min_quantity") or 0)
+        and int(product.get("wholesale_unit_price_fcfa") or 0) > 0
+    ):
+        return int(product["wholesale_unit_price_fcfa"])
+    return int(product.get("promo_price_fcfa") or product["price_fcfa"])
+
+
 @router.post("/add")
 async def add_to_cart(item: CartItemCreate):
     """Add item to cart"""
@@ -48,9 +59,9 @@ async def get_cart(session_id: str):
     for item in items:
         p = await db.products.find_one({"id": item["product_id"], "status": "approved"}, {"_id": 0})
         if p:
-            price = p.get("promo_price_fcfa") or p["price_fcfa"]
+            price = _unit_price(p, int(item["quantity"]))
             subtotal = price * item["quantity"]
-            result.append({**item, "product": p, "subtotal_fcfa": subtotal})
+            result.append({**item, "product": p, "unit_price_fcfa": price, "subtotal_fcfa": subtotal})
             total += subtotal
     
     return {

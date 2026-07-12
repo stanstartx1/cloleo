@@ -226,6 +226,12 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             raise HTTPException(status_code=404, detail=f"Produit introuvable: {item['product_id']}")
         qty = int(item.get("quantity", 1))
         unit_price = int(product.get("promo_price_fcfa") or product.get("price_fcfa") or 0)
+        if (
+            product.get("wholesale_enabled")
+            and qty >= int(product.get("wholesale_min_quantity") or 0)
+            and int(product.get("wholesale_unit_price_fcfa") or 0) > 0
+        ):
+            unit_price = int(product["wholesale_unit_price_fcfa"])
         item_total = unit_price * qty
         subtotal += item_total
         seller_id = seller_id or product.get("seller_id")
@@ -374,6 +380,14 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
     if int(payload.get("stock") or 0) < 0:
         raise HTTPException(status_code=400, detail="Le stock est invalide")
 
+    wholesale_enabled = bool(payload.get("wholesale_enabled", False))
+    wholesale_min_quantity = int(payload.get("wholesale_min_quantity") or 0)
+    wholesale_unit_price_fcfa = int(payload.get("wholesale_unit_price_fcfa") or 0)
+    if wholesale_enabled and (wholesale_min_quantity < 2 or wholesale_unit_price_fcfa <= 0):
+        raise HTTPException(status_code=400, detail="Configurez une quantité minimum (2+) et un prix de gros valide")
+    if wholesale_enabled and wholesale_unit_price_fcfa >= int(payload.get("price_fcfa") or 0):
+        raise HTTPException(status_code=400, detail="Le prix de gros doit être inférieur au prix unitaire")
+
     product_id = str(uuid.uuid4())
     name = payload.get("name")
     slug = _slugify(name)
@@ -400,6 +414,9 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "made_in_enabled": bool(payload.get("made_in_enabled")),
         "price_fcfa": int(payload.get("price_fcfa") or 0),
         "promo_price_fcfa": int(payload.get("promo_price_fcfa") or 0) or None,
+        "wholesale_enabled": wholesale_enabled,
+        "wholesale_min_quantity": wholesale_min_quantity if wholesale_enabled else None,
+        "wholesale_unit_price_fcfa": wholesale_unit_price_fcfa if wholesale_enabled else None,
         "stock": int(payload.get("stock") or 0),
         "images": payload.get("images") or [],
         "tags": payload.get("tags") or [],
@@ -429,6 +446,12 @@ async def update_vendor_product(product_id: str, payload: dict, user: dict = Dep
         raise HTTPException(status_code=400, detail="Le prix doit etre superieur a 0")
     if "stock" in update and int(update["stock"] or 0) < 0:
         raise HTTPException(status_code=400, detail="Le stock est invalide")
+    if update.get("wholesale_enabled"):
+        min_qty = int(update.get("wholesale_min_quantity") or 0)
+        wholesale_price = int(update.get("wholesale_unit_price_fcfa") or 0)
+        regular_price = int(update.get("price_fcfa") or 0)
+        if min_qty < 2 or wholesale_price <= 0 or (regular_price and wholesale_price >= regular_price):
+            raise HTTPException(status_code=400, detail="Configuration de gros invalide")
     update["updated_at"] = _utc()
     await db.products.update_one({"id": product_id, "seller_id": user["id"]}, {"$set": update})
     product = await db.products.find_one({"id": product_id, "seller_id": user["id"]}, {"_id": 0})

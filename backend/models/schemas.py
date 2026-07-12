@@ -39,6 +39,9 @@ class VendorProduct(BaseModel):
     description: str
     price_fcfa: int
     promo_price_fcfa: Optional[int] = None
+    wholesale_enabled: bool = False
+    wholesale_min_quantity: Optional[int] = None
+    wholesale_unit_price_fcfa: Optional[int] = None
     stock: int
     condition: str
     category_slug: str

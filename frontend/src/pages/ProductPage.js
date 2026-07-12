@@ -265,6 +265,10 @@ const ProductPage = () => {
 
   const hasPromo = product.promo_price_fcfa && product.promo_price_fcfa < product.price_fcfa;
   const displayPrice = hasPromo ? product.promo_price_fcfa : product.price_fcfa;
+  const wholesaleApplies = Boolean(product.wholesale_enabled)
+    && quantity >= Number(product.wholesale_min_quantity || 0)
+    && Number(product.wholesale_unit_price_fcfa || 0) > 0;
+  const effectiveUnitPrice = wholesaleApplies ? Number(product.wholesale_unit_price_fcfa) : displayPrice;
   const displayPriceUsd = hasPromo ? product.promo_price_usd : product.price_usd;
   const favorite = isFavorite(product.id);
   const originCountry = getCountryByCode(product.origin_country_code) || null;
@@ -319,6 +323,9 @@ const ProductPage = () => {
           <div>
             {/* Badges */}
             <div className="flex items-center gap-2 mb-4">
+              {product.wholesale_enabled && (
+                <span className="rounded-full bg-amber-500 px-2 py-1 text-xs font-bold text-white">En gros dès {product.wholesale_min_quantity}</span>
+              )}
               {hasPromo && (
                 <span className="promo-badge">
                   -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}% PROMO
@@ -371,7 +378,7 @@ const ProductPage = () => {
             <div className="mb-6 p-4 bg-muted/50 rounded-xl">
               <div className="flex items-end gap-3 mb-1">
                 <span className="text-3xl md:text-4xl font-bold text-primary" data-testid="product-price">
-                  {formatPrice(displayPrice)}
+                  {formatPrice(effectiveUnitPrice)}
                 </span>
                 {hasPromo && (
                   <span className="text-lg line-through text-muted-foreground">
@@ -380,6 +387,13 @@ const ProductPage = () => {
                 )}
               </div>
               <p className="text-muted-foreground">≈ ${displayPriceUsd} USD</p>
+              {product.wholesale_enabled && (
+                <p className="mt-2 text-sm font-medium text-amber-700">
+                  {wholesaleApplies
+                    ? `Prix de gros appliqué : ${formatPrice(effectiveUnitPrice)} / unité`
+                    : `Prix de gros : ${formatPrice(product.wholesale_unit_price_fcfa)} / unité dès ${product.wholesale_min_quantity} unités`}
+                </p>
+              )}
             </div>
 
             {/* Seller Card - Enhanced */}
@@ -476,6 +490,9 @@ const ProductPage = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 {product.stock} en stock
               </p>
+              {product.wholesale_enabled && !wholesaleApplies && (
+                <p className="mt-1 text-sm text-amber-700">Ajoutez encore {Math.max(0, product.wholesale_min_quantity - quantity)} unité(s) pour obtenir le prix de gros.</p>
+              )}
             </div>
 
             {/* Actions */}
@@ -762,6 +779,12 @@ const ProductPage = () => {
                   ))}
                 </div>
               </div>
+              {Object.entries(product.custom_attributes || {}).map(([label, value]) => (
+                <div key={label} className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground capitalize">{label.replace(/_/g, ' ')}</p>
+                  <p className="font-medium">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
+                </div>
+              ))}
             </div>
           </TabsContent>
           <TabsContent value="reviews">
