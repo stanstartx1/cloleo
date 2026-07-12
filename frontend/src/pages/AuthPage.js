@@ -91,14 +91,16 @@ const AuthPage = () => {
     
     // Si type couleur et une couleur est définie
     if (background_type === 'color' && background_color && background_color.trim()) {
-      return { backgroundColor: background_color };
+      return { backgroundColor: background_color, backgroundImage: 'none' };
     }
     
     // Si type image et des images sont définies
     if (background_type === 'image' && background_images && background_images.length > 0) {
-      const images = background_images.map(img => 
+      const images = background_images.filter(Boolean).map(img =>
         img.startsWith('/') ? `${API_BASE}${img}` : img
       );
+
+      if (!images.length) return {};
       
       if (images.length === 1) {
         return { backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
@@ -118,6 +120,16 @@ const AuthPage = () => {
     // Fallback : gradient par défaut
     return {};
   };
+
+  const authBackgroundImages = (authPageSettings.background_images || [])
+    .filter(Boolean)
+    .map((image) => image.startsWith('/') ? `${API_BASE}${image}` : image);
+  const isCustomImageBackground = authPageSettings.enabled
+    && authPageSettings.background_type === 'image'
+    && authBackgroundImages.length > 0;
+  const isSplitImageBackground = isCustomImageBackground
+    && authPageSettings.layout_type === 'split'
+    && authBackgroundImages.length >= 2;
 
   const handleImageError = (e) => {
     e.target.style.display = 'none';
@@ -198,11 +210,27 @@ const AuthPage = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white py-12"
+    <div
+      className={`relative min-h-screen overflow-hidden py-12 ${
+        authPageSettings.enabled ? '' : 'bg-gradient-to-br from-orange-50 via-amber-50 to-white'
+      }`}
       style={getBackgroundStyle()}
     >
-      <div className="container mx-auto px-4">
+      {isCustomImageBackground && (
+        <div className="absolute inset-0" aria-hidden="true">
+          {isSplitImageBackground ? (
+            <div className="flex h-full w-full">
+              <img src={authBackgroundImages[0]} alt="" aria-hidden="true" decoding="async" className="h-full w-1/2 select-none object-cover object-center" draggable="false" />
+              <img src={authBackgroundImages[1]} alt="" aria-hidden="true" decoding="async" className="h-full w-1/2 select-none object-cover object-center" draggable="false" />
+            </div>
+          ) : (
+            <img src={authBackgroundImages[0]} alt="" aria-hidden="true" decoding="async" className="h-full w-full select-none object-cover object-center" draggable="false" />
+          )}
+          <div className="absolute inset-0 bg-slate-950/20" />
+        </div>
+      )}
+
+      <div className="container relative z-10 mx-auto px-4">
         <div className="max-w-lg mx-auto">
           {/* Logo & Header */}
           <div className="text-center mb-10">
@@ -411,17 +439,19 @@ const AuthPage = () => {
                 </TabsContent>
               </Tabs>
             </div>
+
+            <div className="border-t border-slate-200 bg-slate-50 px-8 py-5 text-center">
+              <p className="text-sm text-slate-600">
+                En continuant, vous acceptez nos{' '}
+                <a href="https://cloleo.com/terms" className="font-medium text-orange-600 hover:underline">
+                  Conditions d'utilisation
+                </a>
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-700">
+                La référence du e-commerce en Afrique
+              </p>
+            </div>
           </div>
-
-          <p className="text-center text-sm text-gray-500 mt-8">
-            En continuant, vous acceptez nos{' '}
-            <Link to="/terms" className="text-orange-600 hover:underline">Conditions d'utilisation</Link>
-          </p>
-
-          {/* Slogan */}
-          <p className="text-center text-sm text-muted-foreground mt-4 font-medium">
-            La référence du e-commerce en Afrique
-          </p>
         </div>
       </div>
     </div>

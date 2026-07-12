@@ -2978,9 +2978,8 @@ const LayoutAppearanceSection = ({ token, API }) => {
   const uploadAuthPageBgImage = async (file, position = null) => {
     if (!file) return;
     
-    const allowedTypes = ['image/gif', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Format non supporté. Utilisez GIF, PNG, JPEG, JPG ou WEBP');
+    if (!(file.type || '').startsWith('image/')) {
+      toast.error('Sélectionnez un fichier image valide');
       return;
     }
 
@@ -2997,25 +2996,17 @@ const LayoutAppearanceSection = ({ token, API }) => {
       });
       const newImageUrl = response.data.url;
       
-      if (position === 0) {
-        // Image de gauche
-        const updated = [...authPageBgImages];
-        updated[0] = newImageUrl;
-        setAuthPageBgImages(updated);
-      } else if (position === 1) {
-        // Image de droite
-        const updated = [...authPageBgImages];
-        updated[1] = newImageUrl;
-        setAuthPageBgImages(updated);
-      } else {
-        // Ajout à la fin (ancien comportement)
-        setAuthPageBgImages([...authPageBgImages, newImageUrl]);
-        if (authPageBgImages.length === 0) {
-          setAuthPageLayoutType('single');
-        } else if (authPageBgImages.length === 1) {
-          setAuthPageLayoutType('split');
-        }
-      }
+      // Always keep a stable left/right pair. Sparse arrays were serialized as
+      // null and caused the second image to disappear from the preview.
+      const targetPosition = position === 0 || position === 1
+        ? position
+        : (authPageBgImages[0] ? 1 : 0);
+      setAuthPageBgImages((currentImages) => {
+        const updated = [currentImages[0] || '', currentImages[1] || ''];
+        updated[targetPosition] = newImageUrl;
+        return updated[1] ? updated : updated.slice(0, 1);
+      });
+      setAuthPageLayoutType(targetPosition === 1 || authPageBgImages[1] ? 'split' : 'single');
       toast.success('Image de fond uploadée !');
     } catch (error) {
       console.error('Erreur upload image fond:', error);
@@ -3033,8 +3024,21 @@ const LayoutAppearanceSection = ({ token, API }) => {
     e.target.value = '';
   };
 
+  const updateAuthPageBgImage = (index, value) => {
+    setAuthPageBgImages((currentImages) => {
+      const updated = [currentImages[0] || '', currentImages[1] || ''];
+      updated[index] = value;
+      return updated[1] ? updated : updated.slice(0, 1);
+    });
+    if (index === 1 && value) setAuthPageLayoutType('split');
+  };
+
   const removeAuthPageBgImage = (index) => {
-    const updatedImages = authPageBgImages.filter((_, idx) => idx !== index);
+    // If the left image is removed, promote the right image to keep a valid
+    // one-image configuration instead of saving an empty first slot.
+    const updatedImages = index === 0 && authPageBgImages[1]
+      ? [authPageBgImages[1]]
+      : authPageBgImages.filter((_, idx) => idx !== index).filter(Boolean);
     setAuthPageBgImages(updatedImages);
     if (updatedImages.length <= 1) {
       setAuthPageLayoutType('single');
@@ -3770,18 +3774,27 @@ const LayoutAppearanceSection = ({ token, API }) => {
                 {/* Aperçu */}
                 <div>
                   <label className="text-sm text-slate-300 block mb-2">Aperçu</label>
-                  <div
-                    className="h-40 rounded-lg border border-slate-600 overflow-hidden shadow-lg"
-                    style={{
-                      background: authPageBackgroundType === 'color' && authPageBgColor
-                        ? authPageBgColor
-                        : authPageBackgroundType === 'image' && authPageBgImages.length === 1
-                        ? `url(${getImageUrl(authPageBgImages[0])}) center/cover`
-                        : authPageBackgroundType === 'image' && authPageBgImages.length === 2 && authPageLayoutType === 'split'
-                        ? `url(${getImageUrl(authPageBgImages[0])}) 0 0 / 50% 100%, url(${getImageUrl(authPageBgImages[1])}) 100% 0 / 50% 100%`
-                        : 'linear-gradient(135deg, #f97316, #fbbf24)',
-                    }}
-                  />
+                  <div className="relative h-40 overflow-hidden rounded-lg border border-slate-600 shadow-lg">
+                    {authPageBackgroundType === 'color' && (
+                      <div className="absolute inset-0" style={{ backgroundColor: authPageBgColor || '#ffffff' }} />
+                    )}
+                    {authPageBackgroundType === 'image' && authPageBgImages[0] && (
+                      authPageLayoutType === 'split' && authPageBgImages[1] ? (
+                        <div className="absolute inset-0 flex">
+                          <div className="h-full w-1/2 bg-cover bg-center" style={{ backgroundImage: `url("${getImageUrl(authPageBgImages[0])}")` }} />
+                          <div className="h-full w-1/2 bg-cover bg-center" style={{ backgroundImage: `url("${getImageUrl(authPageBgImages[1])}")` }} />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${getImageUrl(authPageBgImages[0])}")` }} />
+                      )
+                    )}
+                    {authPageBackgroundType === 'image' && !authPageBgImages[0] && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-400" />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/15">
+                      <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-medium text-slate-700">Aperçu de la page de connexion</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Configuration couleur */}
@@ -3819,11 +3832,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                             <input
                               type="text"
                               value={authPageBgImages[0]}
-                              onChange={(e) => {
-                                const updated = [...authPageBgImages];
-                                updated[0] = e.target.value;
-                                setAuthPageBgImages(updated);
-                              }}
+                              onChange={(e) => updateAuthPageBgImage(0, e.target.value)}
                               className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
                             />
                             <button
@@ -3838,7 +3847,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                         <div>
                           <input
                             type="file"
-                            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                            accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
@@ -3871,11 +3880,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                             <input
                               type="text"
                               value={authPageBgImages[1]}
-                              onChange={(e) => {
-                                const updated = [...authPageBgImages];
-                                updated[1] = e.target.value;
-                                setAuthPageBgImages(updated);
-                              }}
+                              onChange={(e) => updateAuthPageBgImage(1, e.target.value)}
                               className="flex-1 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm"
                             />
                             <button
@@ -3890,7 +3895,7 @@ const LayoutAppearanceSection = ({ token, API }) => {
                         <div>
                           <input
                             type="file"
-                            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                            accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {

@@ -1182,13 +1182,13 @@ async def admin_upload_auth_page_bg(
     allowed_mimetypes = {"image/gif", "image/png", "image/jpeg", "image/jpg", "image/webp"}
     
     ext = Path(file.filename or "").suffix.lower()
-    if ext not in allowed_extensions:
+    if not ext:
         raise HTTPException(
             status_code=400,
             detail=f"Format non supporté. Formats acceptés : GIF, PNG, JPEG, JPG, WEBP"
         )
     
-    if file.content_type and file.content_type not in allowed_mimetypes:
+    if not (file.content_type or "").lower().startswith("image/"):
         raise HTTPException(
             status_code=400,
             detail=f"Type MIME non supporté : {file.content_type}"
