@@ -472,25 +472,25 @@ const ProductPage = () => {
             {/* Available product options */}
             {Object.entries(product.custom_attributes || {}).some(([, value]) => Array.isArray(value) && value.length > 0) && (
               <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-4 text-base font-bold text-slate-900">Choisissez vos options</h2>
-                <div className="space-y-4">
+                <h2 className="mb-3 text-base font-bold text-slate-900">Choisissez vos options</h2>
+                <div className="flex flex-wrap gap-3">
                   {Object.entries(product.custom_attributes || {}).map(([key, value]) => {
                     const options = Array.isArray(value) ? value : [value];
                     if (!options.length) return null;
                     return (
-                      <div key={key}>
-                        <p className="mb-2 text-sm font-semibold capitalize text-slate-700">{key.replace(/_/g, ' ')}</p>
-                        <div className="flex flex-wrap gap-2">
+                      <div key={key} className="min-w-[150px] flex-1 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">{key.replace(/_/g, ' ')}</p>
+                        <div className="flex flex-wrap gap-1.5">
                           {options.map((option) => (
                             <button
                               key={String(option)}
                               type="button"
                               onClick={() => setSelectedAttributes((current) => ({ ...current, [key]: option }))}
                               className={cn(
-                                'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                                'rounded-md border px-2.5 py-1.5 text-sm font-medium transition-all',
                                 selectedAttributes[key] === option
-                                  ? 'border-orange-500 bg-orange-50 text-orange-700 ring-1 ring-orange-500'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300'
+                                  ? 'border-orange-500 bg-orange-500 text-white shadow-sm'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50'
                               )}
                             >
                               {String(option)}
