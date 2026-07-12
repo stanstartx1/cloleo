@@ -215,8 +215,8 @@ const HomePage = () => {
       <div className="w-full bg-white">
         <div className="site-container py-4">
           {loading ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-              {[...Array(14)].map((_, i) => (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {[...Array(18)].map((_, i) => (
                 <div key={i} className="bg-white p-2">
                   <Skeleton className="aspect-square rounded-xl" />
                   <Skeleton className="mt-2 h-3 w-11/12" />
@@ -230,8 +230,8 @@ const HomePage = () => {
               <p className="font-semibold">Aucun nouveau produit disponible</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
-              {newProducts.slice(0, 21).map(p => <ProductCard key={p.id} product={p} className="scale-[0.94]" />)}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {newProducts.slice(0, 18).map(p => <ProductCard key={p.id} product={p} className="scale-[0.94]" />)}
             </div>
           )}
         </div>
