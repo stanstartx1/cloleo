@@ -9,6 +9,8 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import axios from 'axios';
+import SiteLogo from '../components/SiteLogo';
+import AuthPageBackground from '../components/AuthPageBackground';
 
 const API = API_URL;
 
@@ -54,20 +56,12 @@ const RevendeurRegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen py-12 bg-gradient-to-br from-purple-50 via-white to-indigo-50" data-testid="revendeur-register-page">
+    <AuthPageBackground className="py-12" data-testid="revendeur-register-page">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-2xl">
-                C
-              </div>
-              <span className="text-3xl font-bold">
-                <span className="text-orange-500">Clo</span>
-                <span className="text-amber-600">léo</span>
-              </span>
-            </Link>
+            <SiteLogo imageClassName="h-24 md:h-28" />
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -254,7 +248,7 @@ const RevendeurRegisterPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </AuthPageBackground>
   );
 };
 

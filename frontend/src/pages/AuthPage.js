@@ -236,11 +236,11 @@ const AuthPage = () => {
           <div className="text-center mb-10">
             <Link to="/" className="inline-flex items-center gap-3 group">
               {!logoLoading && logoUrl ? (
-                <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                <div className="relative transition-transform duration-300 group-hover:scale-105">
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-24 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    className="h-28 w-auto object-contain transition-all duration-300"
                     onError={handleImageError}
                   />
                   <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">

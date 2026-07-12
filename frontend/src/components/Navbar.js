@@ -323,11 +323,11 @@ const Navbar = () => {
             {/* ── Logo ── */}
             <a href="/" className="flex items-center gap-2 group shrink-0" data-testid="logo" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>
               {!logoLoading && logoUrl ? (
-                <div className="relative bg-white/80 backdrop-blur-sm rounded-xl p-1.5 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                <div className="relative transition-transform duration-300 group-hover:scale-105">
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-14 md:h-20 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                    className="h-16 md:h-24 w-auto object-contain transition-all duration-300"
                     onError={handleImageError}
                   />
                   <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
@@ -535,11 +535,11 @@ const Navbar = () => {
           <div className="flex items-center justify-between p-4 border-b-2 border-orange-100 bg-white">
             <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}>
               {logoUrl ? (
-                <div className="bg-white/80 rounded-lg p-1">
+                <div>
                   <img 
                     src={logoUrl} 
                     alt="Cloléo" 
-                    className="h-8 w-auto object-contain"
+                    className="h-11 w-auto object-contain"
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 </div>

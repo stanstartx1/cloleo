@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
+import SiteLogo from './SiteLogo';
 
 const CATEGORIES = [
   { name: 'Mode & Textile', slug: 'mode-textile' },
@@ -22,11 +23,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-4 group">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 group-hover:shadow-lg group-hover:shadow-orange-500/30">
-                C
-              </div>
-              <span className="text-2xl font-bold transition-transform duration-300 group-hover:scale-105">Cloléo</span>
+            <div className="mb-4">
+              <SiteLogo imageClassName="h-16" className="transition-transform duration-300 hover:scale-105" />
             </div>
             <p className="text-gray-400 text-sm mb-4">
               La première marketplace africaine pour découvrir et acheter des produits authentiques de qualité.

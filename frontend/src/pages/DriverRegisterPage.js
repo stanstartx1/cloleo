@@ -12,6 +12,8 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
+import SiteLogo from '../components/SiteLogo';
+import AuthPageBackground from '../components/AuthPageBackground';
 
 const API = API_URL;
 
@@ -187,8 +189,10 @@ const DriverRegisterPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+    <AuthPageBackground className="flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        <div className="mb-5 text-center"><SiteLogo imageClassName="h-20 md:h-24" /></div>
+        <div className="w-full overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-6 text-white">
           <div className="flex items-center gap-3 mb-2">
@@ -450,8 +454,9 @@ const DriverRegisterPage = () => {
             </Link>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </AuthPageBackground>
   );
 };
 
