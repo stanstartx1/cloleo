@@ -25,7 +25,17 @@ jobs:
             cd /var/www/cloleo
             
             echo "== Pulling latest code =="
-            git fetch origin main --depth=1
+            for attempt in 1 2 3; do
+              if git fetch origin main --depth=1; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "ERROR: impossible de contacter GitHub après 3 tentatives."
+                exit 1
+              fi
+              echo "GitHub indisponible, nouvelle tentative dans 5 secondes..."
+              sleep 5
+            done
             git reset --hard origin/main
             git clean -fd
             
