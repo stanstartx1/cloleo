@@ -749,6 +749,11 @@ const VendorDashboard = () => {
                           <tr key={order.id} className="border-t border-slate-700">
                             <td className="p-4">
                               <p className="font-mono text-sm text-white">#{order.order_number?.slice(-8)}</p>
+                              {(order.items || []).map((item) => Object.keys(item.selected_attributes || {}).length > 0 && (
+                                <p key={`${order.id}-${item.product_id}`} className="mt-1 text-xs text-amber-300">
+                                  {item.product_name} — {Object.entries(item.selected_attributes).map(([key, value]) => `${key}: ${value}`).join(' · ')}
+                                </p>
+                              ))}
                             </td>
                             <td className="p-4">
                               <p className="text-sm text-white">{order.customer_name}</p>

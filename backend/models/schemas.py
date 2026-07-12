@@ -54,6 +54,7 @@ class CartItemCreate(BaseModel):
     product_id: str
     quantity: int = 1
     session_id: str
+    selected_attributes: Dict[str, Any] = {}
 
 
 class CartItemUpdate(BaseModel):

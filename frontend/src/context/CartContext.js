@@ -42,13 +42,14 @@ export const CartProvider = ({ children }) => {
     fetchCart();
   }, [fetchCart]);
 
-  const addToCart = async (productId, quantity = 1) => {
+  const addToCart = async (productId, quantity = 1, selectedAttributes = {}) => {
     setLoading(true);
     try {
       await axios.post(`${API}/cart/add`, {
         product_id: productId,
         quantity,
-        session_id: sessionId
+        session_id: sessionId,
+        selected_attributes: selectedAttributes
       });
       await fetchCart();
       return true;

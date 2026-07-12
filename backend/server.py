@@ -240,6 +240,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "product_name": product.get("name"),
             "product_image": (product.get("images") or [None])[0],
             "quantity": qty,
+            "selected_attributes": item.get("selected_attributes") or {},
             "price_fcfa": unit_price,
             "subtotal_fcfa": item_total,
         })

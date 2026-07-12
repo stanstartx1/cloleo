@@ -31,7 +31,8 @@ async def add_to_cart(item: CartItemCreate):
     
     existing = await db.cart_items.find_one({
         "product_id": item.product_id,
-        "session_id": item.session_id
+        "session_id": item.session_id,
+        "selected_attributes": item.selected_attributes
     })
     
     if existing:
@@ -45,6 +46,7 @@ async def add_to_cart(item: CartItemCreate):
             "product_id": item.product_id,
             "quantity": item.quantity,
             "session_id": item.session_id,
+            "selected_attributes": item.selected_attributes,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
     return {"message": "Ajouté"}

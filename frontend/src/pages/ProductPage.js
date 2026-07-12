@@ -120,7 +120,7 @@ const ProductPage = () => {
   };
 
   const handleAddToCart = async () => {
-    const success = await addToCart(product.id, quantity);
+    const success = await addToCart(product.id, quantity, selectedAttributes);
     if (success) {
       setAddToCartSuccess(true);
       toast.success('Produit ajouté au panier', {
@@ -480,23 +480,13 @@ const ProductPage = () => {
                     return (
                       <div key={key} className="min-w-[150px] flex-1 rounded-lg border border-slate-100 bg-slate-50 p-3">
                         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">{key.replace(/_/g, ' ')}</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {options.map((option) => (
-                            <button
-                              key={String(option)}
-                              type="button"
-                              onClick={() => setSelectedAttributes((current) => ({ ...current, [key]: option }))}
-                              className={cn(
-                                'rounded-md border px-2.5 py-1.5 text-sm font-medium transition-all',
-                                selectedAttributes[key] === option
-                                  ? 'border-orange-500 bg-orange-500 text-white shadow-sm'
-                                  : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50'
-                              )}
-                            >
-                              {String(option)}
-                            </button>
-                          ))}
-                        </div>
+                        <select
+                          value={selectedAttributes[key] ?? ''}
+                          onChange={(event) => setSelectedAttributes((current) => ({ ...current, [key]: event.target.value }))}
+                          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        >
+                          {options.map((option) => <option key={String(option)} value={String(option)}>{String(option)}</option>)}
+                        </select>
                       </div>
                     );
                   })}
