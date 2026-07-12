@@ -65,7 +65,7 @@ jobs:
             # The public API must expose the route that was just deployed.
             # Do not report a successful deployment while an older service is running.
             if ! curl --fail --silent --show-error --retry 5 --retry-connrefused \
-              http://127.0.0.1:8000/openapi.json | grep --quiet '"/auth-page-settings"'; then
+              http://127.0.0.1:8000/api/openapi.json | grep --quiet '"/auth-page-settings"'; then
               echo "ERROR: cloleo-backend is not serving the code from this deployment."
               exit 1
             fi
