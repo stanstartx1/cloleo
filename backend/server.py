@@ -226,12 +226,14 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             raise HTTPException(status_code=404, detail=f"Produit introuvable: {item['product_id']}")
         qty = int(item.get("quantity", 1))
         unit_price = int(product.get("promo_price_fcfa") or product.get("price_fcfa") or 0)
+        is_wholesale_price = False
         if (
             product.get("wholesale_enabled")
             and qty >= int(product.get("wholesale_min_quantity") or 0)
             and int(product.get("wholesale_unit_price_fcfa") or 0) > 0
         ):
             unit_price = int(product["wholesale_unit_price_fcfa"])
+            is_wholesale_price = True
         item_total = unit_price * qty
         subtotal += item_total
         seller_id = seller_id or product.get("seller_id")
@@ -242,6 +244,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "quantity": qty,
             "selected_attributes": item.get("selected_attributes") or {},
             "price_fcfa": unit_price,
+            "is_wholesale_price": is_wholesale_price,
             "subtotal_fcfa": item_total,
         })
 
@@ -269,6 +272,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         "updated_at": _utc(),
     }
     await db.orders.insert_one(order)
+    order.pop("_id", None)
     return order
 
 

@@ -115,9 +115,20 @@ const CartPage = () => {
                       {item.product.seller_name} • {item.product.city}
                     </p>
                     
+                    {Object.keys(item.selected_attributes || {}).length > 0 && (
+                      <p className="mt-2 text-xs font-medium text-amber-700">
+                        {Object.entries(item.selected_attributes).map(([key, value]) => `${key.replace(/_/g, ' ')} : ${value}`).join(' · ')}
+                      </p>
+                    )}
+
                     {/* Price */}
                     <div className="mt-2">
-                      {item.product.promo_price_fcfa ? (
+                      {item.unit_price_fcfa ? (
+                        <div>
+                          <span className="font-bold text-primary">{formatPrice(item.unit_price_fcfa)}</span>
+                          {item.product.wholesale_enabled && item.unit_price_fcfa === item.product.wholesale_unit_price_fcfa && <span className="ml-2 text-xs font-semibold text-amber-700">Prix de gros</span>}
+                        </div>
+                      ) : item.product.promo_price_fcfa ? (
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary">
                             {formatPrice(item.product.promo_price_fcfa)}

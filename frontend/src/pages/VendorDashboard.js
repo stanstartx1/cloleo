@@ -749,10 +749,15 @@ const VendorDashboard = () => {
                           <tr key={order.id} className="border-t border-slate-700">
                             <td className="p-4">
                               <p className="font-mono text-sm text-white">#{order.order_number?.slice(-8)}</p>
-                              {(order.items || []).map((item) => Object.keys(item.selected_attributes || {}).length > 0 && (
-                                <p key={`${order.id}-${item.product_id}`} className="mt-1 text-xs text-amber-300">
-                                  {item.product_name} — {Object.entries(item.selected_attributes).map(([key, value]) => `${key}: ${value}`).join(' · ')}
-                                </p>
+                              {(order.items || []).map((item) => (
+                                <div key={`${order.id}-${item.product_id}`} className="mt-2 rounded-md bg-slate-900/60 p-2 text-xs">
+                                  <p className="font-medium text-slate-100">{item.product_name} × {item.quantity}</p>
+                                  <p className="mt-1 text-slate-300">{formatPrice(item.price_fcfa)} / unité · {formatPrice(item.subtotal_fcfa)}</p>
+                                  {item.is_wholesale_price && <span className="mt-1 inline-block rounded-full bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-300">Prix de gros</span>}
+                                  {Object.keys(item.selected_attributes || {}).length > 0 && (
+                                    <p className="mt-1 text-amber-300">{Object.entries(item.selected_attributes).map(([key, value]) => `${key}: ${value}`).join(' · ')}</p>
+                                  )}
+                                </div>
                               ))}
                             </td>
                             <td className="p-4">
