@@ -128,6 +128,18 @@ const HomePage = () => {
     [allProducts, featuredProducts, newProducts, trendingProducts]
   );
 
+  // Keep the "Nouveautés" grid visually complete without repeating products
+  // when the dedicated endpoint returns fewer than 18 items.
+  const displayedNewProducts = useMemo(() => {
+    const uniqueNewProducts = newProducts.filter(
+      (product, index, products) => products.findIndex((item) => item.id === product.id) === index
+    );
+    const displayedIds = new Set(uniqueNewProducts.map((product) => product.id));
+    const catalogFallback = allProductsMerged.filter((product) => !displayedIds.has(product.id));
+
+    return [...uniqueNewProducts, ...catalogFallback].slice(0, 18);
+  }, [newProducts, allProductsMerged]);
+
   const topRatedProducts = useMemo(() => {
     const deduped = allProductsMerged.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
     return applyProductFilters(deduped)
@@ -231,7 +243,7 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {newProducts.slice(0, 18).map(p => <ProductCard key={p.id} product={p} className="scale-[0.94]" />)}
+              {displayedNewProducts.map(p => <ProductCard key={p.id} product={p} className="scale-[0.94]" />)}
             </div>
           )}
         </div>
