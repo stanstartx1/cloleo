@@ -49,6 +49,7 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedAttributes, setSelectedAttributes] = useState({});
   const [autoOpenChat, setAutoOpenChat] = useState(searchParams.get('chat') === 'open');
   
   // Offer modal state
@@ -82,6 +83,14 @@ const ProductPage = () => {
       setLoading(false);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (!product?.custom_attributes) return;
+    setSelectedAttributes(Object.entries(product.custom_attributes).reduce((selected, [key, value]) => {
+      selected[key] = Array.isArray(value) ? value[0] : value;
+      return selected;
+    }, {}));
+  }, [product]);
 
   useEffect(() => {
     fetchProduct();
@@ -459,6 +468,41 @@ const ProductPage = () => {
                 <span className="text-sm">Copier le lien</span>
               </button>
             </div>
+
+            {/* Available product options */}
+            {Object.entries(product.custom_attributes || {}).some(([, value]) => Array.isArray(value) && value.length > 0) && (
+              <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-4 text-base font-bold text-slate-900">Choisissez vos options</h2>
+                <div className="space-y-4">
+                  {Object.entries(product.custom_attributes || {}).map(([key, value]) => {
+                    const options = Array.isArray(value) ? value : [value];
+                    if (!options.length) return null;
+                    return (
+                      <div key={key}>
+                        <p className="mb-2 text-sm font-semibold capitalize text-slate-700">{key.replace(/_/g, ' ')}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {options.map((option) => (
+                            <button
+                              key={String(option)}
+                              type="button"
+                              onClick={() => setSelectedAttributes((current) => ({ ...current, [key]: option }))}
+                              className={cn(
+                                'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                                selectedAttributes[key] === option
+                                  ? 'border-orange-500 bg-orange-50 text-orange-700 ring-1 ring-orange-500'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300'
+                              )}
+                            >
+                              {String(option)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Quantity */}
             <div className="mb-6">
