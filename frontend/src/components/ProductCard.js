@@ -142,7 +142,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
     <Link 
       to={`/produit/${product.id}`}
       className={cn(
-        "group flex h-full flex-col bg-card rounded-2xl overflow-hidden border border-border/50",
+        "group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm",
         "transition-all duration-500 ease-out transform-gpu",
         "hover:-translate-y-3 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/40",
         "relative",
@@ -157,9 +157,41 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         "absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl opacity-0 blur transition-opacity duration-500 -z-10",
         isHovered && "opacity-30"
       )} />
+
+      {/* Product metadata stays outside the image so it never hides the item. */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 bg-white px-2 py-1.5">
+        {(originCountry || originName) && (
+          <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+            {originFlagUrl ? (
+              <img src={originFlagUrl} alt="" className="h-3 w-4 rounded-sm object-cover" />
+            ) : (
+              <span>🌍</span>
+            )}
+            <span className="max-w-[96px] truncate">
+              {product.made_in_enabled ? `Made in ${originName}` : originName}
+            </span>
+          </span>
+        )}
+        {hasPromo && (
+          <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            <Tag className="h-3 w-3" />
+            Promo -{Math.round((1 - product.promo_price_fcfa / product.price_fcfa) * 100)}%
+          </span>
+        )}
+        {product.condition === 'neuf' && (
+          <span className="rounded-full bg-gradient-to-r from-emerald-500 to-green-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            Neuf
+          </span>
+        )}
+        {product.is_featured && !hasPromo && (
+          <span className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            ⭐ Vedette
+          </span>
+        )}
+      </div>
       
       {/* Image Container */}
-      <div className="relative h-36 md:h-40 lg:h-44 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 flex-shrink-0">
+      <div className="relative h-36 flex-shrink-0 overflow-hidden border-b border-slate-100 bg-white md:h-40 lg:h-44">
         <img
           src={product.images?.[0] || 'https://via.placeholder.com/400'}
           alt={product.name}
@@ -186,7 +218,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
         )} />
         
         {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10">
+        <div className="hidden">
           {(originCountry || originName) && (
             <span className="bg-white/95 text-slate-800 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
               {originFlagUrl ? (
