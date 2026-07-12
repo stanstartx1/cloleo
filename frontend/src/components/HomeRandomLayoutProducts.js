@@ -48,38 +48,6 @@ const DISPOSITIONS = [
     cols: 8,
   },
   {
-    id: 'large',
-    grid: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
-    gap: 'gap-4',
-    imageClass: 'aspect-[4/5] object-cover',
-    rounding: 'rounded-xl',
-    padding: 'p-1.5',
-    imageBg: 'bg-slate-100',
-    cols: 5,
-  },
-  {
-    id: 'showcase',
-    grid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
-    gap: 'gap-3',
-    imageClass: 'aspect-square object-cover',
-    rounding: 'rounded-lg',
-    padding: 'p-1',
-    imageBg: 'bg-slate-50',
-    featuredSpan: 'col-span-2 row-span-2',
-    featuredImageClass: 'aspect-square object-cover min-h-[160px] sm:min-h-[200px]',
-    cols: 6,
-  },
-  {
-    id: 'editorial',
-    grid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
-    gap: 'gap-3',
-    imageClass: 'aspect-[3/4] object-cover',
-    rounding: 'rounded-xl',
-    padding: 'p-1.5',
-    imageBg: 'bg-neutral-100',
-    cols: 4,
-  },
-  {
     id: 'dense',
     grid: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8',
     gap: 'gap-2',
@@ -166,8 +134,7 @@ const HomeRandomLayoutProducts = ({ loading, products = [], onImageMissing }) =>
     const shuffled = shuffleArray(withImage);
     const cols = session.disposition.cols || 7;
     const targetRows = 3;
-    const count = session.disposition.id === 'showcase' ? 11 : session.disposition.id === 'large' ? 10 : cols * targetRows;
-    return shuffled.slice(0, count);
+    return shuffled.slice(0, cols * targetRows);
   }, [products, session.disposition.id, session.disposition.cols]);
 
   const { disposition } = session;
@@ -177,7 +144,7 @@ const HomeRandomLayoutProducts = ({ loading, products = [], onImageMissing }) =>
       <div className="site-container">
         {loading ? (
           <div className={`grid ${disposition.grid} ${disposition.gap}`}>
-            {[...Array(14)].map((_, i) => (
+            {[...Array((disposition.cols || 6) * 3)].map((_, i) => (
               <div key={i} className="p-2">
                 <Skeleton className="aspect-square rounded-xl" />
                 <Skeleton className="mt-2 h-3 w-11/12" />
@@ -198,7 +165,7 @@ const HomeRandomLayoutProducts = ({ loading, products = [], onImageMissing }) =>
                 product={product}
                 index={index}
                 disposition={disposition}
-                isFeatured={disposition.id === 'showcase' && index === 0}
+                isFeatured={false}
                 onImageMissing={onImageMissing}
               />
             ))}
