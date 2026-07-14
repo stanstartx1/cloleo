@@ -46,6 +46,7 @@ const ProductPage = () => {
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [alsoBought, setAlsoBought] = useState([]);
+  const [sellerProducts, setSellerProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -78,6 +79,16 @@ const ProductPage = () => {
       setProduct(productRes.data);
       setSimilarProducts(similarRes.data || []);
       setAlsoBought(alsoBoughtRes.data || []);
+      
+      // Fetch seller products
+      if (productRes.data?.seller_id) {
+        try {
+          const sellerRes = await axios.get(`${API}/products?seller_id=${productRes.data.seller_id}&limit=6`);
+          setSellerProducts((sellerRes.data?.products || sellerRes.data || []).filter(p => p.id !== id));
+        } catch (error) {
+          console.error('Error fetching seller products:', error);
+        }
+      }
     } catch (error) {
       console.error('Error fetching product:', error);
     } finally {
@@ -857,6 +868,31 @@ const ProductPage = () => {
             <ReviewSection productId={product.id} />
           </TabsContent>
         </Tabs>
+
+        {/* Seller Products */}
+        {sellerProducts.length > 0 && (
+          <section className="mb-16">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Plus de produits de ce vendeur</h2>
+              {product?.seller_id && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/vendeur-boutique/${product.seller_id}`)}
+                  className="flex items-center gap-2"
+                >
+                  <Store className="w-4 h-4" />
+                  Voir la boutique
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {sellerProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Similar Products */}
         {similarProducts.length > 0 && (
