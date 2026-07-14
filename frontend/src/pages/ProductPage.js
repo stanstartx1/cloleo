@@ -51,6 +51,7 @@ const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [autoOpenChat, setAutoOpenChat] = useState(searchParams.get('chat') === 'open');
+  const [isSlideshowPaused, setIsSlideshowPaused] = useState(false);
   
   // Offer modal state
   const [showOfferModal, setShowOfferModal] = useState(false);
@@ -104,6 +105,17 @@ const ProductPage = () => {
       setAutoOpenChat(false); // Reset to prevent re-opening
     }
   }, [autoOpenChat, product, isAuthenticated]);
+
+  // Slideshow effect - automatically cycle through images
+  useEffect(() => {
+    if (!product?.images || product.images.length <= 1 || isSlideshowPaused) return;
+
+    const interval = setInterval(() => {
+      setSelectedImage((prev) => (prev + 1) % product.images.length);
+    }, 3000); // Change image every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [product?.images, isSlideshowPaused]);
 
   // Trigger confetti particles
   const triggerConfetti = () => {
@@ -304,25 +316,45 @@ const ProductPage = () => {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mb-16">
           {/* Images */}
           <div>
-            <div className="product-gallery-main mb-4 bg-muted rounded-2xl">
+            <div className="product-gallery-main mb-4 bg-muted rounded-2xl relative overflow-hidden">
               <img
                 src={product.images?.[selectedImage] || 'https://via.placeholder.com/600'}
                 alt={product.name}
-                className="w-full h-full object-cover rounded-2xl"
+                className="w-full h-full object-cover rounded-2xl transition-opacity duration-300"
                 data-testid="product-main-image"
               />
+              {/* Pause/Resume indicator */}
+              {product.images?.length > 1 && (
+                <button
+                  onClick={() => setIsSlideshowPaused(!isSlideshowPaused)}
+                  className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                  title={isSlideshowPaused ? "Reprendre le diaporama" : "Pause le diaporama"}
+                >
+                  {isSlideshowPaused ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z" />
+                    </svg>
+                  )}
+                </button>
+              )}
             </div>
-            <div className="product-gallery-thumbnails">
+            <div className="product-gallery-thumbnails flex justify-center gap-2 overflow-x-auto py-2">
               {product.images?.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
+                  onMouseEnter={() => setIsSlideshowPaused(true)}
+                  onMouseLeave={() => setIsSlideshowPaused(false)}
                   className={cn(
-                    "product-gallery-thumb flex-shrink-0",
-                    index === selectedImage && "active"
+                    "product-gallery-thumb flex-shrink-0 transition-all duration-200",
+                    index === selectedImage && "active ring-2 ring-orange-500 scale-110"
                   )}
                 >
-                  <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                  <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
                 </button>
               ))}
             </div>
