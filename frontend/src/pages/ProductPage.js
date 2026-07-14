@@ -370,45 +370,45 @@ const ProductPage = () => {
               ))}
             </div>
 
-            {/* Features - Below images to use empty space */}
-            <div className="mt-6 grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-slate-50 to-orange-50 rounded-xl border border-orange-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-white" />
+            {/* Seller Products - Below images to use empty space */}
+            {sellerProducts.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-800">Plus de produits de ce vendeur</h3>
+                  {product?.seller_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/vendeur-boutique/${product.seller_id}`)}
+                      className="flex items-center gap-2"
+                    >
+                      <Store className="w-4 h-4" />
+                      Voir la boutique
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
-                <div className="text-sm">
-                  <p className="font-semibold text-slate-800">Livraison rapide</p>
-                  <p className="text-muted-foreground">2-5 jours</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {sellerProducts.slice(0, 6).map((p) => (
+                    <Link key={p.id} to={`/produit/${p.id}`} className="group">
+                      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                        <div className="aspect-square bg-slate-100">
+                          <img
+                            src={p.images?.[0] || 'https://via.placeholder.com/150'}
+                            alt={p.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <div className="p-2">
+                          <p className="text-xs font-medium text-slate-800 line-clamp-2 mb-1">{p.name}</p>
+                          <p className="text-sm font-bold text-orange-600">{formatPrice(p.promo_price_fcfa || p.price_fcfa)}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-sm">
-                  <p className="font-semibold text-slate-800">Paiement sécurisé</p>
-                  <p className="text-muted-foreground">100% protégé</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <BadgeCheck className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-sm">
-                  <p className="font-semibold text-slate-800">Vendeur vérifié</p>
-                  <p className="text-muted-foreground">Certifié</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
-                  <Star className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-sm">
-                  <p className="font-semibold text-slate-800">Satisfait ou remboursé</p>
-                  <p className="text-muted-foreground">7 jours</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Info */}
@@ -931,31 +931,6 @@ const ProductPage = () => {
             <ReviewSection productId={product.id} />
           </TabsContent>
         </Tabs>
-
-        {/* Seller Products */}
-        {sellerProducts.length > 0 && (
-          <section className="mb-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Plus de produits de ce vendeur</h2>
-              {product?.seller_id && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/vendeur-boutique/${product.seller_id}`)}
-                  className="flex items-center gap-2"
-                >
-                  <Store className="w-4 h-4" />
-                  Voir la boutique
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {sellerProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Similar Products */}
         {similarProducts.length > 0 && (
