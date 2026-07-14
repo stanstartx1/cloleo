@@ -494,26 +494,36 @@ const ProductPage = () => {
             {/* Payment Methods */}
             <div className="mb-6 p-4 bg-gradient-to-r from-slate-50 to-orange-50 rounded-xl border border-orange-100">
               <p className="text-xs font-semibold text-slate-600 mb-3">Moyens de paiement acceptés</p>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Orange_logo.svg/1200px-Orange_logo.svg.png" alt="Orange Money" className="h-6 w-auto" />
-                  <span className="text-xs font-medium text-slate-700">Orange Money</span>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-orange-300 transition-colors">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-orange-600 font-bold text-sm">OM</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-slate-700 text-center">Orange Money</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
-                  <img src="https://www.moov.africa/sites/default/files/2021-10/moov-logo.png" alt="Moov Money" className="h-6 w-auto" />
-                  <span className="text-xs font-medium text-slate-700">Moov Money</span>
+                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-blue-600 font-bold text-sm">MO</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-slate-700 text-center">Moov Money</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Mtn_2006.svg/1200px-Mtn_2006.svg.png" alt="MTN Money" className="h-6 w-auto" />
-                  <span className="text-xs font-medium text-slate-700">MTN Money</span>
+                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-yellow-300 transition-colors">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-yellow-600 font-bold text-sm">MTN</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-slate-700 text-center">MTN Money</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Wave_Company_Logo.svg/1200px-Wave_Company_Logo.svg.png" alt="Wave" className="h-6 w-auto" />
-                  <span className="text-xs font-medium text-slate-700">Wave</span>
+                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-blue-600 font-bold text-sm">WV</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-slate-700 text-center">Wave</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/1200px-Visa_Inc._logo.svg.png" alt="Visa" className="h-6 w-auto" />
-                  <span className="text-xs font-medium text-slate-700">Visa</span>
+                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-indigo-600 font-bold text-sm">VISA</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-slate-700 text-center">Visa</span>
                 </div>
               </div>
             </div>
