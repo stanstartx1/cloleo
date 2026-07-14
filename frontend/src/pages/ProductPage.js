@@ -308,7 +308,51 @@ const ProductPage = () => {
   const originFlagUrl = getCountryFlagUrl(product.origin_country_code);
 
   return (
-    <div className="min-h-screen py-8" data-testid="product-page">
+    <div className="min-h-screen py-8 relative" data-testid="product-page">
+      {/* Floating Trust Bubbles - Left Side */}
+      <div className="fixed left-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-40 hidden lg:flex">
+        <div className="group relative">
+          <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer">
+            <Truck className="w-7 h-7 text-white" />
+          </div>
+          <div className="absolute left-16 top-1/2 -translate-y-1/2 bg-white px-3 py-2 rounded-lg shadow-lg border border-green-200 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            <p className="text-xs font-semibold text-green-700">Livraison rapide</p>
+            <p className="text-[10px] text-green-600">2-5 jours</p>
+          </div>
+        </div>
+        <div className="group relative">
+          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer">
+            <Shield className="w-7 h-7 text-white" />
+          </div>
+          <div className="absolute left-16 top-1/2 -translate-y-1/2 bg-white px-3 py-2 rounded-lg shadow-lg border border-blue-200 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            <p className="text-xs font-semibold text-blue-700">Paiement sécurisé</p>
+            <p className="text-[10px] text-blue-600">100% protégé</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Trust Bubbles - Right Side */}
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-40 hidden lg:flex">
+        <div className="group relative">
+          <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer">
+            <BadgeCheck className="w-7 h-7 text-white" />
+          </div>
+          <div className="absolute right-16 top-1/2 -translate-y-1/2 bg-white px-3 py-2 rounded-lg shadow-lg border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            <p className="text-xs font-semibold text-purple-700">Vendeur vérifié</p>
+            <p className="text-[10px] text-purple-600">Certifié</p>
+          </div>
+        </div>
+        <div className="group relative">
+          <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer">
+            <Star className="w-7 h-7 text-white" />
+          </div>
+          <div className="absolute right-16 top-1/2 -translate-y-1/2 bg-white px-3 py-2 rounded-lg shadow-lg border border-amber-200 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            <p className="text-xs font-semibold text-amber-700">Satisfait ou remboursé</p>
+            <p className="text-[10px] text-amber-600">7 jours</p>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <nav className="flex items-center text-sm text-muted-foreground mb-6 flex-wrap">
@@ -388,8 +432,8 @@ const ProductPage = () => {
                     </Button>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {sellerProducts.slice(0, 6).map((p) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {sellerProducts.slice(0, 10).map((p) => (
                     <Link key={p.id} to={`/produit/${p.id}`} className="group">
                       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
                         <div className="aspect-square bg-slate-100">
@@ -433,46 +477,6 @@ const ProductPage = () => {
 
             {/* Title */}
             <h1 className="text-2xl md:text-3xl font-bold mb-4" data-testid="product-title">{product.name}</h1>
-            
-            {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <Truck className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-green-700">Livraison rapide</p>
-                  <p className="text-[10px] text-green-600">2-5 jours</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Shield className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-blue-700">Paiement sécurisé</p>
-                  <p className="text-[10px] text-blue-600">100% protégé</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                  <BadgeCheck className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-purple-700">Vendeur vérifié</p>
-                  <p className="text-[10px] text-purple-600">Certifié</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-                <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
-                  <Star className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-amber-700">Satisfait ou remboursé</p>
-                  <p className="text-[10px] text-amber-600">7 jours</p>
-                </div>
-              </div>
-            </div>
 
             {(originCountry || originName) && (
               <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-sm">
@@ -547,7 +551,7 @@ const ProductPage = () => {
                     <div className="flex items-center gap-1.5">
                       <p className="font-semibold text-gray-900">{product.seller_name}</p>
                       {product.seller_id && product.seller_id !== 'system' && (
-                        <BadgeCheck className="w-4 h-4 text-orange-500" />
+                        <BadgeCheck className="w-6 h-6 text-orange-500" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
