@@ -491,6 +491,49 @@ const ProductPage = () => {
               </div>
             )}
 
+            {/* Payment Methods */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-slate-50 to-orange-50 rounded-xl border border-orange-100">
+              <p className="text-xs font-semibold text-slate-600 mb-3">Moyens de paiement acceptés</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <div className="w-8 h-5 bg-orange-500 rounded flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">OM</span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">Orange Money</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <div className="w-8 h-5 bg-blue-600 rounded flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">MO</span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">Moov Money</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <div className="w-8 h-5 bg-yellow-500 rounded flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">MTN</span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">MTN Money</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <div className="w-8 h-5 bg-blue-500 rounded flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">WV</span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">Wave</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <div className="w-8 h-5 bg-gradient-to-r from-blue-600 to-blue-800 rounded flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">VISA</span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">Visa</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200">
+                  <div className="w-8 h-5 bg-red-500 rounded flex items-center justify-center">
+                    <span className="text-white text-[8px] font-bold">MC</span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-700">Mastercard</span>
+                </div>
+              </div>
+            </div>
+
             {/* Rating */}
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-1">
