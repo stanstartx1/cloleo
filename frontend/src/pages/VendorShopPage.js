@@ -193,7 +193,7 @@ const VendorShopPage = () => {
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm">
                 <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full">
                   <MapPin className="w-4 h-4" />
-                  <span>{shop.location}, {shop.country}</span>
+                  <span>{shop.location} {shop.country}</span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full">
                   <Calendar className="w-4 h-4" />
