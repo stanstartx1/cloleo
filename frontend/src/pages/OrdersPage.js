@@ -1,11 +1,11 @@
-import { API_URL, API_BASE } from '../config/api';
+import { API_URL } from '../config/api';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ShoppingBag, Package, Truck, CheckCircle, Clock, 
-  XCircle, ArrowRight, Eye, Download, RefreshCw,
-  Calendar, MapPin, User, Phone, Mail
+  XCircle, Eye, RefreshCw,
+  Calendar, MapPin
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -210,10 +210,11 @@ const OrdersPage = () => {
       const response = await axios.get(`${API}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setOrders(response.data || []);
+      setOrders(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Erreur lors du chargement des commandes');
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -221,7 +222,7 @@ const OrdersPage = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, navigate]);
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;

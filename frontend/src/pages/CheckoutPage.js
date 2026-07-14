@@ -37,7 +37,7 @@ const CheckoutPage = () => {
     phone: user?.phone || '',
     street: '',
     city: 'Abidjan',
-    country: "C�te d'Ivoire",
+    country: "Côte d'Ivoire",
     latitude: null,
     longitude: null,
     paymentMethod: 'cash',
@@ -114,7 +114,7 @@ const CheckoutPage = () => {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('G�olocalisation non support�e');
+      toast.error('Géolocalisation non supportée');
       return;
     }
     
@@ -136,7 +136,7 @@ const CheckoutPage = () => {
         
         reverseGeocode(latitude, longitude);
         setLocatingUser(false);
-        toast.success('Position trouv�e !');
+        toast.success('Position trouvée !');
       },
       (error) => {
         setLocatingUser(false);
@@ -156,7 +156,7 @@ const CheckoutPage = () => {
     }
     
     if (!formData.latitude || !formData.longitude) {
-      toast.error('Veuillez s�lectionner votre position sur la carte');
+      toast.error('Veuillez sélectionner votre position sur la carte');
       return;
     }
     
@@ -196,7 +196,7 @@ const CheckoutPage = () => {
       // Clear cart
       await clearCart();
       
-      toast.success('Commande pass�e avec succ�s !');
+      toast.success('Commande passée avec succès !');
       
       // Play notification sound
       try {
@@ -220,13 +220,13 @@ const CheckoutPage = () => {
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande confirm�e !</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande confirmée !</h1>
           <p className="text-gray-600 mb-6">
-            Votre commande a �t� pass�e avec succ�s. Un livreur va bient�t la prendre en charge.
+            Votre commande a été passée avec succès. Un livreur va bientôt la prendre en charge.
           </p>
           
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-gray-500">Num�ro de commande</p>
+            <p className="text-sm text-gray-500">Numéro de commande</p>
             <p className="font-mono font-bold text-lg">{orderId?.slice(0, 8).toUpperCase()}</p>
           </div>
           
@@ -257,7 +257,7 @@ const CheckoutPage = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Finaliser la commande</h1>
-            <p className="text-muted-foreground">{cart.item_count} article(s) � {formatPrice(cart.total_fcfa)}</p>
+            <p className="text-muted-foreground">{cart.item_count} article(s) à {formatPrice(cart.total_fcfa)}</p>
           </div>
         </div>
 
@@ -284,7 +284,7 @@ const CheckoutPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">T�l�phone *</label>
+                    <label className="block text-sm font-medium mb-1">Téléphone *</label>
                     <Input
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -344,7 +344,7 @@ const CheckoutPage = () => {
                   {formData.latitude && formData.longitude && (
                     <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
                       <CheckCircle className="w-4 h-4" />
-                      Position s�lectionn�e
+                      Position sélectionnée
                     </div>
                   )}
                   
@@ -388,8 +388,8 @@ const CheckoutPage = () => {
                         ??
                       </div>
                       <div>
-                        <p className="font-medium">Paiement � la livraison</p>
-                        <p className="text-sm text-muted-foreground">Esp�ces ou Mobile Money</p>
+                        <p className="font-medium">Paiement à la livraison</p>
+                        <p className="text-sm text-muted-foreground">Espèces ou Mobile Money</p>
                       </div>
                     </div>
                   </button>
@@ -426,7 +426,7 @@ const CheckoutPage = () => {
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Indications pour le livreur (�tage, code, rep�res...)"
+                  placeholder="Indications pour le livreur (étage, code, repères...)"
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                   data-testid="checkout-notes"
@@ -437,7 +437,7 @@ const CheckoutPage = () => {
             {/* Right: Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl border p-6 sticky top-24">
-                <h2 className="font-bold text-lg mb-4">R�capitulatif</h2>
+                <h2 className="font-bold text-lg mb-4">Récapitulatif</h2>
                 
                 {/* Items */}
                 <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
@@ -450,7 +450,7 @@ const CheckoutPage = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm line-clamp-1">{item.product.name}</p>
-                        <p className="text-sm text-muted-foreground">Qt�: {item.quantity}</p>
+                        <p className="text-sm text-muted-foreground">Qté: {item.quantity}</p>
                       </div>
                       <p className="font-medium text-sm">
                         {formatPrice(item.subtotal_fcfa)}
@@ -498,7 +498,7 @@ const CheckoutPage = () => {
                 </Button>
                 
                 <p className="text-xs text-center text-muted-foreground mt-4">
-                  En confirmant, vous acceptez nos conditions g�n�rales de vente
+                  En confirmant, vous acceptez nos conditions générales de vente
                 </p>
               </div>
             </div>
