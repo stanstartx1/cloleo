@@ -498,6 +498,9 @@ const Navbar = () => {
                       <Link to="/favoris" className="font-semibold"><Heart className="w-4 h-4 mr-2" /> Mes favoris</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> Mes commandes</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> Mes abonnements</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -604,9 +607,14 @@ const Navbar = () => {
                 <Heart className="w-4 h-4" /> Mes favoris
               </Link>
               {isAuthenticated && (
-                <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                  <Bell className="w-4 h-4" /> Mes abonnements
-                </Link>
+                <>
+                  <Link to="/commandes" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <ShoppingCart className="w-4 h-4" /> Mes commandes
+                  </Link>
+                  <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <Bell className="w-4 h-4" /> Mes abonnements
+                  </Link>
+                </>
               )}
               <Link to="/panier" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 <ShoppingCart className="w-4 h-4" /> Mon panier

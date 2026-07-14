@@ -29,6 +29,7 @@ import OrderTrackingPage from "./pages/OrderTrackingPage";
 import SearchPage from "./pages/SearchPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
+import OrdersPage from "./pages/OrdersPage";
 import AuthPage from "./pages/AuthPage";
 import CustomerChatPage from "./pages/CustomerChatPage";
 import OfferPage from "./pages/OfferPage";
@@ -137,6 +138,11 @@ const AppRoutes = () => {
       <Route path="/suivi/:orderId" element={<PublicLayout><OrderTrackingPage /></PublicLayout>} />
       <Route path="/recherche" element={<PublicLayout><SearchPage /></PublicLayout>} />
       <Route path="/favoris" element={<PublicLayout><FavoritesPage /></PublicLayout>} />
+      <Route path="/commandes" element={
+        <ProtectedRoute>
+          <PublicLayout><OrdersPage /></PublicLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/abonnements" element={<PublicLayout><SubscriptionsPage /></PublicLayout>} />
       
       {/* Auth */}
