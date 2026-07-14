@@ -122,12 +122,12 @@ const OrderCard = ({ order }) => {
                   {item.product_name}
                 </h4>
                 <p className="text-xs text-slate-500">
-                  Quantité: {item.quantity} × {formatPrice(item.price)}
+                  Quantité: {item.quantity} × {formatPrice(item.price_fcfa || item.price)}
                 </p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-slate-800">
-                  {formatPrice(item.quantity * item.price)}
+                  {formatPrice(item.subtotal_fcfa || (item.quantity * (item.price_fcfa || item.price)))}
                 </p>
               </div>
             </div>
@@ -138,28 +138,32 @@ const OrderCard = ({ order }) => {
         <div className="border-t pt-4 space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-slate-600">Sous-total</span>
-            <span className="font-medium">{formatPrice(order.subtotal || order.total_amount)}</span>
+            <span className="font-medium">{formatPrice(order.subtotal_fcfa || order.subtotal || order.total_amount)}</span>
           </div>
-          {order.shipping_cost && (
+          {(order.delivery_fee_fcfa || order.shipping_cost) && (
             <div className="flex justify-between">
               <span className="text-slate-600">Livraison</span>
-              <span className="font-medium">{formatPrice(order.shipping_cost)}</span>
+              <span className="font-medium">{formatPrice(order.delivery_fee_fcfa || order.shipping_cost)}</span>
             </div>
           )}
           <div className="flex justify-between text-lg font-bold pt-2 border-t">
             <span className="text-slate-800">Total</span>
-            <span className="text-orange-600">{formatPrice(order.total_amount)}</span>
+            <span className="text-orange-600">{formatPrice(order.total_fcfa || order.total_amount)}</span>
           </div>
         </div>
 
         {/* Shipping Address */}
-        {order.shipping_address && (
+        {(order.delivery_address || order.shipping_address) && (
           <div className="mt-4 p-3 bg-slate-50 rounded-lg">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <MapPin className="w-4 h-4" />
               <span>Adresse de livraison</span>
             </div>
-            <p className="text-sm text-slate-600">{order.shipping_address}</p>
+            <p className="text-sm text-slate-600">
+              {typeof order.delivery_address === 'object' 
+                ? `${order.delivery_address.street}, ${order.delivery_address.city}`
+                : (order.delivery_address || order.shipping_address)}
+            </p>
           </div>
         )}
 
@@ -210,7 +214,8 @@ const OrdersPage = () => {
       const response = await axios.get(`${API}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setOrders(Array.isArray(response.data) ? response.data : []);
+      const ordersData = response.data?.orders || [];
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Erreur lors du chargement des commandes');
