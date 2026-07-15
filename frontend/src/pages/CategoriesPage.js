@@ -89,82 +89,58 @@ const CategoriesPage = () => {
 
       <div className="container mx-auto px-4 py-12">
         {loading ? (
-          <div className="space-y-5">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-2xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="aspect-square rounded-2xl" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {parentCategories.map((category, index) => {
               const subCategories = childrenByParent[category.slug] || [];
-              const isOpen = !!expanded[category.slug];
               const imageSrc = category.image || category.banner_images?.[0] || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=1200&auto=format&fit=crop';
               return (
-                <div
+                <Link
                   key={category.slug}
-                  className="rounded-2xl overflow-hidden border border-border bg-card opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]"
-                  style={{ animationDelay: `${index * 90}ms` }}
+                  to={`/categories/${category.slug}`}
+                  className="group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]"
+                  style={{ animationDelay: `${index * 80}ms` }}
                 >
-                  <div className="relative min-h-[148px]">
+                  <div className="aspect-square overflow-hidden">
                     <img
                       src={imageSrc}
                       alt={category.name}
-                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${
-                        hoveredCategory === category.slug ? 'scale-105' : 'scale-100'
-                      }`}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
+                  </div>
 
-                    <div className="relative z-10 min-h-[148px] p-5 md:p-6 flex items-end justify-between gap-4">
-                      <div className="min-w-0 self-end">
-                        <h2 className="inline-block text-xl md:text-2xl font-bold text-slate-900 truncate px-3 py-1.5 rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
-                          {category.name}
-                        </h2>
-                        <p className="text-sm text-slate-800 mt-2 max-w-xl px-3 py-1.5 rounded-md border border-white/80 bg-white/85 line-clamp-2">
-                          {category.description || 'Explorez cette catégorie.'}
-                        </p>
-                      </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Link
-                          to={`/categories/${category.slug}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
-                          onMouseEnter={() => setHoveredCategory(category.slug)}
-                          onMouseLeave={() => setHoveredCategory(null)}
-                        >
-                          Explorer <ArrowRight className="w-4 h-4" />
-                        </Link>
-                        {subCategories.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => toggleExpanded(category.slug)}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/15 text-white hover:bg-white/25 transition-colors"
-                          >
-                            Sous-catégories
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
-                      </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                      <h3 className="text-white font-bold text-lg mb-1 line-clamp-1">{category.name}</h3>
+                      <p className="text-white/90 text-xs line-clamp-2 mb-2">
+                        {category.description || 'Explorez cette catégorie'}
+                      </p>
+                      {subCategories.length > 0 && (
+                        <span className="inline-flex items-center gap-1 text-orange-300 text-xs font-medium">
+                          <Grid3X3 className="w-3 h-3" />
+                          {subCategories.length} sous-catégories
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {isOpen && subCategories.length > 0 && (
-                    <div className="p-4 md:p-5 bg-muted/20 border-t border-border">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {subCategories.map((sub) => (
-                          <Link
-                            key={sub.slug}
-                            to={`/categories/${sub.slug}`}
-                            className="group rounded-xl border border-border bg-background p-3 hover:border-orange-400/50 hover:bg-orange-50/40 transition-colors"
-                          >
-                            <p className="font-semibold text-sm group-hover:text-orange-600 transition-colors">{sub.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{sub.description || 'Voir les produits de cette sous-catégorie.'}</p>
-                          </Link>
-                        ))}
-                      </div>
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                      <ArrowRight className="w-5 h-5 text-white" />
                     </div>
-                  )}
-                </div>
+                  </div>
+                </Link>
               );
             })}
           </div>

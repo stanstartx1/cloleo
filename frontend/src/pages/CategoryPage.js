@@ -225,7 +225,7 @@ const CategoryPage = () => {
             />
           ))}
 
-          <div className="absolute inset-0 flex items-end pb-8">
+          <div className="absolute inset-0 flex items-end pb-4">
             <div className="container mx-auto px-4 relative z-10 w-full">
               <nav className="inline-flex items-center flex-wrap text-sm mb-3 px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
                 <Link to="/" className="hover:text-orange-600 transition-colors">Accueil</Link>
