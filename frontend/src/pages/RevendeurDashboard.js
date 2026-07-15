@@ -480,7 +480,6 @@ const RevendeurDashboard = () => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-    { id: 'catalog', label: 'Catalogue produits', icon: Package2 },
     { id: 'products', label: 'Mes produits', icon: Package },
     { id: 'categories', label: 'Catégories', icon: FolderOpen },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
