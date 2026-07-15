@@ -38,7 +38,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
     phone: user?.phone || '',
     street: '',
     city: 'Abidjan',
-    country: "Côte d'Ivoire",
+    country: "CÃ´te d'Ivoire",
     latitude: null,
     longitude: null,
     paymentMethod: 'cash',
@@ -124,7 +124,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Géolocalisation non supportée');
+      toast.error('GÃ©olocalisation non supportÃ©e');
       return;
     }
     
@@ -141,7 +141,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
         setFormData(prev => ({ ...prev, latitude, longitude }));
         reverseGeocode(latitude, longitude);
         setLocatingUser(false);
-        toast.success('Position trouvée !');
+        toast.success('Position trouvÃ©e !');
       },
       () => {
         setLocatingUser(false);
@@ -158,7 +158,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
     }
     
     if (!formData.latitude || !formData.longitude) {
-      toast.error('Veuillez sélectionner votre position sur la carte');
+      toast.error('Veuillez sÃ©lectionner votre position sur la carte');
       return;
     }
     
@@ -191,7 +191,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
       setOrderId(response.data.id);
       setOrderPlaced(true);
       setStep(3);
-      toast.success('Commande passée avec succès !');
+      toast.success('Commande passÃ©e avec succÃ¨s !');
       
       if (onSuccess) {
         onSuccess(response.data);
@@ -235,7 +235,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
 
       {/* Quantity Selector */}
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-        <span className="font-medium">Quantité</span>
+        <span className="font-medium">QuantitÃ©</span>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setQuantity(q => Math.max(1, q - 1))}
@@ -324,7 +324,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
         
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">
-            <Phone className="w-4 h-4 inline mr-1" /> Téléphone *
+            <Phone className="w-4 h-4 inline mr-1" /> TÃ©lÃ©phone *
           </label>
           <Input
             value={formData.phone}
@@ -375,7 +375,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
             }`}
           >
             <Package className="w-6 h-6 mx-auto mb-2 text-orange-500" />
-            <p className="font-medium text-sm">Paiement à la livraison</p>
+            <p className="font-medium text-sm">Paiement Ã  la livraison</p>
           </button>
           <button
             onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'mobile_money' }))}
@@ -438,16 +438,16 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
       </div>
       
       <div>
-        <h3 className="text-2xl font-bold text-gray-800">Commande confirmée !</h3>
-        <p className="text-gray-600 mt-2">Votre commande #{orderId?.slice(0, 8)} a été passée avec succès</p>
+        <h3 className="text-2xl font-bold text-gray-800">Commande confirmÃ©e !</h3>
+        <p className="text-gray-600 mt-2">Votre commande #{orderId?.slice(0, 8)} a Ã©tÃ© passÃ©e avec succÃ¨s</p>
       </div>
       
       <div className="p-4 bg-green-50 rounded-xl border border-green-100">
         <p className="text-green-800 font-medium">
-          Vous recevrez bientôt une confirmation par téléphone
+          Vous recevrez bientÃ´t une confirmation par tÃ©lÃ©phone
         </p>
         <p className="text-green-600 text-sm mt-1">
-          Livraison estimée : 2-4 heures
+          Livraison estimÃ©e : 2-4 heures
         </p>
       </div>
       
@@ -483,7 +483,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
               <p className="text-sm text-white/80">
                 {step === 1 && 'Confirmez votre achat'}
                 {step === 2 && 'Adresse de livraison'}
-                {step === 3 && 'Commande confirmée'}
+                {step === 3 && 'Commande confirmÃ©e'}
               </p>
             </div>
           </div>
