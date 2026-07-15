@@ -1499,9 +1499,6 @@ const RevendeurDashboard = () => {
                                   <h3 className="font-semibold text-gray-900">{cat.name}</h3>
                                   <span className="text-xs text-purple-500 font-mono">{cat.slug}</span>
                                 </div>
-                                <Badge className={`text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                  {cat.is_active ? 'Active' : 'Inactive'}
-                                </Badge>
                               </div>
 
                               {!isEditing ? (

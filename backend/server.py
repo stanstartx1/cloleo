@@ -6,7 +6,7 @@ from typing import Optional
 import re
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -522,21 +522,33 @@ async def revendeur_catalog(
     search: str = "",
     category_slug: str = "",
     all: bool = False,
-    user: dict = Depends(require_dropshipper)
+    user: dict = Depends(require_dropshipper),
+    request: Request = None
 ):
     """
     Retourne le catalogue produits pour le revendeur.
     - all=true : retourne TOUS les produits sans pagination (pour la vue groupée par catégorie)
-    - category_slug : filtre par catégorie ou sous-catégorie
+    - category_slug : filtre par catégorie ou sous-catégorie (peut être envoyé plusieurs fois pour filtrer sur plusieurs catégories)
     - search : recherche textuelle
     """
     query = {"status": "approved", "source": {"$ne": "revendeur"}}
-    if category_slug:
-        # Chercher dans category_slug ET subcategory_slug pour couvrir les deux niveaux
-        query["$or"] = [
-            {"category_slug": category_slug},
-            {"subcategory_slug": category_slug},
-        ]
+    
+    # Récupérer tous les category_slug depuis les query params (supporte les paramètres répétés)
+    category_slugs = []
+    if request:
+        category_slugs = request.query_params.getlist("category_slug")
+    if category_slug and category_slug not in category_slugs:
+        category_slugs.append(category_slug)
+    
+    if category_slugs:
+        # Chercher dans category_slug ET subcategory_slug pour tous les slugs fournis
+        category_filters = []
+        for slug in category_slugs:
+            category_filters.extend([
+                {"category_slug": slug},
+                {"subcategory_slug": slug},
+            ])
+        query["$or"] = category_filters
     if search:
         search_filter = [
             {"name": {"$regex": search, "$options": "i"}},
