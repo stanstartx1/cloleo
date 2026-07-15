@@ -509,25 +509,35 @@ const ProductPage = () => {
             {/* Payment Methods */}
             <div className="mb-6 p-4 bg-gradient-to-r from-slate-50 to-orange-50 rounded-xl border border-orange-100">
               <p className="text-xs font-semibold text-slate-600 mb-3">Moyens de paiement acceptés</p>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-orange-300 transition-colors">
-                  <img src="/orange.png" alt="Orange Money" className="h-8 w-auto mb-1 object-contain" />
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                <div className="flex flex-col items-center justify-center p-3 bg-white rounded-full border-2 border-slate-200 hover:border-orange-400 hover:shadow-lg hover:scale-105 transition-all cursor-pointer group">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center mb-1 group-hover:from-orange-200 group-hover:to-orange-300 transition-all">
+                    <img src="/orange.png" alt="Orange Money" className="h-8 w-auto object-contain" />
+                  </div>
                   <span className="text-[10px] font-medium text-slate-700 text-center">Orange Money</span>
                 </div>
-                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
-                  <img src="/moov.png" alt="Moov Money" className="h-8 w-auto mb-1 object-contain" />
+                <div className="flex flex-col items-center justify-center p-3 bg-white rounded-full border-2 border-slate-200 hover:border-blue-400 hover:shadow-lg hover:scale-105 transition-all cursor-pointer group">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mb-1 group-hover:from-blue-200 group-hover:to-blue-300 transition-all">
+                    <img src="/moov.png" alt="Moov Money" className="h-8 w-auto object-contain" />
+                  </div>
                   <span className="text-[10px] font-medium text-slate-700 text-center">Moov Money</span>
                 </div>
-                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-yellow-300 transition-colors">
-                  <img src="/mtn.png" alt="MTN Money" className="h-8 w-auto mb-1 object-contain" />
+                <div className="flex flex-col items-center justify-center p-3 bg-white rounded-full border-2 border-slate-200 hover:border-yellow-400 hover:shadow-lg hover:scale-105 transition-all cursor-pointer group">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-100 to-yellow-200 flex items-center justify-center mb-1 group-hover:from-yellow-200 group-hover:to-yellow-300 transition-all">
+                    <img src="/mtn.jpeg" alt="MTN Money" className="h-8 w-auto object-contain" />
+                  </div>
                   <span className="text-[10px] font-medium text-slate-700 text-center">MTN Money</span>
                 </div>
-                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
-                  <img src="/wave.png" alt="Wave" className="h-8 w-auto mb-1 object-contain" />
+                <div className="flex flex-col items-center justify-center p-3 bg-white rounded-full border-2 border-slate-200 hover:border-cyan-400 hover:shadow-lg hover:scale-105 transition-all cursor-pointer group">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center mb-1 group-hover:from-cyan-200 group-hover:to-cyan-300 transition-all">
+                    <img src="/wave.jpeg" alt="Wave" className="h-8 w-auto object-contain" />
+                  </div>
                   <span className="text-[10px] font-medium text-slate-700 text-center">Wave</span>
                 </div>
-                <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors">
-                  <img src="/visa.png" alt="Visa" className="h-8 w-auto mb-1 object-contain" />
+                <div className="flex flex-col items-center justify-center p-3 bg-white rounded-full border-2 border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:scale-105 transition-all cursor-pointer group">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center mb-1 group-hover:from-indigo-200 group-hover:to-indigo-300 transition-all">
+                    <img src="/visa.png" alt="Visa" className="h-8 w-auto object-contain" />
+                  </div>
                   <span className="text-[10px] font-medium text-slate-700 text-center">Visa</span>
                 </div>
               </div>
