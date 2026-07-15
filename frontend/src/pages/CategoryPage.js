@@ -63,21 +63,21 @@ const CategoryPage = () => {
       const response = await axios.get(`${API}/categories/${slug}`);
       setCategory(response.data);
 
-      // Fetch products from all subcategories combined
+      // Fetch products from all subcategories combined (parallel requests)
       if (response.data?.subcategories && response.data.subcategories.length > 0) {
         const subcategories = response.data.subcategories;
-        const allSubcategoryProducts = [];
+        
+        const subcategoryPromises = subcategories.map(sub =>
+          axios.get(`${API}/products?category=${sub.slug}&limit=20`)
+            .then(res => res.data?.products || [])
+            .catch(error => {
+              console.error(`Error fetching products for ${sub.slug}:`, error);
+              return [];
+            })
+        );
 
-        for (const sub of subcategories) {
-          try {
-            const subResponse = await axios.get(`${API}/products?category=${sub.slug}&limit=20`);
-            allSubcategoryProducts.push(...(subResponse.data?.products || []));
-          } catch (error) {
-            console.error(`Error fetching products for ${sub.slug}:`, error);
-          }
-        }
-
-        setProducts(prev => [...allSubcategoryProducts, ...prev]);
+        const allSubcategoryProducts = await Promise.all(subcategoryPromises);
+        setProducts(prev => [...allSubcategoryProducts.flat(), ...prev]);
       }
     } catch (error) {
       console.error('Error fetching category:', error);
