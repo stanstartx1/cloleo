@@ -66,6 +66,7 @@ const RevendeurDashboard = () => {
   const [catalogProducts, setCatalogProducts] = useState([]);
   const [catalogCategories, setCatalogCategories] = useState([]);
   const [catalogCategory, setCatalogCategory] = useState('');
+  const [catalogCategorySlugs, setCatalogCategorySlugs] = useState([]); // pour inclure sous-catégories
   const [catalogPage, setCatalogPage] = useState(1);
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -151,7 +152,11 @@ const RevendeurDashboard = () => {
     try {
       const params = new URLSearchParams({ page, limit: 24 });
       if (search) params.append('search', search);
-      if (catalogCategory) params.append('category_slug', catalogCategory);
+      if (catalogCategorySlugs.length > 0) {
+        catalogCategorySlugs.forEach(slug => params.append('category_slug', slug));
+      } else if (catalogCategory) {
+        params.append('category_slug', catalogCategory);
+      }
 
       const response = await apiGetWithFallback(`/revendeur/catalog?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -898,15 +903,15 @@ const RevendeurDashboard = () => {
                 <div className="flex justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"></div>
                 </div>
-              ) : catalogCategory || catalogSearch ? (
+              ) : catalogCategorySlugs.length > 0 || catalogCategory || catalogSearch ? (
                 /* Vue filtrée : grille plate */
                 <>
-                  {catalogCategory && (
+                  {(catalogCategorySlugs.length > 0 || catalogCategory) && (
                     <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2 w-fit">
                       <Tag className="w-4 h-4" />
-                      <span>Filtré par : <strong>{catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory}</strong></span>
+                      <span>Filtré par : <strong>{catalogCategorySlugs.length > 0 ? catalogCategorySlugs.map(s => catalogCategories.find(c => c.slug === s)?.name || s).join(' + ') : (catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory)}</strong></span>
                       <button
-                        onClick={() => { setCatalogCategory(''); setCatalogPage(1); }}
+                        onClick={() => { setCatalogCategory(''); setCatalogCategorySlugs([]); setCatalogPage(1); }}
                         className="ml-2 text-gray-400 hover:text-gray-600"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1520,23 +1525,13 @@ const RevendeurDashboard = () => {
                                   <div className="mt-4 flex gap-2">
                                     <Button
                                       size="sm"
-                                      variant="outline"
-                                      className="flex-1 hover:bg-purple-50 hover:border-purple-300 text-purple-700"
-                                      onClick={() => {
-                                        setEditingCategory(cat);
-                                        setCatEditDesc(cat.description || '');
-                                      }}
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5 mr-1" />
-                                      Modifier description
-                                    </Button>
-                                    <Button
-                                      size="sm"
                                       className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                                       onClick={() => {
-                                        setCatalogCategory(cat.slug);
+                                        const subSlugs = subs.map(s => s.slug);
+                                        setCatalogCategorySlugs([cat.slug, ...subSlugs]);
+                                        setCatalogCategory('');
                                         setActiveTab('catalog');
-                                        toast.success(`Catalogue filtré sur "${cat.name}"`);
+                                        toast.success(`Catalogue filtré sur "${cat.name}" et ses sous-catégories`);
                                       }}
                                     >
                                       <Eye className="w-3.5 h-3.5 mr-1" />
@@ -1635,9 +1630,6 @@ const RevendeurDashboard = () => {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <h3 className="font-semibold text-gray-900">{cat.name}</h3>
-                                    <Badge className={`text-xs ${cat.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                      {cat.is_active ? 'Active' : 'Inactive'}
-                                    </Badge>
                                     {subs.length > 0 && (
                                       <span className="text-xs text-purple-500">{subs.length} sous-catégorie{subs.length > 1 ? 's' : ''}</span>
                                     )}
@@ -1704,23 +1696,13 @@ const RevendeurDashboard = () => {
                                   <div className="flex gap-2 flex-shrink-0">
                                     <Button
                                       size="sm"
-                                      variant="outline"
-                                      className="hover:bg-purple-50 hover:border-purple-300"
-                                      onClick={() => {
-                                        setEditingCategory(cat);
-                                        setCatEditDesc(cat.description || '');
-                                      }}
-                                    >
-                                      <Edit2 className="w-3.5 h-3.5 mr-1" />
-                                      Modifier
-                                    </Button>
-                                    <Button
-                                      size="sm"
                                       className="bg-gradient-to-r from-purple-600 to-indigo-600"
                                       onClick={() => {
-                                        setCatalogCategory(cat.slug);
+                                        const subSlugs = subs.map(s => s.slug);
+                                        setCatalogCategorySlugs([cat.slug, ...subSlugs]);
+                                        setCatalogCategory('');
                                         setActiveTab('catalog');
-                                        toast.success(`Catalogue filtré sur "${cat.name}"`);
+                                        toast.success(`Catalogue filtré sur "${cat.name}" et ses sous-catégories`);
                                       }}
                                     >
                                       <Eye className="w-3.5 h-3.5 mr-1" />
