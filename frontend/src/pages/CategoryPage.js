@@ -62,6 +62,23 @@ const CategoryPage = () => {
     try {
       const response = await axios.get(`${API}/categories/${slug}`);
       setCategory(response.data);
+
+      // Fetch products from all subcategories combined
+      if (response.data?.subcategories && response.data.subcategories.length > 0) {
+        const subcategories = response.data.subcategories;
+        const allSubcategoryProducts = [];
+
+        for (const sub of subcategories) {
+          try {
+            const subResponse = await axios.get(`${API}/products?category=${sub.slug}&limit=20`);
+            allSubcategoryProducts.push(...(subResponse.data?.products || []));
+          } catch (error) {
+            console.error(`Error fetching products for ${sub.slug}:`, error);
+          }
+        }
+
+        setProducts(prev => [...allSubcategoryProducts, ...prev]);
+      }
     } catch (error) {
       console.error('Error fetching category:', error);
     }
@@ -208,8 +225,8 @@ const CategoryPage = () => {
             />
           ))}
 
-          <div className="absolute inset-0 flex items-end">
-            <div className={`container mx-auto px-4 relative z-10 w-full ${banners.length > 1 ? 'pb-14 md:pb-16' : 'pb-6 md:pb-8'}`}>
+          <div className="absolute inset-0 flex items-end pb-8">
+            <div className="container mx-auto px-4 relative z-10 w-full">
               <nav className="inline-flex items-center flex-wrap text-sm mb-3 px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
                 <Link to="/" className="hover:text-orange-600 transition-colors">Accueil</Link>
                 <span className="mx-2 text-slate-400">/</span>
@@ -259,25 +276,6 @@ const CategoryPage = () => {
         </div>
       )}
 
-      {/* Subcategories */}
-      {category?.subcategories && category.subcategories.length > 0 && (
-        <div className="bg-white border-b py-4 sticky top-16 z-20 shadow-sm">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-sm text-muted-foreground mr-2">Sous-catégories :</span>
-              {category.subcategories.map((sub, index) => (
-                <Link
-                  key={sub.slug}
-                  to={`/categories/${sub.slug}`}
-                  className="px-4 py-2 text-sm bg-slate-100 hover:bg-orange-50 hover:text-orange-600 rounded-full transition-all duration-300"
-                >
-                  {sub.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
