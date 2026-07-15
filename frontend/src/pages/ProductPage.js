@@ -359,19 +359,22 @@ const ProductPage = () => {
           <Link to="/" className="hover:text-primary">Accueil</Link>
           <span className="mx-2">/</span>
           <Link to="/categories" className="hover:text-primary">Catégories</Link>
-          {product.category_slug && (
+          {product.subcategory_slug ? (
+            <>
+              <span className="mx-2">/</span>
+              <Link to={`/categories/${product.subcategory_slug}`} className="hover:text-primary">
+                {(() => {
+                  const parts = product.subcategory_slug.split('-');
+                  const uniqueParts = [...new Set(parts)];
+                  return uniqueParts.join(' ');
+                })()}
+              </Link>
+            </>
+          ) : product.category_slug && (
             <>
               <span className="mx-2">/</span>
               <Link to={`/categories/${product.category_slug}`} className="hover:text-primary">
                 {product.category_slug?.replace(/-/g, ' ')}
-              </Link>
-            </>
-          )}
-          {product.subcategory_slug && product.subcategory_slug !== product.category_slug && (
-            <>
-              <span className="mx-2">/</span>
-              <Link to={`/categories/${product.subcategory_slug}`} className="hover:text-primary">
-                {product.subcategory_slug?.replace(/-/g, ' ')}
               </Link>
             </>
           )}
