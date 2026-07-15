@@ -359,10 +359,22 @@ const ProductPage = () => {
           <Link to="/" className="hover:text-primary">Accueil</Link>
           <span className="mx-2">/</span>
           <Link to="/categories" className="hover:text-primary">Catégories</Link>
-          <span className="mx-2">/</span>
-          <Link to={`/categories/${product.category_slug}`} className="hover:text-primary">
-            {product.category_slug?.replace(/-/g, ' ')}
-          </Link>
+          {product.category_slug && (
+            <>
+              <span className="mx-2">/</span>
+              <Link to={`/categories/${product.category_slug}`} className="hover:text-primary">
+                {product.category_slug?.replace(/-/g, ' ')}
+              </Link>
+            </>
+          )}
+          {product.subcategory_slug && product.subcategory_slug !== product.category_slug && (
+            <>
+              <span className="mx-2">/</span>
+              <Link to={`/categories/${product.subcategory_slug}`} className="hover:text-primary">
+                {product.subcategory_slug?.replace(/-/g, ' ')}
+              </Link>
+            </>
+          )}
           <span className="mx-2">/</span>
           <span className="text-foreground line-clamp-1">{product.name}</span>
         </nav>
@@ -496,33 +508,23 @@ const ProductPage = () => {
               <p className="text-xs font-semibold text-slate-600 mb-3">Moyens de paiement acceptés</p>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-orange-300 transition-colors">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-1">
-                    <span className="text-orange-600 font-bold text-sm">OM</span>
-                  </div>
+                  <img src="/orange.png" alt="Orange Money" className="h-8 w-auto mb-1 object-contain" />
                   <span className="text-[10px] font-medium text-slate-700 text-center">Orange Money</span>
                 </div>
                 <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
-                    <span className="text-blue-600 font-bold text-sm">MO</span>
-                  </div>
+                  <img src="/moov.png" alt="Moov Money" className="h-8 w-auto mb-1 object-contain" />
                   <span className="text-[10px] font-medium text-slate-700 text-center">Moov Money</span>
                 </div>
                 <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-yellow-300 transition-colors">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-1">
-                    <span className="text-yellow-600 font-bold text-sm">MTN</span>
-                  </div>
+                  <img src="/mtn.png" alt="MTN Money" className="h-8 w-auto mb-1 object-contain" />
                   <span className="text-[10px] font-medium text-slate-700 text-center">MTN Money</span>
                 </div>
                 <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
-                    <span className="text-blue-600 font-bold text-sm">WV</span>
-                  </div>
+                  <img src="/wave.png" alt="Wave" className="h-8 w-auto mb-1 object-contain" />
                   <span className="text-[10px] font-medium text-slate-700 text-center">Wave</span>
                 </div>
                 <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors">
-                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mb-1">
-                    <span className="text-indigo-600 font-bold text-sm">VISA</span>
-                  </div>
+                  <img src="/visa.png" alt="Visa" className="h-8 w-auto mb-1 object-contain" />
                   <span className="text-[10px] font-medium text-slate-700 text-center">Visa</span>
                 </div>
               </div>
