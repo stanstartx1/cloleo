@@ -227,14 +227,6 @@ const CategoryPage = () => {
 
           <div className="absolute inset-0 flex items-end pb-4">
             <div className="container mx-auto px-4 relative z-10 w-full">
-              <nav className="inline-flex items-center flex-wrap text-sm mb-3 px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
-                <Link to="/" className="hover:text-orange-600 transition-colors">Accueil</Link>
-                <span className="mx-2 text-slate-400">/</span>
-                <Link to="/categories" className="hover:text-orange-600 transition-colors">Catégories</Link>
-                <span className="mx-2 text-slate-400">/</span>
-                <span className="text-orange-600 font-semibold">{category?.name || slug}</span>
-              </nav>
-
               <h1 className="inline-block text-3xl md:text-4xl font-bold text-slate-900 px-4 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 shadow-sm">
                 {category?.name}
               </h1>
@@ -276,6 +268,43 @@ const CategoryPage = () => {
         </div>
       )}
 
+
+      {/* Breadcrumb - toujours affiché même sans banner */}
+      <div className="container mx-auto px-4 pt-6">
+        <nav className="inline-flex items-center flex-wrap text-sm px-3 py-2 rounded-md border-2 border-slate-900/25 bg-white/95 text-slate-700 shadow-sm">
+          <Link to="/" className="hover:text-orange-600 transition-colors">Accueil</Link>
+          <span className="mx-2 text-slate-400">/</span>
+          <Link to="/categories" className="hover:text-orange-600 transition-colors">Catégories</Link>
+          <span className="mx-2 text-slate-400">/</span>
+          <span className="text-orange-600 font-semibold">{category?.name || slug}</span>
+        </nav>
+      </div>
+
+      {/* Subcategories Navigation */}
+      {category?.subcategories && category.subcategories.length > 0 && (
+        <div className="bg-white border-b py-4">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground mr-2">Sous-catégories :</span>
+              <Link
+                to={`/categories/${slug}`}
+                className="px-4 py-2 text-sm bg-slate-100 hover:bg-orange-50 hover:text-orange-600 rounded-full transition-all duration-300"
+              >
+                Tous
+              </Link>
+              {category.subcategories.map((sub, index) => (
+                <Link
+                  key={sub.slug}
+                  to={`/categories/${sub.slug}`}
+                  className="px-4 py-2 text-sm bg-slate-100 hover:bg-orange-50 hover:text-orange-600 rounded-full transition-all duration-300"
+                >
+                  {sub.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
