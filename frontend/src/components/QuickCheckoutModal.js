@@ -2,10 +2,10 @@ import { API_URL } from '../config/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  X, MapPin, Phone, User, CreditCard, Truck, 
+import {
+  X, MapPin, Phone, User, CreditCard, Truck,
   CheckCircle, Loader2, Package, Navigation, Zap,
-  Minus, Plus, ShoppingBag
+  Minus, Plus, ShoppingBag, Banknote
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -369,23 +369,23 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
           <button
             onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cash' }))}
             className={`p-4 rounded-xl border-2 transition-all ${
-              formData.paymentMethod === 'cash' 
-                ? 'border-orange-500 bg-orange-50' 
+              formData.paymentMethod === 'cash'
+                ? 'border-orange-500 bg-orange-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <Package className="w-6 h-6 mx-auto mb-2 text-orange-500" />
+            <Banknote className="w-6 h-6 mx-auto mb-2 text-orange-500" />
             <p className="font-medium text-sm">Paiement à la livraison</p>
           </button>
           <button
             onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'mobile_money' }))}
             className={`p-4 rounded-xl border-2 transition-all ${
-              formData.paymentMethod === 'mobile_money' 
-                ? 'border-orange-500 bg-orange-50' 
+              formData.paymentMethod === 'mobile_money'
+                ? 'border-orange-500 bg-orange-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <CreditCard className="w-6 h-6 mx-auto mb-2 text-orange-500" />
+            <img src="/mobile.jpeg" alt="Mobile Money" className="w-6 h-6 mx-auto mb-2 object-contain" />
             <p className="font-medium text-sm">Mobile Money</p>
           </button>
         </div>
