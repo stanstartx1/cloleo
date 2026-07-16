@@ -1,6 +1,6 @@
 ﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
@@ -55,10 +55,17 @@ const apiGetWithFallback = async (path, config = {}) => {
 const RevendeurDashboard = () => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
+  const location = useLocation();
   
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Restaurer l'onglet actif depuis localStorage ou URL
+    const savedTab = localStorage.getItem('revendeur_active_tab');
+    const urlParams = new URLSearchParams(location.search);
+    const tabParam = urlParams.get('tab');
+    return tabParam || savedTab || 'dashboard';
+  });
   const [dashboardData, setDashboardData] = useState(null);
   const [followerCount, setFollowerCount] = useState(0);
   
@@ -145,6 +152,11 @@ const RevendeurDashboard = () => {
     
     if (token) fetchDashboard();
   }, [token]);
+
+  // Sauvegarder l'onglet actif dans localStorage
+  useEffect(() => {
+    localStorage.setItem('revendeur_active_tab', activeTab);
+  }, [activeTab]);
 
   // Fetch catalog products
   const fetchCatalog = async (page = 1, search = '') => {
@@ -914,18 +926,23 @@ const RevendeurDashboard = () => {
               ) : catalogCategorySlugs.length > 0 || catalogCategory || catalogSearch ? (
                 /* Vue filtrée : grille plate */
                 <>
-                  {(catalogCategorySlugs.length > 0 || catalogCategory) && (
-                    <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2 w-fit">
-                      <Tag className="w-4 h-4" />
-                      <span>Filtré par : <strong>{catalogCategorySlugs.length > 0 ? catalogCategorySlugs.map(s => catalogCategories.find(c => c.slug === s)?.name || s).join(' + ') : (catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory)}</strong></span>
-                      <button
-                        onClick={() => { setCatalogCategory(''); setCatalogCategorySlugs([]); setCatalogPage(1); }}
-                        className="ml-2 text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setCatalogCategory(''); setCatalogCategorySlugs([]); setCatalogPage(1); setCatalogSearch(''); }}
+                      className="text-purple-600 border-purple-200 hover:bg-purple-100"
+                    >
+                      <ChevronRight className="w-4 h-4 mr-1 rotate-180" />
+                      Retour
+                    </Button>
+                    {(catalogCategorySlugs.length > 0 || catalogCategory) && (
+                      <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2">
+                        <Tag className="w-4 h-4" />
+                        <span>Filtré par : <strong>{catalogCategorySlugs.length > 0 ? catalogCategorySlugs.map(s => catalogCategories.find(c => c.slug === s)?.name || s).join(' + ') : (catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory)}</strong></span>
+                      </div>
+                    )}
+                  </div>
                   <motion.div 
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
                     variants={staggerContainer}
