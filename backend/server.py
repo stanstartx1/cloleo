@@ -131,7 +131,34 @@ async def search_products(q: str = "", page: int = 1, limit: int = 20):
         ]
     skip = (page - 1) * limit
     total = await db.products.count_documents(query)
-    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    products = await db.products.find(
+        query, 
+        {"_id": 0, "id": 1, "name": 1, "slug": 1, "price_fcfa": 1, "promo_price_fcfa": 1, 
+         "images": 1, "seller_id": 1, "seller_name": 1, "city": 1, "location": 1,
+         "condition": 1, "is_featured": 1, "wholesale_enabled": 1, "wholesale_min_quantity": 1,
+         "origin_country_code": 1, "origin_country_name": 1, "made_in_enabled": 1,
+         "rating": 1, "reviews_count": 1, "sales_count": 1}
+    ).skip(skip).limit(limit).to_list(limit)
+    
+    # Récupérer les photos de profil des vendeurs
+    seller_ids = [p.get("seller_id") for p in products if p.get("seller_id")]
+    seller_data_map = {}
+    if seller_ids:
+        sellers = await db.users.find(
+            {"id": {"$in": seller_ids}},
+            {"_id": 0, "id": 1, "profile_photo": 1, "name": 1}
+        ).to_list(len(seller_ids))
+        seller_data_map = {s["id"]: s for s in sellers}
+    
+    # Ajouter les photos de profil aux produits
+    for p in products:
+        seller_id = p.get("seller_id")
+        if seller_id and seller_id in seller_data_map:
+            seller_info = seller_data_map[seller_id]
+            p["seller_profile_photo"] = seller_info.get("profile_photo")
+            if not p.get("seller_name"):
+                p["seller_name"] = seller_info.get("name")
+    
     return {"products": products, "total": total, "page": page}
 
 
@@ -194,25 +221,40 @@ async def search_products_live(q: str = "", limit: int = 5):
             "seller_id": 1,
             "seller_name": 1,
             "city": 1,
-            "location": 1
+            "location": 1,
+            "condition": 1,
+            "is_featured": 1,
+            "wholesale_enabled": 1,
+            "wholesale_min_quantity": 1,
+            "origin_country_code": 1,
+            "origin_country_name": 1,
+            "made_in_enabled": 1,
+            "rating": 1,
+            "reviews_count": 1,
+            "sales_count": 1
         }
     ).limit(limit).to_list(limit)
     
     # Récupérer les photos de profil des vendeurs
     seller_ids = [p.get("seller_id") for p in products if p.get("seller_id")]
-    seller_photos = {}
+    seller_data_map = {}
     if seller_ids:
         sellers = await db.users.find(
             {"id": {"$in": seller_ids}},
             {"_id": 0, "id": 1, "profile_photo": 1, "name": 1}
         ).to_list(len(seller_ids))
-        seller_photos = {s["id"]: s.get("profile_photo") for s in sellers}
+        seller_data_map = {s["id"]: s for s in sellers}
     
     # Formater les produits pour le frontend
     for p in products:
         p["price"] = p.get("promo_price_fcfa") or p.get("price_fcfa") or 0
         p["image"] = p.get("images", [None])[0] if p.get("images") else None
-        p["seller_profile_photo"] = seller_photos.get(p.get("seller_id"))
+        seller_id = p.get("seller_id")
+        if seller_id and seller_id in seller_data_map:
+            seller_info = seller_data_map[seller_id]
+            p["seller_profile_photo"] = seller_info.get("profile_photo")
+            if not p.get("seller_name"):
+                p["seller_name"] = seller_info.get("name")
     
     return {"products": products}
 
