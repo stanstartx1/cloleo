@@ -285,6 +285,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     subtotal = 0
     order_items = []
     seller_id = None
+    dropshipper_id = None
     for item in payload.items:
         product = await db.products.find_one({"id": item["product_id"]}, {"_id": 0})
         if not product:
@@ -302,6 +303,12 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         item_total = unit_price * qty
         subtotal += item_total
         seller_id = seller_id or product.get("seller_id")
+        
+        # Vérifier si le produit est dropshippé et récupérer le dropshipper_id
+        dropshipped = await db.dropshipped_products.find_one({"original_product_id": product["id"]}, {"_id": 0, "dropshipper_id": 1})
+        if dropshipped:
+            dropshipper_id = dropshipped.get("dropshipper_id")
+        
         order_items.append({
             "product_id": product["id"],
             "product_name": product.get("name"),
@@ -323,6 +330,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         "customer_name": payload.delivery_address.name,
         "customer_phone": payload.delivery_address.phone,
         "seller_id": seller_id,
+        "dropshipper_id": dropshipper_id,
         "items": order_items,
         "delivery_address": payload.delivery_address.model_dump(),
         "notes": payload.notes,
