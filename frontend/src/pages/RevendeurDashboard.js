@@ -1,6 +1,6 @@
 ﻿import { API_URL, API_BASE, WS_URL } from '../config/api';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
@@ -55,16 +55,13 @@ const apiGetWithFallback = async (path, config = {}) => {
 const RevendeurDashboard = () => {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
-  const location = useLocation();
   
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
-    // Restaurer l'onglet actif depuis localStorage ou URL
+    // Restaurer l'onglet actif depuis localStorage
     const savedTab = localStorage.getItem('revendeur_active_tab');
-    const urlParams = new URLSearchParams(location.search);
-    const tabParam = urlParams.get('tab');
-    return tabParam || savedTab || 'dashboard';
+    return savedTab || 'dashboard';
   });
   const [dashboardData, setDashboardData] = useState(null);
   const [followerCount, setFollowerCount] = useState(0);
@@ -194,7 +191,9 @@ const RevendeurDashboard = () => {
       setCatalogCategories(prev => prev.length ? prev : (Array.isArray(response.data?.categories) ? response.data.categories : []));
       setAllCatalogLoaded(true);
     } catch (error) {
+      console.error('Error fetching all catalog products:', error);
       // silencieux — on aura quand même la vue paginée
+      setAllCatalogLoaded(true); // Marquer comme chargé même en cas d'erreur pour éviter boucle infinie
     }
   };
 
@@ -265,12 +264,15 @@ const RevendeurDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'catalog') { fetchCatalog(catalogPage, catalogSearch); fetchAllCatalogProducts(); }
+    if (activeTab === 'catalog') { 
+      fetchCatalog(catalogPage, catalogSearch); 
+      fetchAllCatalogProducts(); 
+    }
     if (activeTab === 'products') fetchMyProducts();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'earnings') fetchEarnings();
     if (activeTab === 'categories') fetchCategories();
-  }, [activeTab, catalogCategory]);
+  }, [activeTab, catalogCategory, catalogPage, catalogSearch]);
 
   // Add product to my catalog
   const handleAddProduct = (product) => {
@@ -864,12 +866,25 @@ const RevendeurDashboard = () => {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    <Package2 className="w-6 h-6 text-purple-500" />
-                    Catalogue produits
-                  </h1>
-                  <p className="text-gray-500">Sélectionnez des produits à ajouter à votre boutique</p>
+                <div className="flex items-center gap-3">
+                  {(catalogCategory || catalogCategorySlugs.length > 0) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setCatalogCategory(''); setCatalogCategorySlugs([]); setCatalogPage(1); }}
+                      className="text-purple-600 border-purple-200 hover:bg-purple-100"
+                    >
+                      <ChevronRight className="w-4 h-4 mr-1 rotate-180" />
+                      Retour
+                    </Button>
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      <Package2 className="w-6 h-6 text-purple-500" />
+                      Catalogue produits
+                    </h1>
+                    <p className="text-gray-500">Sélectionnez des produits à ajouter à votre boutique</p>
+                  </div>
                 </div>
                 <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
                   <motion.div 
@@ -926,23 +941,18 @@ const RevendeurDashboard = () => {
               ) : catalogCategorySlugs.length > 0 || catalogCategory || catalogSearch ? (
                 /* Vue filtrée : grille plate */
                 <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setCatalogCategory(''); setCatalogCategorySlugs([]); setCatalogPage(1); setCatalogSearch(''); }}
-                      className="text-purple-600 border-purple-200 hover:bg-purple-100"
-                    >
-                      <ChevronRight className="w-4 h-4 mr-1 rotate-180" />
-                      Retour
-                    </Button>
-                    {(catalogCategorySlugs.length > 0 || catalogCategory) && (
-                      <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2">
-                        <Tag className="w-4 h-4" />
-                        <span>Filtré par : <strong>{catalogCategorySlugs.length > 0 ? catalogCategorySlugs.map(s => catalogCategories.find(c => c.slug === s)?.name || s).join(' + ') : (catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory)}</strong></span>
-                      </div>
-                    )}
-                  </div>
+                  {(catalogCategorySlugs.length > 0 || catalogCategory) && (
+                    <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2 w-fit">
+                      <Tag className="w-4 h-4" />
+                      <span>Filtré par : <strong>{catalogCategorySlugs.length > 0 ? catalogCategorySlugs.map(s => catalogCategories.find(c => c.slug === s)?.name || s).join(' + ') : (catalogCategories.find(c => c.slug === catalogCategory)?.name || catalogCategory)}</strong></span>
+                      <button
+                        onClick={() => { setCatalogCategory(''); setCatalogCategorySlugs([]); setCatalogPage(1); }}
+                        className="ml-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                   <motion.div 
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
                     variants={staggerContainer}
