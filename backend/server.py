@@ -193,16 +193,26 @@ async def search_products_live(q: str = "", limit: int = 5):
             "promo_price_fcfa": 1,
             "seller_id": 1,
             "seller_name": 1,
-            "seller_profile_photo": 1,
             "city": 1,
             "location": 1
         }
     ).limit(limit).to_list(limit)
     
+    # Récupérer les photos de profil des vendeurs
+    seller_ids = [p.get("seller_id") for p in products if p.get("seller_id")]
+    seller_photos = {}
+    if seller_ids:
+        sellers = await db.users.find(
+            {"id": {"$in": seller_ids}},
+            {"_id": 0, "id": 1, "profile_photo": 1, "name": 1}
+        ).to_list(len(seller_ids))
+        seller_photos = {s["id"]: s.get("profile_photo") for s in sellers}
+    
     # Formater les produits pour le frontend
     for p in products:
         p["price"] = p.get("promo_price_fcfa") or p.get("price_fcfa") or 0
         p["image"] = p.get("images", [None])[0] if p.get("images") else None
+        p["seller_profile_photo"] = seller_photos.get(p.get("seller_id"))
     
     return {"products": products}
 

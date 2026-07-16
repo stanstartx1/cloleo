@@ -523,13 +523,17 @@ const RevendeurDashboard = () => {
           {/* Logo */}
           <div className="p-6 border-b">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 overflow-hidden flex items-center justify-center text-white font-bold text-xl">
-                {user?.profile_photo ? (
-                  <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
-                ) : (
+              {user?.profile_photo ? (
+                <img 
+                  src={toAbsoluteMediaUrl(user.profile_photo)} 
+                  alt={user?.name || 'Profil'} 
+                  className="w-10 h-10 rounded-full object-cover" 
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
                   <span>{user?.name?.charAt(0)?.toUpperCase() || 'R'}</span>
-                )}
-              </div>
+                </div>
+              )}
               <div>
                 <span className="text-xl font-bold text-purple-600">Revendeur</span>
                 <p className="text-xs text-gray-500">Espace partenaire</p>
