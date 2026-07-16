@@ -2854,15 +2854,15 @@ const CatalogByCategoryView = ({ products, categories, onAdd, onFilterCategory }
       })}
 
       {/* Produits sans catégorie */}
-      {(productsByCategory['__sans_categorie__'] || []).length > 0 && (
+      {(productsBySlug['__sans_categorie__'] || []).length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Package className="w-4 h-4" />
             <span>Autres produits</span>
-            <span className="text-xs text-gray-400">({productsByCategory['__sans_categorie__'].length})</span>
+            <span className="text-xs text-gray-400">({productsBySlug['__sans_categorie__'].length})</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {productsByCategory['__sans_categorie__'].map((product, index) => (
+            {productsBySlug['__sans_categorie__'].map((product, index) => (
               <CatalogProductCard key={product.id} product={product} index={index} onAdd={onAdd} />
             ))}
           </div>
