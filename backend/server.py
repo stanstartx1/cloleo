@@ -183,7 +183,20 @@ async def search_products_live(q: str = "", limit: int = 5):
                 {"tags": {"$regex": q, "$options": "i"}}
             ]
         },
-        {"_id": 0, "id": 1, "name": 1, "slug": 1, "price_fcfa": 1, "images": 1, "promo_price_fcfa": 1}
+        {
+            "_id": 0, 
+            "id": 1, 
+            "name": 1, 
+            "slug": 1, 
+            "price_fcfa": 1, 
+            "images": 1, 
+            "promo_price_fcfa": 1,
+            "seller_id": 1,
+            "seller_name": 1,
+            "seller_profile_photo": 1,
+            "city": 1,
+            "location": 1
+        }
     ).limit(limit).to_list(limit)
     
     # Formater les produits pour le frontend
