@@ -522,15 +522,19 @@ const RevendeurDashboard = () => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
-                C
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 overflow-hidden flex items-center justify-center text-white font-bold text-xl">
+                {user?.profile_photo ? (
+                  <img src={toAbsoluteMediaUrl(user.profile_photo)} alt={user?.name || 'Profil'} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{user?.name?.charAt(0)?.toUpperCase() || 'R'}</span>
+                )}
               </div>
               <div>
                 <span className="text-xl font-bold text-purple-600">Revendeur</span>
                 <p className="text-xs text-gray-500">Espace partenaire</p>
               </div>
-            </Link>
+            </div>
           </div>
 
           {/* User Info */}
