@@ -351,6 +351,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         dropshipper_share = int(margin * 0.5)
         platform_share = margin - dropshipper_share
         
+        print(f"DEBUG: Dropshipped order creation - original_price: {original_price}, selling_price: {selling_price}, margin: {margin}, dropshipper_share: {dropshipper_share}")
+        print(f"DEBUG: dropshipped_product_info: {dropshipped_product_info}")
+        
         # Commande optimisée pour le vendeur
         seller_order = {
             "id": str(uuid.uuid4()),
@@ -396,7 +399,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "dropshipper_id": dropshipper_id,
             "is_dropshipped_order": True,
             "items": [{
-                **order_items[0],
+                "product_id": order_items[0]["product_id"],
                 "original_product_id": dropshipped_product_info["original_product_id"],
                 "product_name": dropshipped_product_info.get("custom_description") or dropshipped_product_info.get("original_name"),
                 "product_image": (dropshipped_product_info.get("custom_images") or dropshipped_product_info.get("original_images") or [None])[0],
@@ -406,6 +409,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "margin_fcfa": margin,
                 "dropshipper_earnings_fcfa": dropshipper_share,
                 "platform_share_fcfa": platform_share,
+                "price_fcfa": selling_price,
+                "subtotal_fcfa": dropshipper_subtotal,
             }],
             "delivery_address": payload.delivery_address.model_dump(),
             "payment_method": payload.payment_method,
@@ -419,6 +424,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "created_at": _utc(),
             "updated_at": _utc(),
         }
+        print(f"DEBUG: Dropshipper order to insert: {dropshipper_order}")
         await db.orders.insert_one(dropshipper_order)
         
         # Commande principale pour le client
@@ -718,7 +724,8 @@ async def driver_upload_license(file: UploadFile = File(...), user: dict = Depen
 @api.get("/revendeur/dashboard")
 async def revendeur_dashboard(user: dict = Depends(require_dropshipper)):
     products = await db.dropshipped_products.count_documents({"dropshipper_id": user["id"]})
-    orders = await db.orders.count_documents({"dropshipper_id": user["id"]})
+    # Compter uniquement les commandes revendeur (avec suffixe -R)
+    orders = await db.orders.count_documents({"dropshipper_id": user["id"], "order_number": {"$regex": "-R$"}})
     return {"stats": {"product_count": products, "order_count": orders, "revenue_fcfa": 0}, "shop": {"slug": user.get("shop_slug"), "name": user.get("shop_name")}}
 
 
@@ -939,9 +946,9 @@ async def delete_revendeur_product(product_id: str, user: dict = Depends(require
 @api.get("/revendeur/orders")
 async def revendeur_orders(user: dict = Depends(require_dropshipper)):
     print(f"DEBUG: revendeur_orders - user_id: {user['id']}")
-    # Les revendeurs voient toutes les commandes où ils sont le dropshipper
+    # Les revendeurs voient uniquement leurs commandes dropshippées (celles avec le suffixe -R)
     orders = await db.orders.find(
-        {"dropshipper_id": user["id"]}, 
+        {"dropshipper_id": user["id"], "order_number": {"$regex": "-R$"}}, 
         {"_id": 0}
     ).sort("created_at", -1).to_list(300)
     print(f"DEBUG: Found {len(orders)} orders for revendeur {user['id']}")
