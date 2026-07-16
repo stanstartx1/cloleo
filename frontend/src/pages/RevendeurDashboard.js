@@ -762,10 +762,10 @@ const RevendeurDashboard = () => {
                 transition={{ delay: 0.4 }}
               >
                 <motion.div whileHover={{ scale: 1.02, y: -3 }} whileTap={{ scale: 0.98 }}>
-                  <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200" onClick={() => setActiveTab('catalog')}>
+                  <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-purple-200" onClick={() => setActiveTab('categories')}>
                     <CardContent className="pt-6">
                       <div className="flex items-center gap-4">
-                        <motion.div 
+                        <motion.div
                           className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg"
                           whileHover={{ rotate: 5 }}
                         >
@@ -773,7 +773,7 @@ const RevendeurDashboard = () => {
                         </motion.div>
                         <div className="flex-1">
                           <h3 className="font-semibold">Ajouter des produits</h3>
-                          <p className="text-sm text-gray-500">Parcourir le catalogue</p>
+                          <p className="text-sm text-gray-500">Parcourir les catégories</p>
                         </div>
                         <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
                           <ChevronRight className="w-5 h-5 text-purple-400" />
