@@ -403,17 +403,17 @@ const Navbar = () => {
               </Button>
 
               {/* Panier */}
-              <div className="relative" style={{ overflow: 'visible' }}>
-                <Link to="/panier" data-testid="cart-btn">
+              <div className="relative flex items-center">
+                <Link to="/panier" data-testid="cart-btn" className="relative">
                   <Button variant="ghost" size="icon" className="relative rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-orange-50">
                     <ShoppingCart className="w-5 h-5 text-slate-700 transition-transform duration-300 hover:scale-110" />
-                    {cart.item_count > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[1.75rem] h-7 px-2.5 bg-orange-500 text-white text-[12px] rounded-full flex items-center justify-center font-black leading-none shadow-md z-10 whitespace-nowrap">
-                        {cart.item_count > 99 ? '99+' : cart.item_count}
-                      </span>
-                    )}
                   </Button>
                 </Link>
+                {cart.item_count > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[2rem] h-8 px-2 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg z-50 border-2 border-white">
+                    {cart.item_count > 99 ? '99+' : cart.item_count}
+                  </span>
+                )}
               </div>
 
               {/* Favoris */}

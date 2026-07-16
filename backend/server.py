@@ -294,12 +294,18 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         if not product:
             raise HTTPException(status_code=404, detail=f"Produit introuvable: {item['product_id']}")
         
+        print(f"DEBUG: Product ID: {item['product_id']}, Product seller_id: {product.get('seller_id')}")
+        
         # Vérifier si le produit est dropshippé
         dropshipped = await db.dropshipped_products.find_one(
             {"id": item["product_id"]}, 
             {"_id": 0, "dropshipper_id": 1, "original_product_id": 1, "selling_price_fcfa": 1, 
              "original_price_fcfa": 1, "original_promo_price_fcfa": 1, "dropshipper_share_fcfa": 1}
         )
+        
+        print(f"DEBUG: Dropshipped product found: {dropshipped is not None}")
+        if dropshipped:
+            print(f"DEBUG: Dropshipper ID: {dropshipped.get('dropshipper_id')}, Original Product ID: {dropshipped.get('original_product_id')}")
         
         if dropshipped:
             is_dropshipped_order = True
@@ -309,8 +315,10 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             original_product = await db.products.find_one({"id": dropshipped["original_product_id"]}, {"_id": 0})
             if original_product:
                 seller_id = original_product.get("seller_id")
+                print(f"DEBUG: Original seller_id: {seller_id}")
         else:
             seller_id = seller_id or product.get("seller_id")
+            print(f"DEBUG: Regular seller_id: {seller_id}")
         
         qty = int(item.get("quantity", 1))
         unit_price = int(product.get("promo_price_fcfa") or product.get("price_fcfa") or 0)
@@ -335,6 +343,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "is_wholesale_price": is_wholesale_price,
             "subtotal_fcfa": item_total,
         })
+    
+    print(f"DEBUG: is_dropshipped_order: {is_dropshipped_order}, seller_id: {seller_id}, dropshipper_id: {dropshipper_id}")
 
     delivery_fee = 1500
     total = subtotal + delivery_fee
@@ -465,21 +475,23 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 async def list_orders(user: dict = Depends(get_current_user)):
     role = user.get("role")
     query = {}
+    print(f"DEBUG: list_orders - role: {role}, user_id: {user['id']}")
+    
     if role == "vendor":
-        # Les vendeurs voient leurs commandes directes et les commandes vendeur des produits dropshippés
-        query["$or"] = [
-            {"seller_id": user["id"], "is_seller_order": {"$ne": True}},  # Commandes directes
-            {"seller_id": user["id"], "is_seller_order": True}  # Commandes dropshippées (vendeur)
-        ]
+        # Les vendeurs voient toutes leurs commandes (directes et dropshippées)
+        query["seller_id"] = user["id"]
+        print(f"DEBUG: Vendor query - seller_id: {user['id']}")
     elif role == "dropshipper":
-        # Les revendeurs voient uniquement les commandes dropshippées qui leur sont destinées
+        # Les revendeurs voient leurs commandes dropshippées
         query["dropshipper_id"] = user["id"]
-        query["is_dropshipper_order"] = True
+        print(f"DEBUG: Dropshipper query - dropshipper_id: {user['id']}")
     elif role == "driver":
         query["driver_id"] = user["id"]
     else:
         query["customer_id"] = user["id"]
+    
     orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(300)
+    print(f"DEBUG: Found {len(orders)} orders for user {user['id']} with role {role}")
     return {"orders": orders}
 
 
@@ -922,11 +934,13 @@ async def delete_revendeur_product(product_id: str, user: dict = Depends(require
 
 @api.get("/revendeur/orders")
 async def revendeur_orders(user: dict = Depends(require_dropshipper)):
-    # Les revendeurs voient uniquement les commandes dropshippées qui leur sont destinées
+    print(f"DEBUG: revendeur_orders - user_id: {user['id']}")
+    # Les revendeurs voient toutes les commandes où ils sont le dropshipper
     orders = await db.orders.find(
-        {"dropshipper_id": user["id"], "is_dropshipper_order": True}, 
+        {"dropshipper_id": user["id"]}, 
         {"_id": 0}
     ).sort("created_at", -1).to_list(300)
+    print(f"DEBUG: Found {len(orders)} orders for revendeur {user['id']}")
     return {"orders": orders}
 
 
