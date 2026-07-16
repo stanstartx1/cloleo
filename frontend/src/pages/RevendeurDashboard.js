@@ -1200,58 +1200,103 @@ const RevendeurDashboard = () => {
                   initial="initial"
                   animate="animate"
                 >
-                  {orders.map((order, index) => (
-                    <motion.div
-                      key={order.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      whileHover={{ scale: 1.01, x: 5 }}
-                    >
-                      <Card className="shadow-md hover:shadow-xl transition-all duration-300">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <p className="font-semibold">{order.order_number}</p>
-                              <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
-                          </div>
-                          <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
-                            {order.status === 'pending' && 'En attente'}
-                            {order.status === 'assigned' && 'Assignée'}
-                            {order.status === 'picked_up' && 'Récupérée'}
-                            {order.status === 'in_transit' && 'En transit'}
-                            {order.status === 'delivered' && 'Livrée'}
-                            {order.status === 'cancelled' && 'Annulée'}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-500">Client</p>
-                            <p className="font-medium">{order.customer_name}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Total</p>
-                            <p className="font-medium">{order.total_fcfa?.toLocaleString()} FCFA</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Votre gain</p>
-                            <motion.p 
-                              className="font-medium text-green-600"
-                              animate={{ scale: [1, 1.05, 1] }}
-                              transition={{ duration: 2, repeat: Infinity }}
-                            >
-                              +{order.margin_breakdown?.revendeur_receives_fcfa?.toLocaleString()} FCFA
-                            </motion.p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Adresse</p>
-                            <p className="font-medium">{order.delivery_address?.city}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    </motion.div>
-                  ))}
+                  {orders.map((order, index) => {
+                    const item = order.items?.[0] || {};
+                    const productImage = item.product_image || item.original_image;
+                    const productName = item.product_name || item.original_name;
+                    const originalPrice = item.original_price_fcfa || 0;
+                    const sellingPrice = item.selling_price_fcfa || 0;
+                    const dropshipperEarnings = order.dropshipper_earnings_fcfa || item.dropshipper_earnings_fcfa || 0;
+                    const margin = item.margin_fcfa || (sellingPrice - originalPrice);
+                    
+                    return (
+                      <motion.div
+                        key={order.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.01, x: 5 }}
+                      >
+                        <Card className="shadow-md hover:shadow-xl transition-all duration-300">
+                          <CardContent className="p-4">
+                            <div className="flex gap-4">
+                              {/* Product Image */}
+                              <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                {productImage ? (
+                                  <img 
+                                    src={toAbsoluteMediaUrl(productImage)} 
+                                    alt={productName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="w-8 h-8 text-gray-300" />
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Order Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm truncate">{productName}</p>
+                                    <p className="text-xs text-gray-500">{order.order_number}</p>
+                                    <p className="text-xs text-gray-400">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                  </div>
+                                  <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'} className="ml-2">
+                                    {order.status === 'pending' && 'En attente'}
+                                    {order.status === 'assigned' && 'Assignée'}
+                                    {order.status === 'picked_up' && 'Récupérée'}
+                                    {order.status === 'in_transit' && 'En transit'}
+                                    {order.status === 'delivered' && 'Livrée'}
+                                    {order.status === 'cancelled' && 'Annulée'}
+                                  </Badge>
+                                </div>
+                                
+                                {/* Price Details */}
+                                <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
+                                  <div className="bg-gray-50 rounded-lg p-2">
+                                    <p className="text-gray-500">Prix origine</p>
+                                    <p className="font-semibold text-gray-700">{originalPrice.toLocaleString()} FCFA</p>
+                                  </div>
+                                  <div className="bg-orange-50 rounded-lg p-2">
+                                    <p className="text-orange-600">Prix vente</p>
+                                    <p className="font-semibold text-orange-700">{sellingPrice.toLocaleString()} FCFA</p>
+                                  </div>
+                                  <div className="bg-green-50 rounded-lg p-2">
+                                    <p className="text-green-600">Votre gain</p>
+                                    <motion.p 
+                                      className="font-bold text-green-700"
+                                      animate={{ scale: [1, 1.05, 1] }}
+                                      transition={{ duration: 2, repeat: Infinity }}
+                                    >
+                                      +{dropshipperEarnings.toLocaleString()} FCFA
+                                    </motion.p>
+                                  </div>
+                                </div>
+                                
+                                {/* Customer Info */}
+                                <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    <span className="truncate">{order.customer_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    <span>{order.delivery_address?.city}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" />
+                                    <span>{order.customer_phone}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               ) : (
                 <motion.div
