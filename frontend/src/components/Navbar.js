@@ -407,7 +407,7 @@ const Navbar = () => {
                 <Button variant="ghost" size="icon" className="relative rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-orange-50">
                   <ShoppingCart className="w-5 h-5 text-slate-700 transition-transform duration-300 hover:scale-110" />
                   {cart.item_count > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[1.1rem] h-4 px-1 bg-orange-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none shadow-md z-10">
+                    <span className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1.5 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-black leading-none shadow-md z-10">
                       {cart.item_count > 99 ? '99+' : cart.item_count}
                     </span>
                   )}
