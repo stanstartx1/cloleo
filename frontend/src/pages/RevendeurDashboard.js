@@ -1202,12 +1202,16 @@ const RevendeurDashboard = () => {
                 >
                   {orders.map((order, index) => {
                     const item = order.items?.[0] || {};
+                    console.log('DEBUG: Order item:', item);
+                    console.log('DEBUG: Order:', order);
                     const productImage = item.product_image || item.original_image;
                     const productName = item.product_name || item.original_name;
                     const originalPrice = item.original_price_fcfa || 0;
                     const sellingPrice = item.selling_price_fcfa || 0;
                     const dropshipperEarnings = order.dropshipper_earnings_fcfa || item.dropshipper_earnings_fcfa || 0;
                     const margin = item.margin_fcfa || (sellingPrice - originalPrice);
+                    
+                    console.log('DEBUG: Parsed values - originalPrice:', originalPrice, 'sellingPrice:', sellingPrice, 'dropshipperEarnings:', dropshipperEarnings);
                     
                     return (
                       <motion.div

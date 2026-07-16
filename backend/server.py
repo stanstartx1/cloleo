@@ -297,10 +297,10 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         # Vérifier si le produit est dropshippé
         dropshipped = await db.dropshipped_products.find_one(
             {"id": item["product_id"]}, 
-            {"_id": 0, "dropshipper_id": 1, "original_product_id": 1, "selling_price_fcfa": 1, 
-             "original_price_fcfa": 1, "original_promo_price_fcfa": 1, "dropshipper_share_fcfa": 1,
-             "custom_description": 1, "custom_images": 1, "original_name": 1, "original_images": 1}
+            {"_id": 0}
         )
+        
+        print(f"DEBUG: Dropshipped product lookup for {item['product_id']}: {dropshipped}")
         
         if dropshipped:
             is_dropshipped_order = True
@@ -310,6 +310,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             original_product = await db.products.find_one({"id": dropshipped["original_product_id"]}, {"_id": 0})
             if original_product:
                 seller_id = original_product.get("seller_id")
+                print(f"DEBUG: Original product found: {original_product.get('name')}, price: {original_product.get('price_fcfa')}, promo: {original_product.get('promo_price_fcfa')}")
         else:
             seller_id = seller_id or product.get("seller_id")
         
@@ -343,6 +344,11 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     
     # Si c'est une commande dropshippée, créer deux commandes optimisées : une pour le vendeur, une pour le revendeur
     if is_dropshipped_order and dropshipped_product_info:
+        print(f"DEBUG: All dropshipped_product_info keys: {list(dropshipped_product_info.keys())}")
+        print(f"DEBUG: original_promo_price_fcfa: {dropshipped_product_info.get('original_promo_price_fcfa')}")
+        print(f"DEBUG: original_price_fcfa: {dropshipped_product_info.get('original_price_fcfa')}")
+        print(f"DEBUG: selling_price_fcfa: {dropshipped_product_info.get('selling_price_fcfa')}")
+        
         original_price = int(dropshipped_product_info.get("original_promo_price_fcfa") or dropshipped_product_info.get("original_price_fcfa") or 0)
         selling_price = int(dropshipped_product_info.get("selling_price_fcfa") or 0)
         original_subtotal = original_price * sum(item["quantity"] for item in order_items)
@@ -399,7 +405,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "dropshipper_id": dropshipper_id,
             "is_dropshipped_order": True,
             "items": [{
-                "product_id": order_items[0]["product_id"],
+                **order_items[0],
                 "original_product_id": dropshipped_product_info["original_product_id"],
                 "product_name": dropshipped_product_info.get("custom_description") or dropshipped_product_info.get("original_name"),
                 "product_image": (dropshipped_product_info.get("custom_images") or dropshipped_product_info.get("original_images") or [None])[0],
