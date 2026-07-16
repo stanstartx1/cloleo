@@ -294,18 +294,13 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         if not product:
             raise HTTPException(status_code=404, detail=f"Produit introuvable: {item['product_id']}")
         
-        print(f"DEBUG: Product ID: {item['product_id']}, Product seller_id: {product.get('seller_id')}")
-        
         # Vérifier si le produit est dropshippé
         dropshipped = await db.dropshipped_products.find_one(
             {"id": item["product_id"]}, 
             {"_id": 0, "dropshipper_id": 1, "original_product_id": 1, "selling_price_fcfa": 1, 
-             "original_price_fcfa": 1, "original_promo_price_fcfa": 1, "dropshipper_share_fcfa": 1}
+             "original_price_fcfa": 1, "original_promo_price_fcfa": 1, "dropshipper_share_fcfa": 1,
+             "custom_description": 1, "custom_images": 1, "original_name": 1, "original_images": 1}
         )
-        
-        print(f"DEBUG: Dropshipped product found: {dropshipped is not None}")
-        if dropshipped:
-            print(f"DEBUG: Dropshipper ID: {dropshipped.get('dropshipper_id')}, Original Product ID: {dropshipped.get('original_product_id')}")
         
         if dropshipped:
             is_dropshipped_order = True
@@ -315,10 +310,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             original_product = await db.products.find_one({"id": dropshipped["original_product_id"]}, {"_id": 0})
             if original_product:
                 seller_id = original_product.get("seller_id")
-                print(f"DEBUG: Original seller_id: {seller_id}")
         else:
             seller_id = seller_id or product.get("seller_id")
-            print(f"DEBUG: Regular seller_id: {seller_id}")
         
         qty = int(item.get("quantity", 1))
         unit_price = int(product.get("promo_price_fcfa") or product.get("price_fcfa") or 0)
@@ -343,81 +336,92 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "is_wholesale_price": is_wholesale_price,
             "subtotal_fcfa": item_total,
         })
-    
-    print(f"DEBUG: is_dropshipped_order: {is_dropshipped_order}, seller_id: {seller_id}, dropshipper_id: {dropshipper_id}")
 
     delivery_fee = 1500
     total = subtotal + delivery_fee
     order_id = str(uuid.uuid4())
     
-    # Si c'est une commande dropshippée, créer deux commandes : une pour le vendeur, une pour le revendeur
+    # Si c'est une commande dropshippée, créer deux commandes optimisées : une pour le vendeur, une pour le revendeur
     if is_dropshipped_order and dropshipped_product_info:
-        # Commande pour le vendeur original (avec son prix d'origine)
         original_price = int(dropshipped_product_info.get("original_promo_price_fcfa") or dropshipped_product_info.get("original_price_fcfa") or 0)
+        selling_price = int(dropshipped_product_info.get("selling_price_fcfa") or 0)
         original_subtotal = original_price * sum(item["quantity"] for item in order_items)
-        original_total = original_subtotal + delivery_fee
+        dropshipper_subtotal = subtotal
+        margin = dropshipper_subtotal - original_subtotal
+        dropshipper_share = int(margin * 0.5)
+        platform_share = margin - dropshipper_share
         
+        # Commande optimisée pour le vendeur
         seller_order = {
             "id": str(uuid.uuid4()),
             "order_number": f"CLO-{order_id[:8].upper()}-V",
-            "parent_order_id": order_id,
             "customer_id": user["id"],
             "customer_name": payload.delivery_address.name,
             "customer_phone": payload.delivery_address.phone,
             "seller_id": seller_id,
             "dropshipper_id": dropshipper_id,
-            "is_seller_order": True,
-            "items": order_items,
+            "is_dropshipped_order": True,
+            "items": [{
+                **order_items[0],
+                "original_product_id": dropshipped_product_info["original_product_id"],
+                "original_name": dropshipped_product_info.get("original_name"),
+                "original_image": (dropshipped_product_info.get("original_images") or [None])[0],
+                "original_price_fcfa": original_price,
+                "selling_price_fcfa": selling_price,
+                "quantity": order_items[0]["quantity"],
+                "seller_earnings_fcfa": original_subtotal,
+            }],
             "delivery_address": payload.delivery_address.model_dump(),
-            "notes": payload.notes,
             "payment_method": payload.payment_method,
             "payment_status": "pending",
             "subtotal_fcfa": original_subtotal,
             "delivery_fee_fcfa": delivery_fee,
-            "total_fcfa": original_total,
-            "seller_share_fcfa": original_subtotal,
+            "total_fcfa": original_subtotal + delivery_fee,
+            "seller_earnings_fcfa": original_subtotal,
             "status": "pending",
-            "status_history": [{"status": "pending", "note": "Commande créée (vendeur)", "timestamp": _utc()}],
+            "status_history": [{"status": "pending", "note": "Commande dropshippée", "timestamp": _utc()}],
             "created_at": _utc(),
             "updated_at": _utc(),
         }
         await db.orders.insert_one(seller_order)
         
-        # Commande pour le revendeur (avec son prix de vente)
-        dropshipper_subtotal = subtotal
-        dropshipper_total = dropshipper_subtotal + delivery_fee
-        margin = dropshipper_subtotal - original_subtotal
-        dropshipper_share = int(margin * 0.5)  # 50% de la marge pour le revendeur
-        platform_share = margin - dropshipper_share  # Le reste pour la plateforme
-        
+        # Commande optimisée pour le revendeur
         dropshipper_order = {
             "id": str(uuid.uuid4()),
             "order_number": f"CLO-{order_id[:8].upper()}-R",
-            "parent_order_id": order_id,
             "customer_id": user["id"],
             "customer_name": payload.delivery_address.name,
             "customer_phone": payload.delivery_address.phone,
             "seller_id": seller_id,
             "dropshipper_id": dropshipper_id,
-            "is_dropshipper_order": True,
-            "items": order_items,
+            "is_dropshipped_order": True,
+            "items": [{
+                **order_items[0],
+                "original_product_id": dropshipped_product_info["original_product_id"],
+                "product_name": dropshipped_product_info.get("custom_description") or dropshipped_product_info.get("original_name"),
+                "product_image": (dropshipped_product_info.get("custom_images") or dropshipped_product_info.get("original_images") or [None])[0],
+                "original_price_fcfa": original_price,
+                "selling_price_fcfa": selling_price,
+                "quantity": order_items[0]["quantity"],
+                "margin_fcfa": margin,
+                "dropshipper_earnings_fcfa": dropshipper_share,
+                "platform_share_fcfa": platform_share,
+            }],
             "delivery_address": payload.delivery_address.model_dump(),
-            "notes": payload.notes,
             "payment_method": payload.payment_method,
             "payment_status": "pending",
             "subtotal_fcfa": dropshipper_subtotal,
             "delivery_fee_fcfa": delivery_fee,
-            "total_fcfa": dropshipper_total,
-            "dropshipper_share_fcfa": dropshipper_share,
-            "platform_share_fcfa": platform_share,
+            "total_fcfa": dropshipper_subtotal + delivery_fee,
+            "dropshipper_earnings_fcfa": dropshipper_share,
             "status": "pending",
-            "status_history": [{"status": "pending", "note": "Commande créée (revendeur)", "timestamp": _utc()}],
+            "status_history": [{"status": "pending", "note": "Commande dropshippée", "timestamp": _utc()}],
             "created_at": _utc(),
             "updated_at": _utc(),
         }
         await db.orders.insert_one(dropshipper_order)
         
-        # Commande principale pour le client (récapitulatif)
+        # Commande principale pour le client
         main_order = {
             "id": order_id,
             "order_number": f"CLO-{order_id[:8].upper()}",
@@ -436,7 +440,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "delivery_fee_fcfa": delivery_fee,
             "total_fcfa": total,
             "status": "pending",
-            "status_history": [{"status": "pending", "note": "Commande créée (dropshippée)", "timestamp": _utc()}],
+            "status_history": [{"status": "pending", "note": "Commande créée", "timestamp": _utc()}],
             "created_at": _utc(),
             "updated_at": _utc(),
         }

@@ -232,7 +232,7 @@ const CheckoutPage = () => {
           
           <div className="space-y-3">
             <Button asChild className="w-full">
-              <Link to={`/suivi/${orderId}`}>
+              <Link to={`/commande/${orderId}`}>
                 <MapPin className="w-4 h-4 mr-2" /> Suivre ma commande
               </Link>
             </Button>
