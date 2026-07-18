@@ -49,18 +49,43 @@ async def get_products(
         query["subcategory_slug"] = subcategory_slug
         print(f"Filtering by subcategory_slug: {subcategory_slug}")
     elif category_slug:
-        # Search in both category_slug and subcategory_slug for better matching
-        query["$or"] = [
-            {"category_slug": category_slug},
-            {"subcategory_slug": category_slug}
-        ]
-        print(f"Filtering by category_slug in both fields: {category_slug}")
+        # First try to get subcategories of this category
+        from core.database import db
+        category = await db.categories.find_one({"slug": category_slug}, {"_id": 0})
+        if category:
+            print(f"Found category: {category['name']}")
+            # Get all subcategories of this category
+            subcategories = await db.categories.find({"parent_slug": category_slug}, {"_id": 0, "slug": 1}).to_list(100)
+            subcategory_slugs = [s["slug"] for s in subcategories]
+            print(f"Found {len(subcategory_slugs)} subcategories: {subcategory_slugs}")
+            
+            # Search in both the category itself and all its subcategories
+            if subcategory_slugs:
+                query["$or"] = [
+                    {"category_slug": category_slug},
+                    {"subcategory_slug": {"$in": subcategory_slugs}}
+                ]
+                print(f"Filtering by category_slug and its subcategories")
+            else:
+                # No subcategories, search in both fields
+                query["$or"] = [
+                    {"category_slug": category_slug},
+                    {"subcategory_slug": category_slug}
+                ]
+                print(f"Filtering by category_slug in both fields (no subcategories)")
+        else:
+            # Category not found, search in both fields as fallback
+            query["$or"] = [
+                {"category_slug": category_slug},
+                {"subcategory_slug": category_slug}
+            ]
+            print(f"Category not found, filtering by slug in both fields")
     elif category:
         query["$or"] = [
             {"category_slug": category},
             {"subcategory_slug": category}
         ]
-        print(f"Filtering by category in both fields: {category}")
+        print(f"Filtering by category in both fields")
     
     if search:
         # Combine search with existing conditions
