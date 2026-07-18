@@ -85,13 +85,10 @@ const ProductsPage = () => {
       if (selectedCategory) {
         // Check if it's a subcategory or parent category
         const selectedCat = categories.find(c => c.slug === selectedCategory);
-        console.log('Selected category:', selectedCategory, 'Found:', selectedCat);
         if (selectedCat?.parent_slug) {
           params.set('subcategory_slug', selectedCategory);
-          console.log('Using subcategory_slug:', selectedCategory);
         } else {
           params.set('category_slug', selectedCategory);
-          console.log('Using category_slug:', selectedCategory);
         }
       }
       if (conditions.length > 0) params.set('condition', conditions.join(','));
@@ -100,15 +97,7 @@ const ProductsPage = () => {
       if (priceRange[0] > 0) params.set('min_price', priceRange[0].toString());
       if (priceRange[1] < 200000) params.set('max_price', priceRange[1].toString());
 
-      console.log('Fetching products with params:', params.toString());
       const response = await axios.get(`${API}/products?${params}`);
-      console.log('Products response:', response.data);
-      console.log('Number of products:', response.data.products?.length || 0);
-      console.log('Total products:', response.data.total || 0);
-      if (response.data.products?.length > 0) {
-        console.log('First product category_slug:', response.data.products[0].category_slug);
-        console.log('First product subcategory_slug:', response.data.products[0].subcategory_slug);
-      }
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
       setTotalPages(response.data.total_pages || 1);
