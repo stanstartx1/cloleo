@@ -43,106 +43,112 @@ async def get_products(
     featured: Optional[bool] = None
 ):
     """Get list of approved products with filtering and pagination"""
-    query = {"status": "approved"}
-    # Support both category and category_slug parameters for flexibility
-    if subcategory_slug:
-        query["subcategory_slug"] = subcategory_slug
-    elif category_slug:
-        # First try to get subcategories of this category
-        from core.database import db
-        category = await db.categories.find_one({"slug": category_slug}, {"_id": 0})
-        if category:
-            # Get all subcategories of this category
-            subcategories = await db.categories.find({"parent_slug": category_slug}, {"_id": 0, "slug": 1}).to_list(100)
-            subcategory_slugs = [s["slug"] for s in subcategories]
-            
-            # Search in both the category itself and all its subcategories
-            if subcategory_slugs:
-                query["$or"] = [
-                    {"category_slug": category_slug},
-                    {"subcategory_slug": {"$in": subcategory_slugs}}
-                ]
+    try:
+        query = {"status": "approved"}
+        # Support both category and category_slug parameters for flexibility
+        if subcategory_slug:
+            query["subcategory_slug"] = subcategory_slug
+        elif category_slug:
+            # First try to get subcategories of this category
+            from core.database import db
+            category = await db.categories.find_one({"slug": category_slug}, {"_id": 0})
+            if category:
+                # Get all subcategories of this category
+                subcategories = await db.categories.find({"parent_slug": category_slug}, {"_id": 0, "slug": 1}).to_list(100)
+                subcategory_slugs = [s["slug"] for s in subcategories]
+                
+                # Search in both the category itself and all its subcategories
+                if subcategory_slugs:
+                    query["$or"] = [
+                        {"category_slug": category_slug},
+                        {"subcategory_slug": {"$in": subcategory_slugs}}
+                    ]
+                else:
+                    # No subcategories, search in both fields
+                    query["$or"] = [
+                        {"category_slug": category_slug},
+                        {"subcategory_slug": category_slug}
+                    ]
             else:
-                # No subcategories, search in both fields
+                # Category not found, search in both fields as fallback
                 query["$or"] = [
                     {"category_slug": category_slug},
                     {"subcategory_slug": category_slug}
                 ]
-        else:
-            # Category not found, search in both fields as fallback
+        elif category:
             query["$or"] = [
-                {"category_slug": category_slug},
-                {"subcategory_slug": category_slug}
+                {"category_slug": category},
+                {"subcategory_slug": category}
             ]
-    elif category:
-        query["$or"] = [
-            {"category_slug": category},
-            {"subcategory_slug": category}
-        ]
-    
-    if search:
-        # Combine search with existing conditions
-        search_condition = {
-            "$or": [
-                {"name": {"$regex": search, "$options": "i"}},
-                {"description": {"$regex": search, "$options": "i"}}
-            ]
-        }
-        # If we already have $or from category filtering, we need to combine them
-        if "$or" in query:
-            # Use $and to combine the existing $or with the search condition
-            query = {
-                "$and": [
-                    {"status": "approved"},
-                    {"$or": query["$or"]},
-                    search_condition
+        
+        if search:
+            # Combine search with existing conditions
+            search_condition = {
+                "$or": [
+                    {"name": {"$regex": search, "$options": "i"}},
+                    {"description": {"$regex": search, "$options": "i"}}
                 ]
             }
-        else:
-            query["$or"] = search_condition["$or"]
-    if condition:
-        # Support multiple conditions separated by comma
-        conditions = condition.split(',')
-        if len(conditions) > 1:
-            query["condition"] = {"$in": conditions}
-        else:
-            query["condition"] = condition
-    if location:
-        # Support multiple locations separated by comma
-        locations = location.split(',')
-        if len(locations) > 1:
-            query["location"] = {"$in": locations}
-        else:
-            query["location"] = location
-    if origin_country:
-        # Filter by country code - support multiple countries separated by comma
-        countries = origin_country.split(',')
-        if len(countries) > 1:
-            query["origin_country_code"] = {"$in": countries}
-        else:
-            query["origin_country_code"] = origin_country
-    if min_price:
-        query.setdefault("price_fcfa", {})["$gte"] = min_price
-    if max_price:
-        query.setdefault("price_fcfa", {})["$lte"] = max_price
-    if seller_id:
-        query["seller_id"] = seller_id
-    if featured is not None:
-        query["is_featured"] = featured
+            # If we already have $or from category filtering, we need to combine them
+            if "$or" in query:
+                # Use $and to combine the existing $or with the search condition
+                query = {
+                    "$and": [
+                        {"status": "approved"},
+                        {"$or": query["$or"]},
+                        search_condition
+                    ]
+                }
+            else:
+                query["$or"] = search_condition["$or"]
+        if condition:
+            # Support multiple conditions separated by comma
+            conditions = condition.split(',')
+            if len(conditions) > 1:
+                query["condition"] = {"$in": conditions}
+            else:
+                query["condition"] = condition
+        if location:
+            # Support multiple locations separated by comma
+            locations = location.split(',')
+            if len(locations) > 1:
+                query["location"] = {"$in": locations}
+            else:
+                query["location"] = location
+        if origin_country:
+            # Filter by country code - support multiple countries separated by comma
+            countries = origin_country.split(',')
+            if len(countries) > 1:
+                query["origin_country_code"] = {"$in": countries}
+            else:
+                query["origin_country_code"] = origin_country
+        if min_price:
+            query.setdefault("price_fcfa", {})["$gte"] = min_price
+        if max_price:
+            query.setdefault("price_fcfa", {})["$lte"] = max_price
+        if seller_id:
+            query["seller_id"] = seller_id
+        if featured is not None:
+            query["is_featured"] = featured
 
-    skip = (page - 1) * limit
-    total = await db.products.count_documents(query)
-    products = await db.products.find(query, {"_id": 0}).sort(
-        sort_by, -1 if sort_order == "desc" else 1
-    ).skip(skip).limit(limit).to_list(limit)
-    await _inject_seller_profile_photo(products)
+        skip = (page - 1) * limit
+        total = await db.products.count_documents(query)
+        products = await db.products.find(query, {"_id": 0}).sort(
+            sort_by, -1 if sort_order == "desc" else 1
+        ).skip(skip).limit(limit).to_list(limit)
+        await _inject_seller_profile_photo(products)
 
-    return {
-        "products": products,
-        "total": total,
-        "page": page,
-        "total_pages": (total + limit - 1) // limit
-    }
+        return {
+            "products": products,
+            "total": total,
+            "page": page,
+            "total_pages": (total + limit - 1) // limit
+        }
+    except Exception as e:
+        import traceback
+        print(f"Error in get_products: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/featured")
