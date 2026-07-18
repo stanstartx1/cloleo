@@ -103,6 +103,12 @@ const ProductsPage = () => {
       console.log('Fetching products with params:', params.toString());
       const response = await axios.get(`${API}/products?${params}`);
       console.log('Products response:', response.data);
+      console.log('Number of products:', response.data.products?.length || 0);
+      console.log('Total products:', response.data.total || 0);
+      if (response.data.products?.length > 0) {
+        console.log('First product category_slug:', response.data.products[0].category_slug);
+        console.log('First product subcategory_slug:', response.data.products[0].subcategory_slug);
+      }
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
       setTotalPages(response.data.total_pages || 1);
