@@ -252,16 +252,58 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen py-8" data-testid="products-page">
       <div className="container mx-auto px-4">
-        <nav className="flex items-center text-sm text-muted-foreground mb-6">
+        <nav className="flex items-center text-sm text-muted-foreground mb-6 flex-wrap">
           <Link to="/" className="hover:text-primary">Accueil</Link>
-          <span className="mx-2">/</span>
-          <span className="text-foreground">{featured ? 'Tendances' : 'Tous les produits'}</span>
+          {featured && (
+            <>
+              <span className="mx-2">/</span>
+              <span className="text-foreground">Tendances</span>
+            </>
+          )}
+          {selectedCategory && (
+            <>
+              <span className="mx-2">/</span>
+              {(() => {
+                const selectedCat = categories.find(c => c.slug === selectedCategory);
+                if (selectedCat?.parent_slug) {
+                  const parentCat = categories.find(c => c.slug === selectedCat.parent_slug);
+                  return (
+                    <>
+                      <Link to={`/produits?category=${parentCat.slug}`} className="hover:text-primary">
+                        {parentCat?.name || selectedCat.parent_slug}
+                      </Link>
+                      <span className="mx-2">/</span>
+                      <span className="text-foreground">{selectedCat.name}</span>
+                    </>
+                  );
+                }
+                return <span className="text-foreground">{selectedCat?.name || selectedCategory}</span>;
+              })()}
+            </>
+          )}
+          {!featured && !selectedCategory && (
+            <>
+              <span className="mx-2">/</span>
+              <span className="text-foreground">Tous les produits</span>
+            </>
+          )}
         </nav>
 
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
             {featured && <Sparkles className="w-8 h-8 text-amber-500" />}
-            {featured ? 'Produits tendances' : 'Tous les produits'}
+            {(() => {
+              if (featured && selectedCategory) {
+                const selectedCat = categories.find(c => c.slug === selectedCategory);
+                return selectedCat?.name || 'Produits tendances';
+              }
+              if (featured) return 'Produits tendances';
+              if (selectedCategory) {
+                const selectedCat = categories.find(c => c.slug === selectedCategory);
+                return selectedCat?.name || selectedCategory;
+              }
+              return 'Tous les produits';
+            })()}
           </h1>
           <p className="text-muted-foreground">{totalProducts} produits disponibles</p>
         </div>
