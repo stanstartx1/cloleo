@@ -30,6 +30,7 @@ async def get_products(
     search: Optional[str] = None,
     condition: Optional[str] = None,
     location: Optional[str] = None,
+    origin_country: Optional[str] = None,
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
     seller_id: Optional[str] = None,
@@ -49,9 +50,22 @@ async def get_products(
             {"description": {"$regex": search, "$options": "i"}}
         ]
     if condition:
-        query["condition"] = condition
+        # Support multiple conditions separated by comma
+        conditions = condition.split(',')
+        if len(conditions) > 1:
+            query["condition"] = {"$in": conditions}
+        else:
+            query["condition"] = condition
     if location:
-        query["location"] = location
+        # Support multiple locations separated by comma
+        locations = location.split(',')
+        if len(locations) > 1:
+            query["location"] = {"$in": locations}
+        else:
+            query["location"] = location
+    if origin_country:
+        # Filter by country code
+        query["origin_country_code"] = origin_country
     if min_price:
         query.setdefault("price_fcfa", {})["$gte"] = min_price
     if max_price:

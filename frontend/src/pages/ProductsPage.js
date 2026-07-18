@@ -44,6 +44,7 @@ const ProductsPage = () => {
 
   const [conditions, setConditions] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [originCountries, setOriginCountries] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 200000]);
   const [sortBy, setSortBy] = useState(`${sortParam}-${orderParam}`);
   const [page, setPage] = useState(1);
@@ -82,8 +83,9 @@ const ProductsPage = () => {
 
       if (featured) params.set('featured', 'true');
       if (selectedCategory) params.set('category', selectedCategory);
-      if (conditions.length > 0) params.set('condition', conditions[0]);
-      if (locations.length > 0) params.set('location', locations[0]);
+      if (conditions.length > 0) params.set('condition', conditions.join(','));
+      if (locations.length > 0) params.set('location', locations.join(','));
+      if (originCountries.length > 0) params.set('origin_country', originCountries.join(','));
       if (priceRange[0] > 0) params.set('min_price', priceRange[0].toString());
       if (priceRange[1] < 200000) params.set('max_price', priceRange[1].toString());
 
@@ -96,7 +98,7 @@ const ProductsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [sortBy, page, conditions, locations, priceRange, featured, selectedCategory]);
+  }, [sortBy, page, conditions, locations, originCountries, priceRange, featured, selectedCategory]);
 
   useEffect(() => {
     fetchCategories();
@@ -116,9 +118,15 @@ const ProductsPage = () => {
     setPage(1);
   };
 
+  const toggleOriginCountry = (value) => {
+    setOriginCountries((prev) => (prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]));
+    setPage(1);
+  };
+
   const clearFilters = () => {
     setConditions([]);
     setLocations([]);
+    setOriginCountries([]);
     setPriceRange([0, 200000]);
     setSortBy('created_at-desc');
     setSelectedCategory('');
@@ -126,7 +134,7 @@ const ProductsPage = () => {
   };
 
   const hasActiveFilters =
-    conditions.length > 0 || locations.length > 0 || priceRange[0] > 0 || priceRange[1] < 200000 || selectedCategory;
+    conditions.length > 0 || locations.length > 0 || originCountries.length > 0 || priceRange[0] > 0 || priceRange[1] < 200000 || selectedCategory;
 
   const toggleCategoryExpand = (slug) => {
     setExpandedCategories((prev) => ({ ...prev, [slug]: !prev[slug] }));
@@ -195,11 +203,23 @@ const ProductsPage = () => {
       </div>
 
       <div className="filter-section">
+        <h4 className="font-medium mb-4">Localisation</h4>
+        <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+          {['Abidjan', 'Yamoussoukro', 'Bouaké', 'Korhogo', 'San-Pédro', 'Daloa'].map((city) => (
+            <label key={city} className="flex items-center gap-3 cursor-pointer">
+              <Checkbox checked={locations.includes(city)} onCheckedChange={() => toggleLocation(city)} />
+              <span className="text-sm">{city}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="filter-section">
         <h4 className="font-medium mb-4">Pays d'origine</h4>
         <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
           {COUNTRIES.map((country) => (
             <label key={country.code} className="flex items-center gap-3 cursor-pointer">
-              <Checkbox checked={locations.includes(country.name)} onCheckedChange={() => toggleLocation(country.name)} />
+              <Checkbox checked={originCountries.includes(country.code)} onCheckedChange={() => toggleOriginCountry(country.code)} />
               <div className="flex items-center gap-2 min-w-0">
                 <img src={getCountryFlagUrl(country.code)} alt="" className="w-4 h-3 rounded-sm object-cover" />
                 <span className="text-sm truncate">{country.name}</span>
