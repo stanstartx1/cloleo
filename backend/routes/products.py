@@ -27,6 +27,8 @@ async def _inject_seller_profile_photo(products):
 @router.get("")
 async def get_products(
     category: Optional[str] = None,
+    category_slug: Optional[str] = None,
+    subcategory_slug: Optional[str] = None,
     search: Optional[str] = None,
     condition: Optional[str] = None,
     location: Optional[str] = None,
@@ -42,7 +44,12 @@ async def get_products(
 ):
     """Get list of approved products with filtering and pagination"""
     query = {"status": "approved"}
-    if category:
+    # Support both category and category_slug parameters for flexibility
+    if subcategory_slug:
+        query["subcategory_slug"] = subcategory_slug
+    elif category_slug:
+        query["category_slug"] = category_slug
+    elif category:
         query["category_slug"] = category
     if search:
         query["$or"] = [

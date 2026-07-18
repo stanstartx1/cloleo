@@ -82,7 +82,15 @@ const ProductsPage = () => {
       });
 
       if (featured) params.set('featured', 'true');
-      if (selectedCategory) params.set('category', selectedCategory);
+      if (selectedCategory) {
+        // Check if it's a subcategory or parent category
+        const selectedCat = categories.find(c => c.slug === selectedCategory);
+        if (selectedCat?.parent_slug) {
+          params.set('subcategory_slug', selectedCategory);
+        } else {
+          params.set('category_slug', selectedCategory);
+        }
+      }
       if (conditions.length > 0) params.set('condition', conditions.join(','));
       if (locations.length > 0) params.set('location', locations.join(','));
       if (originCountries.length > 0) params.set('origin_country', originCountries.join(','));
@@ -98,7 +106,7 @@ const ProductsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [sortBy, page, conditions, locations, originCountries, priceRange, featured, selectedCategory]);
+  }, [sortBy, page, conditions, locations, originCountries, priceRange, featured, selectedCategory, categories]);
 
   useEffect(() => {
     fetchCategories();
