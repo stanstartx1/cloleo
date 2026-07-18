@@ -85,10 +85,13 @@ const ProductsPage = () => {
       if (selectedCategory) {
         // Check if it's a subcategory or parent category
         const selectedCat = categories.find(c => c.slug === selectedCategory);
+        console.log('Selected category:', selectedCategory, 'Found:', selectedCat);
         if (selectedCat?.parent_slug) {
           params.set('subcategory_slug', selectedCategory);
+          console.log('Using subcategory_slug:', selectedCategory);
         } else {
           params.set('category_slug', selectedCategory);
+          console.log('Using category_slug:', selectedCategory);
         }
       }
       if (conditions.length > 0) params.set('condition', conditions.join(','));
@@ -97,7 +100,9 @@ const ProductsPage = () => {
       if (priceRange[0] > 0) params.set('min_price', priceRange[0].toString());
       if (priceRange[1] < 200000) params.set('max_price', priceRange[1].toString());
 
+      console.log('Fetching products with params:', params.toString());
       const response = await axios.get(`${API}/products?${params}`);
+      console.log('Products response:', response.data);
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
       setTotalPages(response.data.total_pages || 1);
@@ -113,8 +118,12 @@ const ProductsPage = () => {
   }, [fetchCategories]);
 
   useEffect(() => {
+    // Only fetch products after categories are loaded if we're filtering by category
+    if (selectedCategory && categories.length === 0) {
+      return; // Wait for categories to load
+    }
     fetchProducts();
-  }, [fetchProducts]);
+  }, [fetchProducts, selectedCategory, categories.length]);
 
   const toggleCondition = (value) => {
     setConditions((prev) => (prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]));
