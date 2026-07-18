@@ -32,6 +32,7 @@ async def get_products(
     location: Optional[str] = None,
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
+    seller_id: Optional[str] = None,
     sort_by: str = "created_at",
     sort_order: str = "desc",
     page: int = 1,
@@ -55,6 +56,8 @@ async def get_products(
         query.setdefault("price_fcfa", {})["$gte"] = min_price
     if max_price:
         query.setdefault("price_fcfa", {})["$lte"] = max_price
+    if seller_id:
+        query["seller_id"] = seller_id
     if featured is not None:
         query["is_featured"] = featured
 

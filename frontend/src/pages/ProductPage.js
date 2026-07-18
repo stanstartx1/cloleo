@@ -83,17 +83,10 @@ const ProductPage = () => {
       // Fetch seller products
       if (productRes.data?.seller_id) {
         try {
-          // Si le produit est dropshippé, fetch les produits du revendeur (dropshipped_products)
-          // Sinon, fetch les produits du vendeur original
-          if (productRes.data.dropshipper_id) {
-            const dropshipperRes = await axios.get(`${API}/revendeur/products`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            setSellerProducts((dropshipperRes.data || []).filter(p => p.id !== id));
-          } else {
-            const sellerRes = await axios.get(`${API}/products?seller_id=${productRes.data.seller_id}&limit=6`);
-            setSellerProducts((sellerRes.data?.products || sellerRes.data || []).filter(p => p.id !== id));
-          }
+          // Toujours fetch les produits du vendeur original (seller_id)
+          // Cela fonctionne pour les produits dropshippés et non dropshippés
+          const sellerRes = await axios.get(`${API}/products?seller_id=${productRes.data.seller_id}&limit=6`);
+          setSellerProducts((sellerRes.data?.products || sellerRes.data || []).filter(p => p.id !== id));
         } catch (error) {
           console.error('Error fetching seller products:', error);
         }
