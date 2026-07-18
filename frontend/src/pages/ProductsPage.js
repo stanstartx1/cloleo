@@ -365,7 +365,7 @@ const ProductsPage = () => {
               </div>
             )}
 
-            {totalPages > 1 && (
+            {totalPages > 0 && (
               <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                   Précédent
