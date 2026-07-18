@@ -134,7 +134,9 @@ async def get_products(
             query.setdefault("price_fcfa", {})["$lte"] = max_price
         if seller_id:
             query["seller_id"] = seller_id
-        if featured is not None:
+        # Only apply featured filter if no other filters are applied (except sorting/pagination)
+        # This allows category/location filters to work on the Tendances page
+        if featured is not None and not (category_slug or subcategory_slug or category or location or origin_country or condition or min_price or max_price):
             query["is_featured"] = featured
 
         skip = (page - 1) * limit
