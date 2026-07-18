@@ -434,25 +434,25 @@ const ProductPage = () => {
             {/* Seller Products - Below images to use empty space */}
             {sellerProducts.length > 0 && (
               <div className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-slate-800">Plus de produits de ce vendeur</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-slate-800">Plus de produits de ce vendeur</h3>
                   {product?.seller_id && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => navigate(`/vendeur-boutique/${product.seller_id}`)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1 text-xs h-7 px-2"
                     >
-                      <Store className="w-4 h-4" />
+                      <Store className="w-3 h-3" />
                       Voir la boutique
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3 h-3" />
                     </Button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {sellerProducts.slice(0, 10).map((p) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {sellerProducts.slice(0, 4).map((p) => (
                     <Link key={p.id} to={`/produit/${p.id}`} className="group">
-                      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="bg-white rounded-md border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
                         <div className="aspect-square bg-slate-100">
                           <img
                             src={p.images?.[0] || 'https://via.placeholder.com/150'}
@@ -460,9 +460,9 @@ const ProductPage = () => {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                         </div>
-                        <div className="p-2">
-                          <p className="text-xs font-medium text-slate-800 line-clamp-2 mb-1">{p.name}</p>
-                          <p className="text-sm font-bold text-orange-600">{formatPrice(p.promo_price_fcfa || p.price_fcfa)}</p>
+                        <div className="p-1.5">
+                          <p className="text-[10px] font-medium text-slate-800 line-clamp-1 mb-0.5">{p.name}</p>
+                          <p className="text-[10px] font-bold text-orange-600">{formatPrice(p.promo_price_fcfa || p.price_fcfa)}</p>
                         </div>
                       </div>
                     </Link>
