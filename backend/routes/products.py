@@ -50,27 +50,33 @@ async def get_products(
             query["subcategory_slug"] = subcategory_slug
         elif category_slug:
             # First try to get subcategories of this category
-            from core.database import db
-            category = await db.categories.find_one({"slug": category_slug}, {"_id": 0})
-            if category:
-                # Get all subcategories of this category
-                subcategories = await db.categories.find({"parent_slug": category_slug}, {"_id": 0, "slug": 1}).to_list(100)
-                subcategory_slugs = [s["slug"] for s in subcategories]
-                
-                # Search in both the category itself and all its subcategories
-                if subcategory_slugs:
-                    query["$or"] = [
-                        {"category_slug": category_slug},
-                        {"subcategory_slug": {"$in": subcategory_slugs}}
-                    ]
+            try:
+                category = await db.categories.find_one({"slug": category_slug}, {"_id": 0})
+                if category:
+                    # Get all subcategories of this category
+                    subcategories = await db.categories.find({"parent_slug": category_slug}, {"_id": 0, "slug": 1}).to_list(100)
+                    subcategory_slugs = [s["slug"] for s in subcategories]
+                    
+                    # Search in both the category itself and all its subcategories
+                    if subcategory_slugs:
+                        query["$or"] = [
+                            {"category_slug": category_slug},
+                            {"subcategory_slug": {"$in": subcategory_slugs}}
+                        ]
+                    else:
+                        # No subcategories, search in both fields
+                        query["$or"] = [
+                            {"category_slug": category_slug},
+                            {"subcategory_slug": category_slug}
+                        ]
                 else:
-                    # No subcategories, search in both fields
+                    # Category not found, search in both fields as fallback
                     query["$or"] = [
                         {"category_slug": category_slug},
                         {"subcategory_slug": category_slug}
                     ]
-            else:
-                # Category not found, search in both fields as fallback
+            except Exception as e:
+                # If category lookup fails, fallback to simple filtering
                 query["$or"] = [
                     {"category_slug": category_slug},
                     {"subcategory_slug": category_slug}
