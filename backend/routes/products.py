@@ -47,15 +47,43 @@ async def get_products(
     # Support both category and category_slug parameters for flexibility
     if subcategory_slug:
         query["subcategory_slug"] = subcategory_slug
+        print(f"Filtering by subcategory_slug: {subcategory_slug}")
     elif category_slug:
-        query["category_slug"] = category_slug
-    elif category:
-        query["category_slug"] = category
-    if search:
+        # Search in both category_slug and subcategory_slug for better matching
         query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}}
+            {"category_slug": category_slug},
+            {"subcategory_slug": category_slug}
         ]
+        print(f"Filtering by category_slug in both fields: {category_slug}")
+    elif category:
+        query["$or"] = [
+            {"category_slug": category},
+            {"subcategory_slug": category}
+        ]
+        print(f"Filtering by category in both fields: {category}")
+    
+    if search:
+        # Combine search with existing conditions
+        search_condition = {
+            "$or": [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"description": {"$regex": search, "$options": "i"}}
+            ]
+        }
+        # If we already have $or from category filtering, we need to combine them
+        if "$or" in query:
+            # Use $and to combine the existing $or with the search condition
+            query = {
+                "$and": [
+                    {"status": "approved"},
+                    {"$or": query["$or"]},
+                    search_condition
+                ]
+            }
+        else:
+            query["$or"] = search_condition["$or"]
+    
+    print(f"MongoDB query: {query}")
     if condition:
         # Support multiple conditions separated by comma
         conditions = condition.split(',')
