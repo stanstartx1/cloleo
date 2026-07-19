@@ -283,7 +283,7 @@ const MyOffersPage = () => {
                   className="border-slate-300 text-slate-700 hover:bg-slate-50"
                   asChild
                 >
-                  <Link to={`/produit/${offer.product_id}`}>
+                  <Link to={`/offer-link/${offer.negotiated_link_token}`}>
                     Voir le produit
                   </Link>
                 </Button>
