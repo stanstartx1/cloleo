@@ -1,31 +1,21 @@
 # Routes pour le système d'offres
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 from typing import List, Optional
 import secrets
 import uuid
 
 from core.database import db
+from core.auth import get_current_user
 from models.schemas import (
     OfferCreate, OfferResponse, OfferCounter, 
     NegotiatedLink, OfferStatus, UserRole
 )
 
 router = APIRouter(prefix="/offers", tags=["offers"])
-security = HTTPBearer()
 
 OFFER_EXPIRATION_HOURS = 48
 LINK_EXPIRATION_HOURS = 24
-
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Récupère l'utilisateur actuel depuis le token"""
-    token = credentials.credentials
-    user = await db.users.find_one({"token": token})
-    if not user:
-        raise HTTPException(status_code=401, detail="Token invalide")
-    return dict(user)
 
 
 @router.post("/create")
