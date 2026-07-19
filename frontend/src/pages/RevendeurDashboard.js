@@ -86,6 +86,10 @@ const RevendeurDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   
+  // Offers state
+  const [offers, setOffers] = useState([]);
+  const [offersLoading, setOffersLoading] = useState(false);
+  
   // Earnings state
   const [earnings, setEarnings] = useState([]);
   const [earningsLoading, setEarningsLoading] = useState(false);
@@ -233,6 +237,96 @@ const RevendeurDashboard = () => {
     }
   };
 
+  // Fetch offers
+  const fetchOffers = async () => {
+    setOffersLoading(true);
+    try {
+      const response = await axios.get(`${API}/offers/received`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setOffers(response.data.offers || []);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des offres');
+    } finally {
+      setOffersLoading(false);
+    }
+  };
+
+  const handleAcceptOffer = async (offerId) => {
+    try {
+      await axios.post(`${API}/offers/${offerId}/respond`, {
+        status: 'accepted',
+        response_message: 'Offre acceptée'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Offre acceptée ! Un lien de paiement a été généré.');
+      fetchOffers();
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      toast.error('Erreur lors de l\'acceptation de l\'offre');
+    }
+  };
+
+  const handleRejectOffer = async (offerId) => {
+    try {
+      await axios.post(`${API}/offers/${offerId}/respond`, {
+        status: 'rejected',
+        response_message: 'Offre refusée'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Offre refusée');
+      fetchOffers();
+    } catch (error) {
+      console.error('Error rejecting offer:', error);
+      toast.error('Erreur lors du refus de l\'offre');
+    }
+  };
+
+  const handleCounterOffer = async (offerId) => {
+    const counterPrice = prompt('Entrez votre contre-offre (en FCFA):');
+    if (!counterPrice || parseInt(counterPrice) <= 0) {
+      toast.error('Prix invalide');
+      return;
+    }
+    
+    const message = prompt('Ajoutez un message (optionnel):') || '';
+    
+    try {
+      await axios.post(`${API}/offers/${offerId}/counter`, {
+        counter_price_fcfa: parseInt(counterPrice),
+        message: message
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Contre-offre envoyée');
+      fetchOffers();
+    } catch (error) {
+      console.error('Error sending counter offer:', error);
+      toast.error('Erreur lors de l\'envoi de la contre-offre');
+    }
+  };
+
+  const handleWithdrawOffer = async (offerId) => {
+    try {
+      await axios.post(`${API}/offers/${offerId}/withdraw`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Offre annulée');
+      fetchOffers();
+    } catch (error) {
+      console.error('Error withdrawing offer:', error);
+      toast.error('Erreur lors de l\'annulation de l\'offre');
+    }
+  };
+
+  const copyNegotiatedLink = (token) => {
+    const link = `${window.location.origin}/offer-link/${token}`;
+    navigator.clipboard.writeText(link);
+    toast.success('Lien copié dans le presse-papier');
+  };
+
   // Fetch earnings
   const fetchEarnings = async () => {
     setEarningsLoading(true);
@@ -270,6 +364,7 @@ const RevendeurDashboard = () => {
     }
     if (activeTab === 'products') fetchMyProducts();
     if (activeTab === 'orders') fetchOrders();
+    if (activeTab === 'offers') fetchOffers();
     if (activeTab === 'earnings') fetchEarnings();
     if (activeTab === 'categories') fetchCategories();
   }, [activeTab, catalogCategory, catalogPage, catalogSearch]);
@@ -502,6 +597,7 @@ const RevendeurDashboard = () => {
     { id: 'products', label: 'Mes produits', icon: Package },
     { id: 'categories', label: 'Catégories', icon: FolderOpen },
     { id: 'orders', label: 'Commandes', icon: ShoppingCart },
+    { id: 'offers', label: 'Offres', icon: DollarSign },
     { id: 'messages', label: 'Messages', icon: MessageCircle },
     { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
     { id: 'earnings', label: 'Mes gains', icon: DollarSign },
@@ -1318,6 +1414,184 @@ const RevendeurDashboard = () => {
                       <p className="text-gray-500">Aucune commande pour le moment</p>
                     </CardContent>
                   </Card>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Offers Tab */}
+          {activeTab === 'offers' && (
+            <motion.div 
+              key="offers"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <DollarSign className="w-6 h-6 text-purple-500" />
+                  Offres reçues
+                </h1>
+                <p className="text-gray-500">Gérez les offres de négociation sur vos produits</p>
+              </motion.div>
+
+              {offersLoading ? (
+                <div className="flex justify-center py-12">
+                  <motion.div 
+                    className="rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+              ) : offers.length > 0 ? (
+                <motion.div 
+                  className="grid gap-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  {offers.map((offer, index) => (
+                    <motion.div
+                      key={offer._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white rounded-xl border border-gray-200 p-6 hover:border-purple-300 transition-colors shadow-sm hover:shadow-md"
+                    >
+                      <div className="flex gap-4">
+                        {/* Product Image */}
+                        <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                          {offer.product?.image ? (
+                            <img 
+                              src={toAbsoluteMediaUrl(offer.product.image)} 
+                              alt={offer.product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-8 h-8 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Offer Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div>
+                              <h3 className="font-semibold text-gray-900 truncate">{offer.product?.name}</h3>
+                              <p className="text-sm text-gray-500">Offre de {offer.buyer?.name}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              offer.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                              offer.status === 'counter_offer' ? 'bg-blue-100 text-blue-700' :
+                              offer.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                              offer.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {offer.status === 'pending' ? 'En attente' :
+                               offer.status === 'counter_offer' ? 'Contre-offre' :
+                               offer.status === 'accepted' ? 'Acceptée' :
+                               offer.status === 'rejected' ? 'Refusée' : offer.status}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-4 mb-3">
+                            <div>
+                              <p className="text-xs text-gray-500">Prix original</p>
+                              <p className="text-sm text-gray-600 line-through">{formatPrice(offer.original_price_fcfa)} FCFA</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Offre proposée</p>
+                              <p className="text-lg font-bold text-green-600">{formatPrice(offer.offered_price_fcfa)} FCFA</p>
+                            </div>
+                            {offer.counter_price_fcfa && (
+                              <div>
+                                <p className="text-xs text-gray-500">Votre contre-offre</p>
+                                <p className="text-lg font-bold text-blue-600">{formatPrice(offer.counter_price_fcfa)} FCFA</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {offer.message && (
+                            <p className="text-sm text-gray-600 mb-3 bg-gray-50 p-2 rounded">
+                              "{offer.message}"
+                            </p>
+                          )}
+
+                          {/* Actions */}
+                          {offer.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => handleAcceptOffer(offer._id)}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" /> Accepter
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                onClick={() => handleRejectOffer(offer._id)}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" /> Refuser
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                onClick={() => handleCounterOffer(offer._id)}
+                              >
+                                <Edit2 className="w-4 h-4 mr-1" /> Contre-offre
+                              </Button>
+                            </div>
+                          )}
+
+                          {offer.status === 'counter_offer' && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                onClick={() => handleWithdrawOffer(offer._id)}
+                              >
+                                <X className="w-4 h-4 mr-1" /> Annuler
+                              </Button>
+                            </div>
+                          )}
+
+                          {offer.status === 'accepted' && offer.negotiated_link_token && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-green-300 text-green-700 hover:bg-green-50"
+                              onClick={() => copyNegotiatedLink(offer.negotiated_link_token)}
+                            >
+                              <Copy className="w-4 h-4 mr-1" /> Copier le lien de paiement
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <motion.div 
+                  className="p-12 text-center"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <motion.div
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                  </motion.div>
+                  <p className="text-gray-500">Aucune offre reçue</p>
                 </motion.div>
               )}
             </motion.div>
