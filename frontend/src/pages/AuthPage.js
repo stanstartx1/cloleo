@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles, Building2, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { API_BASE, API_URL } from '../config/api';
 
@@ -334,47 +333,39 @@ const AuthPage = () => {
                   <form onSubmit={handleRegister} className="space-y-6">
                     {/* Role Selection */}
                     <div>
-                      <Label className="text-base font-medium mb-2 block">Je suis...</Label>
-                      <Select
-                        value={registerRole}
-                        onValueChange={(value) => handleRoleSelect(value)}
-                      >
-                        <SelectTrigger className="h-12 rounded-2xl">
-                          <SelectValue placeholder="Sélectionnez votre profil" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="customer">
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-orange-500" />
-                              <span>Acheteur</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="vendor">
-                            <div className="flex items-center gap-2">
-                              <Store className="w-4 h-4 text-amber-500" />
-                              <span>Vendeur</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="dropshipper">
-                            <div className="flex items-center gap-2">
-                              <Package className="w-4 h-4 text-purple-500" />
-                              <span>Revendeur</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="driver">
-                            <div className="flex items-center gap-2">
-                              <Truck className="w-4 h-4 text-blue-500" />
-                              <span>Livreur</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="enterprise">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-green-500" />
-                              <span>Entreprise</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-base font-medium mb-3 block">Je suis...</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          { value: 'customer', label: 'Acheteur', icon: User, color: 'text-orange-500', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+                          { value: 'vendor', label: 'Vendeur', icon: Store, color: 'text-amber-500', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+                          { value: 'dropshipper', label: 'Revendeur', icon: Package, color: 'text-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+                          { value: 'driver', label: 'Livreur', icon: Truck, color: 'text-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+                          { value: 'enterprise', label: 'Entreprise', icon: Building2, color: 'text-green-500', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+                        ].map((role) => {
+                          const Icon = role.icon;
+                          const isSelected = registerRole === role.value;
+                          return (
+                            <button
+                              key={role.value}
+                              type="button"
+                              onClick={() => handleRoleSelect(role.value)}
+                              className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                                isSelected 
+                                  ? `${role.bgColor} ${role.borderColor} border-current shadow-md` 
+                                  : 'bg-white border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="absolute top-2 right-2 w-5 h-5 bg-current rounded-full flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                              <Icon className={`w-6 h-6 ${role.color} mb-2`} />
+                              <span className="text-sm font-medium text-gray-700">{role.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
