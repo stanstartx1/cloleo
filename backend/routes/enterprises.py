@@ -374,7 +374,7 @@ async def admin_list_enterprises(admin = Depends(require_admin)):
         formatted_enterprises = []
         for enterprise in enterprises:
             formatted_enterprises.append({
-                "id": str(enterprise["_id"]),
+                "id": enterprise.get("id", str(enterprise.get("_id"))),
                 "company_name": enterprise.get("company_name", ""),
                 "email": enterprise.get("email", ""),
                 "contact_person": enterprise.get("contact_person", ""),
@@ -397,7 +397,7 @@ async def admin_verify_enterprise(enterprise_id: str, admin = Depends(require_ad
     """Verify and activate an enterprise"""
     try:
         result = await db.users.update_one(
-            {"_id": enterprise_id, "role": "enterprise"},
+            {"id": enterprise_id, "role": "enterprise"},
             {"$set": {"is_verified": True, "is_active": True}}
         )
         
@@ -414,7 +414,7 @@ async def admin_verify_enterprise(enterprise_id: str, admin = Depends(require_ad
 async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_admin)):
     """Delete an enterprise"""
     try:
-        result = await db.users.delete_one({"_id": enterprise_id, "role": "enterprise"})
+        result = await db.users.delete_one({"id": enterprise_id, "role": "enterprise"})
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Enterprise not found")

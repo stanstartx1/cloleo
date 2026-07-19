@@ -19,13 +19,13 @@ OFFER_EXPIRATION_HOURS = 48
 LINK_EXPIRATION_HOURS = 24
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Récupère l'utilisateur actuel depuis le token"""
     token = credentials.credentials
-    user = db.users.find_one({"token": token})
+    user = await db.users.find_one({"token": token})
     if not user:
         raise HTTPException(status_code=401, detail="Token invalide")
-    return user
+    return dict(user)
 
 
 @router.post("/create")
