@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { API_BASE, API_URL } from '../config/api';
 
@@ -333,32 +334,47 @@ const AuthPage = () => {
                   <form onSubmit={handleRegister} className="space-y-6">
                     {/* Role Selection */}
                     <div>
-                      <Label className="text-base font-medium mb-4 block">Je suis...</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {[
-                          { role: 'customer', label: 'Acheteur', icon: User, color: 'orange' },
-                          { role: 'vendor', label: 'Vendeur', icon: Store, color: 'amber' },
-                          { role: 'dropshipper', label: 'Revendeur', icon: Package, color: 'purple' },
-                          { role: 'driver', label: 'Livreur', icon: Truck, color: 'blue' },
-                          { role: 'enterprise', label: 'Entreprise', icon: Building2, color: 'green' },
-                        ].map(({ role, label, icon: Icon, color }) => (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => handleRoleSelect(role)}
-                            className={`p-6 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center gap-3 hover:shadow-md ${
-                              registerRole === role 
-                                ? 'border-orange-500 bg-orange-50 shadow-sm' 
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            <div className={`w-12 h-12 rounded-xl bg-${color}-100 flex items-center justify-center`}>
-                              <Icon className={`w-7 h-7 text-${color}-600`} />
+                      <Label className="text-base font-medium mb-2 block">Je suis...</Label>
+                      <Select
+                        value={registerRole}
+                        onValueChange={(value) => handleRoleSelect(value)}
+                      >
+                        <SelectTrigger className="h-12 rounded-2xl">
+                          <SelectValue placeholder="Sélectionnez votre profil" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-orange-500" />
+                              <span>Acheteur</span>
                             </div>
-                            <p className="font-semibold text-sm">{label}</p>
-                          </button>
-                        ))}
-                      </div>
+                          </SelectItem>
+                          <SelectItem value="vendor">
+                            <div className="flex items-center gap-2">
+                              <Store className="w-4 h-4 text-amber-500" />
+                              <span>Vendeur</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="dropshipper">
+                            <div className="flex items-center gap-2">
+                              <Package className="w-4 h-4 text-purple-500" />
+                              <span>Revendeur</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="driver">
+                            <div className="flex items-center gap-2">
+                              <Truck className="w-4 h-4 text-blue-500" />
+                              <span>Livreur</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="enterprise">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-green-500" />
+                              <span>Entreprise</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
