@@ -362,10 +362,10 @@ const Navbar = () => {
                 Nouveautés
               </Link>
               <Link
-                to="/entreprises"
+                to="/devenir-vendeur"
                 className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
               >
-                Entreprises
+                Devenir vendeur
               </Link>
             </div>
 

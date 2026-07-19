@@ -34,6 +34,7 @@ import OrderDetailPage from "./pages/OrderDetailPage";
 import AuthPage from "./pages/AuthPage";
 import CustomerChatPage from "./pages/CustomerChatPage";
 import OfferPage from "./pages/OfferPage";
+import BecomeVendorPage from "./pages/BecomeVendorPage";
 
 // Vendor Pages
 import VendorDashboard from "./pages/VendorDashboard";
@@ -159,6 +160,7 @@ const AppRoutes = () => {
       
       {/* Auth */}
       <Route path="/connexion" element={<AuthPage />} />
+      <Route path="/devenir-vendeur" element={<PublicLayout><BecomeVendorPage /></PublicLayout>} />
 
       {/* Vendor Routes */}
       <Route path="/vendeur" element={
