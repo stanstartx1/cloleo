@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 import uuid
+from typing import Optional
 
 from core.database import db
 from models.schemas import CartItemCreate, CartItemUpdate
@@ -12,8 +13,10 @@ router = APIRouter(prefix="/cart", tags=["Cart"])
 FCFA_TO_USD = 0.0016
 
 
-def _unit_price(product: dict, quantity: int) -> int:
-    """Apply the wholesale price once the configured quantity is reached."""
+def _unit_price(product: dict, quantity: int, negotiated_price: Optional[int] = None) -> int:
+    """Apply the wholesale price once the configured quantity is reached, or use negotiated price."""
+    if negotiated_price:
+        return int(negotiated_price)
     if (
         product.get("wholesale_enabled")
         and quantity >= int(product.get("wholesale_min_quantity") or 0)
@@ -47,6 +50,8 @@ async def add_to_cart(item: CartItemCreate):
             "quantity": item.quantity,
             "session_id": item.session_id,
             "selected_attributes": item.selected_attributes,
+            "negotiated_price_fcfa": item.negotiated_price_fcfa,
+            "offer_id": item.offer_id,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
     return {"message": "Ajouté"}
@@ -61,7 +66,8 @@ async def get_cart(session_id: str):
     for item in items:
         p = await db.products.find_one({"id": item["product_id"], "status": "approved"}, {"_id": 0})
         if p:
-            price = _unit_price(p, int(item["quantity"]))
+            negotiated_price = item.get("negotiated_price_fcfa")
+            price = _unit_price(p, int(item["quantity"]), negotiated_price)
             subtotal = price * item["quantity"]
             result.append({**item, "product": p, "unit_price_fcfa": price, "subtotal_fcfa": subtotal})
             total += subtotal

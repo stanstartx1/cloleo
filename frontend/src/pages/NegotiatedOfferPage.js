@@ -51,7 +51,7 @@ const NegotiatedOfferPage = () => {
     }
 
     try {
-      await axios.post(`${API}/cart`, {
+      await axios.post(`${API}/cart/add`, {
         product_id: offerData.product.id,
         quantity: quantity,
         session_id: 'negotiated-offer',
@@ -76,7 +76,7 @@ const NegotiatedOfferPage = () => {
     }
 
     try {
-      await axios.post(`${API}/cart`, {
+      await axios.post(`${API}/cart/add`, {
         product_id: offerData.product.id,
         quantity: quantity,
         session_id: 'negotiated-offer',

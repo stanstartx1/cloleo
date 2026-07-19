@@ -55,6 +55,8 @@ class CartItemCreate(BaseModel):
     quantity: int = 1
     session_id: str
     selected_attributes: Dict[str, Any] = {}
+    negotiated_price_fcfa: Optional[int] = None
+    offer_id: Optional[str] = None
 
 
 class CartItemUpdate(BaseModel):
