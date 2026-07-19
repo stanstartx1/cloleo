@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
@@ -28,6 +28,7 @@ class EnterpriseRegister(BaseModel):
     capital: Optional[str] = None
     address: Optional[str] = None
     website: Optional[str] = None
+    documents: Optional[dict] = {}
 
 class EnterpriseUpdate(BaseModel):
     company_name: Optional[str] = None
@@ -81,7 +82,7 @@ async def register_enterprise(data: EnterpriseRegister):
             "created_at": datetime.utcnow(),
             "is_active": True,
             "is_verified": False,
-            "documents": {}
+            "documents": data.documents or {}
         }
         
         result = await db.users.insert_one(enterprise_data)
@@ -273,7 +274,7 @@ async def upload_enterprise_photo(
 
 @router.post("/upload-document")
 async def upload_enterprise_document(
-    document_type: str = None,
+    document_type: str = Form(...),
     file: UploadFile = File(...),
     current_user = Depends(get_current_user)
 ):
@@ -307,6 +308,39 @@ async def upload_enterprise_document(
             {"_id": current_user.get("_id")},
             {"$set": {f"documents.{document_type}": f"/uploads/enterprise_documents/{file_name}"}}
         )
+        
+        return {"message": "Document uploaded successfully", "url": f"/uploads/enterprise_documents/{file_name}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/upload-document-temp")
+async def upload_enterprise_document_temp(
+    document_type: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """Upload enterprise document during registration (no auth required)"""
+    try:
+        # Validate document type
+        valid_types = ["dfe", "trade_register", "tax_id", "legal_form", "other"]
+        if document_type not in valid_types:
+            raise HTTPException(status_code=400, detail="Invalid document type")
+        
+        # Save file
+        import os
+        import uuid
+        from pathlib import Path
+        
+        upload_dir = Path("/var/www/cloleo/backend/uploads/enterprise_documents")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_extension = file.filename.split(".")[-1]
+        file_name = f"{document_type}_temp_{uuid.uuid4()}.{file_extension}"
+        file_path = upload_dir / file_name
+        
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
         
         return {"message": "Document uploaded successfully", "url": f"/uploads/enterprise_documents/{file_name}"}
     except HTTPException:

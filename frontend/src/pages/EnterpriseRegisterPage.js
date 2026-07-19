@@ -230,7 +230,7 @@ const EnterpriseRegisterPage = () => {
     formData.append('document_type', documentType);
     
     try {
-      const response = await axios.post(`${API}/enterprises/upload-document`, formData, {
+      const response = await axios.post(`${API}/enterprises/upload-document-temp`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -254,7 +254,13 @@ const EnterpriseRegisterPage = () => {
     setError('');
 
     try {
-      const response = await axios.post(`${API}/enterprises/register`, formData);
+      // Include uploaded documents in the form data
+      const dataToSend = {
+        ...formData,
+        documents: uploadedDocuments
+      };
+      
+      const response = await axios.post(`${API}/enterprises/register`, dataToSend);
       navigate('/enterprise');
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de l\'inscription');
