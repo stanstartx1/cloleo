@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +71,65 @@ const EnterpriseRegisterPage = () => {
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState({});
   const [uploadedDocuments, setUploadedDocuments] = useState({});
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoLoading, setLogoLoading] = useState(true);
+  const [authPageSettings, setAuthPageSettings] = useState({
+    enabled: false,
+    backgroundType: 'gradient',
+    authBackgroundImages: [],
+    customBackgroundColor: '#f97316'
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/settings/auth-page`);
+        setAuthPageSettings(response.data);
+      } catch (error) {
+        console.error('Error fetching auth page settings:', error);
+      }
+    };
+
+    const fetchLogo = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/settings/logo`);
+        if (response.data && response.data.logo_url) {
+          setLogoUrl(response.data.logo_url);
+        }
+      } catch (error) {
+        console.error('Error fetching logo:', error);
+      } finally {
+        setLogoLoading(false);
+      }
+    };
+
+    fetchSettings();
+    fetchLogo();
+  }, []);
+
+  const handleImageError = () => {
+    setLogoUrl('');
+  };
+
+  const getBackgroundStyle = () => {
+    if (!authPageSettings.enabled) return {};
+    
+    if (authPageSettings.backgroundType === 'color') {
+      return { backgroundColor: authPageSettings.customBackgroundColor };
+    }
+    
+    if (authPageSettings.backgroundType === 'gradient') {
+      return {
+        background: `linear-gradient(135deg, ${authPageSettings.customBackgroundColor} 0%, #fbbf24 100%)`
+      };
+    }
+    
+    return {};
+  };
+
+  const isCustomImageBackground = authPageSettings.enabled && authPageSettings.backgroundType === 'image' && authPageSettings.authBackgroundImages.length > 0;
+  const isSplitImageBackground = isCustomImageBackground && authPageSettings.authBackgroundImages.length > 1;
+  const authBackgroundImages = authPageSettings.authBackgroundImages || [];
   
   const [formData, setFormData] = useState({
     email: '',
@@ -139,13 +198,60 @@ const EnterpriseRegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <Building2 className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900">Devenir Partenaire Entreprise</h1>
-          <p className="text-gray-600 mt-2">Rejoignez notre réseau d'entreprises vérifiées</p>
+    <div
+      className={`relative min-h-screen overflow-hidden py-12 ${
+        authPageSettings.enabled ? '' : 'bg-gradient-to-br from-orange-50 via-amber-50 to-white'
+      }`}
+      style={getBackgroundStyle()}
+    >
+      {isCustomImageBackground && (
+        <div className="absolute inset-0" aria-hidden="true">
+          {isSplitImageBackground ? (
+            <div className="flex h-full w-full">
+              <img src={authBackgroundImages[0]} alt="" aria-hidden="true" decoding="async" className="h-full w-1/2 select-none object-cover object-center" draggable="false" />
+              <img src={authBackgroundImages[1]} alt="" aria-hidden="true" decoding="async" className="h-full w-1/2 select-none object-cover object-center" draggable="false" />
+            </div>
+          ) : (
+            <img src={authBackgroundImages[0]} alt="" aria-hidden="true" decoding="async" className="h-full w-full select-none object-cover object-center" draggable="false" />
+          )}
+          <div className="absolute inset-0 bg-slate-950/20" />
         </div>
+      )}
+
+      <div className="container relative z-10 mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Logo & Header */}
+          <div className="text-center mb-10">
+            <Link to="/" className="inline-flex items-center gap-3 group">
+              {!logoLoading && logoUrl ? (
+                <div className="relative transition-transform duration-300 group-hover:scale-105">
+                  <img 
+                    src={logoUrl} 
+                    alt="Cloléo" 
+                    className="h-28 w-auto object-contain transition-all duration-300"
+                    onError={handleImageError}
+                  />
+                  <div className="logo-fallback hidden absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl items-center justify-center">
+                    <span className="text-white font-black text-2xl">C</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-orange-500/30 group-hover:scale-105 transition-transform">
+                    <span className="text-5xl font-black">C</span>
+                  </div>
+                  <div>
+                    <span className="text-5xl font-bold tracking-tight">
+                      <span className="text-orange-600">Clo</span>
+                      <span className="text-amber-600">léo</span>
+                    </span>
+                  </div>
+                </>
+              )}
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900 mt-6">Devenir Partenaire Entreprise</h1>
+            <p className="text-gray-600 mt-2">Rejoignez notre réseau d'entreprises vérifiées</p>
+          </div>
 
         <Card>
           <CardHeader>
@@ -419,6 +525,7 @@ const EnterpriseRegisterPage = () => {
             </form>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

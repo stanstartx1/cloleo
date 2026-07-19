@@ -334,7 +334,7 @@ const AuthPage = () => {
                     {/* Role Selection */}
                     <div>
                       <Label className="text-base font-medium mb-4 block">Je suis...</Label>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {[
                           { role: 'customer', label: 'Acheteur', icon: User, color: 'orange' },
                           { role: 'vendor', label: 'Vendeur', icon: Store, color: 'amber' },
