@@ -16,9 +16,7 @@ import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
 import CategoryProductsCarousel from '../components/CategoryProductsCarousel';
 import OutletCarousel from '../components/OutletCarousel';
 import HomeRandomLayoutProducts from '../components/HomeRandomLayoutProducts';
-import EnterprisesSection from '../components/EnterprisesSection';
 import AdminFeaturedProducts from '../components/AdminFeaturedProducts';
-import EnterpriseProductsSection from '../components/EnterpriseProductsSection';
 
 import { API_URL, API_BASE } from '../config/api';
 
@@ -201,14 +199,8 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* ── Enterprises Section ── */}
-      <EnterprisesSection />
-
       {/* ── Admin Featured Products ── */}
       <AdminFeaturedProducts />
-
-      {/* ── Enterprise Products ── */}
-      <EnterpriseProductsSection />
 
       {/* ── Catégories ── */}
       <div className="w-full bg-white">

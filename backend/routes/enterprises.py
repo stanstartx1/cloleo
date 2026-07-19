@@ -80,7 +80,7 @@ async def register_enterprise(data: EnterpriseRegister):
             "website": data.website,
             "company_slug": data.company_name.lower().replace(" ", "-"),
             "created_at": datetime.utcnow(),
-            "is_active": True,
+            "is_active": False,
             "is_verified": False,
             "documents": data.documents or {}
         }

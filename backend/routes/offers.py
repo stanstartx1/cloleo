@@ -75,7 +75,7 @@ async def create_offer(
     
     return {
         "message": "Offre créée avec succès",
-        "offer_id": offer_data["_id"],
+        "offer_id": offer_data["id"],
         "expires_at": offer_data["expires_at"]
     }
 

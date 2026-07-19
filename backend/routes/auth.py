@@ -149,7 +149,8 @@ async def login(data: UserLogin):
             auto = (
                 (role == "vendor" and platform.get("auto_approve_vendors")) or
                 (role == "dropshipper" and platform.get("auto_approve_revendeurs")) or
-                (role == "driver" and platform.get("auto_approve_drivers"))
+                (role == "driver" and platform.get("auto_approve_drivers")) or
+                (role == "enterprise" and platform.get("auto_approve_enterprises"))
             )
             if auto:
                 await db.users.update_one(
