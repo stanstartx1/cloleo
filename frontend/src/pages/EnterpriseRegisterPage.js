@@ -8,8 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, MapPin, Users, Factory, Globe, Award, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { API_BASE, API_URL } from '../config/api';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://cloleo.com';
+const API = API_URL;
 
 const DocumentUpload = ({ label, documentType, onUpload, progress, uploaded }) => {
   const [file, setFile] = useState(null);
@@ -75,61 +76,126 @@ const EnterpriseRegisterPage = () => {
   const [logoLoading, setLogoLoading] = useState(true);
   const [authPageSettings, setAuthPageSettings] = useState({
     enabled: false,
-    backgroundType: 'gradient',
-    authBackgroundImages: [],
-    customBackgroundColor: '#f97316'
+    background_type: 'color',
+    background_color: '',
+    background_images: [],
+    layout_type: 'single'
   });
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/api/settings/auth-page`);
-        setAuthPageSettings(response.data);
-      } catch (error) {
-        console.error('Error fetching auth page settings:', error);
-      }
-    };
-
     const fetchLogo = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/settings/logo`);
-        if (response.data && response.data.logo_url) {
-          setLogoUrl(response.data.logo_url);
+        const response = await fetch(`${API}/logo-settings`);
+
+        if (!response.ok) {
+          console.warn('Logo endpoint not available, using fallback');
+          return;
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          console.warn('Logo endpoint returned non-JSON response:', contentType, text.slice(0, 200));
+          return;
+        }
+
+        if (data && data.logo_url && data.logo_url.trim()) {
+          let logo = data.logo_url;
+          if (logo.startsWith('/')) {
+            logo = `${API_BASE}${logo}`;
+          }
+          setLogoUrl(logo);
         }
       } catch (error) {
-        console.error('Error fetching logo:', error);
+        console.warn('Erreur chargement logo, using fallback:', error.message);
       } finally {
         setLogoLoading(false);
       }
     };
-
-    fetchSettings();
     fetchLogo();
   }, []);
 
-  const handleImageError = () => {
-    setLogoUrl('');
+  useEffect(() => {
+    const fetchAuthPageSettings = async () => {
+      try {
+        const response = await fetch(`${API}/auth-page-settings`);
+        if (response.ok) {
+          const data = await response.json();
+          setAuthPageSettings(data);
+        }
+      } catch (error) {
+        console.warn('Erreur chargement auth page settings:', error.message);
+      }
+    };
+    fetchAuthPageSettings();
+  }, []);
+
+  const handleImageError = (e) => {
+    e.target.style.display = 'none';
+    const parent = e.target.parentElement;
+    if (parent && parent.parentElement) {
+      const fallback = parent.parentElement.querySelector('.logo-fallback');
+      if (fallback) {
+        e.target.style.display = 'none';
+        fallback.style.display = 'flex';
+      }
+    }
   };
 
+  // Calculer le style de fond
   const getBackgroundStyle = () => {
-    if (!authPageSettings.enabled) return {};
+    const { enabled, background_type, background_color, background_images, layout_type } = authPageSettings;
     
-    if (authPageSettings.backgroundType === 'color') {
-      return { backgroundColor: authPageSettings.customBackgroundColor };
+    // Si le fond n'est pas activé, utiliser le gradient par défaut
+    if (!enabled) {
+      return {};
     }
     
-    if (authPageSettings.backgroundType === 'gradient') {
-      return {
-        background: `linear-gradient(135deg, ${authPageSettings.customBackgroundColor} 0%, #fbbf24 100%)`
-      };
+    // Si type couleur et une couleur est définie
+    if (background_type === 'color' && background_color && background_color.trim()) {
+      return { backgroundColor: background_color, backgroundImage: 'none' };
     }
     
+    // Si type image et des images sont définies
+    if (background_type === 'image' && background_images && background_images.length > 0) {
+      const images = background_images.filter(Boolean).map(img =>
+        img.startsWith('/') ? `${API_BASE}${img}` : img
+      );
+
+      if (!images.length) return {};
+      
+      if (images.length === 1) {
+        return { backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+      } else if (images.length === 2 && layout_type === 'split') {
+        return {
+          backgroundImage: `url(${images[0]}), url(${images[1]})`,
+          backgroundSize: '50% 100%, 50% 100%',
+          backgroundPosition: 'left, right',
+          backgroundRepeat: 'no-repeat, no-repeat'
+        };
+      } else {
+        // Par défaut, utiliser la première image en cover
+        return { backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+      }
+    }
+    
+    // Fallback : gradient par défaut
     return {};
   };
 
-  const isCustomImageBackground = authPageSettings.enabled && authPageSettings.backgroundType === 'image' && authPageSettings.authBackgroundImages.length > 0;
-  const isSplitImageBackground = isCustomImageBackground && authPageSettings.authBackgroundImages.length > 1;
-  const authBackgroundImages = authPageSettings.authBackgroundImages || [];
+  const authBackgroundImages = (authPageSettings.background_images || [])
+    .filter(Boolean)
+    .map((image) => image.startsWith('/') ? `${API_BASE}${image}` : image);
+  const isCustomImageBackground = authPageSettings.enabled
+    && authPageSettings.background_type === 'image'
+    && authBackgroundImages.length > 0;
+  const isSplitImageBackground = isCustomImageBackground
+    && authPageSettings.layout_type === 'split'
+    && authBackgroundImages.length >= 2;
   
   const [formData, setFormData] = useState({
     email: '',
@@ -164,7 +230,7 @@ const EnterpriseRegisterPage = () => {
     formData.append('document_type', documentType);
     
     try {
-      const response = await axios.post(`${API_URL}/api/enterprises/upload-document`, formData, {
+      const response = await axios.post(`${API}/enterprises/upload-document`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -188,7 +254,7 @@ const EnterpriseRegisterPage = () => {
     setError('');
 
     try {
-      const response = await axios.post(`${API_URL}/api/enterprises/register`, formData);
+      const response = await axios.post(`${API}/enterprises/register`, formData);
       navigate('/enterprise');
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de l\'inscription');
