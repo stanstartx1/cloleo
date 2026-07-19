@@ -13,51 +13,55 @@ import {
   BarChart3,
   Package,
   Users,
-  Star
+  Star,
+  MessageCircle,
+  Target,
+  Award,
+  Search
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 const BecomeVendorPage = () => {
   const benefits = [
     {
-      icon: TrendingUp,
-      title: 'Ventes illimitées',
-      description: 'Vendez autant de produits que vous voulez sans frais de transaction',
+      icon: MessageCircle,
+      title: 'Relation Client Directe',
+      description: 'Échangez en temps réel avec vos acheteurs grâce à notre système de chatbot intégré. Répondez à leurs questions, négociez et concluez vos ventes instantanément.',
       color: 'text-emerald-500',
       bgColor: 'bg-emerald-50'
     },
     {
-      icon: Globe,
-      title: 'Visibilité mondiale',
-      description: 'Vos produits sont visibles par des milliers de clients potentiels',
+      icon: Target,
+      title: 'Digitalisation Simple',
+      description: 'Vous cherchez un moyen simple, performant et rentable de digitaliser votre activité et de toucher des milliers d\'acheteurs ? Découvrez CLOLEO, la plateforme e-commerce conçue pour propulser votre business au niveau supérieur.',
       color: 'text-blue-500',
       bgColor: 'bg-blue-50'
     },
     {
-      icon: ShieldCheck,
-      title: 'Paiements sécurisés',
-      description: 'Recevez vos paiements de manière sécurisée et rapide',
+      icon: BarChart3,
+      title: 'Contrôle Total',
+      description: 'Accédez à votre Tableau de Bord (Dashboard) personnel. Suivez en temps réel l\'évolution de votre boutique, le volume de vos ventes, vos stocks et l\'analyse de vos flux financiers en un clin d\'œil.',
       color: 'text-purple-500',
       bgColor: 'bg-purple-50'
     },
     {
-      icon: Zap,
-      title: 'Démarrage rapide',
-      description: 'Commencez à vendre en quelques minutes avec notre interface intuitive',
+      icon: Award,
+      title: 'Le Badge de Confiance',
+      description: 'Dès que le vendeur s\'abonne (et après une vérification rapide de son identité ou de son registre de commerce), son profil et ses articles affichent un badge "Vendeur Vérifié CLOLEO". Cela rassure immédiatement l\'acheteur et booste le taux de conversion.',
       color: 'text-amber-500',
       bgColor: 'bg-amber-50'
     },
     {
-      icon: HeadphonesIcon,
-      title: 'Support dédié',
-      description: 'Notre équipe est disponible pour vous aider à chaque étape',
+      icon: Search,
+      title: 'Boost de Visibilité Algorithmique',
+      description: 'Les produits des vendeurs abonnés apparaissent en priorité dans les résultats de recherche du site et dans les suggestions de la page d\'accueil par rapport aux vendeurs gratuits ou classiques.',
       color: 'text-rose-500',
       bgColor: 'bg-rose-50'
     },
     {
-      icon: BarChart3,
-      title: 'Analytics avancés',
-      description: 'Suivez vos ventes et performances avec des statistiques détaillées',
+      icon: Crown,
+      title: 'Le Bonus CLOLEO',
+      description: 'En tant que membre abonné, bénéficiez du badge \'Vendeur Vérifié\' pour rassurer vos clients et profitez d\'une visibilité prioritaire sur notre moteur de recherche pour attirer un maximum de visiteurs chaque jour.',
       color: 'text-cyan-500',
       bgColor: 'bg-cyan-50'
     }
