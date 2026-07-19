@@ -1,0 +1,239 @@
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
+from core.database import db
+from core.auth import get_current_user
+
+router = APIRouter(prefix="/api/enterprises", tags=["enterprises"])
+
+class EnterpriseRegister(BaseModel):
+    email: str
+    password: str
+    company_name: str
+    contact_person: str
+    phone: str
+    business_type: str
+    year_founded: Optional[str] = None
+    number_of_employees: Optional[str] = None
+    business_sector: Optional[str] = None
+    company_description: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    certifications: Optional[List[str]] = []
+
+class EnterpriseUpdate(BaseModel):
+    company_name: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    business_type: Optional[str] = None
+    year_founded: Optional[str] = None
+    number_of_employees: Optional[str] = None
+    business_sector: Optional[str] = None
+    company_description: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    certifications: Optional[List[str]] = None
+    profile_photo: Optional[str] = None
+    dfe_number: Optional[str] = None
+
+@router.post("/register")
+async def register_enterprise(data: EnterpriseRegister):
+    """Register a new enterprise"""
+    try:
+        # Check if email already exists
+        existing_user = await db.users.find_one({"email": data.email})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create enterprise user
+        from core.auth import hash_password
+        enterprise_data = {
+            "email": data.email,
+            "password": hash_password(data.password),
+            "role": "enterprise",
+            "company_name": data.company_name,
+            "contact_person": data.contact_person,
+            "phone": data.phone,
+            "business_type": data.business_type,
+            "year_founded": data.year_founded,
+            "number_of_employees": data.number_of_employees,
+            "business_sector": data.business_sector,
+            "company_description": data.company_description,
+            "city": data.city,
+            "country": data.country,
+            "certifications": data.certifications,
+            "company_slug": data.company_name.lower().replace(" ", "-"),
+            "created_at": datetime.utcnow(),
+            "is_active": True,
+            "is_verified": False
+        }
+        
+        result = await db.users.insert_one(enterprise_data)
+        return {"message": "Enterprise registered successfully", "id": str(result.inserted_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/list")
+async def list_enterprises(limit: int = 20, skip: int = 0):
+    """List all enterprises"""
+    try:
+        enterprises = await db.users.find({"role": "enterprise", "is_active": True}).skip(skip).limit(limit).to_list(length=limit)
+        
+        # Format enterprises for frontend
+        formatted_enterprises = []
+        for enterprise in enterprises:
+            formatted_enterprises.append({
+                "id": str(enterprise["_id"]),
+                "company_name": enterprise.get("company_name", ""),
+                "company_slug": enterprise.get("company_slug", ""),
+                "business_type": enterprise.get("business_type", ""),
+                "contact_person": enterprise.get("contact_person", ""),
+                "phone": enterprise.get("phone", ""),
+                "year_founded": enterprise.get("year_founded", ""),
+                "number_of_employees": enterprise.get("number_of_employees", ""),
+                "business_sector": enterprise.get("business_sector", ""),
+                "company_description": enterprise.get("company_description", ""),
+                "city": enterprise.get("city", ""),
+                "country": enterprise.get("country", ""),
+                "certifications": enterprise.get("certifications", []),
+                "profile_photo": enterprise.get("profile_photo", ""),
+                "dfe_number": enterprise.get("dfe_number", ""),
+                "average_rating": enterprise.get("average_rating", 0),
+                "total_products": enterprise.get("total_products", 0),
+                "created_at": enterprise.get("created_at", "")
+            })
+        
+        return {"enterprises": formatted_enterprises, "total": len(formatted_enterprises)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/profile/{company_slug}")
+async def get_enterprise_profile(company_slug: str):
+    """Get enterprise profile by slug"""
+    try:
+        enterprise = await db.users.find_one({"company_slug": company_slug, "role": "enterprise"})
+        if not enterprise:
+            raise HTTPException(status_code=404, detail="Enterprise not found")
+        
+        return {
+            "id": str(enterprise["_id"]),
+            "company_name": enterprise.get("company_name", ""),
+            "company_slug": enterprise.get("company_slug", ""),
+            "business_type": enterprise.get("business_type", ""),
+            "contact_person": enterprise.get("contact_person", ""),
+            "phone": enterprise.get("phone", ""),
+            "year_founded": enterprise.get("year_founded", ""),
+            "number_of_employees": enterprise.get("number_of_employees", ""),
+            "business_sector": enterprise.get("business_sector", ""),
+            "company_description": enterprise.get("company_description", ""),
+            "city": enterprise.get("city", ""),
+            "country": enterprise.get("country", ""),
+            "certifications": enterprise.get("certifications", []),
+            "profile_photo": enterprise.get("profile_photo", ""),
+            "dfe_number": enterprise.get("dfe_number", ""),
+            "average_rating": enterprise.get("average_rating", 0),
+            "total_products": enterprise.get("total_products", 0),
+            "created_at": enterprise.get("created_at", "")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/dashboard")
+async def get_enterprise_dashboard(current_user = Depends(get_current_user)):
+    """Get enterprise dashboard stats"""
+    try:
+        if current_user.get("role") != "enterprise":
+            raise HTTPException(status_code=403, detail="Not an enterprise user")
+        
+        # Get enterprise stats
+        enterprise_id = current_user.get("_id")
+        
+        # Count products
+        total_products = await db.products.count_documents({"vendor_id": str(enterprise_id)})
+        
+        # Count orders
+        total_orders = await db.orders.count_documents({"vendor_id": str(enterprise_id)})
+        
+        # Calculate total revenue
+        orders = await db.orders.find({"vendor_id": str(enterprise_id)}).to_list(length=None)
+        total_revenue = sum(order.get("total_amount", 0) for order in orders)
+        
+        return {
+            "total_products": total_products,
+            "total_orders": total_orders,
+            "total_revenue": total_revenue,
+            "total_visitors": 0  # To be implemented
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/profile")
+async def update_enterprise_profile(data: EnterpriseUpdate, current_user = Depends(get_current_user)):
+    """Update enterprise profile"""
+    try:
+        if current_user.get("role") != "enterprise":
+            raise HTTPException(status_code=403, detail="Not an enterprise user")
+        
+        enterprise_id = current_user.get("_id")
+        
+        # Build update data
+        update_data = {}
+        for field, value in data.dict(exclude_unset=True).items():
+            if value is not None:
+                update_data[field] = value
+        
+        if update_data.get("company_name"):
+            update_data["company_slug"] = update_data["company_name"].lower().replace(" ", "-")
+        
+        await db.users.update_one(
+            {"_id": enterprise_id},
+            {"$set": update_data}
+        )
+        
+        return {"message": "Profile updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/upload-photo")
+async def upload_enterprise_photo(
+    file: UploadFile = File(...),
+    current_user = Depends(get_current_user)
+):
+    """Upload enterprise profile photo"""
+    try:
+        if current_user.get("role") != "enterprise":
+            raise HTTPException(status_code=403, detail="Not an enterprise user")
+        
+        # Save file
+        import os
+        import uuid
+        from pathlib import Path
+        
+        upload_dir = Path("/var/www/cloleo/backend/uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_extension = file.filename.split(".")[-1]
+        file_name = f"{uuid.uuid4()}.{file_extension}"
+        file_path = upload_dir / file_name
+        
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        
+        # Update user profile
+        await db.users.update_one(
+            {"_id": current_user.get("_id")},
+            {"$set": {"profile_photo": f"/uploads/{file_name}"}}
+        )
+        
+        return {"message": "Photo uploaded successfully", "url": f"/uploads/{file_name}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
