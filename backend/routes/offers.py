@@ -89,31 +89,43 @@ async def get_received_offers(
     current_user: dict = Depends(get_current_user)
 ):
     """Récupérer les offres reçues par le vendeur"""
-    offers = await db.offers.find({
-        "vendor_id": current_user.get("id"),
-        "status": {"$in": [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER]}
-    }).to_list(length=None)
-    
-    # Enrichir avec les infos du produit et de l'acheteur
-    enriched_offers = []
-    for offer in offers:
-        product = await db.products.find_one({"id": offer["product_id"]})
-        buyer = await db.users.find_one({"id": offer["buyer_id"]})
+    try:
+        offers = await db.offers.find({
+            "vendor_id": current_user.get("id"),
+            "status": {"$in": [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER]}
+        }).to_list(length=None)
         
-        enriched_offers.append({
-            **offer,
-            "product": {
-                "name": product.get("name") if product else "Produit supprimé",
-                "image": product.get("images", [])[0] if product and product.get("images") else None,
-                "price_fcfa": product.get("price_fcfa") if product else 0
-            },
-            "buyer": {
-                "name": buyer.get("name") if buyer else "Utilisateur supprimé",
-                "email": buyer.get("email") if buyer else None
-            }
-        })
-    
-    return {"offers": enriched_offers}
+        # Enrichir avec les infos du produit et de l'acheteur
+        enriched_offers = []
+        for offer in offers:
+            product = await db.products.find_one({"id": offer["product_id"]})
+            buyer = None
+            if offer.get("buyer_id"):
+                buyer = await db.users.find_one({"id": offer["buyer_id"]})
+            
+            # Convertir l'offre en dict et exclure _id pour éviter les problèmes de sérialisation
+            offer_dict = dict(offer)
+            if "_id" in offer_dict:
+                del offer_dict["_id"]
+            
+            enriched_offers.append({
+                **offer_dict,
+                "product": {
+                    "name": product.get("name") if product else "Produit supprimé",
+                    "image": product.get("images", [])[0] if product and product.get("images") else None,
+                    "price_fcfa": product.get("price_fcfa") if product else 0
+                },
+                "buyer": {
+                    "name": buyer.get("name") if buyer else "Utilisateur supprimé",
+                    "email": buyer.get("email") if buyer else None
+                }
+            })
+        
+        return {"offers": enriched_offers}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/sent")
@@ -121,31 +133,43 @@ async def get_sent_offers(
     current_user: dict = Depends(get_current_user)
 ):
     """Récupérer les offres envoyées par l'acheteur"""
-    offers = await db.offers.find({
-        "buyer_id": current_user.get("id")
-    }).to_list(length=None)
-    
-    # Enrichir avec les infos du produit et du vendeur
-    enriched_offers = []
-    for offer in offers:
-        product = await db.products.find_one({"id": offer["product_id"]})
-        vendor = await db.users.find_one({"id": offer["vendor_id"]})
+    try:
+        offers = await db.offers.find({
+            "buyer_id": current_user.get("id")
+        }).to_list(length=None)
         
-        enriched_offers.append({
-            **offer,
-            "product": {
-                "name": product.get("name") if product else "Produit supprimé",
-                "image": product.get("images", [])[0] if product and product.get("images") else None,
-                "price_fcfa": product.get("price_fcfa") if product else 0
-            },
-            "vendor": {
-                "name": vendor.get("name") if vendor else "Vendeur supprimé",
-                "role": vendor.get("role") if vendor else "unknown",
-                "email": vendor.get("email") if vendor else None
-            }
-        })
-    
-    return {"offers": enriched_offers}
+        # Enrichir avec les infos du produit et du vendeur
+        enriched_offers = []
+        for offer in offers:
+            product = await db.products.find_one({"id": offer["product_id"]})
+            vendor = None
+            if offer.get("vendor_id"):
+                vendor = await db.users.find_one({"id": offer["vendor_id"]})
+            
+            # Convertir l'offre en dict et exclure _id pour éviter les problèmes de sérialisation
+            offer_dict = dict(offer)
+            if "_id" in offer_dict:
+                del offer_dict["_id"]
+            
+            enriched_offers.append({
+                **offer_dict,
+                "product": {
+                    "name": product.get("name") if product else "Produit supprimé",
+                    "image": product.get("images", [])[0] if product and product.get("images") else None,
+                    "price_fcfa": product.get("price_fcfa") if product else 0
+                },
+                "vendor": {
+                    "name": vendor.get("name") if vendor else "Vendeur supprimé",
+                    "role": vendor.get("role") if vendor else "unknown",
+                    "email": vendor.get("email") if vendor else None
+                }
+            })
+        
+        return {"offers": enriched_offers}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{offer_id}/respond")
