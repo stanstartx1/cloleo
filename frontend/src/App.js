@@ -54,6 +54,12 @@ import RevendeurDashboard from "./pages/RevendeurDashboard";
 import RevendeurShopPage from "./pages/RevendeurShopPage";
 import RevendeurEditProduct from "./pages/RevendeurEditProduct";
 
+// Enterprise Pages
+import EnterpriseRegisterPage from "./pages/EnterpriseRegisterPage";
+import EnterpriseDashboard from "./pages/EnterpriseDashboard";
+import EnterpriseProfilePage from "./pages/EnterpriseProfilePage";
+import EnterprisesPage from "./pages/EnterprisesPage";
+
 // Shop Pages
 import VendorShopPage from "./pages/VendorShopPage";
 
@@ -209,6 +215,16 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       <Route path="/boutique/:shopSlug" element={<RevendeurShopPage />} />
+
+      {/* Enterprise Routes */}
+      <Route path="/devenir-entreprise" element={<PublicLayout><EnterpriseRegisterPage /></PublicLayout>} />
+      <Route path="/entreprises" element={<PublicLayout><EnterprisesPage /></PublicLayout>} />
+      <Route path="/enterprise" element={
+        <ProtectedRoute>
+          <StandaloneDashboardLayout><EnterpriseDashboard /></StandaloneDashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/enterprise/profile/:companySlug" element={<PublicLayout><EnterpriseProfilePage /></PublicLayout>} />
 
       {/* Vendor Shop Route (Public) */}
       <Route path="/vendeur-boutique/:sellerId" element={<PublicLayout><VendorShopPage /></PublicLayout>} />
