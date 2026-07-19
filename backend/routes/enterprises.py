@@ -5,7 +5,7 @@ from datetime import datetime
 from core.database import db
 from core.auth import get_current_user, require_admin
 
-router = APIRouter(prefix="/api/enterprises", tags=["enterprises"])
+router = APIRouter(prefix="/enterprises", tags=["enterprises"])
 
 class EnterpriseRegister(BaseModel):
     email: str
