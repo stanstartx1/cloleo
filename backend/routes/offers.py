@@ -35,18 +35,18 @@ async def create_offer(
 ):
     """Créer une nouvelle offre sur un produit"""
     # Vérifier que le produit existe
-    product = db.products.find_one({"_id": offer.product_id})
+    product = await db.products.find_one({"id": offer.product_id})
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
     # Vérifier que l'utilisateur n'est pas le vendeur du produit
-    if product.get("vendor_id") == current_user["_id"]:
+    if product.get("seller_id") == current_user.get("id"):
         raise HTTPException(status_code=400, detail="Vous ne pouvez pas faire d'offre sur votre propre produit")
     
     # Vérifier si une offre similaire existe déjà (pending)
-    existing_offer = db.offers.find_one({
+    existing_offer = await db.offers.find_one({
         "product_id": offer.product_id,
-        "buyer_id": current_user["_id"],
+        "buyer_id": current_user.get("id"),
         "status": OfferStatus.PENDING
     })
     if existing_offer:
@@ -54,11 +54,11 @@ async def create_offer(
     
     # Créer l'offre
     offer_data = {
-        "_id": str(uuid.uuid4()),
+        "id": str(uuid.uuid4()),
         "product_id": offer.product_id,
-        "buyer_id": current_user["_id"],
-        "vendor_id": product.get("vendor_id"),
-        "vendor_role": product.get("vendor_role", "vendor"),
+        "buyer_id": current_user.get("id"),
+        "vendor_id": product.get("seller_id"),
+        "vendor_role": "vendor",
         "offered_price_fcfa": offer.offered_price_fcfa,
         "original_price_fcfa": product.get("price_fcfa"),
         "quantity": offer.quantity,
@@ -72,7 +72,7 @@ async def create_offer(
                 "price": offer.offered_price_fcfa,
                 "message": offer.message,
                 "timestamp": datetime.utcnow(),
-                "actor": current_user["_id"],
+                "actor": current_user.get("id"),
                 "actor_name": current_user.get("name")
             }
         ]
@@ -96,15 +96,15 @@ async def get_received_offers(
 ):
     """Récupérer les offres reçues par le vendeur"""
     offers = await db.offers.find({
-        "vendor_id": current_user["_id"],
+        "vendor_id": current_user.get("id"),
         "status": {"$in": [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER]}
     }).to_list(length=None)
     
     # Enrichir avec les infos du produit et de l'acheteur
     enriched_offers = []
     for offer in offers:
-        product = await db.products.find_one({"_id": offer["product_id"]})
-        buyer = await db.users.find_one({"_id": offer["buyer_id"]})
+        product = await db.products.find_one({"id": offer["product_id"]})
+        buyer = await db.users.find_one({"id": offer["buyer_id"]})
         
         enriched_offers.append({
             **offer,
@@ -128,14 +128,14 @@ async def get_sent_offers(
 ):
     """Récupérer les offres envoyées par l'acheteur"""
     offers = await db.offers.find({
-        "buyer_id": current_user["_id"]
+        "buyer_id": current_user.get("id")
     }).to_list(length=None)
     
     # Enrichir avec les infos du produit et du vendeur
     enriched_offers = []
     for offer in offers:
-        product = await db.products.find_one({"_id": offer["product_id"]})
-        vendor = await db.users.find_one({"_id": offer["vendor_id"]})
+        product = await db.products.find_one({"id": offer["product_id"]})
+        vendor = await db.users.find_one({"id": offer["vendor_id"]})
         
         enriched_offers.append({
             **offer,
@@ -160,12 +160,12 @@ async def respond_to_offer(
     current_user: dict = Depends(get_current_user)
 ):
     """Répondre à une offre (accepter/rejeter)"""
-    offer = await db.offers.find_one({"_id": offer_id})
+    offer = await db.offers.find_one({"id": offer_id})
     if not offer:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     
     # Vérifier que l'utilisateur est le vendeur
-    if offer["vendor_id"] != current_user["_id"]:
+    if offer["vendor_id"] != current_user.get("id"):
         raise HTTPException(status_code=403, detail="Vous n'êtes pas autorisé à répondre à cette offre")
     
     if offer["status"] != OfferStatus.PENDING:
@@ -174,7 +174,7 @@ async def respond_to_offer(
     # Vérifier l'expiration
     if datetime.utcnow() > offer["expires_at"]:
         await db.offers.update_one(
-            {"_id": offer_id},
+            {"id": offer_id},
             {"$set": {"status": OfferStatus.EXPIRED}}
         )
         raise HTTPException(status_code=400, detail="Cette offre a expiré")
@@ -184,7 +184,7 @@ async def respond_to_offer(
         "status": response.status,
         "response_message": response.response_message,
         "responded_at": datetime.utcnow(),
-        "responded_by": current_user["_id"]
+        "responded_by": current_user.get("id")
     }
     
     if response.status == OfferStatus.ACCEPTED:
@@ -199,14 +199,14 @@ async def respond_to_offer(
         })
     
     await db.offers.update_one(
-        {"_id": offer_id},
+        {"id": offer_id},
         {"$set": update_data, "$push": {
             "history": {
                 "action": "responded",
                 "status": response.status,
                 "message": response.response_message,
                 "timestamp": datetime.utcnow(),
-                "actor": current_user["_id"],
+                "actor": current_user.get("id"),
                 "actor_name": current_user.get("name")
             }
         }}
@@ -225,12 +225,12 @@ async def counter_offer(
     current_user: dict = Depends(get_current_user)
 ):
     """Faire une contre-offre"""
-    offer = await db.offers.find_one({"_id": offer_id})
+    offer = await db.offers.find_one({"id": offer_id})
     if not offer:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     
     # Vérifier que l'utilisateur est le vendeur
-    if offer["vendor_id"] != current_user["_id"]:
+    if offer["vendor_id"] != current_user.get("id"):
         raise HTTPException(status_code=403, detail="Vous n'êtes pas autorisé à faire une contre-offre")
     
     if offer["status"] not in [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER]:
@@ -238,13 +238,13 @@ async def counter_offer(
     
     # Mettre à jour l'offre
     await db.offers.update_one(
-        {"_id": offer_id},
+        {"id": offer_id},
         {"$set": {
             "status": OfferStatus.COUNTER_OFFER,
             "counter_price_fcfa": counter.counter_price_fcfa,
             "counter_message": counter.message,
             "countered_at": datetime.utcnow(),
-            "countered_by": current_user["_id"],
+            "countered_by": current_user.get("id"),
             "expires_at": datetime.utcnow() + timedelta(hours=OFFER_EXPIRATION_HOURS)
         }, "$push": {
             "history": {
@@ -252,7 +252,7 @@ async def counter_offer(
                 "price": counter.counter_price_fcfa,
                 "message": counter.message,
                 "timestamp": datetime.utcnow(),
-                "actor": current_user["_id"],
+                "actor": current_user.get("id"),
                 "actor_name": current_user.get("name")
             }
         }}
@@ -270,12 +270,12 @@ async def accept_counter_offer(
     current_user: dict = Depends(get_current_user)
 ):
     """Accepter une contre-offre (par l'acheteur)"""
-    offer = await db.offers.find_one({"_id": offer_id})
+    offer = await db.offers.find_one({"id": offer_id})
     if not offer:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     
     # Vérifier que l'utilisateur est l'acheteur
-    if offer["buyer_id"] != current_user["_id"]:
+    if offer["buyer_id"] != current_user.get("id"):
         raise HTTPException(status_code=403, detail="Vous n'êtes pas autorisé à accepter cette contre-offre")
     
     if offer["status"] != OfferStatus.COUNTER_OFFER:
@@ -286,7 +286,7 @@ async def accept_counter_offer(
     link_expires = datetime.utcnow() + timedelta(hours=LINK_EXPIRATION_HOURS)
     
     await db.offers.update_one(
-        {"_id": offer_id},
+        {"id": offer_id},
         {"$set": {
             "status": OfferStatus.ACCEPTED,
             "final_price_fcfa": offer["counter_price_fcfa"],
@@ -298,7 +298,7 @@ async def accept_counter_offer(
                 "action": "accepted_counter",
                 "price": offer["counter_price_fcfa"],
                 "timestamp": datetime.utcnow(),
-                "actor": current_user["_id"],
+                "actor": current_user.get("id"),
                 "actor_name": current_user.get("name")
             }
         }}
@@ -316,19 +316,19 @@ async def withdraw_offer(
     current_user: dict = Depends(get_current_user)
 ):
     """Retirer une offre (par l'acheteur)"""
-    offer = await db.offers.find_one({"_id": offer_id})
+    offer = await db.offers.find_one({"id": offer_id})
     if not offer:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     
     # Vérifier que l'utilisateur est l'acheteur
-    if offer["buyer_id"] != current_user["_id"]:
+    if offer["buyer_id"] != current_user.get("id"):
         raise HTTPException(status_code=403, detail="Vous n'êtes pas autorisé à retirer cette offre")
     
     if offer["status"] not in [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER]:
         raise HTTPException(status_code=400, detail="Cette offre ne peut plus être retirée")
     
     await db.offers.update_one(
-        {"_id": offer_id},
+        {"id": offer_id},
         {"$set": {
             "status": OfferStatus.WITHDRAWN,
             "withdrawn_at": datetime.utcnow()
@@ -336,7 +336,7 @@ async def withdraw_offer(
             "history": {
                 "action": "withdrawn",
                 "timestamp": datetime.utcnow(),
-                "actor": current_user["_id"],
+                "actor": current_user.get("id"),
                 "actor_name": current_user.get("name")
             }
         }}
@@ -360,12 +360,12 @@ async def get_negotiated_link(token: str):
     if offer["status"] != OfferStatus.ACCEPTED:
         raise HTTPException(status_code=400, detail="Cette offre n'a pas été acceptée")
     
-    product = await db.products.find_one({"_id": offer["product_id"]})
+    product = await db.products.find_one({"id": offer["product_id"]})
     
     return {
-        "offer_id": offer["_id"],
+        "offer_id": offer["id"],
         "product": {
-            "id": product["_id"] if product else None,
+            "id": product["id"] if product else None,
             "name": product.get("name") if product else "Produit supprimé",
             "image": product.get("images", [])[0] if product and product.get("images") else None,
             "original_price_fcfa": offer["original_price_fcfa"],
@@ -383,17 +383,17 @@ async def get_offer_details(
     current_user: dict = Depends(get_current_user)
 ):
     """Récupérer les détails d'une offre"""
-    offer = await db.offers.find_one({"_id": offer_id})
+    offer = await db.offers.find_one({"id": offer_id})
     if not offer:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     
     # Vérifier que l'utilisateur est impliqué dans l'offre
-    if offer["buyer_id"] != current_user["_id"] and offer["vendor_id"] != current_user["_id"]:
+    if offer["buyer_id"] != current_user.get("id") and offer["vendor_id"] != current_user.get("id"):
         raise HTTPException(status_code=403, detail="Vous n'êtes pas autorisé à voir cette offre")
     
-    product = await db.products.find_one({"_id": offer["product_id"]})
-    other_party_id = offer["vendor_id"] if current_user["_id"] == offer["buyer_id"] else offer["buyer_id"]
-    other_party = await db.users.find_one({"_id": other_party_id})
+    product = await db.products.find_one({"id": offer["product_id"]})
+    other_party_id = offer["vendor_id"] if current_user.get("id") == offer["buyer_id"] else offer["buyer_id"]
+    other_party = await db.users.find_one({"id": other_party_id})
     
     return {
         **offer,

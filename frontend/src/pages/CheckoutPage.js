@@ -4,12 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ShoppingBag, MapPin, Phone, User, CreditCard, Truck, 
-  ArrowLeft, CheckCircle, Loader2, Package, Clock, Navigation
+  ArrowLeft, CheckCircle, Loader2, Package, Clock, Navigation,
+  LogIn
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { loadMapbox } from '../utils/mapboxLoader';
 import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, reverseGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
@@ -31,6 +33,7 @@ const CheckoutPage = () => {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -149,6 +152,12 @@ const CheckoutPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!user || !token) {
+      setShowLoginDialog(true);
+      return;
+    }
     
     if (!formData.street || !formData.phone || !formData.name) {
       toast.error('Veuillez remplir tous les champs obligatoires');
@@ -504,6 +513,40 @@ const CheckoutPage = () => {
             </div>
           </div>
         </form>
+
+        {/* Login Dialog */}
+        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <LogIn className="w-5 h-5 text-orange-500" />
+                Connectez-vous pour continuer
+              </DialogTitle>
+              <DialogDescription>
+                Pour finaliser votre commande, vous devez être connecté à votre compte.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 mt-4">
+              <Button asChild className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600">
+                <Link to="/connexion?tab=login">
+                  Se connecter
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/connexion?tab=register">
+                  Créer un compte
+                </Link>
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => setShowLoginDialog(false)}
+              >
+                Annuler
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
