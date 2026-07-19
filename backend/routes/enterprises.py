@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 from core.database import db
-from core.auth import get_current_user
+from core.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/enterprises", tags=["enterprises"])
 
@@ -307,6 +307,67 @@ async def get_enterprise_documents(current_user = Depends(get_current_user)):
         documents = user.get("documents", {})
         
         return {"documents": documents}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin endpoints for enterprise management
+@router.get("/admin/list")
+async def admin_list_enterprises(admin = Depends(require_admin)):
+    """List all enterprises for admin"""
+    try:
+        enterprises = await db.users.find({"role": "enterprise"}).to_list(length=None)
+        
+        formatted_enterprises = []
+        for enterprise in enterprises:
+            formatted_enterprises.append({
+                "id": str(enterprise["_id"]),
+                "company_name": enterprise.get("company_name", ""),
+                "email": enterprise.get("email", ""),
+                "contact_person": enterprise.get("contact_person", ""),
+                "phone": enterprise.get("phone", ""),
+                "business_type": enterprise.get("business_type", ""),
+                "is_verified": enterprise.get("is_verified", False),
+                "is_active": enterprise.get("is_active", True),
+                "documents": enterprise.get("documents", {}),
+                "created_at": enterprise.get("created_at", "")
+            })
+        
+        return {"enterprises": formatted_enterprises}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/admin/{enterprise_id}/verify")
+async def admin_verify_enterprise(enterprise_id: str, admin = Depends(require_admin)):
+    """Verify and activate an enterprise"""
+    try:
+        result = await db.users.update_one(
+            {"_id": enterprise_id, "role": "enterprise"},
+            {"$set": {"is_verified": True, "is_active": True}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Enterprise not found")
+        
+        return {"message": "Enterprise verified successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/admin/{enterprise_id}")
+async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_admin)):
+    """Delete an enterprise"""
+    try:
+        result = await db.users.delete_one({"_id": enterprise_id, "role": "enterprise"})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Enterprise not found")
+        
+        return {"message": "Enterprise deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:

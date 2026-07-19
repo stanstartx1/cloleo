@@ -6,7 +6,7 @@ import {
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
   BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star, MessageCircle,
-  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp, Image, Upload, GripVertical
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp, Image, Upload, GripVertical, Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../components/FloatingChat';
@@ -27,6 +27,7 @@ const SIDEBAR_ITEMS = [
   { id: 'vendors', label: 'Vendeurs', icon: Store, color: 'text-purple-400' },
   { id: 'drivers', label: 'Livreurs', icon: Truck, color: 'text-blue-400' },
   { id: 'revendeurs', label: 'Revendeurs', icon: Package, color: 'text-indigo-400' },
+  { id: 'enterprises', label: 'Entreprises', icon: Building2, color: 'text-green-400' },
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
   { id: 'messages', label: 'Messages', icon: MessageCircle, color: 'text-fuchsia-400' },
   { id: 'categories', label: 'Catégories', icon: Cog, color: 'text-teal-400' },
@@ -69,6 +70,7 @@ const AdminDashboard = () => {
   const [productFilter, setProductFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [adminConversations, setAdminConversations] = useState([]);
+  const [enterprises, setEnterprises] = useState([]);
 
   // ===== AUTO-APPROVE STATES =====
   const [autoApprove, setAutoApprove] = useState({
@@ -107,7 +109,7 @@ const AdminDashboard = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       
-      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, revendeursRes, dropStatsRes, usersRes, catsRes] = await Promise.all([
+      const [dashRes, vendorsRes, driversRes, productsRes, pendingRes, transactionsRes, plansRes, revendeursRes, dropStatsRes, usersRes, catsRes, enterprisesRes] = await Promise.all([
         axios.get(`${API}/admin/dashboard`, { headers }),
         axios.get(`${API}/admin/vendors`, { headers }),
         axios.get(`${API}/admin/drivers`, { headers }).catch(() => ({ data: { drivers: [] } })),
@@ -118,7 +120,8 @@ const AdminDashboard = () => {
         axios.get(`${API}/admin/revendeurs`, { headers }).catch(() => ({ data: { revendeurs: [] } })),
         axios.get(`${API}/admin/dropshipping/stats`, { headers }).catch(() => ({ data: { stats: {}, recent_transactions: [] } })),
         axios.get(`${API}/admin/users`, { headers }).catch(() => ({ data: { users: [] } })),
-        axios.get(`${API}/categories`, { headers }).catch(() => ({ data: [] }))
+        axios.get(`${API}/categories`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/enterprises/admin/list`, { headers }).catch(() => ({ data: { enterprises: [] } }))
       ]);
       
       setStats(dashRes.data.stats);
@@ -133,6 +136,7 @@ const AdminDashboard = () => {
       setDropshippingTransactions(dropStatsRes.data.recent_transactions || []);
       setAllUsers(usersRes.data.users || []);
       setCategories(catsRes.data || []);
+      setEnterprises(enterprisesRes.data.enterprises || []);
       
       const [vendorSettings, driverSettings, platformSettings] = await Promise.all([
         axios.get(`${API}/admin/settings/vendor`, { headers }),
@@ -639,6 +643,8 @@ const AdminDashboard = () => {
         return <DriversSection drivers={drivers} onVerify={handleVerifyDriver} onToggle={handleToggleDriver} onDelete={handleDeleteDriver} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.drivers} onToggleAutoApprove={() => handleToggleAutoApprove('drivers')} />;
       case 'revendeurs':
         return <RevendeursSection revendeurs={revendeursWithCounts} stats={dropshippingStats} transactions={dropshippingTransactions} token={token} onRefresh={fetchAllData} onDelete={handleDeleteRevendeur} onMessage={handleAdminWriteMessage} autoApprove={autoApprove.revendeurs} onToggleAutoApprove={() => handleToggleAutoApprove('revendeurs')} />;
+      case 'enterprises':
+        return <EnterprisesSection enterprises={enterprises} onRefresh={fetchAllData} />;
       case 'products':
         return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
       case 'messages':
@@ -1061,6 +1067,138 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete, onMessage, auto
     )}
   </div>
 );
+
+const EnterprisesSection = ({ enterprises, onRefresh }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const filteredEnterprises = enterprises.filter(e => 
+    e.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleDeleteEnterprise = async (enterpriseId, companyName) => {
+    if (!window.confirm(`Supprimer l'entreprise "${companyName}" ?\n\nToutes ses données seront supprimées définitivement.`)) return;
+    try {
+      const API = API_URL;
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/admin/enterprises/${enterpriseId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Entreprise supprimée');
+      onRefresh();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleVerifyEnterprise = async (enterpriseId) => {
+    try {
+      const API = API_URL;
+      const token = localStorage.getItem('token');
+      await axios.put(`${API}/admin/enterprises/${enterpriseId}/verify`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Entreprise vérifiée et activée !');
+      onRefresh();
+    } catch (error) {
+      toast.error('Erreur lors de la vérification');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Input 
+            placeholder="Rechercher une entreprise..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            className="pl-10 bg-slate-700 border-slate-600 text-white" 
+          />
+        </div>
+      </div>
+
+      {filteredEnterprises.length === 0 ? (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center">
+          <Building2 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold mb-2">Aucune entreprise inscrite</h3>
+          <p className="text-slate-400">Les entreprises apparaîtront ici après leur inscription</p>
+        </div>
+      ) : (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-slate-700/50">
+              <tr>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Entreprise</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Contact</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Type</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Documents</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Statut</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEnterprises.map((enterprise) => (
+                <tr key={enterprise.id} className="border-t border-slate-700 hover:bg-slate-700/30">
+                  <td className="p-4">
+                    <p className="font-medium">{enterprise.company_name}</p>
+                    <p className="text-sm text-slate-400">{enterprise.email}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-sm">{enterprise.contact_person}</p>
+                    <p className="text-xs text-slate-400">{enterprise.phone}</p>
+                  </td>
+                  <td className="p-4 capitalize">{enterprise.business_type}</td>
+                  <td className="p-4">
+                    <div className="flex flex-col gap-1 text-xs">
+                      {enterprise.documents?.dfe && (
+                        <a href={`${API_BASE}${enterprise.documents.dfe}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                          DFE ✓
+                        </a>
+                      )}
+                      {enterprise.documents?.trade_register && (
+                        <a href={`${API_BASE}${enterprise.documents.trade_register}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                          Registre ✓
+                        </a>
+                      )}
+                      {!enterprise.documents?.dfe && !enterprise.documents?.trade_register && (
+                        <span className="text-slate-500">Aucun</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex flex-col gap-1">
+                      {enterprise.is_verified ? (
+                        <span className="text-green-400 text-xs flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Vérifié</span>
+                      ) : (
+                        <span className="text-amber-400 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> En attente</span>
+                      )}
+                      {enterprise.is_active ? <span className="text-green-400 text-xs">Actif</span> : <span className="text-red-400 text-xs">Inactif</span>}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      {!enterprise.is_verified && (
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleVerifyEnterprise(enterprise.id)}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => handleDeleteEnterprise(enterprise.id, enterprise.company_name)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ProductsSection = ({ products, pendingProducts, filter, setFilter, onApprove, onReject, onToggleFeatured, onDelete, autoApprove, onToggleAutoApprove }) => {
   const featuredCount = products.filter(p => p.is_featured).length;
