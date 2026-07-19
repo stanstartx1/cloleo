@@ -18,6 +18,7 @@ const AuthPage = () => {
  
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoading, setLogoLoading] = useState(true);
   const [authPageSettings, setAuthPageSettings] = useState({
@@ -155,6 +156,21 @@ const AuthPage = () => {
   const [registerRole, setRegisterRole] = useState('customer');
 
   const from = location.state?.from?.pathname || '/';
+
+  // Handle URL parameters for tab and role pre-selection
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    const role = searchParams.get('role');
+
+    if (tab === 'register') {
+      setActiveTab('register');
+    }
+
+    if (role && ['customer', 'vendor', 'dropshipper', 'driver', 'enterprise'].includes(role)) {
+      setRegisterRole(role);
+    }
+  }, [location.search]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

@@ -132,15 +132,12 @@ const BecomeVendorPage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/connexion">
+              <Link to="/connexion?tab=register&role=vendor">
                 <Button size="lg" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-6 text-lg rounded-full shadow-lg shadow-orange-500/30">
                   Commencer maintenant
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-full border-2 border-orange-200 hover:border-orange-400">
-                En savoir plus
-              </Button>
             </div>
           </div>
         </div>
@@ -270,7 +267,7 @@ const BecomeVendorPage = () => {
               Rejoignez des milliers de vendeurs qui réussissent sur Cloléo
             </p>
             
-            <Link to="/connexion">
+            <Link to="/connexion?tab=register&role=vendor">
               <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 px-8 py-6 text-lg rounded-full shadow-xl">
                 Commencer maintenant
                 <ArrowRight className="ml-2 w-5 h-5" />
