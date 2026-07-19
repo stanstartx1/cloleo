@@ -25,7 +25,7 @@ const VendorAddProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
-  const { token, isVendor, logout } = useAuth();
+  const { token, isVendor, isEnterprise, logout } = useAuth();
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,12 +61,12 @@ const VendorAddProduct = () => {
   );
 
   useEffect(() => {
-    if (!isVendor) {
+    if (!isVendor && !isEnterprise) {
       navigate('/connexion');
       return;
     }
     fetchCategories();
-  }, [isVendor, navigate]);
+  }, [isVendor, isEnterprise, navigate]);
 
   useEffect(() => {
     if (!isEditMode || !token) return;
