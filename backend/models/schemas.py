@@ -190,3 +190,35 @@ class CategoryUpdate(BaseModel):
     is_active: Optional[bool] = None
     parent_slug: Optional[str] = None
     custom_fields: Optional[List[CustomFieldDefinition]] = None
+
+
+class OfferStatus:
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    COUNTER_OFFER = "counter_offer"
+    EXPIRED = "expired"
+    WITHDRAWN = "withdrawn"
+
+
+class OfferCreate(BaseModel):
+    product_id: str
+    offered_price_fcfa: int
+    message: Optional[str] = None
+    quantity: int = 1
+
+
+class OfferResponse(BaseModel):
+    status: str
+    counter_price_fcfa: Optional[int] = None
+    response_message: Optional[str] = None
+
+
+class OfferCounter(BaseModel):
+    counter_price_fcfa: int
+    message: Optional[str] = None
+
+
+class NegotiatedLink(BaseModel):
+    offer_id: str
+    expires_at: Optional[str] = None

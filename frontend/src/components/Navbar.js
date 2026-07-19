@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
   Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
-  Filter, Star
+  Filter, Star, DollarSign
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -507,6 +507,9 @@ const Navbar = () => {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> Mes commandes</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> Mes offres</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> Mes abonnements</Link>

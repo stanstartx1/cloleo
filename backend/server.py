@@ -31,6 +31,7 @@ from routes.categories import router as categories_router
 from routes.chat import router as chat_router, vendor_chat_router, dropshipper_chat_router, set_manager
 from routes.enterprises import router as enterprises_router
 from routes.favorites import router as favorites_router, session_favorites_router
+from routes.offers import router as offers_router
 from routes.products import router as products_router
 from routes.reviews import router as reviews_router
 
@@ -78,6 +79,7 @@ api.include_router(vendor_chat_router)
 api.include_router(dropshipper_chat_router)
 api.include_router(reviews_router)
 api.include_router(enterprises_router)
+api.include_router(offers_router)
 
 
 def _utc():

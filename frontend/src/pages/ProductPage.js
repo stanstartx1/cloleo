@@ -223,38 +223,26 @@ const ProductPage = () => {
 
     setSendingOffer(true);
     try {
-      // Start a conversation with the offer message
-      const offerText = `💰 Offre de prix: ${parseInt(offerPrice).toLocaleString('fr-FR')} FCFA\n\n${offerMessage || 'Je souhaite faire une offre pour ce produit.'}`;
-      
-      // Create conversation first
-      const convResponse = await axios.post(`${API}/conversations/start`, {
-        product_id: product.id
+      // Use the new offers API
+      await axios.post(`${API}/offers/create`, {
+        product_id: product.id,
+        offered_price_fcfa: parseInt(offerPrice),
+        message: offerMessage,
+        quantity: quantity
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Send the offer message
-      await axios.post(`${API}/conversations/${convResponse.data.id}/messages`, {
-        content: offerText
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      toast.success('Offre envoyée au vendeur !', {
+        description: `Vous serez notifié dès que le vendeur répondra.`
       });
-      
-      toast.success('Offre envoyée au vendeur !');
       setShowOfferModal(false);
       setOfferPrice('');
       setOfferMessage('');
-      
-      // Open the chat to show the conversation
-      startConversation(product.id, null, {
-        seller_name: product.seller_name,
-        seller_id: product.seller_id,
-        product_name: product.name,
-        product_image: product.images?.[0]
-      });
     } catch (error) {
       console.error('Error sending offer:', error);
-      toast.error('Erreur lors de l\'envoi de l\'offre');
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'envoi de l\'offre';
+      toast.error(errorMessage);
     } finally {
       setSendingOffer(false);
     }
