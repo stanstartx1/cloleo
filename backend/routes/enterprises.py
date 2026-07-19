@@ -21,6 +21,13 @@ class EnterpriseRegister(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     certifications: Optional[List[str]] = []
+    dfe_number: Optional[str] = None
+    trade_register_number: Optional[str] = None
+    tax_id: Optional[str] = None
+    legal_form: Optional[str] = None
+    capital: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
 
 class EnterpriseUpdate(BaseModel):
     company_name: Optional[str] = None
@@ -63,10 +70,18 @@ async def register_enterprise(data: EnterpriseRegister):
             "city": data.city,
             "country": data.country,
             "certifications": data.certifications,
+            "dfe_number": data.dfe_number,
+            "trade_register_number": data.trade_register_number,
+            "tax_id": data.tax_id,
+            "legal_form": data.legal_form,
+            "capital": data.capital,
+            "address": data.address,
+            "website": data.website,
             "company_slug": data.company_name.lower().replace(" ", "-"),
             "created_at": datetime.utcnow(),
             "is_active": True,
-            "is_verified": False
+            "is_verified": False,
+            "documents": {}
         }
         
         result = await db.users.insert_one(enterprise_data)
@@ -233,6 +248,65 @@ async def upload_enterprise_photo(
         )
         
         return {"message": "Photo uploaded successfully", "url": f"/uploads/{file_name}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/upload-document")
+async def upload_enterprise_document(
+    document_type: str = None,
+    file: UploadFile = File(...),
+    current_user = Depends(get_current_user)
+):
+    """Upload enterprise document (DFE, trade register, etc.)"""
+    try:
+        if current_user.get("role") != "enterprise":
+            raise HTTPException(status_code=403, detail="Not an enterprise user")
+        
+        # Validate document type
+        valid_types = ["dfe", "trade_register", "tax_id", "legal_form", "other"]
+        if document_type not in valid_types:
+            raise HTTPException(status_code=400, detail="Invalid document type")
+        
+        # Save file
+        import os
+        import uuid
+        from pathlib import Path
+        
+        upload_dir = Path("/var/www/cloleo/backend/uploads/enterprise_documents")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_extension = file.filename.split(".")[-1]
+        file_name = f"{document_type}_{uuid.uuid4()}.{file_extension}"
+        file_path = upload_dir / file_name
+        
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        
+        # Update user documents
+        await db.users.update_one(
+            {"_id": current_user.get("_id")},
+            {"$set": {f"documents.{document_type}": f"/uploads/enterprise_documents/{file_name}"}}
+        )
+        
+        return {"message": "Document uploaded successfully", "url": f"/uploads/enterprise_documents/{file_name}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/documents")
+async def get_enterprise_documents(current_user = Depends(get_current_user)):
+    """Get all uploaded documents for enterprise"""
+    try:
+        if current_user.get("role") != "enterprise":
+            raise HTTPException(status_code=403, detail="Not an enterprise user")
+        
+        user = await db.users.find_one({"_id": current_user.get("_id")})
+        documents = user.get("documents", {})
+        
+        return {"documents": documents}
     except HTTPException:
         raise
     except Exception as e:

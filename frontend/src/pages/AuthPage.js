@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -204,6 +204,8 @@ const AuthPage = () => {
       navigate('/devenir-livreur');
     } else if (role === 'dropshipper') {
       navigate('/devenir-revendeur');
+    } else if (role === 'enterprise') {
+      navigate('/devenir-entreprise');
     } else {
       setRegisterRole(role);
     }
@@ -338,6 +340,7 @@ const AuthPage = () => {
                           { role: 'vendor', label: 'Vendeur', icon: Store, color: 'amber' },
                           { role: 'dropshipper', label: 'Revendeur', icon: Package, color: 'purple' },
                           { role: 'driver', label: 'Livreur', icon: Truck, color: 'blue' },
+                          { role: 'enterprise', label: 'Entreprise', icon: Building2, color: 'green' },
                         ].map(({ role, label, icon: Icon, color }) => (
                           <button
                             key={role}

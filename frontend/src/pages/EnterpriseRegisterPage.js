@@ -7,14 +7,70 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, MapPin, Users, Factory, Globe, Award } from 'lucide-react';
+import { Building2, MapPin, Users, Factory, Globe, Award, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://cloleo.com';
+
+const DocumentUpload = ({ label, documentType, onUpload, progress, uploaded }) => {
+  const [file, setFile] = useState(null);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      onUpload(documentType, selectedFile);
+    }
+  };
+
+  return (
+    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <Label className="mb-2 block">{label}</Label>
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              id={documentType}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png"
+            />
+            <label
+              htmlFor={documentType}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="text-sm font-medium">Choisir un fichier</span>
+            </label>
+            {file && <span className="text-sm text-gray-600">{file.name}</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {progress === 100 && uploaded ? (
+            <div className="flex items-center gap-1 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              <span className="text-sm font-medium">Uploadé</span>
+            </div>
+          ) : progress === -1 ? (
+            <div className="flex items-center gap-1 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <span className="text-sm font-medium">Erreur</span>
+            </div>
+          ) : progress > 0 && progress < 100 ? (
+            <div className="text-sm text-gray-600">{progress}%</div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const EnterpriseRegisterPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [uploadedDocuments, setUploadedDocuments] = useState({});
   
   const [formData, setFormData] = useState({
     email: '',
@@ -29,8 +85,43 @@ const EnterpriseRegisterPage = () => {
     company_description: '',
     city: '',
     country: '',
-    certifications: []
+    certifications: [],
+    dfe_number: '',
+    trade_register_number: '',
+    tax_id: '',
+    legal_form: '',
+    capital: '',
+    address: '',
+    website: ''
   });
+
+  const handleDocumentUpload = async (documentType, file) => {
+    if (!file) return;
+    
+    setUploadProgress(prev => ({ ...prev, [documentType]: 0 }));
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type', documentType);
+    
+    try {
+      const response = await axios.post(`${API_URL}/api/enterprises/upload-document`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(prev => ({ ...prev, [documentType]: percentCompleted }));
+        }
+      });
+      
+      setUploadedDocuments(prev => ({ ...prev, [documentType]: response.data.url }));
+      setUploadProgress(prev => ({ ...prev, [documentType]: 100 }));
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadProgress(prev => ({ ...prev, [documentType]: -1 }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,7 +162,7 @@ const EnterpriseRegisterPage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email professionnel</Label>
                   <Input
                     id="email"
                     type="email"
@@ -143,6 +234,29 @@ const EnterpriseRegisterPage = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="legal_form">Forme juridique</Label>
+                  <Select
+                    value={formData.legal_form}
+                    onValueChange={(value) => setFormData({...formData, legal_form: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SARL">SARL</SelectItem>
+                      <SelectItem value="SA">SA</SelectItem>
+                      <SelectItem value="SAS">SAS</SelectItem>
+                      <SelectItem value="EURL">EURL</SelectItem>
+                      <SelectItem value="Auto-entrepreneur">Auto-entrepreneur</SelectItem>
+                      <SelectItem value="GIE">GIE</SelectItem>
+                      <SelectItem value="Association">Association</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
                   <Label htmlFor="year_founded">Année de création</Label>
                   <Input
                     id="year_founded"
@@ -151,15 +265,79 @@ const EnterpriseRegisterPage = () => {
                     onChange={(e) => setFormData({...formData, year_founded: e.target.value})}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="number_of_employees">Nombre d'employés</Label>
+                  <Select
+                    value={formData.number_of_employees}
+                    onValueChange={(value) => setFormData({...formData, number_of_employees: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-10">1-10</SelectItem>
+                      <SelectItem value="11-50">11-50</SelectItem>
+                      <SelectItem value="51-200">51-200</SelectItem>
+                      <SelectItem value="201-500">201-500</SelectItem>
+                      <SelectItem value="500+">500+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="capital">Capital social (FCFA)</Label>
+                  <Input
+                    id="capital"
+                    type="number"
+                    value={formData.capital}
+                    onChange={(e) => setFormData({...formData, capital: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="dfe_number">Numéro DFE</Label>
+                  <Input
+                    id="dfe_number"
+                    value={formData.dfe_number}
+                    onChange={(e) => setFormData({...formData, dfe_number: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="trade_register_number">Registre de commerce</Label>
+                  <Input
+                    id="trade_register_number"
+                    value={formData.trade_register_number}
+                    onChange={(e) => setFormData({...formData, trade_register_number: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="tax_id">Identifiant fiscal</Label>
+                  <Input
+                    id="tax_id"
+                    value={formData.tax_id}
+                    onChange={(e) => setFormData({...formData, tax_id: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business_sector">Secteur d'activité</Label>
+                  <Input
+                    id="business_sector"
+                    value={formData.business_sector}
+                    onChange={(e) => setFormData({...formData, business_sector: e.target.value})}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company_description">Description de l'entreprise</Label>
-                <Textarea
-                  id="company_description"
-                  rows={4}
-                  value={formData.company_description}
-                  onChange={(e) => setFormData({...formData, company_description: e.target.value})}
+                <Label htmlFor="address">Adresse complète</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
                 />
               </div>
 
@@ -178,6 +356,59 @@ const EnterpriseRegisterPage = () => {
                     id="country"
                     value={formData.country}
                     onChange={(e) => setFormData({...formData, country: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="website">Site web (optionnel)</Label>
+                <Input
+                  id="website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(e) => setFormData({...formData, website: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company_description">Description de l'entreprise</Label>
+                <Textarea
+                  id="company_description"
+                  rows={4}
+                  value={formData.company_description}
+                  onChange={(e) => setFormData({...formData, company_description: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Documents requis
+                </h3>
+                
+                <div className="space-y-4">
+                  <DocumentUpload
+                    label="Document DFE"
+                    documentType="dfe"
+                    onUpload={handleDocumentUpload}
+                    progress={uploadProgress.dfe}
+                    uploaded={uploadedDocuments.dfe}
+                  />
+                  
+                  <DocumentUpload
+                    label="Registre de commerce"
+                    documentType="trade_register"
+                    onUpload={handleDocumentUpload}
+                    progress={uploadProgress.trade_register}
+                    uploaded={uploadedDocuments.trade_register}
+                  />
+                  
+                  <DocumentUpload
+                    label="Carte d'identité du représentant"
+                    documentType="legal_form"
+                    onUpload={handleDocumentUpload}
+                    progress={uploadProgress.legal_form}
+                    uploaded={uploadedDocuments.legal_form}
                   />
                 </div>
               </div>
