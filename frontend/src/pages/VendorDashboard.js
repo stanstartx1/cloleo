@@ -961,7 +961,7 @@ const VendorDashboard = () => {
                 >
                   {offers.map((offer, index) => (
                     <motion.div
-                      key={offer._id}
+                      key={offer.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
@@ -1033,7 +1033,7 @@ const VendorDashboard = () => {
                               <Button
                                 size="sm"
                                 className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() => handleAcceptOffer(offer._id)}
+                                onClick={() => handleAcceptOffer(offer.id)}
                               >
                                 <CheckCircle className="w-4 h-4 mr-1" /> Accepter
                               </Button>
@@ -1041,7 +1041,7 @@ const VendorDashboard = () => {
                                 size="sm"
                                 variant="outline"
                                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                                onClick={() => handleRejectOffer(offer._id)}
+                                onClick={() => handleRejectOffer(offer.id)}
                               >
                                 <XCircle className="w-4 h-4 mr-1" /> Refuser
                               </Button>
@@ -1049,7 +1049,7 @@ const VendorDashboard = () => {
                                 size="sm"
                                 variant="outline"
                                 className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
-                                onClick={() => handleCounterOffer(offer._id)}
+                                onClick={() => handleCounterOffer(offer.id)}
                               >
                                 <Edit className="w-4 h-4 mr-1" /> Contre-offre
                               </Button>
@@ -1062,7 +1062,7 @@ const VendorDashboard = () => {
                                 size="sm"
                                 variant="outline"
                                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                                onClick={() => handleWithdrawOffer(offer._id)}
+                                onClick={() => handleWithdrawOffer(offer.id)}
                               >
                                 <X className="w-4 h-4 mr-1" /> Annuler
                               </Button>

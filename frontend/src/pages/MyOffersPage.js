@@ -231,7 +231,7 @@ const MyOffersPage = () => {
                   size="sm"
                   variant="outline"
                   className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                  onClick={() => handleWithdrawOffer(offer._id)}
+                  onClick={() => handleWithdrawOffer(offer.id)}
                 >
                   <X className="w-4 h-4 mr-1" /> Retirer
                 </Button>
@@ -253,7 +253,7 @@ const MyOffersPage = () => {
                 <Button
                   size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => handleAcceptCounterOffer(offer._id)}
+                  onClick={() => handleAcceptCounterOffer(offer.id)}
                 >
                   <CheckCircle className="w-4 h-4 mr-1" /> Accepter la contre-offre
                 </Button>
@@ -261,7 +261,7 @@ const MyOffersPage = () => {
                   size="sm"
                   variant="outline"
                   className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                  onClick={() => handleWithdrawOffer(offer._id)}
+                  onClick={() => handleWithdrawOffer(offer.id)}
                 >
                   <X className="w-4 h-4 mr-1" /> Refuser
                 </Button>
@@ -356,7 +356,7 @@ const MyOffersPage = () => {
       {offers.length > 0 ? (
         <div className="space-y-4">
           {offers.map((offer) => (
-            <OfferCard key={offer._id} offer={offer} />
+            <OfferCard key={offer.id} offer={offer} />
           ))}
         </div>
       ) : (

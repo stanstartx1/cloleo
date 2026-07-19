@@ -29,6 +29,10 @@ async def create_offer(
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     
+    # Vérifier que le produit a un vendeur
+    if not product.get("seller_id"):
+        raise HTTPException(status_code=400, detail="Ce produit n'a pas de vendeur associé")
+    
     # Vérifier que l'utilisateur n'est pas le vendeur du produit
     if product.get("seller_id") == current_user.get("id"):
         raise HTTPException(status_code=400, detail="Vous ne pouvez pas faire d'offre sur votre propre produit")
@@ -136,7 +140,8 @@ async def get_sent_offers(
             },
             "vendor": {
                 "name": vendor.get("name") if vendor else "Vendeur supprimé",
-                "role": vendor.get("role") if vendor else "unknown"
+                "role": vendor.get("role") if vendor else "unknown",
+                "email": vendor.get("email") if vendor else None
             }
         })
     
