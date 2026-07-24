@@ -7,6 +7,12 @@ from core.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/enterprises", tags=["enterprises"])
 
+async def get_current_enterprise(current_user = Depends(get_current_user)):
+    """Verify the current user is an enterprise"""
+    if current_user.get("role") != "enterprise":
+        raise HTTPException(status_code=403, detail="Access denied. Enterprise role required.")
+    return current_user
+
 class EnterpriseRegister(BaseModel):
     email: str
     password: str
@@ -44,6 +50,46 @@ class EnterpriseUpdate(BaseModel):
     certifications: Optional[List[str]] = None
     profile_photo: Optional[str] = None
     dfe_number: Optional[str] = None
+
+@router.get("/dashboard")
+async def get_enterprise_dashboard(current_enterprise = Depends(get_current_enterprise)):
+    """Get dashboard statistics for the current enterprise"""
+    try:
+        enterprise_id = current_enterprise["id"]
+        
+        # Get total products
+        total_products = await db.products.count_documents({
+            "seller_id": enterprise_id,
+            "status": "approved"
+        })
+        
+        # Get total orders
+        total_orders = await db.orders.count_documents({
+            "seller_id": enterprise_id
+        })
+        
+        # Get total revenue
+        pipeline = [
+            {"$match": {"seller_id": enterprise_id, "status": "delivered"}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_fcfa"}}}
+        ]
+        revenue_result = await db.orders.aggregate(pipeline).to_list(1)
+        total_revenue = revenue_result[0]["total"] if revenue_result else 0
+        
+        # Get pending orders count
+        pending_orders = await db.orders.count_documents({
+            "seller_id": enterprise_id,
+            "status": "pending"
+        })
+        
+        return {
+            "total_products": total_products,
+            "total_orders": total_orders,
+            "total_revenue": total_revenue,
+            "pending_orders": pending_orders
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/register")
 async def register_enterprise(data: EnterpriseRegister):

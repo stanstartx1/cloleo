@@ -116,7 +116,7 @@ const EnterpriseDashboard = () => {
 
   const fetchDashboard = async () => {
     try {
-      const response = await axios.get(`${API}/vendor/dashboard`, {
+      const response = await axios.get(`${API}/enterprises/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDashboard(response.data);
