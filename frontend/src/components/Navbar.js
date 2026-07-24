@@ -504,7 +504,7 @@ const Navbar = () => {
                     )}
                     {isEnterprise && (
                       <DropdownMenuItem asChild>
-                        <Link to="/enterprise" className="font-semibold">
+                        <Link to="/enterprise" className="font-semibold" onClick={() => console.log('DEBUG: Clicked Espace entreprise link, navigating to /enterprise')}>
                           <Building2 className="w-4 h-4 mr-2" /> Espace entreprise
                         </Link>
                       </DropdownMenuItem>
