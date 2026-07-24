@@ -284,31 +284,31 @@ const EnterpriseDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-orange-500 mx-auto mb-4" />
-          <p className="text-slate-600">Chargement du tableau de bord...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-amber-500 mx-auto mb-4" />
+          <p className="text-slate-400">Chargement du tableau de bord...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-slate-100">
+          <div className="p-6 border-b border-slate-800/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-amber-500/30">
                 C
               </div>
               <div>
-                <h1 className="font-black text-lg text-slate-800">
-                  <span className="text-orange-600">Clo</span><span className="text-amber-600">léo</span>
+                <h1 className="font-black text-lg text-white">
+                  <span className="text-amber-400">Clo</span><span className="text-yellow-500">léo</span>
                 </h1>
-                <p className="text-xs text-slate-500">Entreprise</p>
+                <p className="text-xs text-slate-400">Entreprise Premium</p>
               </div>
             </div>
           </div>
@@ -325,16 +325,16 @@ const EnterpriseDashboard = () => {
                     setActiveSection(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 roundedxl transition-all duration-200 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white shadow-lg shadow-amber-500/30 border border-amber-400/30'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-white hover:border hover:border-slate-700/50'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium text-sm">{item.label}</span>
                   {item.badge && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
                       {item.id === 'orders' ? dashboard?.pending_orders || 0 : offers.length}
                     </span>
                   )}
@@ -344,20 +344,20 @@ const EnterpriseDashboard = () => {
           </nav>
 
           {/* User Info */}
-          <div className="p-4 border-t border-slate-100">
+          <div className="p-4 border-t border-slate-800/50">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-500/30">
                 {user?.company_name?.[0] || user?.name?.[0] || 'E'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-slate-800 truncate">{user?.company_name || user?.name}</p>
-                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                <p className="font-semibold text-sm text-white truncate">{user?.company_name || user?.name}</p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-600"
               onClick={handleLogout}
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -370,7 +370,7 @@ const EnterpriseDashboard = () => {
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -378,22 +378,22 @@ const EnterpriseDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 lg:ml-0 overflow-auto">
         {/* Top Bar */}
-        <header className="bg-white shadow-sm sticky top-0 z-30">
+        <header className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/50 sticky top-0 z-30">
           <div className="px-4 lg:px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden"
+                className="lg:hidden text-slate-400 hover:text-white hover:bg-slate-800/50"
                 onClick={() => setMobileMenuOpen(true)}
               >
                 <Menu className="w-5 h-5" />
               </Button>
               <div>
-                <h2 className="text-xl font-bold text-slate-800">
+                <h2 className="text-xl font-bold text-white">
                   {NAV_ITEMS.find(item => item.id === activeSection)?.label}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-400">
                   {user?.company_name || user?.name}
                 </p>
               </div>
@@ -402,6 +402,7 @@ const EnterpriseDashboard = () => {
               <Button
                 variant="outline"
                 size="sm"
+                className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-600"
                 onClick={() => navigate('/')}
               >
                 <Store className="w-4 h-4 mr-2" />
@@ -412,7 +413,7 @@ const EnterpriseDashboard = () => {
         </header>
 
         {/* Content Area */}
-        <div className="p-4 lg:p-8">
+        <div className="p-4 lg:p-8 bg-slate-900/50 min-h-screen">
           {activeSection === 'dashboard' && (
             <DashboardSection 
               dashboard={dashboard} 
@@ -565,34 +566,34 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={Package} color="text-orange-500" value={dashboard?.total_products || 0} label="Produits" />
-        <StatCard icon={ShoppingBag} color="text-blue-500" value={dashboard?.total_orders || 0} label="Commandes" />
-        <StatCard icon={DollarSign} color="text-green-500" value={`${formatPrice(dashboard?.total_revenue || 0)} FCFA`} label="Revenus" />
-        <StatCard icon={Users} color="text-purple-500" value={followerCount} label="Abonnés" />
+        <StatCard icon={Package} color="text-amber-400" value={dashboard?.total_products || 0} label="Produits" />
+        <StatCard icon={ShoppingBag} color="text-cyan-400" value={dashboard?.total_orders || 0} label="Commandes" />
+        <StatCard icon={DollarSign} color="text-emerald-400" value={`${formatPrice(dashboard?.total_revenue || 0)} FCFA`} label="Revenus" />
+        <StatCard icon={Users} color="text-purple-400" value={followerCount} label="Abonnés" />
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="font-bold text-lg mb-4">Actions rapides</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+        <h3 className="font-bold text-lg mb-4 text-white">Actions rapides</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <QuickAction icon={Plus} label="Ajouter produit" color="bg-orange-500" />
-          <QuickAction icon={ShoppingBag} label="Voir commandes" color="bg-blue-500" />
-          <QuickAction icon={DollarSign} label="Offres" color="bg-green-500" />
-          <QuickAction icon={Trophy} label="Ajouter trophée" color="bg-amber-500" />
+          <QuickAction icon={Plus} label="Ajouter produit" color="bg-gradient-to-r from-amber-500 to-yellow-500" />
+          <QuickAction icon={ShoppingBag} label="Voir commandes" color="bg-gradient-to-r from-cyan-500 to-blue-500" />
+          <QuickAction icon={DollarSign} label="Offres" color="bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <QuickAction icon={Trophy} label="Ajouter trophée" color="bg-gradient-to-r from-purple-500 to-pink-500" />
         </div>
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="font-bold text-lg mb-4">Commandes récentes</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+        <h3 className="font-bold text-lg mb-4 text-white">Commandes récentes</h3>
         {orders?.slice(0, 5).map(order => (
           <OrderCard key={order.id} order={order} formatPrice={formatPrice} />
         ))}
       </div>
 
       {/* Recent Offers */}
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="font-bold text-lg mb-4">Offres récentes</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+        <h3 className="font-bold text-lg mb-4 text-white">Offres récentes</h3>
         {offers?.slice(0, 3).map(offer => (
           <OfferCard 
             key={offer._id} 
@@ -612,21 +613,21 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
 // Stat Card Component
 const StatCard = ({ icon: Icon, color, value, label }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
+  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
     <div className="flex items-center justify-between mb-4">
       <Icon className={`w-8 h-8 ${color}`} />
-      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-        <TrendingUp className="w-5 h-5 text-slate-600" />
+      <div className="w-10 h-10 rounded-full bg-slate-700/50 flex items-center justify-center">
+        <TrendingUp className="w-5 h-5 text-slate-400" />
       </div>
     </div>
-    <p className="text-3xl font-bold text-slate-800">{value}</p>
-    <p className="text-sm text-slate-500">{label}</p>
+    <p className="text-3xl font-bold text-white">{value}</p>
+    <p className="text-sm text-slate-400">{label}</p>
   </div>
 );
 
 // Quick Action Component
 const QuickAction = ({ icon: Icon, label, color }) => (
-  <button className={`flex flex-col items-center gap-2 p-4 rounded-xl ${color} text-white hover:opacity-90 transition-opacity`}>
+  <button className={`flex flex-col items-center gap-2 p-4 rounded-xl ${color} text-white hover:opacity-90 transition-opacity shadow-lg`}>
     <Icon className="w-6 h-6" />
     <span className="text-sm font-medium">{label}</span>
   </button>
@@ -634,17 +635,17 @@ const QuickAction = ({ icon: Icon, label, color }) => (
 
 // Order Card Component
 const OrderCard = ({ order, formatPrice }) => (
-  <div className="flex items-center justify-between p-4 border-b border-slate-100 last:border-0">
+  <div className="flex items-center justify-between p-4 border-b border-slate-700/50 last:border-0">
     <div>
-      <p className="font-semibold text-slate-800">{order.order_number || order.id}</p>
-      <p className="text-sm text-slate-500">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
+      <p className="font-semibold text-white">{order.order_number || order.id}</p>
+      <p className="text-sm text-slate-400">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
     </div>
     <div className="text-right">
-      <p className="font-bold text-slate-800">{formatPrice(order.total_fcfa)} FCFA</p>
+      <p className="font-bold text-white">{formatPrice(order.total_fcfa)} FCFA</p>
       <span className={`text-xs px-2 py-1 rounded-full ${
-        order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-        order.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-        'bg-slate-100 text-slate-700'
+        order.status === 'delivered' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+        order.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+        'bg-slate-700/50 text-slate-400 border border-slate-600/50'
       }`}>
         {order.status}
       </span>
@@ -654,36 +655,36 @@ const OrderCard = ({ order, formatPrice }) => (
 
 // Offer Card Component
 const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLink, formatPrice }) => (
-  <div className="border border-slate-200 rounded-xl p-4 mb-4">
+  <div className="border border-slate-700/50 rounded-xl p-4 mb-4 bg-slate-800/30">
     <div className="flex items-start justify-between mb-3">
       <div>
-        <p className="font-semibold text-slate-800">{offer.product?.name}</p>
-        <p className="text-sm text-slate-500">Offre de {offer.buyer?.name}</p>
+        <p className="font-semibold text-white">{offer.product?.name}</p>
+        <p className="text-sm text-slate-400">Offre de {offer.buyer?.name}</p>
       </div>
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-        offer.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-        offer.status === 'accepted' ? 'bg-green-100 text-green-700' :
-        'bg-slate-100 text-slate-700'
+        offer.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+        offer.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+        'bg-slate-700/50 text-slate-400 border border-slate-600/50'
       }`}>
         {offer.status}
       </span>
     </div>
     <div className="flex items-center gap-4 mb-3">
       <div>
-        <p className="text-xs text-slate-500">Prix original</p>
-        <p className="text-sm text-slate-600 line-through">{formatPrice(offer.original_price_fcfa)} FCFA</p>
+        <p className="text-xs text-slate-400">Prix original</p>
+        <p className="text-sm text-slate-500 line-through">{formatPrice(offer.original_price_fcfa)} FCFA</p>
       </div>
       <div>
-        <p className="text-xs text-slate-500">Offre</p>
-        <p className="text-lg font-bold text-green-600">{formatPrice(offer.offered_price_fcfa)} FCFA</p>
+        <p className="text-xs text-slate-400">Offre</p>
+        <p className="text-lg font-bold text-emerald-400">{formatPrice(offer.offered_price_fcfa)} FCFA</p>
       </div>
     </div>
     {offer.status === 'pending' && (
       <div className="flex gap-2">
-        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onAccept(offer._id)}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600" onClick={() => onAccept(offer._id)}>
           <CheckCircle className="w-4 h-4 mr-1" /> Accepter
         </Button>
-        <Button size="sm" variant="outline" onClick={() => onReject(offer._id)}>
+        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50" onClick={() => onReject(offer._id)}>
           <XCircle className="w-4 h-4 mr-1" /> Refuser
         </Button>
       </div>
@@ -693,44 +694,44 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
 
 // Placeholder sections for other tabs
 const ProductsSection = ({ products, loading, onRefresh, formatPrice }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <h3 className="font-bold text-lg mb-4">Mes produits</h3>
-    <p className="text-slate-500">Section produits - À implémenter</p>
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+    <h3 className="font-bold text-lg mb-4 text-white">Mes produits</h3>
+    <p className="text-slate-400">Section produits - À implémenter</p>
   </div>
 );
 
 const OrdersSection = ({ orders, loading, onRefresh, formatPrice }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <h3 className="font-bold text-lg mb-4">Commandes</h3>
-    <p className="text-slate-500">Section commandes - À implémenter</p>
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+    <h3 className="font-bold text-lg mb-4 text-white">Commandes</h3>
+    <p className="text-slate-400">Section commandes - À implémenter</p>
   </div>
 );
 
 const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCounter, onWithdraw, onCopyLink, formatPrice }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <h3 className="font-bold text-lg mb-4">Offres</h3>
-    <p className="text-slate-500">Section offres - À implémenter</p>
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+    <h3 className="font-bold text-lg mb-4 text-white">Offres</h3>
+    <p className="text-slate-400">Section offres - À implémenter</p>
   </div>
 );
 
 const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation, onSetDriverLocation }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <h3 className="font-bold text-lg mb-4">Suivi des livraisons</h3>
-    <p className="text-slate-500">Section tracking - À implémenter</p>
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+    <h3 className="font-bold text-lg mb-4 text-white">Suivi des livraisons</h3>
+    <p className="text-slate-400">Section tracking - À implémenter</p>
   </div>
 );
 
 const StatsSection = ({ dashboard, orders, products, formatPrice }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <h3 className="font-bold text-lg mb-4">Statistiques</h3>
-    <p className="text-slate-500">Section statistiques - À implémenter</p>
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+    <h3 className="font-bold text-lg mb-4 text-white">Statistiques</h3>
+    <p className="text-slate-400">Section statistiques - À implémenter</p>
   </div>
 );
 
 const SubscriptionSection = ({ user, token, onRefresh }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <h3 className="font-bold text-lg mb-4">Abonnement</h3>
-    <p className="text-slate-500">Section abonnement - À implémenter</p>
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+    <h3 className="font-bold text-lg mb-4 text-white">Abonnement</h3>
+    <p className="text-slate-400">Section abonnement - À implémenter</p>
   </div>
 );
 
@@ -807,10 +808,10 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-xl text-slate-800">Trophées & Awards</h3>
-          <p className="text-sm text-slate-500">Affichez vos réalisations et distinctions</p>
+          <h3 className="font-bold text-xl text-white">Trophées & Awards</h3>
+          <p className="text-sm text-slate-400">Affichez vos réalisations et distinctions</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-orange-500 to-amber-500">
+        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600">
           <Trophy className="w-4 h-4 mr-2" />
           Ajouter un trophée
         </Button>
@@ -819,9 +820,9 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
       {/* Trophies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {trophies?.length > 0 ? trophies.map((trophy) => (
-          <div key={trophy.id} className="bg-white rounded-2xl shadow-sm overflow-hidden group">
+          <div key={trophy.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden group shadow-xl">
             {trophy.image && (
-              <div className="relative h-48 bg-gradient-to-br from-amber-100 to-orange-100">
+              <div className="relative h-48 bg-gradient-to-br from-amber-900/30 to-orange-900/30">
                 <img 
                   src={toAbsoluteMediaUrl(trophy.image)} 
                   alt={trophy.title}
@@ -832,6 +833,7 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDeleteTrophy(trophy.id)}
+                    className="bg-red-500 hover:bg-red-600"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -841,13 +843,13 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
             <div className="p-4">
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <h4 className="font-bold text-slate-800">{trophy.title}</h4>
-                  <p className="text-sm text-amber-600 font-semibold">{trophy.year}</p>
+                  <h4 className="font-bold text-white">{trophy.title}</h4>
+                  <p className="text-sm text-amber-400 font-semibold">{trophy.year}</p>
                 </div>
                 <Medal className="w-6 h-6 text-amber-500" />
               </div>
               {trophy.organization && (
-                <p className="text-sm text-slate-600 mb-2">
+                <p className="text-sm text-slate-400 mb-2">
                   <AwardIcon className="w-4 h-4 inline mr-1" />
                   {trophy.organization}
                 </p>
@@ -858,58 +860,61 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
             </div>
           </div>
         )) : (
-          <div className="col-span-full bg-white rounded-2xl shadow-sm p-12 text-center">
-            <Trophy className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-            <p className="text-slate-500">Aucun trophée ajouté</p>
-            <p className="text-sm text-slate-400">Commencez par ajouter vos premières distinctions</p>
+          <div className="col-span-full bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-12 text-center shadow-xl">
+            <Trophy className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+            <p className="text-slate-400">Aucun trophée ajouté</p>
+            <p className="text-sm text-slate-500">Commencez par ajouter vos premières distinctions</p>
           </div>
         )}
       </div>
 
       {/* Add Trophy Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-lg">Ajouter un trophée</h4>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)}>
+              <h4 className="font-bold text-lg text-white">Ajouter un trophée</h4>
+              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white hover:bg-slate-800/50">
                 <X className="w-5 h-5" />
               </Button>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Titre *</label>
+                <label className="text-sm font-medium text-slate-300 mb-1 block">Titre *</label>
                 <Input
                   value={newTrophy.title}
                   onChange={(e) => setNewTrophy({ ...newTrophy, title: e.target.value })}
                   placeholder="Ex: Prix de l'innovation 2024"
+                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Année *</label>
+                <label className="text-sm font-medium text-slate-300 mb-1 block">Année *</label>
                 <Input
                   type="number"
                   value={newTrophy.year}
                   onChange={(e) => setNewTrophy({ ...newTrophy, year: e.target.value })}
                   placeholder="2024"
+                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Organisation</label>
+                <label className="text-sm font-medium text-slate-300 mb-1 block">Organisation</label>
                 <Input
                   value={newTrophy.organization}
                   onChange={(e) => setNewTrophy({ ...newTrophy, organization: e.target.value })}
                   placeholder="Ex: Chambre de commerce"
+                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Description</label>
+                <label className="text-sm font-medium text-slate-300 mb-1 block">Description</label>
                 <textarea
-                  className="w-full border border-slate-200 rounded-lg p-3 text-sm"
+                  className="w-full border border-slate-700 bg-slate-800/50 rounded-lg p-3 text-sm text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
                   rows="3"
                   value={newTrophy.description}
                   onChange={(e) => setNewTrophy({ ...newTrophy, description: e.target.value })}
@@ -918,7 +923,7 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
               </div>
               
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Image</label>
+                <label className="text-sm font-medium text-slate-300 mb-1 block">Image</label>
                 <ImageUpload
                   onUpload={handleImageUpload}
                   currentImage={newTrophy.image}
@@ -927,11 +932,11 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
               </div>
               
               <div className="flex gap-2 pt-4">
-                <Button onClick={handleAddTrophy} disabled={uploading} className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500">
+                <Button onClick={handleAddTrophy} disabled={uploading} className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600">
                   {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trophy className="w-4 h-4 mr-2" />}
                   Ajouter
                 </Button>
-                <Button variant="outline" onClick={() => setShowAddModal(false)}>
+                <Button variant="outline" onClick={() => setShowAddModal(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700/50">
                   Annuler
                 </Button>
               </div>
@@ -1024,10 +1029,10 @@ const CertificationsSection = ({ certifications, loading, onRefresh, token }) =>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-xl text-slate-800">Certifications</h3>
-          <p className="text-sm text-slate-500">Gérez vos certifications professionnelles</p>
+          <h3 className="font-bold text-xl text-white">Certifications</h3>
+          <p className="text-sm text-slate-400">Gérez vos certifications professionnelles</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-blue-500 to-indigo-500">
+        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
           <Award className="w-4 h-4 mr-2" />
           Ajouter une certification
         </Button>
@@ -1036,22 +1041,22 @@ const CertificationsSection = ({ certifications, loading, onRefresh, token }) =>
       {/* Certifications List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {certifications?.length > 0 ? certifications.map((cert) => (
-          <div key={cert.id} className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-blue-500">
+          <div key={cert.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 border-l-4 border-cyan-500 shadow-xl">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-cyan-400" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800">{cert.name}</h4>
-                  <p className="text-sm text-slate-500">{cert.issuing_organization}</p>
+                  <h4 className="font-bold text-white">{cert.name}</h4>
+                  <p className="text-sm text-slate-400">{cert.issuing_organization}</p>
                 </div>
               </div>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => handleDeleteCertification(cert.id)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -1059,19 +1064,19 @@ const CertificationsSection = ({ certifications, loading, onRefresh, token }) =>
             
             <div className="space-y-2 text-sm">
               {cert.certificate_number && (
-                <div className="flex items-center gap-2 text-slate-600">
+                <div className="flex items-center gap-2 text-slate-400">
                   <FileText className="w-4 h-4" />
                   <span>N°: {cert.certificate_number}</span>
                 </div>
               )}
               {cert.issue_date && (
-                <div className="flex items-center gap-2 text-slate-600">
+                <div className="flex items-center gap-2 text-slate-400">
                   <Calendar className="w-4 h-4" />
                   <span>Délivré: {new Date(cert.issue_date).toLocaleDateString('fr-FR')}</span>
                 </div>
               )}
               {cert.expiry_date && (
-                <div className="flex items-center gap-2 text-slate-600">
+                <div className="flex items-center gap-2 text-slate-400">
                   <Clock className="w-4 h-4" />
                   <span>Expire: {new Date(cert.expiry_date).toLocaleDateString('fr-FR')}</span>
                 </div>
@@ -1079,12 +1084,12 @@ const CertificationsSection = ({ certifications, loading, onRefresh, token }) =>
             </div>
             
             {cert.document && (
-              <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="mt-4 pt-4 border-t border-slate-700/50">
                 <a 
                   href={toAbsoluteMediaUrl(cert.document)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-medium"
                 >
                   <Download className="w-4 h-4" />
                   Voir le document
@@ -1093,21 +1098,21 @@ const CertificationsSection = ({ certifications, loading, onRefresh, token }) =>
             )}
           </div>
         )) : (
-          <div className="col-span-full bg-white rounded-2xl shadow-sm p-12 text-center">
-            <Award className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-            <p className="text-slate-500">Aucune certification ajoutée</p>
-            <p className="text-sm text-slate-400">Ajoutez vos certifications pour renforcer votre crédibilité</p>
+          <div className="col-span-full bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-12 text-center shadow-xl">
+            <Award className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+            <p className="text-slate-400">Aucune certification ajoutée</p>
+            <p className="text-sm text-slate-500">Ajoutez vos certifications pour renforcer votre crédibilité</p>
           </div>
         )}
       </div>
 
       {/* Add Certification Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-lg">Ajouter une certification</h4>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)}>
+              <h4 className="font-bold text-lg text-white">Ajouter une certification</h4>
+              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white hover:bg-slate-800/50">
                 <X className="w-5 h-5" />
               </Button>
             </div>
@@ -1276,10 +1281,10 @@ const PortfolioSection = ({ portfolio, loading, onRefresh, token }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-xl text-slate-800">Réalisations / Portfolio</h3>
-          <p className="text-sm text-slate-500">Montrez vos projets et réalisations</p>
+          <h3 className="font-bold text-xl text-white">Réalisations / Portfolio</h3>
+          <p className="text-sm text-slate-400">Montrez vos projets et réalisations</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-purple-500 to-pink-500">
+        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
           <ImageIcon className="w-4 h-4 mr-2" />
           Ajouter une réalisation
         </Button>
@@ -1288,7 +1293,7 @@ const PortfolioSection = ({ portfolio, loading, onRefresh, token }) => {
       {/* Portfolio Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {portfolio?.length > 0 ? portfolio.map((item) => (
-          <div key={item.id} className="bg-white rounded-2xl shadow-sm overflow-hidden group">
+          <div key={item.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden group shadow-xl">
             {item.images?.length > 0 && (
               <div className="relative h-56">
                 <img 
@@ -1320,7 +1325,7 @@ const PortfolioSection = ({ portfolio, loading, onRefresh, token }) => {
               )}
               <h4 className="font-bold text-slate-800 mb-1">{item.title}</h4>
               {item.client && (
-                <p className="text-sm text-slate-600 mb-2">
+                <p className="text-sm text-slate-400 mb-2">
                   <Building2 className="w-4 h-4 inline mr-1" />
                   {item.client}
                 </p>
@@ -1335,21 +1340,21 @@ const PortfolioSection = ({ portfolio, loading, onRefresh, token }) => {
             </div>
           </div>
         )) : (
-          <div className="col-span-full bg-white rounded-2xl shadow-sm p-12 text-center">
-            <ImageIcon className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-            <p className="text-slate-500">Aucune réalisation ajoutée</p>
-            <p className="text-sm text-slate-400">Commencez par ajouter vos premiers projets</p>
+          <div className="col-span-full bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-12 text-center shadow-xl">
+            <ImageIcon className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+            <p className="text-slate-400">Aucune réalisation ajoutée</p>
+            <p className="text-sm text-slate-500">Commencez par ajouter vos premiers projets</p>
           </div>
         )}
       </div>
 
       {/* Add Portfolio Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 my-8">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 my-8 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-lg">Ajouter une réalisation</h4>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)}>
+              <h4 className="font-bold text-lg text-white">Ajouter une réalisation</h4>
+              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white hover:bg-slate-800/50">
                 <X className="w-5 h-5" />
               </Button>
             </div>
