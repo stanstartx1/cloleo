@@ -73,7 +73,23 @@ const API = API_URL;
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false, requireDropshipper = false, requireEnterprise = false }) => {
-  const { user, loading, isVendor, isAdmin, isDriver, isDropshipper, isEnterprise } = useAuth();
+  const { user, loading, isVendor, isAdmin, isDriver, isDropshipper, isEnterprise, userRole } = useAuth();
+
+  console.log('DEBUG ProtectedRoute:', { 
+    user, 
+    loading, 
+    isVendor, 
+    isAdmin, 
+    isDriver, 
+    isDropshipper, 
+    isEnterprise, 
+    userRole,
+    requireVendor, 
+    requireAdmin, 
+    requireDriver, 
+    requireDropshipper, 
+    requireEnterprise 
+  });
 
   if (loading) {
     return (
@@ -84,29 +100,36 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false,
   }
 
   if (!user) {
+    console.log('DEBUG: No user, redirecting to /connexion');
     return <Navigate to="/connexion" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
+    console.log('DEBUG: requireAdmin failed, redirecting to /');
     return <Navigate to="/" replace />;
   }
 
   if (requireVendor && !isVendor) {
+    console.log('DEBUG: requireVendor failed, redirecting to /');
     return <Navigate to="/" replace />;
   }
 
   if (requireDriver && !isDriver) {
+    console.log('DEBUG: requireDriver failed, redirecting to /');
     return <Navigate to="/" replace />;
   }
 
   if (requireDropshipper && !isDropshipper) {
+    console.log('DEBUG: requireDropshipper failed, redirecting to /');
     return <Navigate to="/" replace />;
   }
 
   if (requireEnterprise && !isEnterprise) {
+    console.log('DEBUG: requireEnterprise failed, redirecting to /');
     return <Navigate to="/" replace />;
   }
 
+  console.log('DEBUG: All checks passed, rendering children');
   return children;
 };
 
