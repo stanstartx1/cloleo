@@ -1082,7 +1082,7 @@ const EnterprisesSection = ({ enterprises, onRefresh }) => {
     try {
       const API = API_URL;
       const token = localStorage.getItem('token');
-      await axios.delete(`${API}/admin/enterprises/${enterpriseId}`, {
+      await axios.delete(`${API}/enterprises/admin/${enterpriseId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Entreprise supprimée');
@@ -1096,7 +1096,7 @@ const EnterprisesSection = ({ enterprises, onRefresh }) => {
     try {
       const API = API_URL;
       const token = localStorage.getItem('token');
-      await axios.put(`${API}/admin/enterprises/${enterpriseId}/verify`, {}, {
+      await axios.put(`${API}/enterprises/admin/${enterpriseId}/verify`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Entreprise vérifiée et activée !');
