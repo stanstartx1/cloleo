@@ -466,7 +466,7 @@ const EnterpriseDashboard = () => {
           )}
           
           {activeSection === 'messages' && (
-            <MessagesSection 
+            <EnterpriseMessagesSection 
               user={user}
               token={token}
             />
@@ -1610,7 +1610,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
   );
 };
 
-const MessagesSection = ({ user, token }) => {
+const EnterpriseMessagesSection = ({ user, token }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
