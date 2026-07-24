@@ -256,7 +256,7 @@ const AppRoutes = () => {
       {/* Enterprise Routes */}
       <Route path="/devenir-entreprise" element={<PublicLayout><EnterpriseRegisterPage /></PublicLayout>} />
       <Route path="/entreprises" element={<PublicLayout><EnterprisesPage /></PublicLayout>} />
-      <Route path="/entreprise" element={
+      <Route path="/enterprise" element={
         <ProtectedRoute requireEnterprise>
           <StandaloneDashboardLayout><EnterpriseDashboard /></StandaloneDashboardLayout>
         </ProtectedRoute>

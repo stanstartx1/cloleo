@@ -503,10 +503,12 @@ const Navbar = () => {
                       </DropdownMenuItem>
                     )}
                     {isEnterprise && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/enterprise" className="font-semibold" onClick={() => console.log('DEBUG: Clicked Espace entreprise link, navigating to /enterprise')}>
-                          <Building2 className="w-4 h-4 mr-2" /> Espace entreprise
-                        </Link>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.preventDefault();
+                        console.log('DEBUG: Clicked Espace entreprise menu item');
+                        navigate('/enterprise');
+                      }} className="font-semibold cursor-pointer">
+                        <Building2 className="w-4 h-4 mr-2" /> Espace entreprise
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
@@ -603,9 +605,13 @@ const Navbar = () => {
               </Link>
             )}
             {isEnterprise && (
-              <Link to="/enterprise" className="flex items-center gap-2 py-3 border-b font-bold text-green-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
+              <button onClick={() => {
+                console.log('DEBUG: Mobile menu - clicked Espace entreprise');
+                navigate('/enterprise');
+                setMobileMenuOpen(false);
+              }} className="flex items-center gap-2 py-3 border-b font-bold text-green-600 text-sm w-full text-left">
                 <Building2 className="w-4 h-4" /> Espace entreprise
-              </Link>
+              </button>
             )}
 
             <Link to="/categories" className="block py-3 border-b font-bold text-slate-800 text-sm" onClick={() => setMobileMenuOpen(false)}>

@@ -179,12 +179,16 @@ const AuthPage = () => {
     const result = await login(loginEmail, loginPassword);
    
     if (result.success) {
-      toast.success(`Bienvenue, ${result.user.name} !`);
+      toast.success(`Bienvenue, ${result.user.name || result.user.company_name} !`);
+      console.log('DEBUG: Login successful, role:', result.user.role);
       if (result.user.role === 'admin') navigate('/admin');
       else if (result.user.role === 'vendor') navigate('/vendeur');
       else if (result.user.role === 'driver') navigate('/livreur');
       else if (result.user.role === 'dropshipper') navigate('/revendeur');
-      else if (result.user.role === 'enterprise') navigate('/enterprise');
+      else if (result.user.role === 'enterprise') {
+        console.log('DEBUG: Redirecting enterprise to /enterprise');
+        navigate('/enterprise');
+      }
       else navigate(from);
     } else {
       toast.error(result.error || 'Une erreur est survenue');
