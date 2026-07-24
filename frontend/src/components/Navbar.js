@@ -227,7 +227,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
-  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, logout } = useAuth();
+  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, isEnterprise, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -502,6 +502,13 @@ const Navbar = () => {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    {isEnterprise && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/enterprise" className="font-semibold">
+                          <Building2 className="w-4 h-4 mr-2" /> Espace entreprise
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link to="/favoris" className="font-semibold"><Heart className="w-4 h-4 mr-2" /> Mes favoris</Link>
                     </DropdownMenuItem>
@@ -593,6 +600,11 @@ const Navbar = () => {
             {isVendor && !isAdmin && (
               <Link to="/vendeur" className="flex items-center gap-2 py-3 border-b font-bold text-orange-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
                 <Store className="w-4 h-4" /> Espace vendeur
+              </Link>
+            )}
+            {isEnterprise && (
+              <Link to="/enterprise" className="flex items-center gap-2 py-3 border-b font-bold text-green-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                <Building2 className="w-4 h-4" /> Espace entreprise
               </Link>
             )}
 

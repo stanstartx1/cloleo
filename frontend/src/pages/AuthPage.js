@@ -184,6 +184,7 @@ const AuthPage = () => {
       else if (result.user.role === 'vendor') navigate('/vendeur');
       else if (result.user.role === 'driver') navigate('/livreur');
       else if (result.user.role === 'dropshipper') navigate('/revendeur');
+      else if (result.user.role === 'enterprise') navigate('/enterprise');
       else navigate(from);
     } else {
       toast.error(result.error || 'Une erreur est survenue');

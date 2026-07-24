@@ -72,8 +72,8 @@ import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 const API = API_URL;
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false, requireDropshipper = false }) => {
-  const { user, loading, isVendor, isAdmin, isDriver, isDropshipper } = useAuth();
+const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false, requireDriver = false, requireDropshipper = false, requireEnterprise = false }) => {
+  const { user, loading, isVendor, isAdmin, isDriver, isDropshipper, isEnterprise } = useAuth();
 
   if (loading) {
     return (
@@ -100,6 +100,10 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false,
   }
 
   if (requireDropshipper && !isDropshipper) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireEnterprise && !isEnterprise) {
     return <Navigate to="/" replace />;
   }
 
@@ -229,8 +233,8 @@ const AppRoutes = () => {
       {/* Enterprise Routes */}
       <Route path="/devenir-entreprise" element={<PublicLayout><EnterpriseRegisterPage /></PublicLayout>} />
       <Route path="/entreprises" element={<PublicLayout><EnterprisesPage /></PublicLayout>} />
-      <Route path="/enterprise" element={
-        <ProtectedRoute>
+      <Route path="/entreprise" element={
+        <ProtectedRoute requireEnterprise>
           <StandaloneDashboardLayout><EnterpriseDashboard /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
