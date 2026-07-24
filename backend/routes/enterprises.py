@@ -431,3 +431,289 @@ async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_ad
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Trophy endpoints
+@router.get("/trophies")
+async def get_trophies(current_user = Depends(get_current_user)):
+    """Get trophies for the current enterprise"""
+    try:
+        trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        return trophies
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/trophies")
+async def create_trophy(trophy_data: dict, current_user = Depends(get_current_user)):
+    """Create a new trophy for the enterprise"""
+    try:
+        import uuid
+        trophy = {
+            "id": str(uuid.uuid4()),
+            "enterprise_id": current_user["id"],
+            "title": trophy_data.get("title"),
+            "description": trophy_data.get("description"),
+            "year": trophy_data.get("year"),
+            "organization": trophy_data.get("organization"),
+            "image": trophy_data.get("image"),
+            "created_at": datetime.utcnow()
+        }
+        await db.enterprise_trophies.insert_one(trophy)
+        return trophy
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/trophies/{trophy_id}")
+async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)):
+    """Delete a trophy"""
+    try:
+        result = await db.enterprise_trophies.delete_one({
+            "id": trophy_id,
+            "enterprise_id": current_user["id"]
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Trophy not found")
+        return {"message": "Trophy deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Certification endpoints
+@router.get("/certifications")
+async def get_certifications(current_user = Depends(get_current_user)):
+    """Get certifications for the current enterprise"""
+    try:
+        certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        return certifications
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/certifications")
+async def create_certification(cert_data: dict, current_user = Depends(get_current_user)):
+    """Create a new certification for the enterprise"""
+    try:
+        import uuid
+        certification = {
+            "id": str(uuid.uuid4()),
+            "enterprise_id": current_user["id"],
+            "name": cert_data.get("name"),
+            "issuing_organization": cert_data.get("issuing_organization"),
+            "issue_date": cert_data.get("issue_date"),
+            "expiry_date": cert_data.get("expiry_date"),
+            "certificate_number": cert_data.get("certificate_number"),
+            "document": cert_data.get("document"),
+            "created_at": datetime.utcnow()
+        }
+        await db.enterprise_certifications.insert_one(certification)
+        return certification
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/certifications/{cert_id}")
+async def delete_certification(cert_id: str, current_user = Depends(get_current_user)):
+    """Delete a certification"""
+    try:
+        result = await db.enterprise_certifications.delete_one({
+            "id": cert_id,
+            "enterprise_id": current_user["id"]
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Certification not found")
+        return {"message": "Certification deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Portfolio endpoints
+@router.get("/portfolio")
+async def get_portfolio(current_user = Depends(get_current_user)):
+    """Get portfolio items for the current enterprise"""
+    try:
+        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        return portfolio
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/portfolio")
+async def create_portfolio_item(portfolio_data: dict, current_user = Depends(get_current_user)):
+    """Create a new portfolio item for the enterprise"""
+    try:
+        import uuid
+        item = {
+            "id": str(uuid.uuid4()),
+            "enterprise_id": current_user["id"],
+            "title": portfolio_data.get("title"),
+            "description": portfolio_data.get("description"),
+            "client": portfolio_data.get("client"),
+            "completion_date": portfolio_data.get("completion_date"),
+            "images": portfolio_data.get("images", []),
+            "category": portfolio_data.get("category"),
+            "created_at": datetime.utcnow()
+        }
+        await db.enterprise_portfolio.insert_one(item)
+        return item
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/portfolio/{item_id}")
+async def delete_portfolio_item(item_id: str, current_user = Depends(get_current_user)):
+    """Delete a portfolio item"""
+    try:
+        result = await db.enterprise_portfolio.delete_one({
+            "id": item_id,
+            "enterprise_id": current_user["id"]
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Portfolio item not found")
+        return {"message": "Portfolio item deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Team endpoints
+@router.get("/team")
+async def get_team(current_user = Depends(get_current_user)):
+    """Get team members for the current enterprise"""
+    try:
+        team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        return team
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/team")
+async def create_team_member(member_data: dict, current_user = Depends(get_current_user)):
+    """Create a new team member for the enterprise"""
+    try:
+        import uuid
+        member = {
+            "id": str(uuid.uuid4()),
+            "enterprise_id": current_user["id"],
+            "name": member_data.get("name"),
+            "position": member_data.get("position"),
+            "email": member_data.get("email"),
+            "phone": member_data.get("phone"),
+            "photo": member_data.get("photo"),
+            "linkedin": member_data.get("linkedin"),
+            "bio": member_data.get("bio"),
+            "created_at": datetime.utcnow()
+        }
+        await db.enterprise_team.insert_one(member)
+        return member
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/team/{member_id}")
+async def delete_team_member(member_id: str, current_user = Depends(get_current_user)):
+    """Delete a team member"""
+    try:
+        result = await db.enterprise_team.delete_one({
+            "id": member_id,
+            "enterprise_id": current_user["id"]
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Team member not found")
+        return {"message": "Team member deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Projects endpoints
+@router.get("/projects")
+async def get_projects(current_user = Depends(get_current_user)):
+    """Get projects for the current enterprise"""
+    try:
+        projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        return projects
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/projects")
+async def create_project(project_data: dict, current_user = Depends(get_current_user)):
+    """Create a new project for the enterprise"""
+    try:
+        import uuid
+        project = {
+            "id": str(uuid.uuid4()),
+            "enterprise_id": current_user["id"],
+            "title": project_data.get("title"),
+            "description": project_data.get("description"),
+            "client": project_data.get("client"),
+            "start_date": project_data.get("start_date"),
+            "end_date": project_data.get("end_date"),
+            "budget": project_data.get("budget"),
+            "status": project_data.get("status", "in_progress"),
+            "technologies": project_data.get("technologies", []),
+            "created_at": datetime.utcnow()
+        }
+        await db.enterprise_projects.insert_one(project)
+        return project
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/projects/{project_id}")
+async def delete_project(project_id: str, current_user = Depends(get_current_user)):
+    """Delete a project"""
+    try:
+        result = await db.enterprise_projects.delete_one({
+            "id": project_id,
+            "enterprise_id": current_user["id"]
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return {"message": "Project deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Testimonials endpoints
+@router.get("/testimonials")
+async def get_testimonials(current_user = Depends(get_current_user)):
+    """Get testimonials for the current enterprise"""
+    try:
+        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        return testimonials
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/testimonials")
+async def create_testimonial(testimonial_data: dict, current_user = Depends(get_current_user)):
+    """Create a new testimonial for the enterprise"""
+    try:
+        import uuid
+        testimonial = {
+            "id": str(uuid.uuid4()),
+            "enterprise_id": current_user["id"],
+            "client_name": testimonial_data.get("client_name"),
+            "company": testimonial_data.get("company"),
+            "position": testimonial_data.get("position"),
+            "content": testimonial_data.get("content"),
+            "rating": testimonial_data.get("rating", 5),
+            "project": testimonial_data.get("project"),
+            "date": testimonial_data.get("date"),
+            "photo": testimonial_data.get("photo"),
+            "created_at": datetime.utcnow()
+        }
+        await db.enterprise_testimonials.insert_one(testimonial)
+        return testimonial
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/testimonials/{testimonial_id}")
+async def delete_testimonial(testimonial_id: str, current_user = Depends(get_current_user)):
+    """Delete a testimonial"""
+    try:
+        result = await db.enterprise_testimonials.delete_one({
+            "id": testimonial_id,
+            "enterprise_id": current_user["id"]
+        })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Testimonial not found")
+        return {"message": "Testimonial deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
