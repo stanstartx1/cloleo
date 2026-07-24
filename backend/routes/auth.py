@@ -57,6 +57,8 @@ def normalize_role(raw_role: str | None) -> str:
         "dropshipper": UserRole.DROPSHIPPER,
         "revendeur": UserRole.DROPSHIPPER,
         "reseller": UserRole.DROPSHIPPER,
+        "enterprise": "enterprise",
+        "entreprise": "enterprise",
     }
     return aliases.get(role, role)
 

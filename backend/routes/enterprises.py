@@ -54,9 +54,15 @@ async def register_enterprise(data: EnterpriseRegister):
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Check platform settings for auto-approval
+        platform = await db.settings.find_one({"type": "platform"}, {"_id": 0}) or {}
+        auto_approve = bool(platform.get("auto_approve_enterprises", False))
+        
         # Create enterprise user
         from core.auth import hash_password
+        import uuid
         enterprise_data = {
+            "id": str(uuid.uuid4()),
             "email": data.email,
             "password": hash_password(data.password),
             "role": "enterprise",
@@ -80,8 +86,9 @@ async def register_enterprise(data: EnterpriseRegister):
             "website": data.website,
             "company_slug": data.company_name.lower().replace(" ", "-"),
             "created_at": datetime.utcnow(),
-            "is_active": False,
-            "is_verified": False,
+            "is_active": auto_approve,
+            "is_verified": auto_approve,
+            "approval_status": "approved" if auto_approve else "pending",
             "documents": data.documents or {}
         }
         
