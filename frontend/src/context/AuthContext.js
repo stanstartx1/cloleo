@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('DEBUG: User data from /auth/me:', response.data);
       setUser(response.data);
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -142,7 +143,8 @@ export const AuthProvider = ({ children }) => {
       isAdmin: user?.role === 'admin',
       isDriver: user?.role === 'driver',
       isDropshipper: user?.role === 'dropshipper',
-      isEnterprise: user?.role === 'enterprise'
+      isEnterprise: user?.role === 'enterprise',
+      userRole: user?.role
     }}>
       {children}
     </AuthContext.Provider>
