@@ -955,6 +955,48 @@ const ProductPage = () => {
                 <p className="text-sm text-muted-foreground">Vendeur</p>
                 <p className="font-medium">{product.seller_name}</p>
               </div>
+              {product.brand && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Marque</p>
+                  <p className="font-medium">{product.brand}</p>
+                </div>
+              )}
+              {product.model && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Modèle</p>
+                  <p className="font-medium">{product.model}</p>
+                </div>
+              )}
+              {product.sku && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">SKU</p>
+                  <p className="font-medium">{product.sku}</p>
+                </div>
+              )}
+              {product.ean && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">EAN / ISBN</p>
+                  <p className="font-medium">{product.ean}</p>
+                </div>
+              )}
+              {product.weight && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Poids</p>
+                  <p className="font-medium">{product.weight} kg</p>
+                </div>
+              )}
+              {product.dimensions && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Dimensions</p>
+                  <p className="font-medium">{product.dimensions} cm</p>
+                </div>
+              )}
+              {product.warranty && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Garantie</p>
+                  <p className="font-medium">{product.warranty}</p>
+                </div>
+              )}
               <div className="p-4 bg-muted/30 rounded-lg">
                 <p className="text-sm text-muted-foreground">Tags</p>
                 <div className="flex flex-wrap gap-2 mt-1">
@@ -972,6 +1014,49 @@ const ProductPage = () => {
                 </div>
               ))}
             </div>
+            
+            {/* Enterprise-specific sections */}
+            {product.specifications && (
+              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
+                <h3 className="font-semibold mb-3">Spécifications techniques</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.specifications}</p>
+              </div>
+            )}
+            
+            {product.certifications && (
+              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
+                <h3 className="font-semibold mb-3">Certifications</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.certifications}</p>
+              </div>
+            )}
+            
+            {product.documentation && (
+              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
+                <h3 className="font-semibold mb-3">Documentation</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.documentation}</p>
+              </div>
+            )}
+            
+            {product.faq && (
+              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
+                <h3 className="font-semibold mb-3">FAQ produit</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.faq}</p>
+              </div>
+            )}
+            
+            {product.video_url && (
+              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
+                <h3 className="font-semibold mb-3">Vidéo</h3>
+                <a 
+                  href={product.video_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Voir la vidéo du produit
+                </a>
+              </div>
+            )}
           </TabsContent>
           <TabsContent value="reviews">
             <ReviewSection productId={product.id} />

@@ -18,6 +18,7 @@ import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { toAbsoluteMediaUrl } from '../utils/media';
+import { COUNTRIES, getCountryByCode } from '../utils/countries';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import MapboxMap from '../components/MapboxMap';
 import MessagesSection from '../components/MessagesSection';
@@ -28,6 +29,7 @@ import {
   tabContentVariant
 } from '../components/AnimatedComponents';
 import ImageUpload from '../components/ImageUpload';
+import EnterpriseProductModal from '../components/EnterpriseProductModal';
 
 import { API_BASE, API_URL } from '../config/api';
 
@@ -704,68 +706,32 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    description: '',
-    price_fcfa: '',
-    category: '',
-    condition: 'new',
-    location: '',
-    images: []
-  });
-  const [uploading, setUploading] = useState(false);
+  const [categories, setCategories] = useState([]);
 
-  const handleImageUpload = async (file) => {
-    setUploading(true);
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await axios.post(`${API}/upload`, formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      setNewProduct({ 
-        ...newProduct, 
-        images: [...newProduct.images, response.data.url] 
-      });
-      toast.success('Image uploadée avec succès');
+      const response = await axios.get(`${API}/categories`);
+      setCategories(response.data);
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Erreur lors de l\'upload de l\'image');
-    } finally {
-      setUploading(false);
+      console.error('Error fetching categories:', error);
     }
   };
 
-  const handleAddProduct = async () => {
-    if (!newProduct.name || !newProduct.price_fcfa || !newProduct.category) {
-      toast.error('Veuillez remplir le nom, le prix et la catégorie');
-      return;
-    }
-
+  const handleAddProduct = async (data) => {
     try {
-      await axios.post(`${API}/vendor/products`, newProduct, {
+      await axios.post(`${API}/vendor/products`, data, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Produit ajouté avec succès');
       setShowAddModal(false);
-      setNewProduct({ 
-        name: '', 
-        description: '', 
-        price_fcfa: '', 
-        category: '', 
-        condition: 'new',
-        location: '',
-        images: [] 
-      });
       onRefresh();
     } catch (error) {
       console.error('Error adding product:', error);
-      toast.error('Erreur lors de l\'ajout du produit');
+      toast.error(error.response?.data?.detail || 'Erreur lors de l\'ajout du produit');
     }
   };
 
@@ -786,52 +752,22 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
   const handleEditProduct = (product) => {
     setEditingProduct(product);
-    setNewProduct({
-      name: product.name,
-      description: product.description,
-      price_fcfa: product.price_fcfa,
-      category: product.category,
-      condition: product.condition,
-      location: product.location,
-      images: product.images || []
-    });
     setShowEditModal(true);
   };
 
-  const handleUpdateProduct = async () => {
-    if (!newProduct.name || !newProduct.price_fcfa || !newProduct.category) {
-      toast.error('Veuillez remplir le nom, le prix et la catégorie');
-      return;
-    }
-
+  const handleUpdateProduct = async (data) => {
     try {
-      await axios.put(`${API}/vendor/products/${editingProduct.id}`, newProduct, {
+      await axios.put(`${API}/vendor/products/${editingProduct.id}`, data, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Produit mis à jour avec succès');
       setShowEditModal(false);
       setEditingProduct(null);
-      setNewProduct({ 
-        name: '', 
-        description: '', 
-        price_fcfa: '', 
-        category: '', 
-        condition: 'new',
-        location: '',
-        images: [] 
-      });
       onRefresh();
     } catch (error) {
       console.error('Error updating product:', error);
       toast.error('Erreur lors de la mise à jour du produit');
     }
-  };
-
-  const handleRemoveImage = (index) => {
-    setNewProduct({
-      ...newProduct,
-      images: newProduct.images.filter((_, i) => i !== index)
-    });
   };
 
   return (
@@ -908,200 +844,22 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
         )}
       </div>
 
-      {/* Add Product Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 my-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-lg text-white">Ajouter un produit</h4>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white hover:bg-slate-800/50">
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Nom du produit *</label>
-                <Input
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  placeholder="Ex: iPhone 15 Pro Max"
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Prix (FCFA) *</label>
-                <Input
-                  type="number"
-                  value={newProduct.price_fcfa}
-                  onChange={(e) => setNewProduct({ ...newProduct, price_fcfa: e.target.value })}
-                  placeholder="500000"
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Catégorie *</label>
-                <select
-                  className="w-full border border-slate-700 bg-slate-800/50 rounded-lg p-3 text-sm text-white focus:border-amber-500 focus:outline-none"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                >
-                  <option value="">Sélectionner une catégorie</option>
-                  <option value="electronics">Électronique</option>
-                  <option value="fashion">Mode</option>
-                  <option value="home">Maison</option>
-                  <option value="vehicles">Véhicules</option>
-                  <option value="services">Services</option>
-                  <option value="other">Autre</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">État</label>
-                <select
-                  className="w-full border border-slate-700 bg-slate-800/50 rounded-lg p-3 text-sm text-white focus:border-amber-500 focus:outline-none"
-                  value={newProduct.condition}
-                  onChange={(e) => setNewProduct({ ...newProduct, condition: e.target.value })}
-                >
-                  <option value="new">Neuf</option>
-                  <option value="used">Occasion</option>
-                  <option value="refurbished">Reconditionné</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Localisation</label>
-                <Input
-                  value={newProduct.location}
-                  onChange={(e) => setNewProduct({ ...newProduct, location: e.target.value })}
-                  placeholder="Ex: Abidjan, Côte d'Ivoire"
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Description</label>
-                <textarea
-                  className="w-full border border-slate-700 bg-slate-800/50 rounded-lg p-3 text-sm text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
-                  rows="4"
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  placeholder="Description détaillée du produit..."
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Images</label>
-                <ImageUpload
-                  onUpload={handleImageUpload}
-                  currentImage={newProduct.images[0]}
-                  accept="image/*"
-                />
-                {newProduct.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {newProduct.images.map((img, index) => (
-                      <div key={index} className="relative">
-                        <img src={toAbsoluteMediaUrl(img)} alt="" className="w-16 h-16 object-cover rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button onClick={handleAddProduct} disabled={uploading} className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600">
-                  {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Ajouter
-                </Button>
-                <Button variant="outline" onClick={() => setShowAddModal(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700/50">
-                  Annuler
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Product Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 my-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-lg text-white">Modifier le produit</h4>
-              <Button variant="ghost" size="icon" onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white hover:bg-slate-800/50">
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Nom du produit *</label>
-                <Input
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Prix (FCFA) *</label>
-                <Input
-                  type="number"
-                  value={newProduct.price_fcfa}
-                  onChange={(e) => setNewProduct({ ...newProduct, price_fcfa: e.target.value })}
-                  className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Catégorie *</label>
-                <select
-                  className="w-full border border-slate-700 bg-slate-800/50 rounded-lg p-3 text-sm text-white focus:border-amber-500 focus:outline-none"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                >
-                  <option value="">Sélectionner une catégorie</option>
-                  <option value="electronics">Électronique</option>
-                  <option value="fashion">Mode</option>
-                  <option value="home">Maison</option>
-                  <option value="vehicles">Véhicules</option>
-                  <option value="services">Services</option>
-                  <option value="other">Autre</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Description</label>
-                <textarea
-                  className="w-full border border-slate-700 bg-slate-800/50 rounded-lg p-3 text-sm text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
-                  rows="4"
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                />
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button onClick={handleUpdateProduct} disabled={uploading} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
-                  {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Edit2 className="w-4 h-4 mr-2" />}
-                  Mettre à jour
-                </Button>
-                <Button variant="outline" onClick={() => setShowEditModal(false)} className="border-slate-600 text-slate-300 hover:bg-slate-700/50">
-                  Annuler
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Product Modals */}
+      <EnterpriseProductModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddProduct}
+        categories={categories}
+        token={token}
+      />
+      <EnterpriseProductModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleUpdateProduct}
+        product={editingProduct}
+        categories={categories}
+        token={token}
+      />
     </div>
   );
 };
