@@ -611,11 +611,13 @@ async def get_user_by_id(user_id: str):
 
 
 @api.get("/vendor/products")
-async def vendor_products(status: Optional[str] = None, seller_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+async def vendor_products(status: Optional[str] = None, seller_id: Optional[str] = None, user: dict = Depends(get_current_user_optional)):
     if seller_id:
         query = {"seller_id": seller_id}
-    else:
+    elif user:
         query = {"seller_id": user["id"]}
+    else:
+        raise HTTPException(status_code=401, detail="Authentication required")
     if status:
         query["status"] = status
     return await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)

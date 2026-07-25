@@ -1181,6 +1181,18 @@ const ProductPage = () => {
                       {product.city}, {product.location || "Côte d'Ivoire"}
                     </div>
                   )}
+                  {product.business_type && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Briefcase className="w-4 h-4" />
+                      {product.business_type}
+                    </div>
+                  )}
+                  {product.year_founded && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Calendar className="w-4 h-4" />
+                      Depuis {product.year_founded}
+                    </div>
+                  )}
                 </div>
 
                 {/* Stats */}
@@ -1203,9 +1215,9 @@ const ProductPage = () => {
                   </div>
                 </div>
 
-                {/* Certifications */}
+                {/* Certifications & Trust */}
                 <div className="space-y-3">
-                  <h4 className="font-semibold text-slate-900">Certifications</h4>
+                  <h4 className="font-semibold text-slate-900">Certifications & Confiance</h4>
                   <div className="flex flex-wrap gap-2">
                     {product.certifications ? (
                       <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
@@ -1226,8 +1238,20 @@ const ProductPage = () => {
                     <Shield className="w-4 h-4 text-green-600" />
                     <span>Commerce sécurisé</span>
                   </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Award className="w-4 h-4 text-amber-600" />
+                    <span>Entreprise certifiée</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Enterprise Description */}
+              {product.company_description && (
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h4 className="font-semibold text-slate-900 mb-3">Description de l'entreprise</h4>
+                  <p className="text-sm text-slate-600 line-clamp-3">{product.company_description}</p>
+                </div>
+              )}
 
               {/* Enterprise-specific product info */}
               {(product.specifications || product.warranty || product.video_url) && (

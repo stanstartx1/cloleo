@@ -531,9 +531,9 @@ async def get_trophies(current_user = Depends(get_current_user)):
     """Get trophies for the current enterprise"""
     try:
         trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}).to_list(length=None)
-        return trophies
+        return trophies or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return []
 
 @router.post("/trophies")
 async def create_trophy(trophy_data: dict, current_user = Depends(get_current_user)):
@@ -577,9 +577,9 @@ async def get_certifications(current_user = Depends(get_current_user)):
     """Get certifications for the current enterprise"""
     try:
         certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}).to_list(length=None)
-        return certifications
+        return certifications or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return []
 
 @router.post("/certifications")
 async def create_certification(cert_data: dict, current_user = Depends(get_current_user)):
@@ -624,9 +624,9 @@ async def get_portfolio(current_user = Depends(get_current_user)):
     """Get portfolio items for the current enterprise"""
     try:
         portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}).to_list(length=None)
-        return portfolio
+        return portfolio or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return []
 
 @router.post("/portfolio")
 async def create_portfolio_item(portfolio_data: dict, current_user = Depends(get_current_user)):
@@ -671,9 +671,9 @@ async def get_team(current_user = Depends(get_current_user)):
     """Get team members for the current enterprise"""
     try:
         team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}).to_list(length=None)
-        return team
+        return team or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return []
 
 @router.post("/team")
 async def create_team_member(member_data: dict, current_user = Depends(get_current_user)):
@@ -719,9 +719,9 @@ async def get_projects(current_user = Depends(get_current_user)):
     """Get projects for the current enterprise"""
     try:
         projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}).to_list(length=None)
-        return projects
+        return projects or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return []
 
 @router.post("/projects")
 async def create_project(project_data: dict, current_user = Depends(get_current_user)):
@@ -768,9 +768,9 @@ async def get_testimonials(current_user = Depends(get_current_user)):
     """Get testimonials for the current enterprise"""
     try:
         testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}).to_list(length=None)
-        return testimonials
+        return testimonials or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return []
 
 @router.post("/testimonials")
 async def create_testimonial(testimonial_data: dict, current_user = Depends(get_current_user)):
