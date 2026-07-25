@@ -6,7 +6,7 @@ import {
   Package, ShoppingBag, DollarSign, TrendingUp, Clock, CheckCircle, XCircle,
   Plus, Settings, CreditCard, BarChart3, Store, Crown, Sparkles, AlertCircle,
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
-  LogOut, Edit, X, MessageCircle, Trash2, Users, Copy, Building2, Trophy,
+  LogOut, Edit, Edit2, X, MessageCircle, Trash2, Users, Copy, Building2, Trophy,
   Award, Image as ImageIcon, Briefcase, Star, FileText, Upload, Download,
   Calendar, MapPin as MapPinIcon, Mail, Linkedin, Globe, Facebook, Instagram,
   Twitter, Youtube, Link as LinkIcon, UserPlus, UserMinus, Shield, Zap,
