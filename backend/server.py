@@ -2154,6 +2154,34 @@ async def cleanup_test_data():
     return {"results": results}
 
 
+@api.get("/admin/list-test-data")
+async def list_test_data():
+    """List all enterprises and products to identify test data"""
+    enterprises = await db.users.find({"role": "enterprise"}).to_list(length=None)
+    products = await db.products.find({}).to_list(length=None)
+    
+    enterprise_list = []
+    for ent in enterprises:
+        enterprise_list.append({
+            "id": ent.get("id"),
+            "company_name": ent.get("company_name"),
+            "email": ent.get("email")
+        })
+    
+    product_list = []
+    for prod in products:
+        product_list.append({
+            "id": prod.get("id"),
+            "name": prod.get("name"),
+            "seller_id": prod.get("seller_id")
+        })
+    
+    return {
+        "enterprises": enterprise_list,
+        "products": product_list
+    }
+
+
 @api.put("/admin/vendors/{vendor_id}/toggle-status")
 async def admin_toggle_vendor(vendor_id: str, user: dict = Depends(require_admin)):
     vendor = await db.users.find_one({"id": vendor_id, "role": "vendor"}, {"_id": 0})
