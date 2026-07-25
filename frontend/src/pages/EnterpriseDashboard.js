@@ -48,7 +48,7 @@ const ORDER_STATUSES = {
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Tableau de bord', icon: Home },
-  { id: 'products', label: 'Mes produits', icon: Package },
+  { id: 'products', label: 'Mes produits', icon: Package, badge: true },
   { id: 'orders', label: 'Commandes', icon: ShoppingBag, badge: true },
   { id: 'offers', label: 'Offres', icon: DollarSign, badge: true },
   { id: 'messages', label: 'Messages', icon: MessageCircle },
@@ -337,7 +337,7 @@ const EnterpriseDashboard = () => {
                   <span className="font-medium text-sm">{item.label}</span>
                   {item.badge && (
                     <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
-                      {item.id === 'orders' ? dashboard?.pending_orders || 0 : offers.length}
+                      {item.id === 'orders' ? dashboard?.pending_orders || 0 : item.id === 'products' ? products.length : offers.length}
                     </span>
                   )}
                 </button>
