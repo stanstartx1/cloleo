@@ -85,7 +85,7 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
 
 
 async def require_vendor(user: dict = Depends(get_current_user)):
-    if user["role"] not in [UserRole.VENDOR, UserRole.ADMIN]:
+    if user["role"] not in [UserRole.VENDOR, UserRole.ADMIN, "enterprise"]:
         raise HTTPException(status_code=403, detail="Acces reserve aux vendeurs")
     return user
 

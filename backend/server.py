@@ -271,6 +271,16 @@ async def public_stats():
     return {"products": products, "vendors": vendors, "drivers": drivers}
 
 
+@api.post("/upload")
+async def upload_single(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    ext = Path(file.filename or "").suffix or ".bin"
+    filename = f"{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+    content = await file.read()
+    dest.write_bytes(content)
+    return {"url": f"/uploads/{filename}"}
+
+
 @api.post("/upload/multiple")
 async def upload_multiple(files: list[UploadFile] = File(...), user: dict = Depends(get_current_user)):
     urls = []
@@ -631,8 +641,9 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "id": product_id,
         "slug": slug,
         "seller_id": user["id"],
-        "seller_name": user.get("shop_name") or user.get("name"),
+        "seller_name": user.get("shop_name") or user.get("name") or user.get("company_name"),
         "name": name,
+        "short_description": payload.get("short_description", ""),
         "description": payload.get("description"),
         "category_slug": payload.get("category_slug"),
         "subcategory_slug": payload.get("subcategory_slug") or None,
@@ -649,6 +660,18 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "images": payload.get("images") or [],
         "tags": payload.get("tags") or [],
         "custom_attributes": custom_attributes,
+        "brand": payload.get("brand", ""),
+        "model": payload.get("model", ""),
+        "sku": payload.get("sku", ""),
+        "ean": payload.get("ean", ""),
+        "weight": payload.get("weight", ""),
+        "dimensions": payload.get("dimensions", ""),
+        "warranty": payload.get("warranty", ""),
+        "video_url": payload.get("video_url", ""),
+        "specifications": payload.get("specifications", ""),
+        "certifications": payload.get("certifications", ""),
+        "documentation": payload.get("documentation", ""),
+        "faq": payload.get("faq", ""),
         "is_active": True,
         "status": "pending",
         "is_featured": False,
