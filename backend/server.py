@@ -2121,7 +2121,7 @@ async def admin_delete_enterprise_by_name(company_name: str, user: dict = Depend
 
 @api.post("/admin/cleanup-test-data")
 async def cleanup_test_data():
-    """Temporary endpoint to clean up test data (EKO-BAT, n. GH, sss)"""
+    """Temporary endpoint to clean up test data (EKO-BAT, n, GH, AAA)"""
     results = []
     
     # Delete EKO-BAT enterprise
@@ -2135,21 +2135,21 @@ async def cleanup_test_data():
     else:
         results.append("Entreprise EKO-BAT non trouvée")
     
-    # Delete product "n. GH"
-    product = await db.products.find_one({"name": {"$regex": "n. GH", "$options": "i"}})
+    # Delete product "n, GH"
+    product = await db.products.find_one({"name": {"$regex": "n, GH", "$options": "i"}})
     if product:
         await db.products.delete_one({"id": product["id"]})
         results.append(f"Produit '{product['name']}' supprimé")
     else:
-        results.append("Produit 'n. GH' non trouvé")
+        results.append("Produit 'n, GH' non trouvé")
     
-    # Delete product "sss"
-    product = await db.products.find_one({"name": {"$regex": "sss", "$options": "i"}})
+    # Delete product "AAA"
+    product = await db.products.find_one({"name": {"$regex": "AAA", "$options": "i"}})
     if product:
         await db.products.delete_one({"id": product["id"]})
         results.append(f"Produit '{product['name']}' supprimé")
     else:
-        results.append("Produit 'sss' non trouvé")
+        results.append("Produit 'AAA' non trouvé")
     
     return {"results": results}
 
