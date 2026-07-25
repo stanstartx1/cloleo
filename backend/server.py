@@ -611,13 +611,17 @@ async def get_user_by_id(user_id: str):
 
 
 @api.get("/vendor/products")
-async def vendor_products(status: Optional[str] = None, seller_id: Optional[str] = None, user: dict = Depends(get_current_user_optional)):
-    if seller_id:
-        query = {"seller_id": seller_id}
-    elif user:
-        query = {"seller_id": user["id"]}
-    else:
-        raise HTTPException(status_code=401, detail="Authentication required")
+async def vendor_products(status: Optional[str] = None, user: dict = Depends(get_current_user)):
+    query = {"seller_id": user["id"]}
+    if status:
+        query["status"] = status
+    return await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+@api.get("/products/seller/{seller_id}")
+async def get_products_by_seller(seller_id: str, status: Optional[str] = None):
+    """Get products by seller ID (public endpoint for shop pages)"""
+    query = {"seller_id": seller_id}
     if status:
         query["status"] = status
     return await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)

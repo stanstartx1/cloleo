@@ -32,7 +32,7 @@ const VendorShopPage = () => {
       try {
         const [shopRes, productsRes] = await Promise.all([
           axios.get(`${API}/users/${sellerId}`),
-          axios.get(`${API}/vendor/products?seller_id=${sellerId}`)
+          axios.get(`${API}/products/seller/${sellerId}`)
         ]);
         setShop(shopRes.data);
         setProducts(productsRes.data || []);

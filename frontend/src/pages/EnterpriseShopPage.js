@@ -39,7 +39,7 @@ const EnterpriseShopPage = () => {
       setLoading(true);
       const [enterpriseRes, productsRes] = await Promise.all([
         axios.get(`${API}/enterprises/${id}`),
-        axios.get(`${API}/vendor/products?seller_id=${id}`)
+        axios.get(`${API}/products/seller/${id}`)
       ]);
       setEnterprise(enterpriseRes.data);
       setProducts(productsRes.data || []);
