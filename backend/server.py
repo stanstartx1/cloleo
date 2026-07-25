@@ -601,9 +601,21 @@ async def vendor_dashboard(user: dict = Depends(require_vendor)):
     }
 
 
+@api.get("/users/{user_id}")
+async def get_user_by_id(user_id: str):
+    """Get user by ID (public endpoint for shop pages)"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 @api.get("/vendor/products")
-async def vendor_products(status: Optional[str] = None, user: dict = Depends(require_vendor)):
-    query = {"seller_id": user["id"]}
+async def vendor_products(status: Optional[str] = None, seller_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+    if seller_id:
+        query = {"seller_id": seller_id}
+    else:
+        query = {"seller_id": user["id"]}
     if status:
         query["status"] = status
     return await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)

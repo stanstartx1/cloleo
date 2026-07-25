@@ -30,12 +30,15 @@ const VendorShopPage = () => {
     const fetchShop = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${API}/vendor-shop/${sellerId}?page=${page}&limit=12`);
-        setShop(response.data.shop);
-        setProducts(response.data.products);
-        setTotalPages(response.data.total_pages);
-        setTotal(response.data.total);
-        setSubscriberCount(response.data.shop?.subscriber_count || 0);
+        const [shopRes, productsRes] = await Promise.all([
+          axios.get(`${API}/users/${sellerId}`),
+          axios.get(`${API}/vendor/products?seller_id=${sellerId}`)
+        ]);
+        setShop(shopRes.data);
+        setProducts(productsRes.data || []);
+        setTotal(productsRes.data?.length || 0);
+        setTotalPages(Math.ceil((productsRes.data?.length || 0) / 12));
+        setSubscriberCount(shopRes.data?.subscriber_count || 0);
         
         // Check if user is subscribed
         if (isAuthenticated && token) {

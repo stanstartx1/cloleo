@@ -607,12 +607,12 @@ const ProductPage = () => {
                   <div className="flex gap-2">
                     {product.seller_role === 'enterprise' ? (
                       <Link 
-                        to={`/enterprise/profile/${product.seller_id}`}
+                        to={`/enterprise/shop/${product.seller_id}`}
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
-                        data-testid="visit-enterprise-profile-btn"
+                        data-testid="visit-enterprise-shop-btn"
                       >
                         <Building2 className="w-4 h-4" />
-                        Voir l'entreprise
+                        Voir la boutique
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     ) : (
