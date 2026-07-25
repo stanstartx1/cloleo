@@ -210,6 +210,52 @@ async def get_enterprise_profile(company_slug: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/{enterprise_id}")
+async def get_enterprise_by_id(enterprise_id: str):
+    """Get enterprise profile by ID"""
+    try:
+        enterprise = await db.users.find_one({"id": enterprise_id, "role": "enterprise"})
+        if not enterprise:
+            raise HTTPException(status_code=404, detail="Enterprise not found")
+        
+        return {
+            "id": enterprise.get("id", ""),
+            "company_name": enterprise.get("company_name", ""),
+            "company_slug": enterprise.get("company_slug", ""),
+            "business_type": enterprise.get("business_type", ""),
+            "contact_person": enterprise.get("contact_person", ""),
+            "phone": enterprise.get("phone", ""),
+            "email": enterprise.get("email", ""),
+            "year_founded": enterprise.get("year_founded", ""),
+            "number_of_employees": enterprise.get("number_of_employees", ""),
+            "business_sector": enterprise.get("business_sector", ""),
+            "company_description": enterprise.get("company_description", ""),
+            "city": enterprise.get("city", ""),
+            "country": enterprise.get("country", ""),
+            "certifications": enterprise.get("certifications", []),
+            "profile_photo": enterprise.get("profile_photo", ""),
+            "dfe_number": enterprise.get("dfe_number", ""),
+            "trade_register_number": enterprise.get("trade_register_number", ""),
+            "tax_id": enterprise.get("tax_id", ""),
+            "legal_form": enterprise.get("legal_form", ""),
+            "capital": enterprise.get("capital", ""),
+            "address": enterprise.get("address", ""),
+            "website": enterprise.get("website", ""),
+            "facebook": enterprise.get("facebook", ""),
+            "instagram": enterprise.get("instagram", ""),
+            "linkedin": enterprise.get("linkedin", ""),
+            "twitter": enterprise.get("twitter", ""),
+            "youtube": enterprise.get("youtube", ""),
+            "average_rating": enterprise.get("average_rating", 0),
+            "total_products": enterprise.get("total_products", 0),
+            "is_verified": enterprise.get("is_verified", False),
+            "created_at": enterprise.get("created_at", "")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/dashboard")
 async def get_enterprise_dashboard(current_user = Depends(get_current_user)):
     """Get enterprise dashboard stats"""

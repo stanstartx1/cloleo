@@ -22,7 +22,7 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://cloleo.com';
 
 const EnterpriseProfilePage = () => {
-  const { companySlug } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [enterprise, setEnterprise] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ const EnterpriseProfilePage = () => {
   useEffect(() => {
     const fetchEnterprise = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/enterprises/profile/${companySlug}`);
+        const response = await axios.get(`${API_URL}/api/enterprises/${id}`);
         setEnterprise(response.data);
       } catch (error) {
         console.error('Error fetching enterprise profile:', error);
@@ -40,7 +40,7 @@ const EnterpriseProfilePage = () => {
     };
 
     fetchEnterprise();
-  }, [companySlug]);
+  }, [id]);
 
   if (loading) {
     return (

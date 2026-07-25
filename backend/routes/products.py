@@ -16,12 +16,14 @@ async def _inject_seller_profile_photo(products):
 
     users = await db.users.find(
         {"id": {"$in": seller_ids}},
-        {"_id": 0, "id": 1, "profile_photo": 1}
+        {"_id": 0, "id": 1, "profile_photo": 1, "role": 1}
     ).to_list(len(seller_ids) + 10)
     photo_by_id = {u.get("id"): u.get("profile_photo") for u in users}
+    role_by_id = {u.get("id"): u.get("role") for u in users}
 
     for p in products:
         p["seller_profile_photo"] = photo_by_id.get(p.get("seller_id"))
+        p["seller_role"] = role_by_id.get(p.get("seller_id"))
 
 
 @router.get("")

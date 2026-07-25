@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check, Building2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
@@ -604,15 +604,29 @@ const ProductPage = () => {
                 
                 {/* Visit Shop Button */}
                 {product.seller_id && product.seller_id !== 'system' && (
-                  <Link 
-                    to={`/vendeur-boutique/${product.seller_id}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md hover:shadow-lg"
-                    data-testid="visit-vendor-shop-btn"
-                  >
-                    <Store className="w-4 h-4" />
-                    Voir la boutique
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
+                  <div className="flex gap-2">
+                    {product.seller_role === 'enterprise' ? (
+                      <Link 
+                        to={`/enterprise/profile/${product.seller_id}`}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
+                        data-testid="visit-enterprise-profile-btn"
+                      >
+                        <Building2 className="w-4 h-4" />
+                        Voir l'entreprise
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    ) : (
+                      <Link 
+                        to={`/vendeur-boutique/${product.seller_id}`}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md hover:shadow-lg"
+                        data-testid="visit-vendor-shop-btn"
+                      >
+                        <Store className="w-4 h-4" />
+                        Voir la boutique
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1083,6 +1097,134 @@ const ProductPage = () => {
               {alsoBought.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Enterprise Section - Alibaba Style */}
+        {product.seller_role === 'enterprise' && product.seller_id && (
+          <section className="mt-16 bg-gradient-to-br from-slate-50 to-amber-50 rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="p-6 md:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">À propos de l'entreprise</h2>
+                <Link 
+                  to={`/enterprise/profile/${product.seller_id}`}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md"
+                >
+                  <Building2 className="w-4 h-4" />
+                  Voir le profil complet
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Company Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      photo={product.seller_profile_photo}
+                      name={product.seller_name}
+                      size="w-16 h-16"
+                      textSize="text-xl"
+                      className="shadow-lg"
+                    />
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-900">{product.seller_name}</h3>
+                      {product.seller_id && product.seller_id !== 'system' && (
+                        <div className="flex items-center gap-1 text-sm text-green-600">
+                          <BadgeCheck className="w-4 h-4" />
+                          Entreprise vérifiée
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {product.city && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <MapPin className="w-4 h-4" />
+                      {product.city}, {product.location || "Côte d'Ivoire"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white rounded-lg p-4 border border-slate-200">
+                    <div className="text-2xl font-bold text-amber-600">{product.stock || 0}</div>
+                    <div className="text-sm text-slate-600">Produits en stock</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-slate-200">
+                    <div className="text-2xl font-bold text-amber-600">98%</div>
+                    <div className="text-sm text-slate-600">Taux de réponse</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-slate-200">
+                    <div className="text-2xl font-bold text-amber-600">&lt; 24h</div>
+                    <div className="text-sm text-slate-600">Délai de livraison</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-slate-200">
+                    <div className="text-2xl font-bold text-amber-600">4.8★</div>
+                    <div className="text-sm text-slate-600">Note moyenne</div>
+                  </div>
+                </div>
+
+                {/* Certifications */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-slate-900">Certifications</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {product.certifications ? (
+                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                        {product.certifications}
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">
+                        Certifications non spécifiées
+                      </span>
+                    )}
+                    {product.brand && (
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        Marque de confiance
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600 mt-2">
+                    <Shield className="w-4 h-4 text-green-600" />
+                    <span>Commerce sécurisé</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enterprise-specific product info */}
+              {(product.specifications || product.warranty || product.video_url) && (
+                <div className="mt-6 pt-6 border-t border-slate-200">
+                  <h4 className="font-semibold text-slate-900 mb-4">Informations techniques</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {product.specifications && (
+                      <div className="bg-white rounded-lg p-4 border border-slate-200">
+                        <p className="text-sm text-slate-600 mb-1">Spécifications</p>
+                        <p className="text-sm text-slate-900 line-clamp-2">{product.specifications}</p>
+                      </div>
+                    )}
+                    {product.warranty && (
+                      <div className="bg-white rounded-lg p-4 border border-slate-200">
+                        <p className="text-sm text-slate-600 mb-1">Garantie</p>
+                        <p className="text-sm text-slate-900">{product.warranty}</p>
+                      </div>
+                    )}
+                    {product.video_url && (
+                      <div className="bg-white rounded-lg p-4 border border-slate-200">
+                        <p className="text-sm text-slate-600 mb-1">Vidéo produit</p>
+                        <a 
+                          href={product.video_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-amber-600 hover:underline"
+                        >
+                          Voir la vidéo
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )}

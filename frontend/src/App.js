@@ -261,7 +261,7 @@ const AppRoutes = () => {
           <StandaloneDashboardLayout><EnterpriseDashboard /></StandaloneDashboardLayout>
         </ProtectedRoute>
       } />
-      <Route path="/enterprise/profile/:companySlug" element={<PublicLayout><EnterpriseProfilePage /></PublicLayout>} />
+      <Route path="/enterprise/profile/:id" element={<PublicLayout><EnterpriseProfilePage /></PublicLayout>} />
 
       {/* Vendor Shop Route (Public) */}
       <Route path="/vendeur-boutique/:sellerId" element={<PublicLayout><VendorShopPage /></PublicLayout>} />
