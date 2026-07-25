@@ -40,7 +40,8 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
     specifications: '',
     certifications: '',
     documentation: '',
-    faq: ''
+    faq: '',
+    usage_images: []
   });
   const [customFields, setCustomFields] = useState([]);
   const [customAttributes, setCustomAttributes] = useState({});
@@ -84,7 +85,8 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
         specifications: product.specifications || '',
         certifications: product.certifications || '',
         documentation: product.documentation || '',
-        faq: product.faq || ''
+        faq: product.faq || '',
+        usage_images: product.usage_images || []
       });
       if (product.custom_attributes) {
         setCustomAttributes(product.custom_attributes);
@@ -159,10 +161,43 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
     }
   };
 
+  const handleUsageImageUpload = async (file) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API}/upload`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        usage_images: [...prev.usage_images, response.data.url] 
+      }));
+      toast.success('Image d\'utilisation uploadée avec succès');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Erreur lors de l\'upload de l\'image d\'utilisation');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleRemoveImage = (index) => {
     setFormData(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleRemoveUsageImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      usage_images: prev.usage_images.filter((_, i) => i !== index)
     }));
   };
 
@@ -222,7 +257,8 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
         specifications: formData.specifications,
         certifications: formData.certifications,
         documentation: formData.documentation,
-        faq: formData.faq
+        faq: formData.faq,
+        usage_images: formData.usage_images
       };
 
       await onSubmit(data);
@@ -619,7 +655,7 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
 
           {/* Images */}
           <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-            <h5 className="font-semibold text-white mb-3">Images (jusqu'à 10)</h5>
+            <h5 className="font-semibold text-white mb-3">Images du produit (jusqu'à 10)</h5>
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
                 {formData.images.map((img, idx) => (
@@ -644,6 +680,40 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
                     <Plus className="w-6 h-6 text-slate-400" />
                   </label>
                 )}
+              </div>
+              <p className="text-xs text-slate-400">JPG, PNG, WebP. Max 5MB par image</p>
+            </div>
+          </div>
+
+          {/* Usage Images */}
+          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl p-4 border border-amber-500/30">
+            <h5 className="font-semibold text-white mb-3 flex items-center gap-2">
+              <span className="text-amber-400">📸</span>
+              Images d'utilisation (optionnel)
+            </h5>
+            <p className="text-xs text-slate-400 mb-3">Ajoutez des images montrant comment utiliser le produit (mode d'emploi, montage, etc.)</p>
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {formData.usage_images.map((img, idx) => (
+                  <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden">
+                    <img src={toAbsoluteMediaUrl(img)} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => handleRemoveUsageImage(idx)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className="w-20 h-20 rounded-lg border-2 border-dashed border-amber-500/50 flex items-center justify-center cursor-pointer hover:border-amber-500 transition-colors bg-amber-500/5">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files[0] && handleUsageImageUpload(e.target.files[0])}
+                    className="hidden"
+                  />
+                  <Plus className="w-6 h-6 text-amber-400" />
+                </label>
               </div>
               <p className="text-xs text-slate-400">JPG, PNG, WebP. Max 5MB par image</p>
             </div>

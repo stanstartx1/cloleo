@@ -672,6 +672,7 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "certifications": payload.get("certifications", ""),
         "documentation": payload.get("documentation", ""),
         "faq": payload.get("faq", ""),
+        "usage_images": payload.get("usage_images") or [],
         "is_active": True,
         "status": "pending",
         "is_featured": False,

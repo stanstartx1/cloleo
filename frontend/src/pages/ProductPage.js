@@ -1071,6 +1071,33 @@ const ProductPage = () => {
                 </a>
               </div>
             )}
+
+            {/* Usage Images Section */}
+            {product.usage_images && product.usage_images.length > 0 && (
+              <div className="mt-6 p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-slate-900">
+                  <span className="text-2xl">📸</span>
+                  Guide d'utilisation
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">Découvrez comment utiliser ce produit étape par étape</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {product.usage_images.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
+                        <img
+                          src={toAbsoluteMediaUrl(img)}
+                          alt={`Guide d'utilisation ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                        Étape {idx + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
           <TabsContent value="reviews">
             <ReviewSection productId={product.id} />
