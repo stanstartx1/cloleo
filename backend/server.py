@@ -624,7 +624,20 @@ async def get_products_by_seller(seller_id: str, status: Optional[str] = None):
     query = {"seller_id": seller_id}
     if status:
         query["status"] = status
-    return await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    products = await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    # Inject seller role for each product
+    seller_ids = list({p.get("seller_id") for p in products if p.get("seller_id")})
+    if seller_ids:
+        users = await db.users.find(
+            {"id": {"$in": seller_ids}},
+            {"_id": 0, "id": 1, "role": 1}
+        ).to_list(len(seller_ids) + 10)
+        role_by_id = {u.get("id"): u.get("role") for u in users}
+        for p in products:
+            p["seller_role"] = role_by_id.get(p.get("seller_id"))
+    
+    return products
 
 
 @api.post("/vendor/products")

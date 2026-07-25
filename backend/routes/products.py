@@ -217,8 +217,9 @@ async def get_product(product_id: str):
     if not p:
         raise HTTPException(status_code=404, detail="Non trouvé")
 
-    seller = await db.users.find_one({"id": p.get("seller_id")}, {"_id": 0, "id": 1, "profile_photo": 1})
+    seller = await db.users.find_one({"id": p.get("seller_id")}, {"_id": 0, "id": 1, "profile_photo": 1, "role": 1})
     p["seller_profile_photo"] = (seller or {}).get("profile_photo")
+    p["seller_role"] = (seller or {}).get("role")
     return p
 
 

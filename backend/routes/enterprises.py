@@ -525,14 +525,23 @@ async def admin_verify_enterprise(enterprise_id: str, admin = Depends(require_ad
 
 @router.delete("/admin/{enterprise_id}")
 async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_admin)):
-    """Delete an enterprise"""
+    """Delete an enterprise and all its products"""
     try:
+        # First check if enterprise exists
+        enterprise = await db.users.find_one({"id": enterprise_id, "role": "enterprise"})
+        if not enterprise:
+            raise HTTPException(status_code=404, detail="Enterprise not found")
+        
+        # Delete all products belonging to this enterprise
+        await db.products.delete_many({"seller_id": enterprise_id})
+        
+        # Delete the enterprise
         result = await db.users.delete_one({"id": enterprise_id, "role": "enterprise"})
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Enterprise not found")
         
-        return {"message": "Enterprise deleted successfully"}
+        return {"message": "Enterprise and all its products deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
