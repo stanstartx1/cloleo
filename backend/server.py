@@ -2119,6 +2119,41 @@ async def admin_delete_enterprise_by_name(company_name: str, user: dict = Depend
     return {"ok": True, "message": f"Entreprise '{enterprise['company_name']}' et {product_count} produits supprimés"}
 
 
+@api.post("/admin/cleanup-test-data")
+async def cleanup_test_data():
+    """Temporary endpoint to clean up test data (EKO-BAT, n. GH, sss)"""
+    results = []
+    
+    # Delete EKO-BAT enterprise
+    enterprise = await db.users.find_one({"company_name": {"$regex": "EKO-BAT", "$options": "i"}, "role": "enterprise"})
+    if enterprise:
+        enterprise_id = enterprise.get("id")
+        product_count = await db.products.count_documents({"seller_id": enterprise_id})
+        await db.products.delete_many({"seller_id": enterprise_id})
+        await db.users.delete_one({"id": enterprise_id})
+        results.append(f"Entreprise EKO-BAT et {product_count} produits supprimés")
+    else:
+        results.append("Entreprise EKO-BAT non trouvée")
+    
+    # Delete product "n. GH"
+    product = await db.products.find_one({"name": {"$regex": "n. GH", "$options": "i"}})
+    if product:
+        await db.products.delete_one({"id": product["id"]})
+        results.append(f"Produit '{product['name']}' supprimé")
+    else:
+        results.append("Produit 'n. GH' non trouvé")
+    
+    # Delete product "sss"
+    product = await db.products.find_one({"name": {"$regex": "sss", "$options": "i"}})
+    if product:
+        await db.products.delete_one({"id": product["id"]})
+        results.append(f"Produit '{product['name']}' supprimé")
+    else:
+        results.append("Produit 'sss' non trouvé")
+    
+    return {"results": results}
+
+
 @api.put("/admin/vendors/{vendor_id}/toggle-status")
 async def admin_toggle_vendor(vendor_id: str, user: dict = Depends(require_admin)):
     vendor = await db.users.find_one({"id": vendor_id, "role": "vendor"}, {"_id": 0})
