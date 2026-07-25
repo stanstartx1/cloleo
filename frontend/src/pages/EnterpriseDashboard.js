@@ -3634,9 +3634,11 @@ const SettingsSection = ({ user, token, onRefresh }) => {
     country: user?.country || '',
     address: user?.address || '',
     website: user?.website || '',
-    description: user?.company_description || ''
+    description: user?.company_description || '',
+    cover_photo: user?.cover_photo || ''
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const handleUpdateProfile = async () => {
     setLoading(true);
@@ -3679,6 +3681,34 @@ const SettingsSection = ({ user, token, onRefresh }) => {
       toast.error('Erreur lors de l\'upload');
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleCoverUpload = async (file) => {
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API}/upload`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      await axios.put(`${API}/enterprises/profile`, 
+        { cover_photo: response.data.url },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success('Photo de couverture mise à jour');
+      onRefresh();
+    } catch (error) {
+      console.error('Error uploading cover:', error);
+      toast.error('Erreur lors de l\'upload');
+    } finally {
+      setUploadingCover(false);
     }
   };
 
@@ -3727,6 +3757,34 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       {activeTab === 'profile' && (
         <div className="space-y-6">
+          {/* Cover Photo */}
+          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm border border-amber-500/30 rounded-2xl p-6 shadow-xl">
+            <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-amber-400" />
+              Photo de couverture
+            </h4>
+            <div className="space-y-4">
+              <div className="relative h-48 rounded-xl overflow-hidden bg-slate-800">
+                {user?.cover_photo ? (
+                  <img src={toAbsoluteMediaUrl(user.cover_photo)} alt="Cover" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-500">
+                    <ImageIcon className="w-12 h-12" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <ImageUpload
+                  onUpload={handleCoverUpload}
+                  currentImage={user?.cover_photo}
+                  accept="image/*"
+                  label="Changer la photo de couverture"
+                />
+                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 1920x400px</p>
+              </div>
+            </div>
+          </div>
+
           {/* Profile Photo */}
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
             <h4 className="font-semibold text-white mb-4">Photo de profil</h4>
@@ -3744,7 +3802,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                   currentImage={user?.profile_photo}
                   accept="image/*"
                 />
-                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB</p>
+                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 400x400px</p>
               </div>
             </div>
           </div>

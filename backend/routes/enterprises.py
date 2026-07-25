@@ -49,6 +49,7 @@ class EnterpriseUpdate(BaseModel):
     country: Optional[str] = None
     certifications: Optional[List[str]] = None
     profile_photo: Optional[str] = None
+    cover_photo: Optional[str] = None
     dfe_number: Optional[str] = None
 
 @router.get("/dashboard")
