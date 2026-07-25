@@ -492,6 +492,19 @@ async def admin_list_enterprises(admin = Depends(require_admin)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/admin/{enterprise_id}")
+async def admin_get_enterprise(enterprise_id: str, admin = Depends(require_admin)):
+    """Get a single enterprise by ID for admin"""
+    try:
+        enterprise = await db.users.find_one({"id": enterprise_id, "role": "enterprise"}, {"_id": 0, "password": 0})
+        if not enterprise:
+            raise HTTPException(status_code=404, detail="Enterprise not found")
+        return enterprise
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/admin/{enterprise_id}/verify")
 async def admin_verify_enterprise(enterprise_id: str, admin = Depends(require_admin)):
     """Verify and activate an enterprise"""
