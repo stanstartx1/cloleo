@@ -2090,6 +2090,35 @@ async def admin_delete_product(product_id: str, user: dict = Depends(require_adm
     return {"ok": True}
 
 
+@api.delete("/admin/products/by-name/{product_name}")
+async def admin_delete_product_by_name(product_name: str, user: dict = Depends(require_admin)):
+    """Delete a product by name (case-insensitive)"""
+    product = await db.products.find_one({"name": {"$regex": product_name, "$options": "i"}})
+    if not product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+    await db.products.delete_one({"id": product["id"]})
+    return {"ok": True, "message": f"Produit '{product['name']}' supprimé"}
+
+
+@api.delete("/admin/enterprises/by-name/{company_name}")
+async def admin_delete_enterprise_by_name(company_name: str, user: dict = Depends(require_admin)):
+    """Delete an enterprise by company name (case-insensitive) and all its products"""
+    enterprise = await db.users.find_one({"company_name": {"$regex": company_name, "$options": "i"}, "role": "enterprise"})
+    if not enterprise:
+        raise HTTPException(status_code=404, detail="Entreprise non trouvée")
+    
+    enterprise_id = enterprise.get("id")
+    
+    # Delete all products from this enterprise
+    product_count = await db.products.count_documents({"seller_id": enterprise_id})
+    await db.products.delete_many({"seller_id": enterprise_id})
+    
+    # Delete the enterprise
+    await db.users.delete_one({"id": enterprise_id})
+    
+    return {"ok": True, "message": f"Entreprise '{enterprise['company_name']}' et {product_count} produits supprimés"}
+
+
 @api.put("/admin/vendors/{vendor_id}/toggle-status")
 async def admin_toggle_vendor(vendor_id: str, user: dict = Depends(require_admin)):
     vendor = await db.users.find_one({"id": vendor_id, "role": "vendor"}, {"_id": 0})
