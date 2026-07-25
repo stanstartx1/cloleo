@@ -35,7 +35,9 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const originName = product.origin_country_name || originCountry?.name || null;
   const originFlagUrl = getCountryFlagUrl(product.origin_country_code);
 
-  const productUrl = `${window.location.origin}/produit/${product.id}`;
+  const productUrl = product.seller_role === 'enterprise' 
+    ? `${window.location.origin}/entreprise/produit/${product.id}`
+    : `${window.location.origin}/produit/${product.id}`;
 
   const handleShare = async (e) => {
     e.preventDefault();
@@ -140,7 +142,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
 
   return (
     <Link 
-      to={`/produit/${product.id}`}
+      to={product.seller_role === 'enterprise' ? `/entreprise/produit/${product.id}` : `/produit/${product.id}`}
       className={cn(
         "group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm",
         "transition-all duration-500 ease-out transform-gpu",

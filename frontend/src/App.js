@@ -63,6 +63,7 @@ import EnterpriseDashboard from "./pages/EnterpriseDashboard";
 import EnterpriseProfilePage from "./pages/EnterpriseProfilePage";
 import EnterpriseShopPage from "./pages/EnterpriseShopPage";
 import EnterprisesPage from "./pages/EnterprisesPage";
+import EnterpriseProductPage from "./pages/EnterpriseProductPage";
 
 // Shop Pages
 import VendorShopPage from "./pages/VendorShopPage";
@@ -170,6 +171,7 @@ const AppRoutes = () => {
       <Route path="/categories" element={<PublicLayout><CategoriesPage /></PublicLayout>} />
       <Route path="/categories/:slug" element={<PublicLayout><CategoryPage /></PublicLayout>} />
       <Route path="/produit/:id" element={<PublicLayout><ProductPage /></PublicLayout>} />
+      <Route path="/entreprise/produit/:id" element={<PublicLayout><EnterpriseProductPage /></PublicLayout>} />
       <Route path="/produits" element={<PublicLayout><ProductsPage /></PublicLayout>} />
       <Route path="/panier" element={<PublicLayout><CartPage /></PublicLayout>} />
       <Route path="/checkout" element={<PublicLayout><CheckoutPage /></PublicLayout>} />
