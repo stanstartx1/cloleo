@@ -1134,14 +1134,24 @@ const ProductPage = () => {
             <div className="p-6 md:p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-900">À propos de l'entreprise</h2>
-                <Link 
-                  to={`/enterprise/profile/${product.seller_id}`}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md"
-                >
-                  <Building2 className="w-4 h-4" />
-                  Voir le profil complet
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
+                <div className="flex gap-2">
+                  <Link 
+                    to={`/enterprise/shop/${product.seller_id}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md"
+                  >
+                    <Store className="w-4 h-4" />
+                    Voir la boutique
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                  <Link 
+                    to={`/enterprise/profile/${product.seller_id}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    En savoir plus sur {product.seller_name}
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
