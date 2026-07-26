@@ -2247,6 +2247,7 @@ async def admin_verify_revendeur(revendeur_id: str, user: dict = Depends(require
 async def admin_delete_revendeur(revendeur_id: str, user: dict = Depends(require_admin)):
     await db.users.delete_one({"id": revendeur_id, "role": "dropshipper"})
     await db.dropshipped_products.delete_many({"dropshipper_id": revendeur_id})
+    await db.products.delete_many({"seller_id": revendeur_id})
     return {"ok": True}
 
 
