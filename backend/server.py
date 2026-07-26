@@ -2706,7 +2706,7 @@ async def send_message_compat(payload: dict, user: dict = Depends(get_current_us
 
 
 @api.post("/offers/create")
-async def create_offer(payload: dict, user: dict = Depends(get_current_user)):
+async def create_conversation_offer(payload: dict, user: dict = Depends(get_current_user)):
     conversation_id = payload.get("conversation_id")
     offered_price_fcfa = int(payload.get("offered_price_fcfa") or 0)
     note = (payload.get("note") or "").strip()
