@@ -589,6 +589,43 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     return {"ok": True}
 
 
+@api.put("/orders/{order_id}/status")
+async def update_order_status(order_id: str, status_data: dict, user: dict = Depends(get_current_user)):
+    """Update order status (for vendors and enterprises)"""
+    role = user.get("role")
+    new_status = status_data.get("status")
+    
+    # Verify the order exists and belongs to the user
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Check if user is authorized to update this order
+    if role not in ["vendor", "enterprise"]:
+        raise HTTPException(status_code=403, detail="Non autorisé")
+    
+    if order.get("seller_id") != user.get("id"):
+        raise HTTPException(status_code=403, detail="Non autorisé")
+    
+    # Validate status
+    valid_statuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Statut invalide")
+    
+    # Update the order
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {"status": new_status, "updated_at": _utc()},
+            "$push": {"status_history": {"status": new_status, "note": f"Statut mis à jour par {role}", "timestamp": _utc()}},
+        },
+    )
+    
+    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": new_status, "message": f"Statut mis à jour: {new_status}"})
+    
+    return {"ok": True, "status": new_status}
+
+
 @api.get("/vendor/dashboard")
 async def vendor_dashboard(user: dict = Depends(require_vendor)):
     products = await db.products.count_documents({"seller_id": user["id"]})

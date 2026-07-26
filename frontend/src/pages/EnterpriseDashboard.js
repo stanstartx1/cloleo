@@ -644,7 +644,7 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
         <h3 className="font-bold text-lg mb-4 text-white">Offres récentes</h3>
         {offers?.slice(0, 3).map(offer => (
           <OfferCard 
-            key={offer._id} 
+            key={offer.id} 
             offer={offer} 
             onAccept={onAcceptOffer}
             onReject={onRejectOffer}
@@ -729,10 +729,10 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
     </div>
     {offer.status === 'pending' && (
       <div className="flex gap-2">
-        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600" onClick={() => onAccept(offer._id)}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600" onClick={() => onAccept(offer.id)}>
           <CheckCircle className="w-4 h-4 mr-1" /> Accepter
         </Button>
-        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50" onClick={() => onReject(offer._id)}>
+        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50" onClick={() => onReject(offer.id)}>
           <XCircle className="w-4 h-4 mr-1" /> Refuser
         </Button>
       </div>
@@ -1183,7 +1183,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
   const handleCounterOffer = () => {
     if (!counterPrice || !selectedOffer) return;
-    onCounter(selectedOffer._id, counterPrice);
+    onCounter(selectedOffer.id, counterPrice);
     setShowCounterModal(false);
     setCounterPrice('');
     setSelectedOffer(null);
@@ -1231,7 +1231,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
       {/* Offers List */}
       <div className="space-y-4">
         {filteredOffers.length > 0 ? filteredOffers.map((offer) => (
-          <div key={offer._id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+          <div key={offer.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
@@ -1282,7 +1282,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
               <div className="flex gap-2 pt-4 border-t border-slate-700/50">
                 <Button
                   size="sm"
-                  onClick={() => onAccept(offer._id)}
+                  onClick={() => onAccept(offer.id)}
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
@@ -1302,7 +1302,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => onReject(offer._id)}
+                  onClick={() => onReject(offer.id)}
                   variant="outline"
                   className="flex-1 border-red-500 text-red-400 hover:bg-red-500/20"
                 >
@@ -1316,7 +1316,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
               <div className="flex gap-2 pt-4 border-t border-slate-700/50">
                 <Button
                   size="sm"
-                  onClick={() => onAccept(offer._id)}
+                  onClick={() => onAccept(offer.id)}
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
@@ -1324,7 +1324,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => onReject(offer._id)}
+                  onClick={() => onReject(offer.id)}
                   variant="outline"
                   className="flex-1 border-red-500 text-red-400 hover:bg-red-500/20"
                 >
@@ -1338,7 +1338,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
               <div className="flex gap-2 pt-4 border-t border-slate-700/50">
                 <Button
                   size="sm"
-                  onClick={() => onCopyLink(offer._id)}
+                  onClick={() => onCopyLink(offer.id)}
                   variant="outline"
                   className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
                 >
