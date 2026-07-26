@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
+import { toAbsoluteMediaUrl } from '../utils/media';
 import { cn } from '../lib/utils';
 import { getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 
@@ -646,8 +647,9 @@ const EnterpriseProductPage = () => {
 
         {/* Product Details Tabs */}
         <Tabs defaultValue="description" className="mb-12">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="description">Description</TabsTrigger>
+            <TabsTrigger value="usage">Guide d'utilisation</TabsTrigger>
             <TabsTrigger value="specifications">Spécifications</TabsTrigger>
             <TabsTrigger value="shipping">Livraison</TabsTrigger>
             <TabsTrigger value="reviews">Avis</TabsTrigger>
@@ -658,6 +660,37 @@ const EnterpriseProductPage = () => {
                 <p className="text-slate-700 whitespace-pre-line">{product.description}</p>
               </div>
             </div>
+          </TabsContent>
+          <TabsContent value="usage" className="mt-6">
+            {product.usage_images && product.usage_images.length > 0 ? (
+              <div className="bg-white rounded-xl p-6 border border-slate-200">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-slate-900">
+                  <span className="text-2xl">📸</span>
+                  Guide d'utilisation
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">Découvrez comment utiliser ce produit étape par étape</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {product.usage_images.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
+                        <img
+                          src={toAbsoluteMediaUrl(img)}
+                          alt={`Guide d'utilisation ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                        Étape {idx + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl p-6 border border-slate-200">
+                <p className="text-slate-600">Aucun guide d'utilisation disponible pour ce produit.</p>
+              </div>
+            )}
           </TabsContent>
           <TabsContent value="specifications" className="mt-6">
             <div className="bg-white rounded-xl p-6 border border-slate-200">
