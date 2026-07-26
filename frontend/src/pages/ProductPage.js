@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
+import { toAbsoluteMediaUrl } from '../utils/media';
 import { cn } from '../lib/utils';
 import { getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 
