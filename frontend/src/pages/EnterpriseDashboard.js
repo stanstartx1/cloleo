@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,6 +79,7 @@ const EnterpriseDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const wsRef = useRef(null);
   
   // Enterprise specific data
   const [trophies, setTrophies] = useState([]);
@@ -101,8 +102,6 @@ const EnterpriseDashboard = () => {
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
-  
-  const wsRef = React.useRef(null);
 
   useEffect(() => {
     if (!isEnterprise) {
@@ -273,6 +272,32 @@ const EnterpriseDashboard = () => {
     navigate('/');
   };
 
+  useEffect(() => {
+    if (activeSection === 'orders' || activeSection === 'tracking') fetchOrders();
+    if (activeSection === 'products') fetchProducts();
+  }, [activeSection, fetchOrders, fetchProducts]);
+
+  // WebSocket for tracking
+  useEffect(() => {
+    if (!selectedOrder || activeSection !== 'tracking') return;
+    
+    const ws = new WebSocket(`${WS_URL}/api/ws/orders/order_${selectedOrder.id}`);
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'driver_location') setDriverLocation(data.location);
+      if (data.type === 'order_update') {
+        fetchOrders();
+        toast.info(data.message);
+      }
+    };
+    
+    ws.onclose = () => setTimeout(() => {}, 3000);
+    wsRef.current = ws;
+    
+    return () => ws.close();
+  }, [selectedOrder, activeSection, fetchOrders]);
+
   const checkSubscriptionPayment = async (sessionId) => {
     try {
       await axios.post(`${API}/subscriptions/verify-payment`, { session_id: sessionId }, {
@@ -284,6 +309,19 @@ const EnterpriseDashboard = () => {
       console.error('Payment verification error:', error);
     }
   };
+
+  const pendingOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
+  const activeOrders = orders.filter(o => ['assigned', 'picked_up', 'in_transit'].includes(o.status));
+
+  const customerLocation = selectedOrder?.delivery_address ? {
+    latitude: selectedOrder.delivery_address.latitude,
+    longitude: selectedOrder.delivery_address.longitude
+  } : null;
+
+  const selectedDriverLocation = driverLocation || (selectedOrder?.driver_live_location ? {
+    latitude: selectedOrder.driver_live_location.latitude,
+    longitude: selectedOrder.driver_live_location.longitude
+  } : null);
 
   if (loading) {
     return (
@@ -1595,155 +1633,126 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
         </div>
       </div>
 
-      {!showMap ? (
-        <div className="space-y-4">
-          {shippedOrders.length > 0 ? shippedOrders.map((order) => (
-            <div key={order.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-bold text-white">Commande #{order.order_number || order.id}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'assigned' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                      order.status === 'picked_up' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
-                      order.status === 'in_transit' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-                      'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                    }`}>
-                      {ORDER_STATUSES[order.status]?.label || order.status}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Orders List */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
+          <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-400" />
+              En cours ({shippedOrders.length})
+            </h3>
+          </div>
+          
+          {shippedOrders.length > 0 ? (
+            <div className="divide-y divide-slate-700 max-h-96 overflow-y-auto">
+              {shippedOrders.map((order, index) => (
+                <div 
+                  key={order.id}
+                  className={`p-4 cursor-pointer hover:bg-slate-700/50 transition-colors ${selectedOrder?.id === order.id ? 'bg-slate-700/70 border-l-4 border-l-blue-500' : ''}`}
+                  onClick={() => onSelectOrder(order)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-white">#{order.order_number?.slice(-8) || order.id?.slice(-8)}</p>
+                    <span className={`px-2 py-1 rounded-full text-xs ${ORDER_STATUSES[order.status]?.bgColor} ${ORDER_STATUSES[order.status]?.textColor}`}>
+                      {ORDER_STATUSES[order.status]?.label}
                     </span>
                   </div>
-                  {order.customer_name && (
-                    <p className="text-sm text-slate-400 mb-2">
-                      <User className="w-4 h-4 inline mr-1" />
-                      {order.customer_name}
-                    </p>
-                  )}
-                  {order.delivery_address && (
-                    <p className="text-sm text-slate-400">
-                      <MapPin className="w-4 h-4 inline mr-1" />
-                      {order.delivery_address.city}, {order.delivery_address.country}
+                  <p className="text-sm text-slate-400">{order.customer_name || order.delivery_address?.name}</p>
+                  {order.driver_name && (
+                    <p className="text-sm text-blue-400 flex items-center gap-1 mt-1">
+                      <Truck className="w-3 h-3" /> {order.driver_name}
                     </p>
                   )}
                 </div>
-                <Button
-                  onClick={() => handleTrackOrder(order)}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Map className="w-4 h-4 mr-2" />}
-                  Suivre
-                </Button>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-slate-400 mb-2">
-                  <span>Assignée</span>
-                  <span>Récupérée</span>
-                  <span>En transit</span>
-                  <span>Livrée</span>
-                </div>
-                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
-                    style={{
-                      width: order.status === 'assigned' ? '25%' : 
-                             order.status === 'picked_up' ? '50%' : 
-                             order.status === 'in_transit' ? '75%' : 
-                             order.status === 'delivered' ? '100%' : '0%'
-                    }}
-                  />
-                </div>
-              </div>
+              ))}
             </div>
-          )) : (
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-12 text-center shadow-xl">
-              <Truck className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-              <p className="text-slate-400">Aucune livraison en cours</p>
-              <p className="text-sm text-slate-500">Les livraisons actives apparaîtront ici</p>
+          ) : (
+            <div className="p-8 text-center">
+              <Truck className="w-12 h-12 text-slate-600 mx-auto mb-2" />
+              <p className="text-slate-400 text-sm">Aucune livraison en cours</p>
             </div>
           )}
         </div>
-      ) : (
-        <div className="space-y-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowMap(false)}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700/50"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
 
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h4 className="font-bold text-white">Commande #{selectedOrder?.order_number || selectedOrder?.id}</h4>
-                <p className="text-sm text-slate-400">Suivi en direct</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-sm text-green-400">En direct</span>
-              </div>
-            </div>
-
-            {/* Map */}
-            <div className="bg-slate-900/50 rounded-xl h-80 mb-4 overflow-hidden border border-slate-700/50">
-              {driverLocation ? (
-                <MapboxMap
-                  driverLocation={driverLocation}
-                  deliveryAddress={selectedOrder?.delivery_address}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Map className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                    <p className="text-slate-400">Chargement de la carte...</p>
+        {/* Map & Details */}
+        <div className="lg:col-span-2 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          {selectedOrder ? (
+            <>
+              <div className="p-4 border-b border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-white">Commande #{selectedOrder.order_number?.slice(-8) || selectedOrder.id?.slice(-8)}</h3>
+                    <p className="text-sm text-slate-400">{selectedOrder.customer_name || selectedOrder.delivery_address?.name}</p>
                   </div>
+                  <span className={`px-3 py-1 rounded-full text-sm ${ORDER_STATUSES[selectedOrder.status]?.bgColor} ${ORDER_STATUSES[selectedOrder.status]?.textColor}`}>
+                    {ORDER_STATUSES[selectedOrder.status]?.label}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {/* Tracking Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-900/50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">Livreur</p>
-                <p className="text-white font-medium">{trackingData?.driver_name || selectedOrder?.driver_name || 'En attente'}</p>
               </div>
-              <div className="bg-slate-900/50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">Téléphone</p>
-                <p className="text-white font-medium">{trackingData?.driver_phone || selectedOrder?.driver_phone || 'En attente'}</p>
+              
+              <MapboxMap
+                driverLocation={driverLocation}
+                customerLocation={selectedOrder?.delivery_address ? {
+                  latitude: selectedOrder.delivery_address.latitude,
+                  longitude: selectedOrder.delivery_address.longitude
+                } : null}
+                showRoute={!!driverLocation && !!selectedOrder?.delivery_address}
+                height="260px"
+              />
+              
+              <div className="p-3 bg-slate-700/50 flex items-center gap-6 text-xs border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full" />
+                  <span className="text-slate-300">Client</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                  <span className="text-slate-300">Livreur</span>
+                </div>
               </div>
-              <div className="bg-slate-900/50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">Statut</p>
-                <p className="text-white font-medium">{ORDER_STATUSES[selectedOrder?.status]?.label || selectedOrder?.status}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">Date de commande</p>
-                <p className="text-white font-medium">{selectedOrder?.created_at ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR') : '-'}</p>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="mt-4">
-              <h5 className="font-semibold text-white mb-3">Historique</h5>
-              <div className="space-y-3">
-                {selectedOrder?.status_history?.map((history, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${
-                      idx === selectedOrder.status_history.length - 1 ? 'bg-green-500' : 'bg-slate-500'
-                    }`}></div>
-                    <div className="flex-1">
-                      <p className="text-sm text-white">{history.note || history.status}</p>
-                      <p className="text-xs text-slate-400">{history.timestamp ? new Date(history.timestamp).toLocaleString('fr-FR') : ''}</p>
+              
+              <div className="p-4 space-y-4">
+                {selectedOrder.driver_name && (
+                  <div className="flex items-center justify-between p-3 bg-blue-500/20 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-500/30 rounded-full flex items-center justify-center">
+                        <Truck className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{selectedOrder.driver_name}</p>
+                        <p className="text-xs text-slate-400">Livreur</p>
+                      </div>
+                    </div>
+                    {selectedOrder.driver_phone && (
+                      <a href={`tel:${selectedOrder.driver_phone}`} className="p-2 bg-green-500/20 rounded-full text-green-400">
+                        <Phone className="w-5 h-5" />
+                      </a>
+                    )}
+                  </div>
+                )}
+                
+                <div className="p-3 bg-slate-700/50 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-red-400 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-white">{selectedOrder.delivery_address?.name}</p>
+                      <p className="text-sm text-slate-400">{selectedOrder.delivery_address?.street}</p>
+                      <p className="text-sm text-slate-400">{selectedOrder.delivery_address?.city}</p>
                     </div>
                   </div>
-                ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="h-96 flex items-center justify-center">
+              <div className="text-center">
+                <MapPin className="w-16 h-16 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400">Sélectionnez une commande pour voir le suivi</p>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
