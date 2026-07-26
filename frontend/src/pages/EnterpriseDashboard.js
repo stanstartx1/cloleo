@@ -9,7 +9,7 @@ import {
   LogOut, Edit, Edit2, X, MessageCircle, Trash2, Users, Copy, Building2, Trophy,
   Award, Image as ImageIcon, Briefcase, Star, FileText, Upload, Download,
   Calendar, MapPin as MapPinIcon, Mail, Linkedin, Globe, Facebook, Instagram,
-  Twitter, Youtube, Link as LinkIcon, UserPlus, UserMinus, Shield, Zap,
+  Twitter, Youtube, Link as LinkIcon, Link2, UserPlus, UserMinus, Shield, Zap,
   Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp, MessageSquare,
   ArrowLeft, Map, User, Eye
 } from 'lucide-react';
