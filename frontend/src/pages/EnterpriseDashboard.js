@@ -10,7 +10,8 @@ import {
   Award, Image as ImageIcon, Briefcase, Star, FileText, Upload, Download,
   Calendar, MapPin as MapPinIcon, Mail, Linkedin, Globe, Facebook, Instagram,
   Twitter, Youtube, Link as LinkIcon, UserPlus, UserMinus, Shield, Zap,
-  Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp, MessageSquare
+  Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp, MessageSquare,
+  ArrowLeft, Map, User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -1557,20 +1558,31 @@ const EnterpriseMessagesSection = ({ user, token }) => {
 const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation, onSetDriverLocation, token }) => {
   const [showMap, setShowMap] = useState(false);
   const [trackingData, setTrackingData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const shippedOrders = orders?.filter(order => order.status === 'shipped' || order.status === 'processing') || [];
+  const shippedOrders = orders?.filter(order => 
+    ['assigned', 'picked_up', 'in_transit'].includes(order.status)
+  ) || [];
 
   const handleTrackOrder = async (order) => {
     onSelectOrder(order);
+    setLoading(true);
     try {
-      const response = await axios.get(`${API}/orders/${order.id}/tracking`, {
+      const response = await axios.get(`${API}/orders/track/${order.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTrackingData(response.data);
       setShowMap(true);
+      
+      // If driver has live location, update it
+      if (response.data.driver_live_location) {
+        onSetDriverLocation(response.data.driver_live_location);
+      }
     } catch (error) {
       console.error('Error fetching tracking:', error);
       toast.error('Erreur lors du chargement du suivi');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1592,30 +1604,33 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
                   <div className="flex items-center gap-3 mb-2">
                     <h4 className="font-bold text-white">Commande #{order.order_number || order.id}</h4>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'shipped' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' :
-                      'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      order.status === 'assigned' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                      order.status === 'picked_up' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+                      order.status === 'in_transit' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                      'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                     }`}>
-                      {order.status === 'shipped' ? 'Expédiée' : 'En préparation'}
+                      {ORDER_STATUSES[order.status]?.label || order.status}
                     </span>
                   </div>
-                  {order.buyer_name && (
+                  {order.customer_name && (
                     <p className="text-sm text-slate-400 mb-2">
                       <User className="w-4 h-4 inline mr-1" />
-                      {order.buyer_name}
+                      {order.customer_name}
                     </p>
                   )}
                   {order.delivery_address && (
                     <p className="text-sm text-slate-400">
                       <MapPin className="w-4 h-4 inline mr-1" />
-                      {order.delivery_address}
+                      {order.delivery_address.city}, {order.delivery_address.country}
                     </p>
                   )}
                 </div>
                 <Button
                   onClick={() => handleTrackOrder(order)}
+                  disabled={loading}
                   className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
                 >
-                  <Map className="w-4 h-4 mr-2" />
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Map className="w-4 h-4 mr-2" />}
                   Suivre
                 </Button>
               </div>
@@ -1623,18 +1638,19 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
               {/* Progress Bar */}
               <div className="mb-4">
                 <div className="flex justify-between text-xs text-slate-400 mb-2">
-                  <span>Confirmée</span>
-                  <span>Préparation</span>
-                  <span>Expédiée</span>
+                  <span>Assignée</span>
+                  <span>Récupérée</span>
+                  <span>En transit</span>
                   <span>Livrée</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
                     style={{
-                      width: order.status === 'processing' ? '50%' : 
-                             order.status === 'shipped' ? '75%' : 
-                             order.status === 'delivered' ? '100%' : '25%'
+                      width: order.status === 'assigned' ? '25%' : 
+                             order.status === 'picked_up' ? '50%' : 
+                             order.status === 'in_transit' ? '75%' : 
+                             order.status === 'delivered' ? '100%' : '0%'
                     }}
                   />
                 </div>
@@ -1671,32 +1687,40 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
               </div>
             </div>
 
-            {/* Map Placeholder */}
-            <div className="bg-slate-900/50 rounded-xl h-80 mb-4 flex items-center justify-center border border-slate-700/50">
-              <div className="text-center">
-                <Map className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                <p className="text-slate-400">Carte de suivi</p>
-                <p className="text-sm text-slate-500">Intégration Google Maps prévue</p>
-              </div>
+            {/* Map */}
+            <div className="bg-slate-900/50 rounded-xl h-80 mb-4 overflow-hidden border border-slate-700/50">
+              {driverLocation ? (
+                <MapboxMap
+                  driverLocation={driverLocation}
+                  deliveryAddress={selectedOrder?.delivery_address}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <Map className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+                    <p className="text-slate-400">Chargement de la carte...</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Tracking Details */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-900/50 rounded-xl p-4">
                 <p className="text-xs text-slate-400 mb-1">Livreur</p>
-                <p className="text-white font-medium">{trackingData?.driver?.name || 'En attente'}</p>
+                <p className="text-white font-medium">{trackingData?.driver_name || selectedOrder?.driver_name || 'En attente'}</p>
               </div>
               <div className="bg-slate-900/50 rounded-xl p-4">
                 <p className="text-xs text-slate-400 mb-1">Téléphone</p>
-                <p className="text-white font-medium">{trackingData?.driver?.phone || 'En attente'}</p>
+                <p className="text-white font-medium">{trackingData?.driver_phone || selectedOrder?.driver_phone || 'En attente'}</p>
               </div>
               <div className="bg-slate-900/50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">ETA estimée</p>
-                <p className="text-white font-medium">{trackingData?.eta || 'Calcul en cours...'}</p>
+                <p className="text-xs text-slate-400 mb-1">Statut</p>
+                <p className="text-white font-medium">{ORDER_STATUSES[selectedOrder?.status]?.label || selectedOrder?.status}</p>
               </div>
               <div className="bg-slate-900/50 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">Distance</p>
-                <p className="text-white font-medium">{trackingData?.distance || 'Calcul en cours...'}</p>
+                <p className="text-xs text-slate-400 mb-1">Date de commande</p>
+                <p className="text-white font-medium">{selectedOrder?.created_at ? new Date(selectedOrder.created_at).toLocaleDateString('fr-FR') : '-'}</p>
               </div>
             </div>
 
@@ -1704,48 +1728,17 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
             <div className="mt-4">
               <h5 className="font-semibold text-white mb-3">Historique</h5>
               <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-white">Commande confirmée</p>
-                    <p className="text-xs text-slate-400">{new Date(selectedOrder?.created_at).toLocaleString('fr-FR')}</p>
-                  </div>
-                </div>
-                {selectedOrder?.status === 'processing' && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                      <Package className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-white">En préparation</p>
-                      <p className="text-xs text-slate-400">En cours</p>
+                {selectedOrder?.status_history?.map((history, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <div className={`w-2 h-2 rounded-full mt-2 ${
+                      idx === selectedOrder.status_history.length - 1 ? 'bg-green-500' : 'bg-slate-500'
+                    }`}></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-white">{history.note || history.status}</p>
+                      <p className="text-xs text-slate-400">{history.timestamp ? new Date(history.timestamp).toLocaleString('fr-FR') : ''}</p>
                     </div>
                   </div>
-                )}
-                {selectedOrder?.status === 'shipped' && (
-                  <>
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                        <Package className="w-4 h-4 text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-white">En préparation</p>
-                        <p className="text-xs text-slate-400">Terminé</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                        <Truck className="w-4 h-4 text-cyan-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-white">Expédiée</p>
-                        <p className="text-xs text-slate-400">En cours de livraison</p>
-                      </div>
-                    </div>
-                  </>
-                )}
+                ))}
               </div>
             </div>
           </div>
@@ -1862,7 +1855,7 @@ const StatsSection = ({ dashboard, orders, products, formatPrice }) => {
           <h4 className="font-semibold text-white mb-4">Évolution des revenus</h4>
           <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-xl border border-slate-700/50">
             <div className="text-center">
-              <BarChart className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+              <BarChart3 className="w-16 h-16 mx-auto mb-4 text-slate-600" />
               <p className="text-slate-400">Graphique des revenus</p>
               <p className="text-sm text-slate-500">Intégration Chart.js prévue</p>
             </div>
