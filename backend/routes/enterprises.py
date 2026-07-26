@@ -257,54 +257,6 @@ async def get_enterprise_by_id(enterprise_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/dashboard")
-async def get_enterprise_dashboard(current_user = Depends(get_current_user)):
-    """Get enterprise dashboard stats"""
-    try:
-        if current_user.get("role") != "enterprise":
-            raise HTTPException(status_code=403, detail="Not an enterprise user")
-        
-        # Get enterprise stats
-        enterprise_id = str(current_user.get("_id"))
-        
-        # Count products
-        total_products = await db.products.count_documents({"seller_id": enterprise_id})
-        
-        # Count orders
-        total_orders = await db.orders.count_documents({"seller_id": enterprise_id})
-        
-        # Calculate total revenue
-        orders = await db.orders.find({"seller_id": enterprise_id}).to_list(length=None)
-        total_revenue = sum(order.get("total_fcfa", 0) for order in orders)
-        
-        # Get recent orders
-        recent_orders = await db.orders.find({"seller_id": enterprise_id}).sort("created_at", -1).limit(10).to_list(length=10)
-        
-        # Get pending orders
-        pending_orders = await db.orders.count_documents({"seller_id": enterprise_id, "status": "pending"})
-        
-        # Get completed orders
-        completed_orders = await db.orders.count_documents({"seller_id": enterprise_id, "status": "delivered"})
-        
-        # Get products by status
-        active_products = await db.products.count_documents({"seller_id": enterprise_id, "status": "approved"})
-        pending_products = await db.products.count_documents({"seller_id": enterprise_id, "status": "pending"})
-        
-        return {
-            "total_products": total_products,
-            "total_orders": total_orders,
-            "total_revenue": total_revenue,
-            "total_visitors": 0,  # To be implemented
-            "pending_orders": pending_orders,
-            "completed_orders": completed_orders,
-            "active_products": active_products,
-            "pending_products": pending_products,
-            "recent_orders": recent_orders
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/profile")
 async def update_enterprise_profile(data: EnterpriseUpdate, current_user = Depends(get_current_user)):
