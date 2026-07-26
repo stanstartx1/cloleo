@@ -501,7 +501,7 @@ async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_ad
 
 # Trophy endpoints
 @router.get("/trophies")
-async def get_trophies(current_user = Depends(get_current_user)):
+async def get_trophies(current_enterprise = Depends(get_current_enterprise)):
     """Get trophies for the current enterprise"""
     try:
         # Check if collection exists, if not return empty list
@@ -509,7 +509,7 @@ async def get_trophies(current_user = Depends(get_current_user)):
         if "enterprise_trophies" not in collection_names:
             return []
         
-        trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        trophies = await db.enterprise_trophies.find({"enterprise_id": current_enterprise["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return trophies or []
     except Exception as e:
         print(f"Error fetching trophies: {e}")
@@ -556,14 +556,14 @@ async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)
 
 # Certification endpoints
 @router.get("/certifications")
-async def get_certifications(current_user = Depends(get_current_user)):
+async def get_certifications(current_enterprise = Depends(get_current_enterprise)):
     """Get certifications for the current enterprise"""
     try:
         collection_names = await db.list_collection_names()
         if "enterprise_certifications" not in collection_names:
             return []
         
-        certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        certifications = await db.enterprise_certifications.find({"enterprise_id": current_enterprise["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return certifications or []
     except Exception as e:
         print(f"Error fetching certifications: {e}")
@@ -610,14 +610,14 @@ async def delete_certification(cert_id: str, current_user = Depends(get_current_
 
 # Portfolio endpoints
 @router.get("/portfolio")
-async def get_portfolio(current_user = Depends(get_current_user)):
+async def get_portfolio(current_enterprise = Depends(get_current_enterprise)):
     """Get portfolio items for the current enterprise"""
     try:
         collection_names = await db.list_collection_names()
         if "enterprise_portfolio" not in collection_names:
             return []
         
-        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_enterprise["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return portfolio or []
     except Exception as e:
         print(f"Error fetching portfolio: {e}")
@@ -664,14 +664,14 @@ async def delete_portfolio_item(item_id: str, current_user = Depends(get_current
 
 # Team endpoints
 @router.get("/team")
-async def get_team(current_user = Depends(get_current_user)):
+async def get_team(current_enterprise = Depends(get_current_enterprise)):
     """Get team members for the current enterprise"""
     try:
         collection_names = await db.list_collection_names()
         if "enterprise_team" not in collection_names:
             return []
         
-        team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        team = await db.enterprise_team.find({"enterprise_id": current_enterprise["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return team or []
     except Exception as e:
         print(f"Error fetching team: {e}")
@@ -720,14 +720,14 @@ async def delete_team_member(member_id: str, current_user = Depends(get_current_
 
 # Projects endpoints
 @router.get("/projects")
-async def get_projects(current_user = Depends(get_current_user)):
+async def get_projects(current_enterprise = Depends(get_current_enterprise)):
     """Get projects for the current enterprise"""
     try:
         collection_names = await db.list_collection_names()
         if "enterprise_projects" not in collection_names:
             return []
         
-        projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        projects = await db.enterprise_projects.find({"enterprise_id": current_enterprise["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return projects or []
     except Exception as e:
         print(f"Error fetching projects: {e}")
@@ -777,14 +777,14 @@ async def delete_project(project_id: str, current_user = Depends(get_current_use
 
 # Testimonials endpoints
 @router.get("/testimonials")
-async def get_testimonials(current_user = Depends(get_current_user)):
+async def get_testimonials(current_enterprise = Depends(get_current_enterprise)):
     """Get testimonials for the current enterprise"""
     try:
         collection_names = await db.list_collection_names()
         if "enterprise_testimonials" not in collection_names:
             return []
         
-        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_enterprise["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return testimonials or []
     except Exception as e:
         print(f"Error fetching testimonials: {e}")
