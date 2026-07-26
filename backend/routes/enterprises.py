@@ -552,6 +552,11 @@ async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_ad
 async def get_trophies(current_user = Depends(get_current_user)):
     """Get trophies for the current enterprise"""
     try:
+        # Check if collection exists, if not return empty list
+        collection_names = await db.list_collection_names()
+        if "enterprise_trophies" not in collection_names:
+            return []
+        
         trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return trophies or []
     except Exception as e:
@@ -602,6 +607,10 @@ async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)
 async def get_certifications(current_user = Depends(get_current_user)):
     """Get certifications for the current enterprise"""
     try:
+        collection_names = await db.list_collection_names()
+        if "enterprise_certifications" not in collection_names:
+            return []
+        
         certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return certifications or []
     except Exception as e:
@@ -652,6 +661,10 @@ async def delete_certification(cert_id: str, current_user = Depends(get_current_
 async def get_portfolio(current_user = Depends(get_current_user)):
     """Get portfolio items for the current enterprise"""
     try:
+        collection_names = await db.list_collection_names()
+        if "enterprise_portfolio" not in collection_names:
+            return []
+        
         portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return portfolio or []
     except Exception as e:
@@ -702,6 +715,10 @@ async def delete_portfolio_item(item_id: str, current_user = Depends(get_current
 async def get_team(current_user = Depends(get_current_user)):
     """Get team members for the current enterprise"""
     try:
+        collection_names = await db.list_collection_names()
+        if "enterprise_team" not in collection_names:
+            return []
+        
         team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return team or []
     except Exception as e:
@@ -754,6 +771,10 @@ async def delete_team_member(member_id: str, current_user = Depends(get_current_
 async def get_projects(current_user = Depends(get_current_user)):
     """Get projects for the current enterprise"""
     try:
+        collection_names = await db.list_collection_names()
+        if "enterprise_projects" not in collection_names:
+            return []
+        
         projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return projects or []
     except Exception as e:
@@ -807,6 +828,10 @@ async def delete_project(project_id: str, current_user = Depends(get_current_use
 async def get_testimonials(current_user = Depends(get_current_user)):
     """Get testimonials for the current enterprise"""
     try:
+        collection_names = await db.list_collection_names()
+        if "enterprise_testimonials" not in collection_names:
+            return []
+        
         testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return testimonials or []
     except Exception as e:
