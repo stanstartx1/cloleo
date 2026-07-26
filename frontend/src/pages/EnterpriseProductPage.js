@@ -646,14 +646,105 @@ const EnterpriseProductPage = () => {
         )}
 
         {/* Product Details Tabs */}
-        <Tabs defaultValue="description" className="mb-12">
+        <Tabs defaultValue="details" className="mb-12">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="description">Description</TabsTrigger>
+            <TabsTrigger value="details">Détails</TabsTrigger>
             <TabsTrigger value="usage">Guide d'utilisation</TabsTrigger>
+            <TabsTrigger value="description">Description</TabsTrigger>
             <TabsTrigger value="specifications">Spécifications</TabsTrigger>
-            <TabsTrigger value="shipping">Livraison</TabsTrigger>
             <TabsTrigger value="reviews">Avis</TabsTrigger>
           </TabsList>
+          <TabsContent value="details" className="mt-6">
+            <div className="bg-white rounded-xl p-6 border border-slate-200">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">État</p>
+                  <p className="font-semibold text-slate-900 capitalize">{product.condition}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Localisation</p>
+                  <p className="font-semibold text-slate-900">{product.city}, {product.location}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Vendeur</p>
+                  <p className="font-semibold text-slate-900">{enterprise.company_name}</p>
+                </div>
+                {product.brand && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Marque</p>
+                    <p className="font-semibold text-slate-900">{product.brand}</p>
+                  </div>
+                )}
+                {product.model && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Modèle</p>
+                    <p className="font-semibold text-slate-900">{product.model}</p>
+                  </div>
+                )}
+                {product.sku && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">SKU</p>
+                    <p className="font-semibold text-slate-900">{product.sku}</p>
+                  </div>
+                )}
+                {product.weight && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Poids</p>
+                    <p className="font-semibold text-slate-900">{product.weight} kg</p>
+                  </div>
+                )}
+                {product.dimensions && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Dimensions</p>
+                    <p className="font-semibold text-slate-900">{product.dimensions} cm</p>
+                  </div>
+                )}
+                {product.warranty && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Garantie</p>
+                    <p className="font-semibold text-slate-900">{product.warranty}</p>
+                  </div>
+                )}
+                {product.material && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Matériau</p>
+                    <p className="font-semibold text-slate-900">{product.material}</p>
+                  </div>
+                )}
+                {product.color && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Couleur</p>
+                    <p className="font-semibold text-slate-900">{product.color}</p>
+                  </div>
+                )}
+                {product.category && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Catégorie</p>
+                    <p className="font-semibold text-slate-900">{product.category}</p>
+                  </div>
+                )}
+                {product.subcategory && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Sous-catégorie</p>
+                    <p className="font-semibold text-slate-900">{product.subcategory}</p>
+                  </div>
+                )}
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Tags</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {product.tags?.slice(0, 3).map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                    {product.tags?.length > 3 && (
+                      <span className="text-xs text-slate-500">+{product.tags.length - 3}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
           <TabsContent value="description" className="mt-6">
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <div className="prose max-w-none">

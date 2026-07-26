@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check, Building2, Award } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check, Building2, Award, Info, FileText } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
@@ -941,13 +941,13 @@ const ProductPage = () => {
         </div>
 
         {/* Product tabs */}
-        <Tabs defaultValue="description" className="mb-16">
+        <Tabs defaultValue="details" className="mb-16">
           <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0 mb-6">
-            <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
-              Description
-            </TabsTrigger>
             <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
               Détails
+            </TabsTrigger>
+            <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
+              Description
             </TabsTrigger>
             <TabsTrigger value="reviews" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3">
               Avis ({product.review_count || 0})
@@ -957,98 +957,134 @@ const ProductPage = () => {
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
           </TabsContent>
           <TabsContent value="details">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground">État</p>
-                <p className="font-medium capitalize">{product.condition}</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                <p className="text-xs text-slate-500 font-medium">État</p>
+                <p className="font-semibold text-slate-900 capitalize">{product.condition}</p>
               </div>
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground">Localisation</p>
-                <p className="font-medium">{product.city}, {product.location}</p>
+              <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                <p className="text-xs text-slate-500 font-medium">Localisation</p>
+                <p className="font-semibold text-slate-900">{product.city}, {product.location}</p>
               </div>
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground">Vendeur</p>
-                <p className="font-medium">{product.seller_name}</p>
+              <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                <p className="text-xs text-slate-500 font-medium">Vendeur</p>
+                <p className="font-semibold text-slate-900">{product.seller_name}</p>
               </div>
               {product.brand && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Marque</p>
-                  <p className="font-medium">{product.brand}</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Marque</p>
+                  <p className="font-semibold text-slate-900">{product.brand}</p>
                 </div>
               )}
               {product.model && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Modèle</p>
-                  <p className="font-medium">{product.model}</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Modèle</p>
+                  <p className="font-semibold text-slate-900">{product.model}</p>
                 </div>
               )}
               {product.sku && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">SKU</p>
-                  <p className="font-medium">{product.sku}</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">SKU</p>
+                  <p className="font-semibold text-slate-900">{product.sku}</p>
                 </div>
               )}
               {product.ean && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">EAN / ISBN</p>
-                  <p className="font-medium">{product.ean}</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">EAN / ISBN</p>
+                  <p className="font-semibold text-slate-900">{product.ean}</p>
                 </div>
               )}
               {product.weight && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Poids</p>
-                  <p className="font-medium">{product.weight} kg</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Poids</p>
+                  <p className="font-semibold text-slate-900">{product.weight} kg</p>
                 </div>
               )}
               {product.dimensions && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Dimensions</p>
-                  <p className="font-medium">{product.dimensions} cm</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Dimensions</p>
+                  <p className="font-semibold text-slate-900">{product.dimensions} cm</p>
                 </div>
               )}
               {product.warranty && (
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Garantie</p>
-                  <p className="font-medium">{product.warranty}</p>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Garantie</p>
+                  <p className="font-semibold text-slate-900">{product.warranty}</p>
                 </div>
               )}
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground">Tags</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {product.tags?.map((tag) => (
-                    <span key={tag} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+              {product.material && (
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Matériau</p>
+                  <p className="font-semibold text-slate-900">{product.material}</p>
+                </div>
+              )}
+              {product.color && (
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Couleur</p>
+                  <p className="font-semibold text-slate-900">{product.color}</p>
+                </div>
+              )}
+              {product.category && (
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Catégorie</p>
+                  <p className="font-semibold text-slate-900">{product.category}</p>
+                </div>
+              )}
+              {product.subcategory && (
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Sous-catégorie</p>
+                  <p className="font-semibold text-slate-900">{product.subcategory}</p>
+                </div>
+              )}
+              <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                <p className="text-xs text-slate-500 font-medium">Tags</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {product.tags?.slice(0, 3).map((tag) => (
+                    <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
                       {tag}
                     </span>
                   ))}
+                  {product.tags?.length > 3 && (
+                    <span className="text-xs text-slate-500">+{product.tags.length - 3}</span>
+                  )}
                 </div>
               </div>
               {Object.entries(product.custom_attributes || {}).map(([label, value]) => (
-                <div key={label} className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground capitalize">{label.replace(/_/g, ' ')}</p>
-                  <p className="font-medium">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
+                <div key={label} className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium capitalize">{label.replace(/_/g, ' ')}</p>
+                  <p className="font-semibold text-slate-900 truncate">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
                 </div>
               ))}
             </div>
             
             {/* Enterprise-specific sections */}
             {product.specifications && (
-              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
-                <h3 className="font-semibold mb-3">Spécifications techniques</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.specifications}</p>
+              <div className="mt-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+                <h3 className="font-semibold mb-2 text-slate-900 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-amber-600" />
+                  Spécifications techniques
+                </h3>
+                <p className="text-sm text-slate-700 whitespace-pre-line">{product.specifications}</p>
               </div>
             )}
             
             {product.certifications && (
-              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
-                <h3 className="font-semibold mb-3">Certifications</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.certifications}</p>
+              <div className="mt-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <h3 className="font-semibold mb-2 text-slate-900 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-green-600" />
+                  Certifications
+                </h3>
+                <p className="text-sm text-slate-700 whitespace-pre-line">{product.certifications}</p>
               </div>
             )}
             
             {product.documentation && (
-              <div className="mt-6 p-6 bg-muted/30 rounded-lg">
-                <h3 className="font-semibold mb-3">Documentation</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{product.documentation}</p>
+              <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                <h3 className="font-semibold mb-2 text-slate-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  Documentation
+                </h3>
+                <p className="text-sm text-slate-700 whitespace-pre-line">{product.documentation}</p>
               </div>
             )}
             
