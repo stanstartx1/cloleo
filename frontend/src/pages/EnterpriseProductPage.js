@@ -464,6 +464,28 @@ const EnterpriseProductPage = () => {
                   Contacter
                 </Button>
               </div>
+
+              {/* Enterprise Buttons */}
+              {product.seller_id && (
+                <div className="flex flex-col gap-2">
+                  <Link
+                    to={`/enterprise/shop/${product.seller_id}`}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Voir la boutique
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    to={`/enterprise/profile/${product.seller_id}`}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    En savoir plus sur {enterprise?.company_name || "l'entreprise"}
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Trust Badges */}
