@@ -10,7 +10,7 @@ import {
   Award, Image as ImageIcon, Briefcase, Star, FileText, Upload, Download,
   Calendar, MapPin as MapPinIcon, Mail, Linkedin, Globe, Facebook, Instagram,
   Twitter, Youtube, Link as LinkIcon, UserPlus, UserMinus, Shield, Zap,
-  Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp
+  Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
