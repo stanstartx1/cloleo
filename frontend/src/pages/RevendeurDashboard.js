@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, DollarSign, Settings, LogOut, 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
   ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle,
-  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles, Users, FolderOpen, Tag
+  Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles, Users, FolderOpen, Tag, Crown, XCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -601,6 +601,7 @@ const RevendeurDashboard = () => {
     { id: 'messages', label: 'Messages', icon: MessageCircle },
     { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
     { id: 'earnings', label: 'Mes gains', icon: DollarSign },
+    { id: 'subscription', label: 'Abonnement', icon: Crown },
     { id: 'shop', label: 'Ma boutique', icon: Store },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
@@ -2173,6 +2174,38 @@ const RevendeurDashboard = () => {
             </motion.div>
           )}
 
+          {/* Subscription Tab */}
+          {activeTab === 'subscription' && (
+            <motion.div 
+              key="subscription"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Crown className="w-6 h-6 text-purple-500" />
+                  Abonnement
+                </h1>
+                <p className="text-gray-500">Gérez votre plan d'abonnement</p>
+              </motion.div>
+
+              <SubscriptionSection 
+                user={user}
+                token={token}
+                onRefresh={() => {
+                  // Refresh user data
+                  window.location.reload();
+                }}
+              />
+            </motion.div>
+          )}
+
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <motion.div 
@@ -3191,6 +3224,191 @@ const CatalogByCategoryView = ({ products, categories, onAdd, onFilterCategory }
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const SubscriptionSection = ({ user, token, onRefresh }) => {
+  const [loading, setLoading] = useState(false);
+
+  const plans = [
+    {
+      id: 'free',
+      name: 'Gratuit',
+      price: 0,
+      features: [
+        'Jusqu\'à 20 produits',
+        'Commandes illimitées',
+        'Support par email',
+        'Statistiques basiques'
+      ],
+      popular: false
+    },
+    {
+      id: 'starter',
+      name: 'Starter',
+      price: 10000,
+      features: [
+        'Jusqu\'à 100 produits',
+        'Commandes illimitées',
+        'Support prioritaire',
+        'Statistiques avancées',
+        'Badge Starter'
+      ],
+      popular: true
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: 25000,
+      features: [
+        'Produits illimités',
+        'Commandes illimitées',
+        'Support prioritaire',
+        'Statistiques avancées',
+        'Badge Pro',
+        'Mise en avant des produits'
+      ],
+      popular: false
+    }
+  ];
+
+  const currentPlan = user?.subscription_plan || 'free';
+
+  const handleSubscribe = async (planId) => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/subscriptions/checkout`, 
+        { plan_id: planId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      } else if (response.data.session_id) {
+        window.location.href = `/revendeur?session_id=${response.data.session_id}`;
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast.error('Erreur lors de la souscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Voulez-vous vraiment annuler votre abonnement ?')) return;
+    
+    setLoading(true);
+    try {
+      await axios.post(`${API}/subscriptions/cancel`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Abonnement annulé');
+      onRefresh();
+    } catch (error) {
+      console.error('Cancel error:', error);
+      toast.error('Erreur lors de l\'annulation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-bold text-xl text-gray-900">Abonnement</h3>
+          <p className="text-sm text-gray-500">Gérez votre plan d'abonnement</p>
+        </div>
+        {currentPlan !== 'free' && (
+          <Button
+            variant="outline"
+            onClick={handleCancelSubscription}
+            disabled={loading}
+            className="border-red-500 text-red-500 hover:bg-red-50"
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            Annuler l'abonnement
+          </Button>
+        )}
+      </div>
+
+      {/* Current Plan */}
+      <Card className="shadow-lg bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Plan actuel</p>
+              <p className="text-2xl font-bold text-gray-900 capitalize">{currentPlan}</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-white" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Date de début</p>
+              <p className="text-gray-900">{user?.subscription_start ? new Date(user.subscription_start).toLocaleDateString('fr-FR') : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Prochain renouvellement</p>
+              <p className="text-gray-900">{user?.subscription_end ? new Date(user.subscription_end).toLocaleDateString('fr-FR') : 'N/A'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {plans.map((plan) => (
+          <Card 
+            key={plan.id}
+            className={`shadow-lg ${plan.popular ? 'border-2 border-purple-500' : 'border-gray-200'} ${currentPlan === plan.id ? 'ring-2 ring-purple-500' : ''}`}
+          >
+            <CardContent className="p-6">
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    Populaire
+                  </span>
+                </div>
+              )}
+              
+              <div className="text-center mb-6">
+                <h4 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h4>
+                <p className="text-3xl font-bold text-purple-600">
+                  {plan.price === 0 ? 'Gratuit' : `${plan.price.toLocaleString()} FCFA`}
+                  <span className="text-sm text-gray-500 font-normal">/mois</span>
+                </p>
+              </div>
+
+              <ul className="space-y-3 mb-6">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                onClick={() => handleSubscribe(plan.id)}
+                disabled={loading || currentPlan === plan.id}
+                className={`w-full ${
+                  currentPlan === plan.id
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : plan.popular
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                    : 'bg-gray-800 hover:bg-gray-900 text-white'
+                }`}
+              >
+                {currentPlan === plan.id ? 'Plan actuel' : 'S\'abonner'}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

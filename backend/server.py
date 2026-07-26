@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import os
 import uuid
@@ -2404,34 +2404,106 @@ async def subscription_plans():
         {"id": "artisan", "name": "Artisan", "emoji": "Artisan", "price_fcfa": 5000, "price_usd": 8, "commission_percent": 12, "features": ["50 produits", "Stats avancees"], "badge": "verified"},
         {"id": "commercant", "name": "Commercant", "emoji": "Pro", "price_fcfa": 15000, "price_usd": 25, "commission_percent": 10, "features": ["Produits illimites", "Mise en avant"], "badge": "pro"},
         {"id": "entreprise", "name": "Entreprise", "emoji": "Elite", "price_fcfa": 35000, "price_usd": 58, "commission_percent": 8, "features": ["Multi-boutiques", "Support prioritaire"], "badge": "premium"},
+        {"id": "starter", "name": "Starter", "emoji": "Growth", "price_fcfa": 10000, "price_usd": 17, "commission_percent": 12, "features": ["100 produits", "Stats avancees"], "badge": "growth"},
+        {"id": "pro", "name": "Pro", "emoji": "Business", "price_fcfa": 25000, "price_usd": 42, "commission_percent": 10, "features": ["Produits illimites", "Mise en avant"], "badge": "business"},
     ]
 
 
 @api.post("/subscriptions/checkout")
-async def subscription_checkout(payload: dict, user: dict = Depends(require_vendor)):
+async def subscription_checkout(payload: dict, user: dict = Depends(get_current_user)):
     plan_id = payload.get("plan_id", "free")
     origin_url = payload.get("origin_url") or ""
+    role = user.get("role")
+    
+    # Validate role
+    if role not in ("vendor", "dropshipper", "enterprise"):
+        raise HTTPException(status_code=403, detail="Seuls les vendeurs, revendeurs et entreprises peuvent s'abonner")
+    
     plans = {p["id"]: p for p in await subscription_plans()}
     if plan_id not in plans:
         raise HTTPException(status_code=400, detail="Plan invalide")
-    await db.users.update_one({"id": user["id"]}, {"$set": {"subscription_plan": plan_id, "subscription_expires": None, "updated_at": _utc()}})
+    
+    # Calculate subscription dates
+    now = _utc()
+    subscription_end = None
+    if plan_id != "free":
+        subscription_end = now + timedelta(days=30)
+    
+    await db.users.update_one(
+        {"id": user["id"]}, 
+        {"$set": {
+            "subscription_plan": plan_id, 
+            "subscription_start": now,
+            "subscription_end": subscription_end,
+            "updated_at": now
+        }}
+    )
+    
     await db.subscriptions.insert_one(
         {
             "id": str(uuid.uuid4()),
             "seller_id": user["id"],
             "plan_id": plan_id,
             "status": "active",
-            "created_at": _utc(),
-            "updated_at": _utc(),
+            "created_at": now,
+            "updated_at": now,
         }
     )
-    redirect = f"{origin_url}/vendeur/abonnement?session_id={uuid.uuid4()}" if origin_url else "/vendeur/abonnement"
-    return {"redirect": redirect}
+    
+    session_id = str(uuid.uuid4())
+    
+    # Determine redirect based on role
+    if role == "vendor":
+        redirect = f"{origin_url}/vendeur?session_id={session_id}" if origin_url else f"/vendeur?session_id={session_id}"
+    elif role == "dropshipper":
+        redirect = f"{origin_url}/revendeur?session_id={session_id}" if origin_url else f"/revendeur?session_id={session_id}"
+    elif role == "enterprise":
+        redirect = f"{origin_url}/enterprise?session_id={session_id}" if origin_url else f"/enterprise?session_id={session_id}"
+    else:
+        redirect = "/"
+    
+    return {"session_id": session_id, "redirect": redirect}
+
+
+@api.post("/subscriptions/verify-payment")
+async def verify_payment(payload: dict, user: dict = Depends(get_current_user)):
+    session_id = payload.get("session_id")
+    # In production, this would verify with payment provider
+    # For now, we just return success
+    return {"payment_status": "paid", "session_id": session_id}
 
 
 @api.get("/subscriptions/status/{session_id}")
 async def subscription_status(session_id: str, user: dict = Depends(get_current_user)):
     return {"session_id": session_id, "payment_status": "paid"}
+
+
+@api.post("/subscriptions/cancel")
+async def cancel_subscription(user: dict = Depends(get_current_user)):
+    role = user.get("role")
+    
+    if role not in ("vendor", "dropshipper", "enterprise"):
+        raise HTTPException(status_code=403, detail="Seuls les vendeurs, revendeurs et entreprises peuvent annuler leur abonnement")
+    
+    now = _utc()
+    
+    # Update user to free plan
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "subscription_plan": "free",
+            "subscription_end": now,
+            "updated_at": now
+        }}
+    )
+    
+    # Cancel active subscription
+    await db.subscriptions.update_many(
+        {"seller_id": user["id"], "status": "active"},
+        {"$set": {"status": "cancelled", "updated_at": now}}
+    )
+    
+    return {"ok": True, "message": "Abonnement annulé avec succès"}
 
 
 @api.get("/subscriptions/check/{seller_id}")

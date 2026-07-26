@@ -1347,69 +1347,14 @@ const VendorDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <Crown className="w-6 h-6 text-yellow-400" />
-                Mon abonnement
+                Abonnement
               </motion.h2>
-              {plan && (
-                <motion.div 
-                  className={`p-6 rounded-2xl border ${
-                    plan.id === 'free' ? 'bg-slate-700/50 border-slate-600' : 'bg-gradient-to-br from-purple-900/50 to-indigo-900/50 border-purple-500/50'
-                  }`}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <div className="flex items-center gap-4 mb-6">
-                    <motion.div 
-                      className="text-5xl"
-                      animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                    >
-                      {plan.emoji}
-                    </motion.div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-                      <p className="text-slate-400">{plan.price_fcfa > 0 ? `${formatPrice(plan.price_fcfa)} FCFA/mois` : 'Gratuit'}</p>
-                    </div>
-                  </div>
-                  
-                  <motion.div 
-                    className="grid md:grid-cols-3 gap-4 mb-6"
-                    variants={staggerContainer}
-                    initial="initial"
-                    animate="animate"
-                  >
-                    <motion.div 
-                      variants={statCardVariant}
-                      className="bg-slate-800/50 rounded-xl p-4"
-                    >
-                      <p className="text-sm text-slate-400">Commission</p>
-                      <p className="text-xl font-bold text-white">{plan.commission_percent}%</p>
-                    </motion.div>
-                    <motion.div 
-                      variants={statCardVariant}
-                      className="bg-slate-800/50 rounded-xl p-4"
-                    >
-                      <p className="text-sm text-slate-400">Produits max</p>
-                      <p className="text-xl font-bold text-white">{plan.max_products === -1 ? 'Illimité' : plan.max_products}</p>
-                    </motion.div>
-                    <motion.div 
-                      variants={statCardVariant}
-                      className="bg-slate-800/50 rounded-xl p-4"
-                    >
-                      <p className="text-sm text-slate-400">Utilisés</p>
-                      <p className="text-xl font-bold text-white">{computedStats.total_products}</p>
-                    </motion.div>
-                  </motion.div>
-                  
-                  {plan.id === 'free' && (
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg">
-                        <Link to="/vendeur/abonnement"><Crown className="w-4 h-4 mr-2" /> Passer à un plan supérieur</Link>
-                      </Button>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
+              
+              <SubscriptionSection 
+                user={user}
+                token={token}
+                onRefresh={refreshUser}
+              />
             </motion.div>
           )}
 
@@ -1616,6 +1561,190 @@ const VendorDashboard = () => {
           </motion.div>
         </div>
       )}
+    </div>
+  );
+};
+
+const SubscriptionSection = ({ user, token, onRefresh }) => {
+  const [loading, setLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const plans = [
+    {
+      id: 'free',
+      name: 'Gratuit',
+      price: 0,
+      features: [
+        'Jusqu\'à 10 produits',
+        'Commandes illimitées',
+        'Support par email',
+        'Statistiques basiques'
+      ],
+      popular: false
+    },
+    {
+      id: 'artisan',
+      name: 'Artisan',
+      price: 15000,
+      features: [
+        'Jusqu\'à 50 produits',
+        'Commandes illimitées',
+        'Support prioritaire',
+        'Statistiques avancées',
+        'Badge Artisan'
+      ],
+      popular: true
+    },
+    {
+      id: 'commercant',
+      name: 'Commerçant',
+      price: 35000,
+      features: [
+        'Produits illimités',
+        'Commandes illimitées',
+        'Support prioritaire',
+        'Statistiques avancées',
+        'Badge Commerçant',
+        'Mise en avant des produits'
+      ],
+      popular: false
+    }
+  ];
+
+  const currentPlan = user?.subscription_plan || 'free';
+
+  const handleSubscribe = async (planId) => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/subscriptions/checkout`, 
+        { plan_id: planId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      } else if (response.data.session_id) {
+        window.location.href = `/vendeur?session_id=${response.data.session_id}`;
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast.error('Erreur lors de la souscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Voulez-vous vraiment annuler votre abonnement ?')) return;
+    
+    setLoading(true);
+    try {
+      await axios.post(`${API}/subscriptions/cancel`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Abonnement annulé');
+      onRefresh();
+    } catch (error) {
+      console.error('Cancel error:', error);
+      toast.error('Erreur lors de l\'annulation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-bold text-xl text-white">Abonnement</h3>
+          <p className="text-sm text-slate-400">Gérez votre plan d'abonnement</p>
+        </div>
+        {currentPlan !== 'free' && (
+          <Button
+            variant="outline"
+            onClick={handleCancelSubscription}
+            disabled={loading}
+            className="border-red-500 text-red-400 hover:bg-red-500/20"
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            Annuler l'abonnement
+          </Button>
+        )}
+      </div>
+
+      {/* Current Plan */}
+      <div className="bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border border-purple-500/30 rounded-2xl p-6 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-slate-400 mb-1">Plan actuel</p>
+            <p className="text-2xl font-bold text-white capitalize">{currentPlan}</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+            <Crown className="w-6 h-6 text-white" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Date de début</p>
+            <p className="text-white">{user?.subscription_start ? new Date(user.subscription_start).toLocaleDateString('fr-FR') : 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Prochain renouvellement</p>
+            <p className="text-white">{user?.subscription_end ? new Date(user.subscription_end).toLocaleDateString('fr-FR') : 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {plans.map((plan) => (
+          <div 
+            key={plan.id}
+            className={`bg-slate-800/50 backdrop-blur-sm border rounded-2xl p-6 shadow-xl relative ${
+              plan.popular ? 'border-purple-500/50' : 'border-slate-700/50'
+            } ${currentPlan === plan.id ? 'ring-2 ring-purple-500' : ''}`}
+          >
+            {plan.popular && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  Populaire
+                </span>
+              </div>
+            )}
+            
+            <div className="text-center mb-6">
+              <h4 className="text-xl font-bold text-white mb-2">{plan.name}</h4>
+              <p className="text-3xl font-bold text-purple-400">
+                {plan.price === 0 ? 'Gratuit' : `${plan.price.toLocaleString()} FCFA`}
+                <span className="text-sm text-slate-400 font-normal">/mois</span>
+              </p>
+            </div>
+
+            <ul className="space-y-3 mb-6">
+              {plan.features.map((feature, index) => (
+                <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              onClick={() => handleSubscribe(plan.id)}
+              disabled={loading || currentPlan === plan.id}
+              className={`w-full ${
+                currentPlan === plan.id
+                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  : plan.popular
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                  : 'bg-slate-700 hover:bg-slate-600 text-white'
+              }`}
+            >
+              {currentPlan === plan.id ? 'Plan actuel' : 'S\'abonner'}
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
