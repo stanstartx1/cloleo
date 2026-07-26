@@ -704,6 +704,7 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
         "documentation": payload.get("documentation", ""),
         "faq": payload.get("faq", ""),
         "usage_images": payload.get("usage_images") or [],
+        "usage_videos": payload.get("usage_videos") or [],
         "is_active": True,
         "status": "pending",
         "is_featured": False,
@@ -736,6 +737,9 @@ async def update_vendor_product(product_id: str, payload: dict, user: dict = Dep
         if min_qty < 2 or wholesale_price <= 0 or (regular_price and wholesale_price >= regular_price):
             raise HTTPException(status_code=400, detail="Configuration de gros invalide")
     update["updated_at"] = _utc()
+    # Ensure usage_videos is handled correctly
+    if "usage_videos" in update:
+        update["usage_videos"] = update["usage_videos"] or []
     await db.products.update_one({"id": product_id, "seller_id": user["id"]}, {"$set": update})
     product = await db.products.find_one({"id": product_id, "seller_id": user["id"]}, {"_id": 0})
     if not product:

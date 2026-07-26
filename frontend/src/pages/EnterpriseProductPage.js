@@ -616,29 +616,62 @@ const EnterpriseProductPage = () => {
             </div>
           </TabsContent>
           <TabsContent value="usage" className="mt-6">
-            {product.usage_images && product.usage_images.length > 0 ? (
+            {(product.usage_images && product.usage_images.length > 0) || (product.usage_videos && product.usage_videos.length > 0) ? (
               <div className="bg-white rounded-xl p-6 border border-slate-200">
                 <h3 className="font-semibold mb-4 flex items-center gap-2 text-slate-900">
                   <span className="text-2xl">📸</span>
                   Guide d'utilisation
                 </h3>
                 <p className="text-sm text-slate-600 mb-4">Découvrez comment utiliser ce produit étape par étape</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {product.usage_images.map((img, idx) => (
-                    <div key={idx} className="relative group cursor-pointer" onClick={() => setEnlargedImage(toAbsoluteMediaUrl(img))}>
-                      <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
-                        <img
-                          src={toAbsoluteMediaUrl(img)}
-                          alt={`Guide d'utilisation ${idx + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                      </div>
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <ZoomIn className="w-8 h-8 text-white" />
-                      </div>
+                
+                {/* Images */}
+                {product.usage_images && product.usage_images.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Images</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {product.usage_images.map((img, idx) => (
+                        <div key={idx} className="relative group cursor-pointer" onClick={() => setEnlargedImage(toAbsoluteMediaUrl(img))}>
+                          <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
+                            <img
+                              src={toAbsoluteMediaUrl(img)}
+                              alt={`Guide d'utilisation ${idx + 1}`}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <ZoomIn className="w-8 h-8 text-white" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Videos */}
+                {product.usage_videos && product.usage_videos.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Vidéos</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {product.usage_videos.map((video, idx) => (
+                        <div key={idx} className="relative group cursor-pointer">
+                          <div className="aspect-square rounded-lg overflow-hidden bg-slate-900 shadow-md">
+                            <video
+                              src={toAbsoluteMediaUrl(video)}
+                              controls
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <button
+                            onClick={() => setEnlargedImage(toAbsoluteMediaUrl(video))}
+                            className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                          >
+                            <ZoomIn className="w-8 h-8 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-xl p-6 border border-slate-200">

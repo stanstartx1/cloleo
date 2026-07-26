@@ -41,7 +41,8 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
     certifications: '',
     documentation: '',
     faq: '',
-    usage_images: []
+    usage_images: [],
+    usage_videos: []
   });
   const [customFields, setCustomFields] = useState([]);
   const [customAttributes, setCustomAttributes] = useState({});
@@ -86,7 +87,8 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
         certifications: product.certifications || '',
         documentation: product.documentation || '',
         faq: product.faq || '',
-        usage_images: product.usage_images || []
+        usage_images: product.usage_images || [],
+        usage_videos: product.usage_videos || []
       });
       if (product.custom_attributes) {
         setCustomAttributes(product.custom_attributes);
@@ -201,6 +203,39 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
     }));
   };
 
+  const handleUsageVideoUpload = async (file) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API}/upload`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        usage_videos: [...prev.usage_videos, response.data.url] 
+      }));
+      toast.success('Vidéo d\'utilisation uploadée avec succès');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Erreur lors de l\'upload de la vidéo d\'utilisation');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveUsageVideo = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      usage_videos: prev.usage_videos.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!formData.name || !formData.description || !formData.price_fcfa || !formData.stock || !formData.category_slug) {
       toast.error('Veuillez remplir tous les champs obligatoires');
@@ -258,7 +293,8 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
         certifications: formData.certifications,
         documentation: formData.documentation,
         faq: formData.faq,
-        usage_images: formData.usage_images
+        usage_images: formData.usage_images,
+        usage_videos: formData.usage_videos
       };
 
       await onSubmit(data);
@@ -716,6 +752,42 @@ const EnterpriseProductModal = ({ isOpen, onClose, onSubmit, product, categories
                 </label>
               </div>
               <p className="text-xs text-slate-400">JPG, PNG, WebP. Max 5MB par image</p>
+            </div>
+          </div>
+
+          {/* Usage Videos */}
+          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-500/30">
+            <h5 className="font-semibold text-white mb-3 flex items-center gap-2">
+              <span className="text-purple-400">🎬</span>
+              Vidéos d'utilisation (optionnel)
+            </h5>
+            <p className="text-xs text-slate-400 mb-3">Ajoutez des vidéos montrant comment utiliser le produit (tutoriels, démonstrations, etc.)</p>
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {formData.usage_videos.map((video, idx) => (
+                  <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden bg-slate-800">
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-2xl">🎥</span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveUsageVideo(idx)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <label className="w-20 h-20 rounded-lg border-2 border-dashed border-purple-500/50 flex items-center justify-center cursor-pointer hover:border-purple-500 transition-colors bg-purple-500/5">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => e.target.files[0] && handleUsageVideoUpload(e.target.files[0])}
+                    className="hidden"
+                  />
+                  <Plus className="w-6 h-6 text-purple-400" />
+                </label>
+              </div>
+              <p className="text-xs text-slate-400">MP4, WebM, MOV. Max 50MB par vidéo</p>
             </div>
           </div>
 
