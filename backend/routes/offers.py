@@ -46,13 +46,17 @@ async def create_offer(
     if existing_offer:
         raise HTTPException(status_code=400, detail="Vous avez déjà une offre en cours sur ce produit")
     
+    # Récupérer le rôle du vendeur
+    vendor = await db.users.find_one({"id": product.get("seller_id")})
+    vendor_role = vendor.get("role") if vendor else "vendor"
+    
     # Créer l'offre
     offer_data = {
         "id": str(uuid.uuid4()),
         "product_id": offer.product_id,
         "buyer_id": current_user.get("id"),
         "vendor_id": product.get("seller_id"),
-        "vendor_role": "vendor",
+        "vendor_role": vendor_role,
         "offered_price_fcfa": offer.offered_price_fcfa,
         "original_price_fcfa": product.get("price_fcfa"),
         "quantity": offer.quantity,
