@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check, Building2, Briefcase, Calendar, Award, Globe, Factory, Users, Package, CheckCircle, Clock, ArrowRight, Play, Info } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Truck, Shield, MapPin, Star, Minus, Plus, MessageCircle, Store, BadgeCheck, ChevronRight, CreditCard, Tag, X, Send, Loader2, Zap, Copy, Check, Building2, Briefcase, Calendar, Award, Globe, Factory, Users, Package, CheckCircle, Clock, ArrowRight, Play, Info, ZoomIn } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
@@ -54,6 +54,7 @@ const EnterpriseProductPage = () => {
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [autoOpenChat, setAutoOpenChat] = useState(searchParams.get('chat') === 'open');
   const [isSlideshowPaused, setIsSlideshowPaused] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null);
   
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerPrice, setOfferPrice] = useState('');
@@ -507,144 +508,6 @@ const EnterpriseProductPage = () => {
           </div>
         </div>
 
-        {/* Enterprise Details Section */}
-        {enterprise && (
-          <section className="mb-12 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
-              <h2 className="text-2xl font-bold text-white">À propos de {enterprise.company_name}</h2>
-            </div>
-            <div className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Company Info */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <UserAvatar
-                      photo={enterprise.profile_photo}
-                      name={enterprise.company_name}
-                      size="w-20 h-20"
-                      textSize="text-2xl"
-                      className="shadow-xl"
-                    />
-                    <div>
-                      <h3 className="font-bold text-xl text-slate-900">{enterprise.company_name}</h3>
-                      <div className="flex items-center gap-1 text-sm text-green-600">
-                        <BadgeCheck className="w-4 h-4" />
-                        Entreprise vérifiée
-                      </div>
-                    </div>
-                  </div>
-                  {enterprise.company_description && (
-                    <p className="text-slate-600">{enterprise.company_description}</p>
-                  )}
-                  <div className="space-y-2">
-                    {enterprise.business_type && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Briefcase className="w-4 h-4" />
-                        {enterprise.business_type}
-                      </div>
-                    )}
-                    {enterprise.year_founded && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Calendar className="w-4 h-4" />
-                        Depuis {enterprise.year_founded}
-                      </div>
-                    )}
-                    {enterprise.city && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <MapPin className="w-4 h-4" />
-                        {enterprise.city}, {enterprise.country || "Côte d'Ivoire"}
-                      </div>
-                    )}
-                    {enterprise.website && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Globe className="w-4 h-4" />
-                        <a href={enterprise.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          {enterprise.website}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-slate-900">Statistiques</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="text-2xl font-bold text-amber-600">{enterprise.product_count || product.stock || 0}</div>
-                      <div className="text-sm text-slate-600">Produits</div>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="text-2xl font-bold text-amber-600">98%</div>
-                      <div className="text-sm text-slate-600">Taux de réponse</div>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="text-2xl font-bold text-amber-600">&lt; 24h</div>
-                      <div className="text-sm text-slate-600">Délai de livraison</div>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <div className="text-2xl font-bold text-amber-600">4.8★</div>
-                      <div className="text-sm text-slate-600">Note moyenne</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Certifications & Trust */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-slate-900">Certifications & Confiance</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {enterprise.certifications?.length > 0 ? (
-                      enterprise.certifications.map((cert, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                          {cert}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">
-                        Certifications non spécifiées
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Shield className="w-4 h-4 text-green-600" />
-                      <span>Commerce sécurisé</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Award className="w-4 h-4 text-amber-600" />
-                      <span>Entreprise certifiée</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Factory className="w-4 h-4 text-blue-600" />
-                      <span>Fabricant vérifié</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-4 mt-8 pt-6 border-t border-slate-200">
-                <Link
-                  to={`/enterprise/shop/${product.seller_id}`}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md"
-                >
-                  <Store className="w-5 h-5" />
-                  Voir la boutique
-                  <ChevronRight className="w-5 h-5" />
-                </Link>
-                <Link
-                  to={`/enterprise/profile/${product.seller_id}`}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md"
-                >
-                  <Building2 className="w-5 h-5" />
-                  En savoir plus sur {enterprise.company_name}
-                  <ChevronRight className="w-5 h-5" />
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* Product Details Tabs */}
         <Tabs defaultValue="details" className="mb-12">
           <TabsList className="grid w-full grid-cols-5">
@@ -690,13 +553,13 @@ const EnterpriseProductPage = () => {
                 {product.weight && (
                   <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
                     <p className="text-xs text-slate-500 font-medium">Poids</p>
-                    <p className="font-semibold text-slate-900">{product.weight} kg</p>
+                    <p className="font-semibold text-slate-900">{product.weight}</p>
                   </div>
                 )}
                 {product.dimensions && (
                   <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
                     <p className="text-xs text-slate-500 font-medium">Dimensions</p>
-                    <p className="font-semibold text-slate-900">{product.dimensions} cm</p>
+                    <p className="font-semibold text-slate-900">{product.dimensions}</p>
                   </div>
                 )}
                 {product.warranty && (
@@ -762,7 +625,7 @@ const EnterpriseProductPage = () => {
                 <p className="text-sm text-slate-600 mb-4">Découvrez comment utiliser ce produit étape par étape</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {product.usage_images.map((img, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={idx} className="relative group cursor-pointer" onClick={() => setEnlargedImage(toAbsoluteMediaUrl(img))}>
                       <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
                         <img
                           src={toAbsoluteMediaUrl(img)}
@@ -770,8 +633,8 @@ const EnterpriseProductPage = () => {
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         />
                       </div>
-                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                        Étape {idx + 1}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <ZoomIn className="w-8 h-8 text-white" />
                       </div>
                     </div>
                   ))}
@@ -783,6 +646,145 @@ const EnterpriseProductPage = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* Enterprise Details Section */}
+          {enterprise && (
+            <section className="mb-12 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
+                <h2 className="text-2xl font-bold text-white">À propos de {enterprise.company_name}</h2>
+              </div>
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* Company Info */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <UserAvatar
+                        photo={enterprise.profile_photo}
+                        name={enterprise.company_name}
+                        size="w-20 h-20"
+                        textSize="text-2xl"
+                        className="shadow-xl"
+                      />
+                      <div>
+                        <h3 className="font-bold text-xl text-slate-900">{enterprise.company_name}</h3>
+                        <div className="flex items-center gap-1 text-sm text-green-600">
+                          <BadgeCheck className="w-4 h-4" />
+                          Entreprise vérifiée
+                        </div>
+                      </div>
+                    </div>
+                    {enterprise.company_description && (
+                      <p className="text-slate-600">{enterprise.company_description}</p>
+                    )}
+                    <div className="space-y-2">
+                      {enterprise.business_type && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Briefcase className="w-4 h-4" />
+                          {enterprise.business_type}
+                        </div>
+                      )}
+                      {enterprise.year_founded && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Calendar className="w-4 h-4" />
+                          Depuis {enterprise.year_founded}
+                        </div>
+                      )}
+                      {enterprise.city && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <MapPin className="w-4 h-4" />
+                          {enterprise.city}, {enterprise.country || "Côte d'Ivoire"}
+                        </div>
+                      )}
+                      {enterprise.website && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Globe className="w-4 h-4" />
+                          <a href={enterprise.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {enterprise.website}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-slate-900">Statistiques</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-2xl font-bold text-amber-600">{enterprise.product_count || product.stock || 0}</div>
+                        <div className="text-sm text-slate-600">Produits</div>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-2xl font-bold text-amber-600">98%</div>
+                        <div className="text-sm text-slate-600">Taux de réponse</div>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-2xl font-bold text-amber-600">&lt; 24h</div>
+                        <div className="text-sm text-slate-600">Délai de livraison</div>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div className="text-2xl font-bold text-amber-600">4.8★</div>
+                        <div className="text-sm text-slate-600">Note moyenne</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Certifications & Trust */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-slate-900">Certifications & Confiance</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {enterprise.certifications?.length > 0 ? (
+                        enterprise.certifications.map((cert, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                            {cert}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">
+                          Certifications non spécifiées
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Shield className="w-4 h-4 text-green-600" />
+                        <span>Commerce sécurisé</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Award className="w-4 h-4 text-amber-600" />
+                        <span>Entreprise certifiée</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Factory className="w-4 h-4 text-blue-600" />
+                        <span>Fabricant vérifié</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4 mt-8 pt-6 border-t border-slate-200">
+                  <Link
+                    to={`/enterprise/shop/${product.seller_id}`}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md"
+                  >
+                    <Store className="w-5 h-5" />
+                    Voir la boutique
+                    <ChevronRight className="w-5 h-5" />
+                  </Link>
+                  <Link
+                    to={`/enterprise/profile/${product.seller_id}`}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md"
+                  >
+                    <Building2 className="w-5 h-5" />
+                    En savoir plus sur {enterprise.company_name}
+                    <ChevronRight className="w-5 h-5" />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
+
           <TabsContent value="specifications" className="mt-6">
             <div className="bg-white rounded-xl p-6 border border-slate-200">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -927,6 +929,28 @@ const EnterpriseProductPage = () => {
           quantity={quantity}
           onClose={() => setShowQuickCheckout(false)}
         />
+      )}
+
+      {/* Enlarged Image Modal */}
+      {enlargedImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div className="relative max-w-5xl max-h-full">
+            <img
+              src={enlargedImage}
+              alt="Image agrandie"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+            <button
+              className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
+              onClick={() => setEnlargedImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

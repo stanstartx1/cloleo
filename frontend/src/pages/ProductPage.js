@@ -997,13 +997,13 @@ const ProductPage = () => {
               {product.weight && (
                 <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
                   <p className="text-xs text-slate-500 font-medium">Poids</p>
-                  <p className="font-semibold text-slate-900">{product.weight} kg</p>
+                  <p className="font-semibold text-slate-900">{product.weight}</p>
                 </div>
               )}
               {product.dimensions && (
                 <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
                   <p className="text-xs text-slate-500 font-medium">Dimensions</p>
-                  <p className="font-semibold text-slate-900">{product.dimensions} cm</p>
+                  <p className="font-semibold text-slate-900">{product.dimensions}</p>
                 </div>
               )}
               {product.warranty && (
