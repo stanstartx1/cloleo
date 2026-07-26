@@ -552,9 +552,10 @@ async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_ad
 async def get_trophies(current_user = Depends(get_current_user)):
     """Get trophies for the current enterprise"""
     try:
-        trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return trophies or []
     except Exception as e:
+        print(f"Error fetching trophies: {e}")
         return []
 
 @router.post("/trophies")
@@ -570,11 +571,13 @@ async def create_trophy(trophy_data: dict, current_user = Depends(get_current_us
             "year": trophy_data.get("year"),
             "organization": trophy_data.get("organization"),
             "image": trophy_data.get("image"),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
         await db.enterprise_trophies.insert_one(trophy)
         return trophy
     except Exception as e:
+        print(f"Error creating trophy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/trophies/{trophy_id}")
@@ -591,6 +594,7 @@ async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Error deleting trophy: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Certification endpoints
@@ -598,9 +602,10 @@ async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)
 async def get_certifications(current_user = Depends(get_current_user)):
     """Get certifications for the current enterprise"""
     try:
-        certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return certifications or []
     except Exception as e:
+        print(f"Error fetching certifications: {e}")
         return []
 
 @router.post("/certifications")
@@ -617,11 +622,13 @@ async def create_certification(cert_data: dict, current_user = Depends(get_curre
             "expiry_date": cert_data.get("expiry_date"),
             "certificate_number": cert_data.get("certificate_number"),
             "document": cert_data.get("document"),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
         await db.enterprise_certifications.insert_one(certification)
         return certification
     except Exception as e:
+        print(f"Error creating certification: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/certifications/{cert_id}")
@@ -645,9 +652,10 @@ async def delete_certification(cert_id: str, current_user = Depends(get_current_
 async def get_portfolio(current_user = Depends(get_current_user)):
     """Get portfolio items for the current enterprise"""
     try:
-        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return portfolio or []
     except Exception as e:
+        print(f"Error fetching portfolio: {e}")
         return []
 
 @router.post("/portfolio")
@@ -664,11 +672,13 @@ async def create_portfolio_item(portfolio_data: dict, current_user = Depends(get
             "completion_date": portfolio_data.get("completion_date"),
             "images": portfolio_data.get("images", []),
             "category": portfolio_data.get("category"),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
         await db.enterprise_portfolio.insert_one(item)
         return item
     except Exception as e:
+        print(f"Error creating portfolio item: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/portfolio/{item_id}")
@@ -692,9 +702,10 @@ async def delete_portfolio_item(item_id: str, current_user = Depends(get_current
 async def get_team(current_user = Depends(get_current_user)):
     """Get team members for the current enterprise"""
     try:
-        team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return team or []
     except Exception as e:
+        print(f"Error fetching team: {e}")
         return []
 
 @router.post("/team")
@@ -712,11 +723,13 @@ async def create_team_member(member_data: dict, current_user = Depends(get_curre
             "photo": member_data.get("photo"),
             "linkedin": member_data.get("linkedin"),
             "bio": member_data.get("bio"),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
         await db.enterprise_team.insert_one(member)
         return member
     except Exception as e:
+        print(f"Error creating team member: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/team/{member_id}")
@@ -733,6 +746,7 @@ async def delete_team_member(member_id: str, current_user = Depends(get_current_
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Error deleting team member: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Projects endpoints
@@ -740,9 +754,10 @@ async def delete_team_member(member_id: str, current_user = Depends(get_current_
 async def get_projects(current_user = Depends(get_current_user)):
     """Get projects for the current enterprise"""
     try:
-        projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return projects or []
     except Exception as e:
+        print(f"Error fetching projects: {e}")
         return []
 
 @router.post("/projects")
@@ -761,11 +776,13 @@ async def create_project(project_data: dict, current_user = Depends(get_current_
             "budget": project_data.get("budget"),
             "status": project_data.get("status", "in_progress"),
             "technologies": project_data.get("technologies", []),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
         await db.enterprise_projects.insert_one(project)
         return project
     except Exception as e:
+        print(f"Error creating project: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/projects/{project_id}")
@@ -782,6 +799,7 @@ async def delete_project(project_id: str, current_user = Depends(get_current_use
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Error deleting project: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Testimonials endpoints
@@ -789,9 +807,10 @@ async def delete_project(project_id: str, current_user = Depends(get_current_use
 async def get_testimonials(current_user = Depends(get_current_user)):
     """Get testimonials for the current enterprise"""
     try:
-        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
         return testimonials or []
     except Exception as e:
+        print(f"Error fetching testimonials: {e}")
         return []
 
 @router.post("/testimonials")
@@ -810,11 +829,13 @@ async def create_testimonial(testimonial_data: dict, current_user = Depends(get_
             "project": testimonial_data.get("project"),
             "date": testimonial_data.get("date"),
             "photo": testimonial_data.get("photo"),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
         await db.enterprise_testimonials.insert_one(testimonial)
         return testimonial
     except Exception as e:
+        print(f"Error creating testimonial: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/testimonials/{testimonial_id}")
@@ -831,4 +852,5 @@ async def delete_testimonial(testimonial_id: str, current_user = Depends(get_cur
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Error deleting testimonial: {e}")
         raise HTTPException(status_code=500, detail=str(e))

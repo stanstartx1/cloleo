@@ -2112,6 +2112,47 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
     image: null
   });
   const [uploading, setUploading] = useState(false);
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e) => {
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - modalPosition.x,
+      y: e.clientY - modalPosition.y
+    });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    setModalPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart]);
+
+  useEffect(() => {
+    if (showAddModal) {
+      setModalPosition({ x: 0, y: 0 });
+    }
+  }, [showAddModal]);
 
   const handleImageUpload = async (file) => {
     setUploading(true);
@@ -2237,8 +2278,15 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
 
       {/* Add Trophy Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div 
+            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto cursor-move"
+            style={{
+              transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+              position: 'relative'
+            }}
+            onMouseDown={handleMouseDown}
+          >
             <div className="flex items-center justify-between mb-4">
               <h4 className="font-bold text-lg text-white">Ajouter un trophée</h4>
               <Button variant="ghost" size="icon" onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white hover:bg-slate-800/50">
@@ -2291,11 +2339,37 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
               
               <div>
                 <label className="text-sm font-medium text-slate-300 mb-1 block">Image</label>
-                <ImageUpload
-                  onUpload={handleImageUpload}
-                  currentImage={newTrophy.image}
-                  accept="image/*"
-                />
+                <div className="space-y-2">
+                  {newTrophy.image && (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden border border-slate-700">
+                      <img 
+                        src={toAbsoluteMediaUrl(newTrophy.image)} 
+                        alt="Aperçu"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewTrophy({ ...newTrophy, image: null })}
+                        className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                      disabled={uploading}
+                      className="flex-1 text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer"
+                    />
+                    {uploading && <Loader2 className="w-5 h-5 animate-spin text-amber-500" />}
+                  </div>
+                </div>
               </div>
               
               <div className="flex gap-2 pt-4">
