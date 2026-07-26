@@ -96,7 +96,7 @@ async def get_received_offers(
     try:
         offers = await db.offers.find({
             "vendor_id": current_user.get("id"),
-            "status": {"$in": [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER]}
+            "status": {"$in": [OfferStatus.PENDING, OfferStatus.COUNTER_OFFER, OfferStatus.ACCEPTED, OfferStatus.REJECTED]}
         }).to_list(length=None)
         
         # Enrichir avec les infos du produit et de l'acheteur
