@@ -11,7 +11,7 @@ import {
   Calendar, MapPin as MapPinIcon, Mail, Linkedin, Globe, Facebook, Instagram,
   Twitter, Youtube, Link as LinkIcon, UserPlus, UserMinus, Shield, Zap,
   Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp, MessageSquare,
-  ArrowLeft, Map, User
+  ArrowLeft, Map, User, Eye
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
