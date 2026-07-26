@@ -511,6 +511,10 @@ async def list_orders(user: dict = Depends(get_current_user)):
         # Les vendeurs voient toutes leurs commandes (directes et dropshippées)
         query["seller_id"] = user["id"]
         print(f"DEBUG: Vendor query - seller_id: {user['id']}")
+    elif role == "enterprise":
+        # Les entreprises voient toutes leurs commandes (directes et dropshippées)
+        query["seller_id"] = user["id"]
+        print(f"DEBUG: Enterprise query - seller_id: {user['id']}")
     elif role == "dropshipper":
         # Les revendeurs voient leurs commandes dropshippées
         query["dropshipper_id"] = user["id"]
