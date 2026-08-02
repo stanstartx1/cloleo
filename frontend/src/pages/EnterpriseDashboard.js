@@ -7230,7 +7230,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       await axios.put(`${API}/enterprises/profile`, 
 
-        { cover_photo: response.data.url },
+        { cover_photo: response.data.url, shop_cover_photo: formData.shop_cover_photo },
 
         { headers: { Authorization: `Bearer ${token}` } }
 
@@ -7288,7 +7288,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       await axios.put(`${API}/enterprises/profile`, 
 
-        { shop_cover_photo: response.data.url },
+        { shop_cover_photo: response.data.url, cover_photo: formData.cover_photo },
 
         { headers: { Authorization: `Bearer ${token}` } }
 
