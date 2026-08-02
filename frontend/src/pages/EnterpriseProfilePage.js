@@ -67,12 +67,12 @@ const EnterpriseProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 overflow-hidden">
+      <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20 overflow-hidden">
         {enterprise.cover_photo && (
           <img
             src={toAbsoluteMediaUrl(enterprise.cover_photo)}
             alt="Cover"
-            className="absolute inset-0 w-full h-full object-cover opacity-30"
+            className="absolute inset-0 w-full h-full object-cover opacity-100"
           />
         )}
         <div className="relative z-10">
