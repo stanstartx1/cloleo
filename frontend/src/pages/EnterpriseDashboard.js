@@ -7228,9 +7228,25 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
+      // Get current enterprise data to preserve shop_cover_photo
+
+      const currentData = await axios.get(`${API}/auth/me`, {
+
+        headers: { Authorization: `Bearer ${token}` }
+
+      });
+
+      
+
       await axios.put(`${API}/enterprises/profile`, 
 
-        { cover_photo: response.data.url, shop_cover_photo: formData.shop_cover_photo },
+        { 
+
+          cover_photo: response.data.url, 
+
+          ...(currentData.data.shop_cover_photo && { shop_cover_photo: currentData.data.shop_cover_photo }) 
+
+        },
 
         { headers: { Authorization: `Bearer ${token}` } }
 
@@ -7238,7 +7254,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      setFormData({ ...formData, cover_photo: response.data.url });
+      setFormData({ ...formData, cover_photo: response.data.url, shop_cover_photo: currentData.data.shop_cover_photo });
 
       toast.success('Photo de couverture du profil mise à jour');
 
@@ -7286,9 +7302,25 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
+      // Get current enterprise data to preserve cover_photo
+
+      const currentData = await axios.get(`${API}/auth/me`, {
+
+        headers: { Authorization: `Bearer ${token}` }
+
+      });
+
+      
+
       await axios.put(`${API}/enterprises/profile`, 
 
-        { shop_cover_photo: response.data.url, cover_photo: formData.cover_photo },
+        { 
+
+          shop_cover_photo: response.data.url, 
+
+          ...(currentData.data.cover_photo && { cover_photo: currentData.data.cover_photo }) 
+
+        },
 
         { headers: { Authorization: `Bearer ${token}` } }
 
@@ -7296,7 +7328,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      setFormData({ ...formData, shop_cover_photo: response.data.url });
+      setFormData({ ...formData, shop_cover_photo: response.data.url, cover_photo: currentData.data.cover_photo });
 
       toast.success('Photo de couverture de la boutique mise à jour');
 
