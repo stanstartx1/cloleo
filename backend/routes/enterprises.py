@@ -406,6 +406,10 @@ async def get_enterprise_profile(company_slug: str):
 
             "profile_photo": enterprise.get("profile_photo", ""),
 
+            "cover_photo": enterprise.get("cover_photo", ""),
+
+            "shop_cover_photo": enterprise.get("shop_cover_photo", ""),
+
             "dfe_number": enterprise.get("dfe_number", ""),
 
             "average_rating": enterprise.get("average_rating", 0),
@@ -473,6 +477,10 @@ async def get_enterprise_by_id(enterprise_id: str):
             "certifications": enterprise.get("certifications", []),
 
             "profile_photo": enterprise.get("profile_photo", ""),
+
+            "cover_photo": enterprise.get("cover_photo", ""),
+
+            "shop_cover_photo": enterprise.get("shop_cover_photo", ""),
 
             "dfe_number": enterprise.get("dfe_number", ""),
 

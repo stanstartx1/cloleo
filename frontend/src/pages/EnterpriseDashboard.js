@@ -7120,7 +7120,20 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
-      await axios.put(`${API}/enterprises/profile`, formData, {
+      // Build update data, only include photos if they have values
+      const updateData = {};
+      
+      Object.keys(formData).forEach(key => {
+        if (key === 'cover_photo' || key === 'shop_cover_photo') {
+          if (formData[key]) {
+            updateData[key] = formData[key];
+          }
+        } else if (formData[key]) {
+          updateData[key] = formData[key];
+        }
+      });
+
+      await axios.put(`${API}/enterprises/profile`, updateData, {
 
         headers: { Authorization: `Bearer ${token}` }
 
