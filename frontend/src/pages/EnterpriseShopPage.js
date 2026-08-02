@@ -130,11 +130,11 @@ const EnterpriseShopPage = () => {
 
         {/* Share & Contact Buttons */}
         <div className="absolute top-4 right-4 flex gap-2">
-          <Button size="sm" variant="secondary" className="bg-white/90 backdrop-blur-sm hover:bg-white">
+          <Button size="sm" className="bg-white text-slate-800 hover:bg-slate-100 shadow-lg">
             <Share2 className="w-4 h-4 mr-2" />
             Partager
           </Button>
-          <Button size="sm" className="bg-white/90 backdrop-blur-sm hover:bg-white text-slate-800">
+          <Button size="sm" className="bg-white text-slate-800 hover:bg-slate-100 shadow-lg">
             <MessageCircle className="w-4 h-4 mr-2" />
             Contacter
           </Button>
@@ -142,7 +142,7 @@ const EnterpriseShopPage = () => {
       </div>
 
       {/* Profile Section */}
-      <div className="max-w-7xl mx-auto px-4 -mt-20">
+      <div className="max-w-7xl mx-auto px-4 -mt-16">
         <div className="flex flex-col md:flex-row items-start md:items-end gap-6 mb-8">
           {/* Profile Photo */}
           <div className="relative">
