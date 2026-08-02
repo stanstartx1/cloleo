@@ -1565,7 +1565,15 @@ async def driver_dashboard(user: dict = Depends(require_driver)):
 
     active = await db.orders.count_documents({"driver_id": user["id"], "status": {"$in": ["assigned", "picked_up", "in_transit"]}})
 
-    return {"driver": {"id": user["id"], "name": user.get("name")}, "stats": {"total_orders": orders, "active_orders": active}}
+    return {
+        "user": {
+            "id": user["id"],
+            "name": user.get("name"),
+            "is_verified": user.get("is_verified", False),
+            "is_active": user.get("is_active", False)
+        },
+        "stats": {"total_orders": orders, "active_orders": active}
+    }
 
 
 
