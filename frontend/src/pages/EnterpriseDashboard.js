@@ -7120,15 +7120,16 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
-      // Build update data, only include photos if they have values
+      // Build update data, always include photos if they have values
       const updateData = {};
       
       Object.keys(formData).forEach(key => {
         if (key === 'cover_photo' || key === 'shop_cover_photo') {
-          if (formData[key]) {
+          // Always include photos if they have non-empty values
+          if (formData[key] && formData[key].trim() !== '') {
             updateData[key] = formData[key];
           }
-        } else if (formData[key]) {
+        } else if (formData[key] && formData[key].trim() !== '') {
           updateData[key] = formData[key];
         }
       });
@@ -7141,7 +7142,8 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       toast.success('Profil mis à jour avec succès');
 
-      onRefresh();
+      // Don't call onRefresh() immediately to avoid fetching stale data
+      // The local formData already has the updated values
 
     } catch (error) {
 
@@ -7241,25 +7243,10 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      await axios.put(`${API}/enterprises/profile`, 
-
-        { 
-
-          cover_photo: response.data.url, 
-
-          ...(formData.shop_cover_photo && { shop_cover_photo: formData.shop_cover_photo }) 
-
-        },
-
-        { headers: { Authorization: `Bearer ${token}` } }
-
-      );
-
-      
-
+      // Only update local state, don't call backend yet
       setFormData({ ...formData, cover_photo: response.data.url });
 
-      toast.success('Photo de couverture du profil mise à jour');
+      toast.success('Photo de couverture du profil chargée. Cliquez sur Enregistrer pour sauvegarder.');
 
     } catch (error) {
 
@@ -7303,25 +7290,10 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      await axios.put(`${API}/enterprises/profile`, 
-
-        { 
-
-          shop_cover_photo: response.data.url, 
-
-          ...(formData.cover_photo && { cover_photo: formData.cover_photo }) 
-
-        },
-
-        { headers: { Authorization: `Bearer ${token}` } }
-
-      );
-
-      
-
+      // Only update local state, don't call backend yet
       setFormData({ ...formData, shop_cover_photo: response.data.url });
 
-      toast.success('Photo de couverture de la boutique mise à jour');
+      toast.success('Photo de couverture de la boutique chargée. Cliquez sur Enregistrer pour sauvegarder.');
 
     } catch (error) {
 
