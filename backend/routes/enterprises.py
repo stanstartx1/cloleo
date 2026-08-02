@@ -698,6 +698,8 @@ async def update_enterprise_profile(data: EnterpriseUpdate, current_user = Depen
 async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_user = Depends(get_current_user)):
     """Upload and update enterprise profile photo"""
     try:
+        print(f"DEBUG: Uploading profile photo for user: {current_user.get('id')}, role: {current_user.get('role')}")
+        
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
@@ -715,15 +717,18 @@ async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_
         
         url = f"/uploads/{filename}"
         
-        await db.users.update_one(
+        print(f"DEBUG: Updating profile_photo to {url} for user _id: {current_user.get('_id')}")
+        result = await db.users.update_one(
             {"_id": current_user.get("_id")},
             {"$set": {"profile_photo": url}}
         )
+        print(f"DEBUG: Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         return {"url": url}
     except HTTPException:
         raise
     except Exception as e:
+        print(f"ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -731,6 +736,8 @@ async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_
 async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_user = Depends(get_current_user)):
     """Upload and update enterprise cover photo"""
     try:
+        print(f"DEBUG: Uploading cover photo for user: {current_user.get('id')}, role: {current_user.get('role')}")
+        
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
@@ -747,15 +754,18 @@ async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_us
         
         url = f"/uploads/{filename}"
         
-        await db.users.update_one(
+        print(f"DEBUG: Updating cover_photo to {url} for user _id: {current_user.get('_id')}")
+        result = await db.users.update_one(
             {"_id": current_user.get("_id")},
             {"$set": {"cover_photo": url}}
         )
+        print(f"DEBUG: Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         return {"url": url}
     except HTTPException:
         raise
     except Exception as e:
+        print(f"ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -763,6 +773,8 @@ async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_us
 async def upload_enterprise_shop_cover_photo(file: UploadFile = File(...), current_user = Depends(get_current_user)):
     """Upload and update enterprise shop cover photo"""
     try:
+        print(f"DEBUG: Uploading shop cover photo for user: {current_user.get('id')}, role: {current_user.get('role')}")
+        
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
@@ -779,15 +791,18 @@ async def upload_enterprise_shop_cover_photo(file: UploadFile = File(...), curre
         
         url = f"/uploads/{filename}"
         
-        await db.users.update_one(
+        print(f"DEBUG: Updating shop_cover_photo to {url} for user _id: {current_user.get('_id')}")
+        result = await db.users.update_one(
             {"_id": current_user.get("_id")},
             {"$set": {"shop_cover_photo": url}}
         )
+        print(f"DEBUG: Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         return {"url": url}
     except HTTPException:
         raise
     except Exception as e:
+        print(f"ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
