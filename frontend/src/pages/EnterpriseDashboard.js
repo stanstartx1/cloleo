@@ -7124,8 +7124,24 @@ const SettingsSection = ({ user, token, onRefresh }) => {
       });
       
       console.log(`DEBUG: Setting ${field} to ${response.data.url}`);
+      
+      // Update the photo directly via dedicated endpoint
+      let endpoint;
+      if (field === 'profile_photo') {
+        endpoint = `${API}/enterprises/profile-photo`;
+      } else if (field === 'cover_photo') {
+        endpoint = `${API}/enterprises/cover-photo`;
+      } else if (field === 'shop_cover_photo') {
+        endpoint = `${API}/enterprises/shop-cover-photo`;
+      }
+      
+      await axios.put(endpoint, { photo_url: response.data.url }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
       setFormData(prev => ({ ...prev, [field]: response.data.url }));
-      toast.success('Image chargée avec succès');
+      toast.success('Image mise à jour avec succès');
+      onRefresh();
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Erreur lors de l\'upload');
@@ -7139,8 +7155,6 @@ const SettingsSection = ({ user, token, onRefresh }) => {
     setLoading(true);
 
     try {
-
-      console.log('DEBUG: Sending formData to backend:', formData);
 
       await axios.put(`${API}/enterprises/profile`, formData, {
 
