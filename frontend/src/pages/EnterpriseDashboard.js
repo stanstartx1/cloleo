@@ -7139,6 +7139,8 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
+      console.log('DEBUG: Sending formData to backend:', formData);
+
       await axios.put(`${API}/enterprises/profile`, formData, {
 
         headers: { Authorization: `Bearer ${token}` }
