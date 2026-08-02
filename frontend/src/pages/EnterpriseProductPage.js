@@ -508,234 +508,6 @@ const EnterpriseProductPage = () => {
           </div>
         </div>
 
-        {/* Product Details Tabs */}
-        <Tabs defaultValue="details" className="mb-12">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="details">Détails</TabsTrigger>
-            <TabsTrigger value="usage">Guide d'utilisation</TabsTrigger>
-            <TabsTrigger value="description">Description</TabsTrigger>
-            <TabsTrigger value="specifications">Spécifications</TabsTrigger>
-            <TabsTrigger value="reviews">Avis</TabsTrigger>
-          </TabsList>
-          <TabsContent value="details" className="mt-6">
-            <div className="bg-white rounded-xl p-6 border border-slate-200">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                  <p className="text-xs text-slate-500 font-medium">État</p>
-                  <p className="font-semibold text-slate-900 capitalize">{product.condition}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                  <p className="text-xs text-slate-500 font-medium">Localisation</p>
-                  <p className="font-semibold text-slate-900">{product.city}, {product.location}</p>
-                </div>
-                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                  <p className="text-xs text-slate-500 font-medium">Vendeur</p>
-                  <p className="font-semibold text-slate-900">{enterprise.company_name}</p>
-                </div>
-                {product.brand && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Marque</p>
-                    <p className="font-semibold text-slate-900">{product.brand}</p>
-                  </div>
-                )}
-                {product.model && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Modèle</p>
-                    <p className="font-semibold text-slate-900">{product.model}</p>
-                  </div>
-                )}
-                {product.sku && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">SKU</p>
-                    <p className="font-semibold text-slate-900">{product.sku}</p>
-                  </div>
-                )}
-                {product.weight && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Poids</p>
-                    <p className="font-semibold text-slate-900">{product.weight}</p>
-                  </div>
-                )}
-                {product.dimensions && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Dimensions</p>
-                    <p className="font-semibold text-slate-900">{product.dimensions}</p>
-                  </div>
-                )}
-                {product.warranty && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Garantie</p>
-                    <p className="font-semibold text-slate-900">{product.warranty}</p>
-                  </div>
-                )}
-                {product.material && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Matériau</p>
-                    <p className="font-semibold text-slate-900">{product.material}</p>
-                  </div>
-                )}
-                {product.color && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Couleur</p>
-                    <p className="font-semibold text-slate-900">{product.color}</p>
-                  </div>
-                )}
-                {product.category && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Catégorie</p>
-                    <p className="font-semibold text-slate-900">{product.category}</p>
-                  </div>
-                )}
-                {product.subcategory && (
-                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                    <p className="text-xs text-slate-500 font-medium">Sous-catégorie</p>
-                    <p className="font-semibold text-slate-900">{product.subcategory}</p>
-                  </div>
-                )}
-                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                  <p className="text-xs text-slate-500 font-medium">Tags</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {product.tags?.slice(0, 3).map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                    {product.tags?.length > 3 && (
-                      <span className="text-xs text-slate-500">+{product.tags.length - 3}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="description" className="mt-6">
-            <div className="bg-white rounded-xl p-6 border border-slate-200">
-              <div className="prose max-w-none">
-                <p className="text-slate-700 whitespace-pre-line">{product.description}</p>
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="usage" className="mt-6">
-            {(product.usage_images && product.usage_images.length > 0) || (product.usage_videos && product.usage_videos.length > 0) ? (
-              <div className="bg-white rounded-xl p-6 border border-slate-200">
-                <h3 className="font-semibold mb-4 flex items-center gap-2 text-slate-900">
-                  <span className="text-2xl">📸</span>
-                  Guide d'utilisation
-                </h3>
-                <p className="text-sm text-slate-600 mb-4">Découvrez comment utiliser ce produit étape par étape</p>
-                
-                {/* Images */}
-                {product.usage_images && product.usage_images.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Images</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {product.usage_images.map((img, idx) => (
-                        <div key={idx} className="relative group cursor-pointer" onClick={() => setEnlargedImage(toAbsoluteMediaUrl(img))}>
-                          <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
-                            <img
-                              src={toAbsoluteMediaUrl(img)}
-                              alt={`Guide d'utilisation ${idx + 1}`}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                            />
-                          </div>
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <ZoomIn className="w-8 h-8 text-white" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Videos */}
-                {product.usage_videos && product.usage_videos.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-3">Vidéos</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {product.usage_videos.map((video, idx) => (
-                        <div key={idx} className="relative group cursor-pointer">
-                          <div className="aspect-square rounded-lg overflow-hidden bg-slate-900 shadow-md">
-                            <video
-                              src={toAbsoluteMediaUrl(video)}
-                              controls
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <button
-                            onClick={() => setEnlargedImage(toAbsoluteMediaUrl(video))}
-                            className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
-                          >
-                            <ZoomIn className="w-8 h-8 text-white" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl p-6 border border-slate-200">
-                <p className="text-slate-600">Aucun guide d'utilisation disponible pour ce produit.</p>
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="specifications" className="mt-6">
-            <div className="bg-white rounded-xl p-6 border border-slate-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {product.specifications && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Spécifications</h4>
-                    <p className="text-slate-600">{product.specifications}</p>
-                  </div>
-                )}
-                {product.warranty && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Garantie</h4>
-                    <p className="text-slate-600">{product.warranty}</p>
-                  </div>
-                )}
-                {product.brand && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Marque</h4>
-                    <p className="text-slate-600">{product.brand}</p>
-                  </div>
-                )}
-                {product.material && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Matériau</h4>
-                    <p className="text-slate-600">{product.material}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="shipping" className="mt-6">
-            <div className="bg-white rounded-xl p-6 border border-slate-200">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Truck className="w-5 h-5 text-blue-600 mt-1" />
-                  <div>
-                    <h4 className="font-semibold">Livraison disponible</h4>
-                    <p className="text-slate-600">Livraison dans toute la Côte d'Ivoire</p>
-                  </div>
-                </div>
-                {product.location && (
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-red-600 mt-1" />
-                    <div>
-                      <h4 className="font-semibold">Lieu d'expédition</h4>
-                      <p className="text-slate-600">{product.location}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="reviews">
-            <ReviewSection productId={product.id} />
-          </TabsContent>
-        </Tabs>
-
         {/* Enterprise Details Section */}
         {enterprise && (
           <section className="mb-12 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
@@ -874,6 +646,201 @@ const EnterpriseProductPage = () => {
           </section>
         )}
 
+        {/* Product Details Tabs */}
+        <Tabs defaultValue="details" className="mb-12">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="details">Détails</TabsTrigger>
+            <TabsTrigger value="usage">Guide d'utilisation</TabsTrigger>
+            <TabsTrigger value="description">Description</TabsTrigger>
+            <TabsTrigger value="specifications">Spécifications</TabsTrigger>
+            <TabsTrigger value="reviews">Avis</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-6">
+            <div className="bg-white rounded-xl p-6 border border-slate-200">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">État</p>
+                  <p className="font-semibold text-slate-900 capitalize">{product.condition}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Localisation</p>
+                  <p className="font-semibold text-slate-900">{product.city}, {product.location}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Vendeur</p>
+                  <p className="font-semibold text-slate-900">{enterprise.company_name}</p>
+                </div>
+                {product.brand && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Marque</p>
+                    <p className="font-semibold text-slate-900">{product.brand}</p>
+                  </div>
+                )}
+                {product.model && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Modèle</p>
+                    <p className="font-semibold text-slate-900">{product.model}</p>
+                  </div>
+                )}
+                {product.sku && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">SKU</p>
+                    <p className="font-semibold text-slate-900">{product.sku}</p>
+                  </div>
+                )}
+                {product.weight && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Poids</p>
+                    <p className="font-semibold text-slate-900">{product.weight}</p>
+                  </div>
+                )}
+                {product.dimensions && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Dimensions</p>
+                    <p className="font-semibold text-slate-900">{product.dimensions}</p>
+                  </div>
+                )}
+                {product.warranty && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Garantie</p>
+                    <p className="font-semibold text-slate-900">{product.warranty}</p>
+                  </div>
+                )}
+                {product.material && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Matériau</p>
+                    <p className="font-semibold text-slate-900">{product.material}</p>
+                  </div>
+                )}
+                {product.color && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Couleur</p>
+                    <p className="font-semibold text-slate-900">{product.color}</p>
+                  </div>
+                )}
+                {product.category && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Catégorie</p>
+                    <p className="font-semibold text-slate-900">{product.category}</p>
+                  </div>
+                )}
+                {product.subcategory && (
+                  <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                    <p className="text-xs text-slate-500 font-medium">Sous-catégorie</p>
+                    <p className="font-semibold text-slate-900">{product.subcategory}</p>
+                  </div>
+                )}
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                  <p className="text-xs text-slate-500 font-medium">Tags</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {product.tags?.slice(0, 3).map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                    {product.tags?.length > 3 && (
+                      <span className="text-xs text-slate-500">+{product.tags.length - 3}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="description" className="mt-6">
+            <div className="bg-white rounded-xl p-6 border border-slate-200">
+              <div className="prose max-w-none">
+                <p className="text-slate-700 whitespace-pre-line">{product.description}</p>
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="usage" className="mt-6">
+            {product.usage_images && product.usage_images.length > 0 ? (
+              <div className="bg-white rounded-xl p-6 border border-slate-200">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-slate-900">
+                  <span className="text-2xl">📸</span>
+                  Guide d'utilisation
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">Découvrez comment utiliser ce produit étape par étape</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {product.usage_images.map((img, idx) => (
+                    <div key={idx} className="relative group cursor-pointer" onClick={() => setEnlargedImage(toAbsoluteMediaUrl(img))}>
+                      <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-md">
+                        <img
+                          src={toAbsoluteMediaUrl(img)}
+                          alt={`Guide d'utilisation ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <ZoomIn className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl p-6 border border-slate-200">
+                <p className="text-slate-600">Aucun guide d'utilisation disponible pour ce produit.</p>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="specifications" className="mt-6">
+            <div className="bg-white rounded-xl p-6 border border-slate-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {product.specifications && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Spécifications</h4>
+                    <p className="text-slate-600">{product.specifications}</p>
+                  </div>
+                )}
+                {product.warranty && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Garantie</h4>
+                    <p className="text-slate-600">{product.warranty}</p>
+                  </div>
+                )}
+                {product.brand && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Marque</h4>
+                    <p className="text-slate-600">{product.brand}</p>
+                  </div>
+                )}
+                {product.material && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Matériau</h4>
+                    <p className="text-slate-600">{product.material}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="shipping" className="mt-6">
+            <div className="bg-white rounded-xl p-6 border border-slate-200">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Truck className="w-5 h-5 text-blue-600 mt-1" />
+                  <div>
+                    <h4 className="font-semibold">Livraison disponible</h4>
+                    <p className="text-slate-600">Livraison dans toute la Côte d'Ivoire</p>
+                  </div>
+                </div>
+                {product.location && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-red-600 mt-1" />
+                    <div>
+                      <h4 className="font-semibold">Lieu d'expédition</h4>
+                      <p className="text-slate-600">{product.location}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="reviews">
+            <ReviewSection productId={product.id} />
+          </TabsContent>
+        </Tabs>
+
         {/* Similar Products */}
         {similarProducts.length > 0 && (
           <section className="mb-12">
@@ -961,28 +928,6 @@ const EnterpriseProductPage = () => {
           quantity={quantity}
           onClose={() => setShowQuickCheckout(false)}
         />
-      )}
-
-      {/* Enlarged Image Modal */}
-      {enlargedImage && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-          onClick={() => setEnlargedImage(null)}
-        >
-          <div className="relative max-w-5xl max-h-full">
-            <img
-              src={enlargedImage}
-              alt="Image agrandie"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            />
-            <button
-              className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
-              onClick={() => setEnlargedImage(null)}
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

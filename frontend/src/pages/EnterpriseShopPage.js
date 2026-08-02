@@ -113,9 +113,9 @@ const EnterpriseShopPage = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Cover Photo */}
       <div className="relative h-64 md:h-80 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 overflow-hidden">
-        {enterprise.cover_photo && (
+        {enterprise.shop_cover_photo && (
           <img
-            src={toAbsoluteMediaUrl(enterprise.cover_photo)}
+            src={toAbsoluteMediaUrl(enterprise.shop_cover_photo)}
             alt="Cover"
             className="w-full h-full object-cover"
           />
