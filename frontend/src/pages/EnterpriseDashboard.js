@@ -7208,13 +7208,13 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
-      const formData = new FormData();
+      const uploadFormData = new FormData();
 
-      formData.append('file', file);
+      uploadFormData.append('file', file);
 
       
 
-      const response = await axios.post(`${API}/upload`, formData, {
+      const response = await axios.post(`${API}/upload`, uploadFormData, {
 
         headers: { 
 
@@ -7228,23 +7228,13 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      // Get current enterprise data to preserve shop_cover_photo
-
-      const currentData = await axios.get(`${API}/auth/me`, {
-
-        headers: { Authorization: `Bearer ${token}` }
-
-      });
-
-      
-
       await axios.put(`${API}/enterprises/profile`, 
 
         { 
 
           cover_photo: response.data.url, 
 
-          ...(currentData.data.shop_cover_photo && { shop_cover_photo: currentData.data.shop_cover_photo }) 
+          ...(formData.shop_cover_photo && { shop_cover_photo: formData.shop_cover_photo }) 
 
         },
 
@@ -7254,7 +7244,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      setFormData({ ...formData, cover_photo: response.data.url, shop_cover_photo: currentData.data.shop_cover_photo });
+      setFormData({ ...formData, cover_photo: response.data.url });
 
       toast.success('Photo de couverture du profil mise à jour');
 
@@ -7282,13 +7272,13 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
-      const formData = new FormData();
+      const uploadFormData = new FormData();
 
-      formData.append('file', file);
+      uploadFormData.append('file', file);
 
       
 
-      const response = await axios.post(`${API}/upload`, formData, {
+      const response = await axios.post(`${API}/upload`, uploadFormData, {
 
         headers: { 
 
@@ -7302,23 +7292,13 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      // Get current enterprise data to preserve cover_photo
-
-      const currentData = await axios.get(`${API}/auth/me`, {
-
-        headers: { Authorization: `Bearer ${token}` }
-
-      });
-
-      
-
       await axios.put(`${API}/enterprises/profile`, 
 
         { 
 
           shop_cover_photo: response.data.url, 
 
-          ...(currentData.data.cover_photo && { cover_photo: currentData.data.cover_photo }) 
+          ...(formData.cover_photo && { cover_photo: formData.cover_photo }) 
 
         },
 
@@ -7328,7 +7308,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
-      setFormData({ ...formData, shop_cover_photo: response.data.url, cover_photo: currentData.data.cover_photo });
+      setFormData({ ...formData, shop_cover_photo: response.data.url });
 
       toast.success('Photo de couverture de la boutique mise à jour');
 

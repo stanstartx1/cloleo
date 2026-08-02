@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Share2
 } from 'lucide-react';
+import { toAbsoluteMediaUrl } from '../utils/media';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://cloleo.com';
 
@@ -69,7 +70,7 @@ const EnterpriseProfilePage = () => {
       <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 overflow-hidden">
         {enterprise.cover_photo && (
           <img
-            src={enterprise.cover_photo}
+            src={toAbsoluteMediaUrl(enterprise.cover_photo)}
             alt="Cover"
             className="absolute inset-0 w-full h-full object-cover opacity-30"
           />
