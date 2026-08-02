@@ -142,7 +142,7 @@ const EnterpriseShopPage = () => {
       </div>
 
       {/* Profile Section */}
-      <div className="max-w-7xl mx-auto px-4 -mt-16">
+      <div className="max-w-7xl mx-auto px-4 -mt-12">
         <div className="flex flex-col md:flex-row items-start md:items-end gap-6 mb-8">
           {/* Profile Photo */}
           <div className="relative">
