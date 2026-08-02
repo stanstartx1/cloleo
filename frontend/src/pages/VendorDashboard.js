@@ -438,6 +438,31 @@ const VendorDashboard = () => {
 
 
 
+  const handleRejectOrder = async (orderId) => {
+
+    try {
+
+      await axios.put(`${API}/orders/${orderId}/reject`, 
+        { reason: 'Produit non disponible' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Commande refusée');
+
+      fetchOrders();
+
+    } catch (error) {
+
+      console.error('Error rejecting order:', error);
+
+      toast.error('Erreur lors du refus de la commande');
+
+    }
+
+  };
+
+
+
   const copyNegotiatedLink = (token) => {
 
     const link = `${window.location.origin}/offer-link/${token}`;
@@ -1745,6 +1770,19 @@ const VendorDashboard = () => {
                             </td>
 
                             <td className="p-4">
+
+                              {order.status === 'pending' && (
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => handleRejectOrder(order.id)}
+                                    className="text-red-400 hover:bg-red-500/20"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" /> Refuser
+                                  </Button>
+                                </motion.div>
+                              )}
 
                               {['assigned', 'picked_up', 'in_transit'].includes(order.status) && (
 

@@ -656,6 +656,31 @@ const RevendeurDashboard = () => {
 
 
 
+  const handleRejectOrder = async (orderId) => {
+
+    try {
+
+      await axios.put(`${API}/orders/${orderId}/reject`, 
+        { reason: 'Produit non disponible' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Commande refusée');
+
+      fetchOrders();
+
+    } catch (error) {
+
+      console.error('Error rejecting order:', error);
+
+      toast.error('Erreur lors du refus de la commande');
+
+    }
+
+  };
+
+
+
   // Fetch earnings
 
   const fetchEarnings = async () => {
@@ -2799,6 +2824,20 @@ const RevendeurDashboard = () => {
                                 </div>
 
                               </div>
+
+                              {/* Actions */}
+                              {order.status === 'pending' && (
+                                <div className="flex gap-2 mt-3">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-300 text-red-600 hover:bg-red-50"
+                                    onClick={() => handleRejectOrder(order.id)}
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" /> Refuser
+                                  </Button>
+                                </div>
+                              )}
 
                             </div>
 

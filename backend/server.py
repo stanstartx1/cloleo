@@ -1024,6 +1024,12 @@ async def list_orders(user: dict = Depends(get_current_user)):
 
         print(f"DEBUG: Vendor query - seller_id: {user['id']}")
 
+    elif role == "enterprise":
+
+        # Les entreprises voient leurs commandes
+        query["seller_id"] = user["id"]
+        print(f"DEBUG: Enterprise query - seller_id: {user['id']}")
+
     elif role == "dropshipper":
 
         # Les revendeurs voient leurs commandes dropshippées
@@ -1165,6 +1171,53 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     )
 
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "delivered", "message": "Commande livrée"})
+
+    return {"ok": True}
+
+
+
+@api.put("/orders/{order_id}/reject")
+
+async def reject_order(order_id: str, reason: str = "", user: dict = Depends(get_current_user)):
+
+    role = user.get("role")
+
+    query = {"id": order_id}
+
+    if role == "vendor":
+        query["seller_id"] = user["id"]
+    elif role == "enterprise":
+        query["seller_id"] = user["id"]
+    elif role == "dropshipper":
+        query["dropshipper_id"] = user["id"]
+
+    order = await db.orders.find_one(query)
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+
+    if order["status"] not in ["pending"]:
+        raise HTTPException(status_code=400, detail="Seules les commandes en attente peuvent être refusées")
+
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "cancelled",
+                "rejection_reason": reason,
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "cancelled",
+                    "note": f"Commande refusée par {role}: {reason}" if reason else f"Commande refusée par {role}",
+                    "timestamp": _utc()
+                }
+            }
+        }
+    )
+
+    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "cancelled", "message": "Commande refusée"})
 
     return {"ok": True}
 

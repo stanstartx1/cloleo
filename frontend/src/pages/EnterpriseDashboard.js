@@ -1606,13 +1606,17 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
     try {
 
-      await axios.put(`${API}/orders/${orderId}/status`, 
-
-        { status: newStatus },
-
-        { headers: { Authorization: `Bearer ${token}` } }
-
-      );
+      if (newStatus === 'cancelled') {
+        await axios.put(`${API}/orders/${orderId}/reject`, 
+          { reason: 'Produit non disponible' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await axios.put(`${API}/orders/${orderId}/status`, 
+          { status: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
 
       toast.success('Statut mis à jour');
 
