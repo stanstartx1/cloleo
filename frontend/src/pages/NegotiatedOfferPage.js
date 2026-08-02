@@ -7,6 +7,7 @@ import {
   ShoppingCart, ArrowRight, Loader2, XCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { toast } from 'sonner';
@@ -20,6 +21,7 @@ const NegotiatedOfferPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, token: authToken } = useAuth();
+  const { sessionId, fetchCart } = useCart();
   
   const [offerData, setOfferData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,12 +56,13 @@ const NegotiatedOfferPage = () => {
       await axios.post(`${API}/cart/add`, {
         product_id: offerData.product.id,
         quantity: quantity,
-        session_id: 'negotiated-offer',
+        session_id: sessionId,
         negotiated_price_fcfa: offerData.product.negotiated_price_fcfa,
         offer_id: offerData.offer_id
       }, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
+      await fetchCart();
       toast.success('Produit ajouté au panier avec le prix négocié !');
       navigate('/panier');
     } catch (error) {
@@ -79,12 +82,13 @@ const NegotiatedOfferPage = () => {
       await axios.post(`${API}/cart/add`, {
         product_id: offerData.product.id,
         quantity: quantity,
-        session_id: 'negotiated-offer',
+        session_id: sessionId,
         negotiated_price_fcfa: offerData.product.negotiated_price_fcfa,
         offer_id: offerData.offer_id
       }, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
+      await fetchCart();
       navigate('/checkout');
     } catch (error) {
       console.error('Error processing purchase:', error);

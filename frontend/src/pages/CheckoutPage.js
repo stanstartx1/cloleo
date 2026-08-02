@@ -23,7 +23,7 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user, token } = useAuth();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, fetchCart } = useCart();
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const mapboxRef = useRef(null);
@@ -47,7 +47,7 @@ const CheckoutPage = () => {
     notes: ''
   });
 
-  // Load Mapbox
+  // Load Mapbox and fetch cart
   useEffect(() => {
     loadMapbox()
       .then((mapboxgl) => {
@@ -55,6 +55,8 @@ const CheckoutPage = () => {
         initMap(mapboxgl);
       })
       .catch(() => toast.error('Erreur chargement Mapbox'));
+    
+    fetchCart();
   }, []);
 
   const initMap = (mapboxgl) => {
