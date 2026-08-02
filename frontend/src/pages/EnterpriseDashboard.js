@@ -22,7 +22,7 @@ import {
 
   Twitter, Youtube, Link as LinkIcon, UserPlus, UserMinus, Shield, Zap,
 
-  Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp
+  Target, Rocket, Award as AwardIcon, Medal, Gem, Heart, ThumbsUp, Save
 
 } from 'lucide-react';
 
