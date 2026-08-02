@@ -7248,8 +7248,6 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       toast.success('Photo de couverture du profil mise à jour');
 
-      onRefresh();
-
     } catch (error) {
 
       console.error('Error uploading cover:', error);
@@ -7311,8 +7309,6 @@ const SettingsSection = ({ user, token, onRefresh }) => {
       setFormData({ ...formData, shop_cover_photo: response.data.url });
 
       toast.success('Photo de couverture de la boutique mise à jour');
-
-      onRefresh();
 
     } catch (error) {
 
