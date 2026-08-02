@@ -717,9 +717,9 @@ async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_
         
         url = f"/uploads/{filename}"
         
-        print(f"DEBUG: Updating profile_photo to {url} for user _id: {current_user.get('_id')}")
+        print(f"DEBUG: Updating profile_photo to {url} for user id: {current_user.get('id')}")
         result = await db.users.update_one(
-            {"_id": current_user.get("_id")},
+            {"id": current_user.get("id")},
             {"$set": {"profile_photo": url}}
         )
         print(f"DEBUG: Update result: matched={result.matched_count}, modified={result.modified_count}")
@@ -754,9 +754,9 @@ async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_us
         
         url = f"/uploads/{filename}"
         
-        print(f"DEBUG: Updating cover_photo to {url} for user _id: {current_user.get('_id')}")
+        print(f"DEBUG: Updating cover_photo to {url} for user id: {current_user.get('id')}")
         result = await db.users.update_one(
-            {"_id": current_user.get("_id")},
+            {"id": current_user.get("id")},
             {"$set": {"cover_photo": url}}
         )
         print(f"DEBUG: Update result: matched={result.matched_count}, modified={result.modified_count}")
@@ -791,9 +791,9 @@ async def upload_enterprise_shop_cover_photo(file: UploadFile = File(...), curre
         
         url = f"/uploads/{filename}"
         
-        print(f"DEBUG: Updating shop_cover_photo to {url} for user _id: {current_user.get('_id')}")
+        print(f"DEBUG: Updating shop_cover_photo to {url} for user id: {current_user.get('id')}")
         result = await db.users.update_one(
-            {"_id": current_user.get("_id")},
+            {"id": current_user.get("id")},
             {"$set": {"shop_cover_photo": url}}
         )
         print(f"DEBUG: Update result: matched={result.matched_count}, modified={result.modified_count}")
