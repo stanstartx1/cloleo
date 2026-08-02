@@ -6,6 +6,10 @@ from typing import Optional, List
 
 from datetime import datetime
 
+from pathlib import Path
+
+import uuid
+
 from core.database import db
 
 from core.auth import get_current_user, require_admin
@@ -697,12 +701,13 @@ async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
-        from pathlib import Path
-        import uuid
-        from core.server import uploads_dir, _utc
-        
         ext = Path(file.filename or "").suffix or ".bin"
         filename = f"enterprise_profile_{current_user['id']}_{uuid.uuid4()}{ext}"
+        
+        # Use the same upload directory as the main server
+        import os
+        uploads_dir = Path("uploads")
+        uploads_dir.mkdir(exist_ok=True)
         dest = uploads_dir / filename
         
         content = await file.read()
@@ -712,7 +717,7 @@ async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_
         
         await db.users.update_one(
             {"_id": current_user.get("_id")},
-            {"$set": {"profile_photo": url, "updated_at": _utc()}}
+            {"$set": {"profile_photo": url}}
         )
         
         return {"url": url}
@@ -729,12 +734,12 @@ async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_us
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
-        from pathlib import Path
-        import uuid
-        from core.server import uploads_dir, _utc
-        
         ext = Path(file.filename or "").suffix or ".bin"
         filename = f"enterprise_cover_{current_user['id']}_{uuid.uuid4()}{ext}"
+        
+        import os
+        uploads_dir = Path("uploads")
+        uploads_dir.mkdir(exist_ok=True)
         dest = uploads_dir / filename
         
         content = await file.read()
@@ -744,7 +749,7 @@ async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_us
         
         await db.users.update_one(
             {"_id": current_user.get("_id")},
-            {"$set": {"cover_photo": url, "updated_at": _utc()}}
+            {"$set": {"cover_photo": url}}
         )
         
         return {"url": url}
@@ -761,12 +766,12 @@ async def upload_enterprise_shop_cover_photo(file: UploadFile = File(...), curre
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
-        from pathlib import Path
-        import uuid
-        from core.server import uploads_dir, _utc
-        
         ext = Path(file.filename or "").suffix or ".bin"
         filename = f"enterprise_shop_cover_{current_user['id']}_{uuid.uuid4()}{ext}"
+        
+        import os
+        uploads_dir = Path("uploads")
+        uploads_dir.mkdir(exist_ok=True)
         dest = uploads_dir / filename
         
         content = await file.read()
@@ -776,7 +781,7 @@ async def upload_enterprise_shop_cover_photo(file: UploadFile = File(...), curre
         
         await db.users.update_one(
             {"_id": current_user.get("_id")},
-            {"$set": {"shop_cover_photo": url, "updated_at": _utc()}}
+            {"$set": {"shop_cover_photo": url}}
         )
         
         return {"url": url}

@@ -7108,10 +7108,14 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
   });
 
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState({
+    profile_photo: false,
+    cover_photo: false,
+    shop_cover_photo: false
+  });
 
   const handleImageUpload = async (file, field) => {
-    setUploadingImage(true);
+    setUploadingImage(prev => ({ ...prev, [field]: true }));
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
@@ -7139,7 +7143,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
       console.error('Error uploading image:', error);
       toast.error('Erreur lors de l\'upload');
     } finally {
-      setUploadingImage(false);
+      setUploadingImage(prev => ({ ...prev, [field]: false }));
     }
   };
 
@@ -7281,7 +7285,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e.target.files?.[0], 'profile_photo')}
-                  disabled={uploadingImage}
+                  disabled={uploadingImage.profile_photo}
                   className="hidden"
                   id="profile-photo-upload"
                 />
@@ -7289,7 +7293,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                   htmlFor="profile-photo-upload"
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-4 py-2 cursor-pointer"
                 >
-                  {uploadingImage ? 'Upload en cours...' : 'Changer la photo de profil'}
+                  {uploadingImage.profile_photo ? 'Upload en cours...' : 'Changer la photo de profil'}
                 </label>
               </div>
             </div>
@@ -7312,7 +7316,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleImageUpload(e.target.files?.[0], 'cover_photo')}
-                disabled={uploadingImage}
+                disabled={uploadingImage.cover_photo}
                 className="hidden"
                 id="cover-photo-upload"
               />
@@ -7320,7 +7324,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                 htmlFor="cover-photo-upload"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-4 py-2 cursor-pointer"
               >
-                {uploadingImage ? 'Upload en cours...' : 'Changer la photo de couverture du profil'}
+                {uploadingImage.cover_photo ? 'Upload en cours...' : 'Changer la photo de couverture du profil'}
               </label>
             </div>
           </div>
@@ -7342,7 +7346,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleImageUpload(e.target.files?.[0], 'shop_cover_photo')}
-                disabled={uploadingImage}
+                disabled={uploadingImage.shop_cover_photo}
                 className="hidden"
                 id="shop-cover-photo-upload"
               />
@@ -7350,12 +7354,13 @@ const SettingsSection = ({ user, token, onRefresh }) => {
                 htmlFor="shop-cover-photo-upload"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white px-4 py-2 cursor-pointer"
               >
-                {uploadingImage ? 'Upload en cours...' : 'Changer la photo de couverture de la boutique'}
+                {uploadingImage.shop_cover_photo ? 'Upload en cours...' : 'Changer la photo de couverture de la boutique'}
               </label>
             </div>
           </div>
 
           {/* Company Info */}
+/* ... */
 
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
 
