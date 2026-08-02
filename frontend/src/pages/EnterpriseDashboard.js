@@ -112,18 +112,6 @@ const NAV_ITEMS = [
 
   { id: 'subscription', label: 'Abonnement', icon: Crown },
 
-  { id: 'trophies', label: 'Trophées & Awards', icon: Trophy },
-
-  { id: 'certifications', label: 'Certifications', icon: Award },
-
-  { id: 'portfolio', label: 'Réalisations', icon: ImageIcon },
-
-  { id: 'team', label: 'Équipe', icon: Users },
-
-  { id: 'projects', label: 'Projets', icon: Briefcase },
-
-  { id: 'testimonials', label: 'Témoignages', icon: Star },
-
   { id: 'settings', label: 'Paramètres', icon: Settings },
 
 ];
@@ -157,22 +145,6 @@ const EnterpriseDashboard = () => {
   const [driverLocation, setDriverLocation] = useState(null);
 
   const [loading, setLoading] = useState(true);
-
-  
-
-  // Enterprise specific data
-
-  const [trophies, setTrophies] = useState([]);
-
-  const [certifications, setCertifications] = useState([]);
-
-  const [portfolio, setPortfolio] = useState([]);
-
-  const [team, setTeam] = useState([]);
-
-  const [projects, setProjects] = useState([]);
-
-  const [testimonials, setTestimonials] = useState([]);
 
   
 
@@ -344,43 +316,7 @@ const EnterpriseDashboard = () => {
 
   const fetchEnterpriseData = async () => {
 
-    try {
-
-      const [trophiesRes, certificationsRes, portfolioRes, teamRes, projectsRes, testimonialsRes] = await Promise.all([
-
-        axios.get(`${API}/enterprises/trophies`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-
-        axios.get(`${API}/enterprises/certifications`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-
-        axios.get(`${API}/enterprises/portfolio`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-
-        axios.get(`${API}/enterprises/team`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-
-        axios.get(`${API}/enterprises/projects`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-
-        axios.get(`${API}/enterprises/testimonials`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
-
-      ]);
-
-      
-
-      setTrophies(trophiesRes.data || []);
-
-      setCertifications(certificationsRes.data || []);
-
-      setPortfolio(portfolioRes.data || []);
-
-      setTeam(teamRes.data || []);
-
-      setProjects(projectsRes.data || []);
-
-      setTestimonials(testimonialsRes.data || []);
-
-    } catch (error) {
-
-      console.error('Error fetching enterprise data:', error);
-
-    }
+    // Removed enterprise-specific data fetching for trophies, certifications, etc.
 
   };
 
@@ -999,114 +935,6 @@ const EnterpriseDashboard = () => {
               token={token}
 
               onRefresh={refreshUser}
-
-            />
-
-          )}
-
-          
-
-          {activeSection === 'trophies' && (
-
-            <TrophiesSection 
-
-              trophies={trophies}
-
-              loading={loading}
-
-              onRefresh={fetchEnterpriseData}
-
-              token={token}
-
-            />
-
-          )}
-
-          
-
-          {activeSection === 'certifications' && (
-
-            <CertificationsSection 
-
-              certifications={certifications}
-
-              loading={loading}
-
-              onRefresh={fetchEnterpriseData}
-
-              token={token}
-
-            />
-
-          )}
-
-          
-
-          {activeSection === 'portfolio' && (
-
-            <PortfolioSection 
-
-              portfolio={portfolio}
-
-              loading={loading}
-
-              onRefresh={fetchEnterpriseData}
-
-              token={token}
-
-            />
-
-          )}
-
-          
-
-          {activeSection === 'team' && (
-
-            <TeamSection 
-
-              team={team}
-
-              loading={loading}
-
-              onRefresh={fetchEnterpriseData}
-
-              token={token}
-
-            />
-
-          )}
-
-          
-
-          {activeSection === 'projects' && (
-
-            <ProjectsSection 
-
-              projects={projects}
-
-              loading={loading}
-
-              onRefresh={fetchEnterpriseData}
-
-              token={token}
-
-            />
-
-          )}
-
-          
-
-          {activeSection === 'testimonials' && (
-
-            <TestimonialsSection 
-
-              testimonials={testimonials}
-
-              loading={loading}
-
-              onRefresh={fetchEnterpriseData}
-
-              token={token}
 
             />
 
