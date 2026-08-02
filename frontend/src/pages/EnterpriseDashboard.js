@@ -7100,19 +7100,38 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     description: user?.company_description || '',
 
+    profile_photo: user?.profile_photo || '',
+
     cover_photo: user?.cover_photo || '',
 
     shop_cover_photo: user?.shop_cover_photo || ''
 
   });
 
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  const [uploadingCover, setUploadingCover] = useState(false);
-
-  const [uploadingShopCover, setUploadingShopCover] = useState(false);
-
-
+  const handleImageUpload = async (file, field) => {
+    setUploadingImage(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      
+      const response = await axios.post(`${API}/upload`, uploadFormData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setFormData({ ...formData, [field]: response.data.url });
+      toast.success('Image chargée avec succès');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Erreur lors de l\'upload');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleUpdateProfile = async () => {
 
@@ -7120,21 +7139,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
-      // Build update data, always include photos if they have values
-      const updateData = {};
-      
-      Object.keys(formData).forEach(key => {
-        if (key === 'cover_photo' || key === 'shop_cover_photo') {
-          // Always include photos if they have non-empty values
-          if (formData[key] && formData[key].trim() !== '') {
-            updateData[key] = formData[key];
-          }
-        } else if (formData[key] && formData[key].trim() !== '') {
-          updateData[key] = formData[key];
-        }
-      });
-
-      await axios.put(`${API}/enterprises/profile`, updateData, {
+      await axios.put(`${API}/enterprises/profile`, formData, {
 
         headers: { Authorization: `Bearer ${token}` }
 
@@ -7142,8 +7147,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       toast.success('Profil mis à jour avec succès');
 
-      // Don't call onRefresh() immediately to avoid fetching stale data
-      // The local formData already has the updated values
+      onRefresh();
 
     } catch (error) {
 
@@ -7154,156 +7158,6 @@ const SettingsSection = ({ user, token, onRefresh }) => {
     } finally {
 
       setLoading(false);
-
-    }
-
-  };
-
-
-
-  const handlePhotoUpload = async (file) => {
-
-    setUploadingPhoto(true);
-
-    try {
-
-      const formData = new FormData();
-
-      formData.append('file', file);
-
-      
-
-      const response = await axios.post(`${API}/upload`, formData, {
-
-        headers: { 
-
-          Authorization: `Bearer ${token}`,
-
-          'Content-Type': 'multipart/form-data'
-
-        }
-
-      });
-
-      
-
-      await axios.put(`${API}/enterprises/profile`, 
-
-        { profile_photo: response.data.url },
-
-        { headers: { Authorization: `Bearer ${token}` } }
-
-      );
-
-      
-
-      toast.success('Photo mise à jour');
-
-      onRefresh();
-
-    } catch (error) {
-
-      console.error('Error uploading photo:', error);
-
-      toast.error('Erreur lors de l\'upload');
-
-    } finally {
-
-      setUploadingPhoto(false);
-
-    }
-
-  };
-
-
-
-  const handleCoverUpload = async (file) => {
-
-    setUploadingCover(true);
-
-    try {
-
-      const uploadFormData = new FormData();
-
-      uploadFormData.append('file', file);
-
-      
-
-      const response = await axios.post(`${API}/upload`, uploadFormData, {
-
-        headers: { 
-
-          Authorization: `Bearer ${token}`,
-
-          'Content-Type': 'multipart/form-data'
-
-        }
-
-      });
-
-      
-
-      // Only update local state, don't call backend yet
-      setFormData({ ...formData, cover_photo: response.data.url });
-
-      toast.success('Photo de couverture du profil chargée. Cliquez sur Enregistrer pour sauvegarder.');
-
-    } catch (error) {
-
-      console.error('Error uploading cover:', error);
-
-      toast.error('Erreur lors de l\'upload');
-
-    } finally {
-
-      setUploadingCover(false);
-
-    }
-
-  };
-
-
-
-  const handleShopCoverUpload = async (file) => {
-
-    setUploadingShopCover(true);
-
-    try {
-
-      const uploadFormData = new FormData();
-
-      uploadFormData.append('file', file);
-
-      
-
-      const response = await axios.post(`${API}/upload`, uploadFormData, {
-
-        headers: { 
-
-          Authorization: `Bearer ${token}`,
-
-          'Content-Type': 'multipart/form-data'
-
-        }
-
-      });
-
-      
-
-      // Only update local state, don't call backend yet
-      setFormData({ ...formData, shop_cover_photo: response.data.url });
-
-      toast.success('Photo de couverture de la boutique chargée. Cliquez sur Enregistrer pour sauvegarder.');
-
-    } catch (error) {
-
-      console.error('Error uploading shop cover:', error);
-
-      toast.error('Erreur lors de l\'upload');
-
-    } finally {
-
-      setUploadingShopCover(false);
 
     }
 
@@ -7401,233 +7255,95 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
         <div className="space-y-6">
 
-          {/* Cover Photo - Profil */}
-
-          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm border border-amber-500/30 rounded-2xl p-6 shadow-xl">
-
-            <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-
-              <ImageIcon className="w-5 h-5 text-amber-400" />
-
-              Photo de couverture du profil
-
-            </h4>
-
-            <div className="space-y-4">
-
-              <div className="relative h-48 rounded-xl overflow-hidden bg-slate-800">
-
-                {formData.cover_photo ? (
-
-                  <img src={toAbsoluteMediaUrl(formData.cover_photo)} alt="Cover" className="w-full h-full object-cover" />
-
+          {/* Profile Photo */}
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+            <h4 className="font-semibold text-white mb-4">Photo de profil</h4>
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
+                {formData.profile_photo ? (
+                  <img src={toAbsoluteMediaUrl(formData.profile_photo)} alt="" className="w-full h-full object-cover" />
                 ) : (
-
-                  <div className="w-full h-full flex items-center justify-center text-slate-500">
-
-                    <ImageIcon className="w-12 h-12" />
-
-                  </div>
-
+                  user?.company_name?.[0] || user?.name?.[0] || 'E'
                 )}
-
               </div>
-
               <div>
-
                 <input
-
                   type="file"
-
                   accept="image/*"
-
-                  onChange={(e) => handleCoverUpload(e.target.files?.[0])}
-
-                  disabled={uploadingCover}
-
+                  onChange={(e) => handleImageUpload(e.target.files?.[0], 'profile_photo')}
+                  disabled={uploadingImage}
                   className="hidden"
-
-                  id="cover-upload"
-
+                  id="profile-photo-upload"
                 />
-
                 <label
-
-                  htmlFor="cover-upload"
-
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-shine btn-ripple active:scale-95 text-primary-foreground shadow hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 h-9 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 cursor-pointer"
-
+                  htmlFor="profile-photo-upload"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-4 py-2 cursor-pointer"
                 >
-
-                  {uploadingCover ? (
-
-                    <>
-
-                      <Loader2 className="w-4 h-4 animate-spin" />
-
-                      Upload en cours...
-
-                    </>
-
-                  ) : (
-
-                    <>
-
-                      <Upload className="w-4 h-4" />
-
-                      Changer la photo de couverture du profil
-
-                    </>
-
-                  )}
-
+                  {uploadingImage ? 'Upload en cours...' : 'Changer la photo de profil'}
                 </label>
-
-                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 1920x400px</p>
-
               </div>
-
             </div>
-
           </div>
 
-
+          {/* Cover Photo - Profil */}
+          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm border border-amber-500/30 rounded-2xl p-6 shadow-xl">
+            <h4 className="font-semibold text-white mb-4">Photo de couverture du profil</h4>
+            <div className="space-y-4">
+              <div className="relative h-48 rounded-xl overflow-hidden bg-slate-800">
+                {formData.cover_photo ? (
+                  <img src={toAbsoluteMediaUrl(formData.cover_photo)} alt="Cover" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-500">
+                    <ImageIcon className="w-12 h-12" />
+                  </div>
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e.target.files?.[0], 'cover_photo')}
+                disabled={uploadingImage}
+                className="hidden"
+                id="cover-photo-upload"
+              />
+              <label
+                htmlFor="cover-photo-upload"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-4 py-2 cursor-pointer"
+              >
+                {uploadingImage ? 'Upload en cours...' : 'Changer la photo de couverture du profil'}
+              </label>
+            </div>
+          </div>
 
           {/* Shop Cover Photo - Boutique */}
-
           <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 backdrop-blur-sm border border-cyan-500/30 rounded-2xl p-6 shadow-xl">
-
-            <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-
-              <Store className="w-5 h-5 text-cyan-400" />
-
-              Photo de couverture de la boutique
-
-            </h4>
-
+            <h4 className="font-semibold text-white mb-4">Photo de couverture de la boutique</h4>
             <div className="space-y-4">
-
               <div className="relative h-48 rounded-xl overflow-hidden bg-slate-800">
-
                 {formData.shop_cover_photo ? (
-
                   <img src={toAbsoluteMediaUrl(formData.shop_cover_photo)} alt="Shop Cover" className="w-full h-full object-cover" />
-
                 ) : (
-
                   <div className="w-full h-full flex items-center justify-center text-slate-500">
-
                     <Store className="w-12 h-12" />
-
                   </div>
-
                 )}
-
               </div>
-
-              <div>
-
-                <input
-
-                  type="file"
-
-                  accept="image/*"
-
-                  onChange={(e) => handleShopCoverUpload(e.target.files?.[0])}
-
-                  disabled={uploadingShopCover}
-
-                  className="hidden"
-
-                  id="shop-cover-upload"
-
-                />
-
-                <label
-
-                  htmlFor="shop-cover-upload"
-
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-shine btn-ripple active:scale-95 text-primary-foreground shadow hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 h-9 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 cursor-pointer"
-
-                >
-
-                  {uploadingShopCover ? (
-
-                    <>
-
-                      <Loader2 className="w-4 h-4 animate-spin" />
-
-                      Upload en cours...
-
-                    </>
-
-                  ) : (
-
-                    <>
-
-                      <Upload className="w-4 h-4" />
-
-                      Changer la photo de couverture de la boutique
-
-                    </>
-
-                  )}
-
-                </label>
-
-                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 1920x400px</p>
-
-              </div>
-
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e.target.files?.[0], 'shop_cover_photo')}
+                disabled={uploadingImage}
+                className="hidden"
+                id="shop-cover-photo-upload"
+              />
+              <label
+                htmlFor="shop-cover-photo-upload"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white px-4 py-2 cursor-pointer"
+              >
+                {uploadingImage ? 'Upload en cours...' : 'Changer la photo de couverture de la boutique'}
+              </label>
             </div>
-
           </div>
-
-
-
-          {/* Profile Photo */}
-
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-
-            <h4 className="font-semibold text-white mb-4">Photo de profil</h4>
-
-            <div className="flex items-center gap-6">
-
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
-
-                {user?.profile_photo ? (
-
-                  <img src={toAbsoluteMediaUrl(user.profile_photo)} alt="" className="w-full h-full object-cover" />
-
-                ) : (
-
-                  user?.company_name?.[0] || user?.name?.[0] || 'E'
-
-                )}
-
-              </div>
-
-              <div>
-
-                <ImageUpload
-
-                  onUpload={handlePhotoUpload}
-
-                  currentImage={user?.profile_photo}
-
-                  accept="image/*"
-
-                />
-
-                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 400x400px</p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-
 
           {/* Company Info */}
 

@@ -646,13 +646,15 @@ async def update_enterprise_profile(data: EnterpriseUpdate, current_user = Depen
         update_data = {}
         
         # Always include photos if they have non-empty values
+        if data.profile_photo:
+            update_data["profile_photo"] = data.profile_photo
         if data.cover_photo:
             update_data["cover_photo"] = data.cover_photo
         if data.shop_cover_photo:
             update_data["shop_cover_photo"] = data.shop_cover_photo
         
         # For other fields, use exclude_unset to only send changed values
-        for field, value in data.dict(exclude_unset=True, exclude={'cover_photo', 'shop_cover_photo'}).items():
+        for field, value in data.dict(exclude_unset=True, exclude={'profile_photo', 'cover_photo', 'shop_cover_photo'}).items():
             if value is not None:
                 update_data[field] = value
 
