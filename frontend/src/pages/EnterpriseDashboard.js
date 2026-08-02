@@ -7117,6 +7117,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
   const handleImageUpload = async (file, field) => {
     setUploadingImage(prev => ({ ...prev, [field]: true }));
     try {
+      console.log(`DEBUG: Starting upload for ${field}`);
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
       
@@ -7129,6 +7130,7 @@ const SettingsSection = ({ user, token, onRefresh }) => {
         endpoint = `${API}/enterprises/shop-cover/photo`;
       }
       
+      console.log(`DEBUG: Calling endpoint ${endpoint}`);
       const response = await axios.post(endpoint, uploadFormData, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -7136,11 +7138,14 @@ const SettingsSection = ({ user, token, onRefresh }) => {
         }
       });
       
+      console.log(`DEBUG: Upload successful, URL: ${response.data.url}`);
       setFormData(prev => ({ ...prev, [field]: response.data.url }));
       toast.success('Image mise à jour avec succès');
+      console.log(`DEBUG: Calling onRefresh()`);
       onRefresh();
     } catch (error) {
       console.error('Error uploading image:', error);
+      console.error('Error response:', error.response?.data);
       toast.error('Erreur lors de l\'upload');
     } finally {
       setUploadingImage(prev => ({ ...prev, [field]: false }));
