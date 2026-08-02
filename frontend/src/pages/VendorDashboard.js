@@ -700,6 +700,8 @@ const VendorDashboard = () => {
 
   const pendingOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
 
+  const pendingOffersCount = offers.filter(o => !['accepted', 'rejected', 'withdrawn'].includes(o.status)).length;
+
   const activeOrders = orders.filter(o => ['assigned', 'picked_up', 'in_transit'].includes(o.status));
 
 
@@ -850,9 +852,15 @@ const VendorDashboard = () => {
 
                 <span>{item.label}</span>
 
-                {item.badge && pendingOrdersCount > 0 && (
+                {item.badge && item.id === 'orders' && pendingOrdersCount > 0 && (
 
                   <span className="ml-auto px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{pendingOrdersCount}</span>
+
+                )}
+
+                {item.badge && item.id === 'offers' && pendingOffersCount > 0 && (
+
+                  <span className="ml-auto px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{pendingOffersCount}</span>
 
                 )}
 
@@ -950,9 +958,15 @@ const VendorDashboard = () => {
 
                   <span className="flex-1 text-left">{item.label}</span>
 
-                  {item.badge && pendingOrdersCount > 0 && (
+                  {item.badge && item.id === 'orders' && pendingOrdersCount > 0 && (
 
                     <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{pendingOrdersCount}</span>
+
+                  )}
+
+                  {item.badge && item.id === 'offers' && pendingOffersCount > 0 && (
+
+                    <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{pendingOffersCount}</span>
 
                   )}
 
