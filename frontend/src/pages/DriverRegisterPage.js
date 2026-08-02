@@ -152,7 +152,7 @@ const DriverRegisterPage = () => {
       // Auto login after 2 seconds
       setTimeout(() => {
         login(tempToken, undefined, tempUser);
-        navigate('/livreur');
+        navigate('/');
       }, 2000);
       
     } catch (error) {
@@ -165,7 +165,7 @@ const DriverRegisterPage = () => {
 
   const handleSkipLicense = () => {
     login(tempToken, undefined, tempUser);
-    navigate('/livreur');
+    navigate('/');
   };
 
   if (registrationComplete) {

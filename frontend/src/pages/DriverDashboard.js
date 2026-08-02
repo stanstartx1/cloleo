@@ -13,7 +13,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import MapboxMap from '../components/MapboxMap';
 
-import { API_BASE, API_URL } from '../config/api';
+import { API_BASE, API_URL, WS_URL } from '../config/api';
 
 const API = API_URL;
 
