@@ -7410,6 +7410,8 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
       
 
+      setFormData({ ...formData, cover_photo: response.data.url });
+
       toast.success('Photo de couverture du profil mise à jour');
 
       onRefresh();
@@ -7465,6 +7467,8 @@ const SettingsSection = ({ user, token, onRefresh }) => {
       );
 
       
+
+      setFormData({ ...formData, shop_cover_photo: response.data.url });
 
       toast.success('Photo de couverture de la boutique mise à jour');
 
@@ -7592,9 +7596,9 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
               <div className="relative h-48 rounded-xl overflow-hidden bg-slate-800">
 
-                {user?.cover_photo ? (
+                {formData.cover_photo ? (
 
-                  <img src={toAbsoluteMediaUrl(user.cover_photo)} alt="Cover" className="w-full h-full object-cover" />
+                  <img src={toAbsoluteMediaUrl(formData.cover_photo)} alt="Cover" className="w-full h-full object-cover" />
 
                 ) : (
 
@@ -7684,9 +7688,9 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
               <div className="relative h-48 rounded-xl overflow-hidden bg-slate-800">
 
-                {user?.shop_cover_photo ? (
+                {formData.shop_cover_photo ? (
 
-                  <img src={toAbsoluteMediaUrl(user.shop_cover_photo)} alt="Shop Cover" className="w-full h-full object-cover" />
+                  <img src={toAbsoluteMediaUrl(formData.shop_cover_photo)} alt="Shop Cover" className="w-full h-full object-cover" />
 
                 ) : (
 

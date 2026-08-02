@@ -1102,13 +1102,13 @@ async def admin_delete_enterprise(enterprise_id: str, admin = Depends(require_ad
 
 @router.get("/trophies")
 
-async def get_trophies(current_user = Depends(get_current_user)):
+async def get_trophies(current_enterprise = Depends(get_current_enterprise)):
 
     """Get trophies for the current enterprise"""
 
     try:
 
-        trophies = await db.enterprise_trophies.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        trophies = await db.enterprise_trophies.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
 
         return trophies or []
 
@@ -1120,7 +1120,7 @@ async def get_trophies(current_user = Depends(get_current_user)):
 
 @router.post("/trophies")
 
-async def create_trophy(trophy_data: dict, current_user = Depends(get_current_user)):
+async def create_trophy(trophy_data: dict, current_enterprise = Depends(get_current_enterprise)):
 
     """Create a new trophy for the enterprise"""
 
@@ -1160,7 +1160,7 @@ async def create_trophy(trophy_data: dict, current_user = Depends(get_current_us
 
 @router.delete("/trophies/{trophy_id}")
 
-async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)):
+async def delete_trophy(trophy_id: str, current_enterprise = Depends(get_current_enterprise)):
 
     """Delete a trophy"""
 
@@ -1170,7 +1170,7 @@ async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)
 
             "id": trophy_id,
 
-            "enterprise_id": current_user["id"]
+            "enterprise_id": current_enterprise["id"]
 
         })
 
@@ -1194,13 +1194,13 @@ async def delete_trophy(trophy_id: str, current_user = Depends(get_current_user)
 
 @router.get("/certifications")
 
-async def get_certifications(current_user = Depends(get_current_user)):
+async def get_certifications(current_enterprise = Depends(get_current_enterprise)):
 
     """Get certifications for the current enterprise"""
 
     try:
 
-        certifications = await db.enterprise_certifications.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        certifications = await db.enterprise_certifications.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
 
         return certifications or []
 
@@ -1212,7 +1212,7 @@ async def get_certifications(current_user = Depends(get_current_user)):
 
 @router.post("/certifications")
 
-async def create_certification(cert_data: dict, current_user = Depends(get_current_user)):
+async def create_certification(cert_data: dict, current_enterprise = Depends(get_current_enterprise)):
 
     """Create a new certification for the enterprise"""
 
@@ -1254,7 +1254,7 @@ async def create_certification(cert_data: dict, current_user = Depends(get_curre
 
 @router.delete("/certifications/{cert_id}")
 
-async def delete_certification(cert_id: str, current_user = Depends(get_current_user)):
+async def delete_certification(cert_id: str, current_enterprise = Depends(get_current_enterprise)):
 
     """Delete a certification"""
 
@@ -1264,7 +1264,7 @@ async def delete_certification(cert_id: str, current_user = Depends(get_current_
 
             "id": cert_id,
 
-            "enterprise_id": current_user["id"]
+            "enterprise_id": current_enterprise["id"]
 
         })
 
@@ -1288,13 +1288,13 @@ async def delete_certification(cert_id: str, current_user = Depends(get_current_
 
 @router.get("/portfolio")
 
-async def get_portfolio(current_user = Depends(get_current_user)):
+async def get_portfolio(current_enterprise = Depends(get_current_enterprise)):
 
     """Get portfolio items for the current enterprise"""
 
     try:
 
-        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        portfolio = await db.enterprise_portfolio.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
 
         return portfolio or []
 
@@ -1306,7 +1306,7 @@ async def get_portfolio(current_user = Depends(get_current_user)):
 
 @router.post("/portfolio")
 
-async def create_portfolio_item(portfolio_data: dict, current_user = Depends(get_current_user)):
+async def create_portfolio_item(portfolio_data: dict, current_enterprise = Depends(get_current_enterprise)):
 
     """Create a new portfolio item for the enterprise"""
 
@@ -1348,7 +1348,7 @@ async def create_portfolio_item(portfolio_data: dict, current_user = Depends(get
 
 @router.delete("/portfolio/{item_id}")
 
-async def delete_portfolio_item(item_id: str, current_user = Depends(get_current_user)):
+async def delete_portfolio_item(item_id: str, current_enterprise = Depends(get_current_enterprise)):
 
     """Delete a portfolio item"""
 
@@ -1358,7 +1358,7 @@ async def delete_portfolio_item(item_id: str, current_user = Depends(get_current
 
             "id": item_id,
 
-            "enterprise_id": current_user["id"]
+            "enterprise_id": current_enterprise["id"]
 
         })
 
@@ -1382,13 +1382,13 @@ async def delete_portfolio_item(item_id: str, current_user = Depends(get_current
 
 @router.get("/team")
 
-async def get_team(current_user = Depends(get_current_user)):
+async def get_team(current_enterprise = Depends(get_current_enterprise)):
 
     """Get team members for the current enterprise"""
 
     try:
 
-        team = await db.enterprise_team.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        team = await db.enterprise_team.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
 
         return team or []
 
@@ -1400,7 +1400,7 @@ async def get_team(current_user = Depends(get_current_user)):
 
 @router.post("/team")
 
-async def create_team_member(member_data: dict, current_user = Depends(get_current_user)):
+async def create_team_member(member_data: dict, current_enterprise = Depends(get_current_enterprise)):
 
     """Create a new team member for the enterprise"""
 
@@ -1444,7 +1444,7 @@ async def create_team_member(member_data: dict, current_user = Depends(get_curre
 
 @router.delete("/team/{member_id}")
 
-async def delete_team_member(member_id: str, current_user = Depends(get_current_user)):
+async def delete_team_member(member_id: str, current_enterprise = Depends(get_current_enterprise)):
 
     """Delete a team member"""
 
@@ -1454,7 +1454,7 @@ async def delete_team_member(member_id: str, current_user = Depends(get_current_
 
             "id": member_id,
 
-            "enterprise_id": current_user["id"]
+            "enterprise_id": current_enterprise["id"]
 
         })
 
@@ -1478,13 +1478,13 @@ async def delete_team_member(member_id: str, current_user = Depends(get_current_
 
 @router.get("/projects")
 
-async def get_projects(current_user = Depends(get_current_user)):
+async def get_projects(current_enterprise = Depends(get_current_enterprise)):
 
     """Get projects for the current enterprise"""
 
     try:
 
-        projects = await db.enterprise_projects.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        projects = await db.enterprise_projects.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
 
         return projects or []
 
@@ -1496,7 +1496,7 @@ async def get_projects(current_user = Depends(get_current_user)):
 
 @router.post("/projects")
 
-async def create_project(project_data: dict, current_user = Depends(get_current_user)):
+async def create_project(project_data: dict, current_enterprise = Depends(get_current_enterprise)):
 
     """Create a new project for the enterprise"""
 
@@ -1542,7 +1542,7 @@ async def create_project(project_data: dict, current_user = Depends(get_current_
 
 @router.delete("/projects/{project_id}")
 
-async def delete_project(project_id: str, current_user = Depends(get_current_user)):
+async def delete_project(project_id: str, current_enterprise = Depends(get_current_enterprise)):
 
     """Delete a project"""
 
@@ -1552,7 +1552,7 @@ async def delete_project(project_id: str, current_user = Depends(get_current_use
 
             "id": project_id,
 
-            "enterprise_id": current_user["id"]
+            "enterprise_id": current_enterprise["id"]
 
         })
 
@@ -1576,13 +1576,13 @@ async def delete_project(project_id: str, current_user = Depends(get_current_use
 
 @router.get("/testimonials")
 
-async def get_testimonials(current_user = Depends(get_current_user)):
+async def get_testimonials(current_enterprise = Depends(get_current_enterprise)):
 
     """Get testimonials for the current enterprise"""
 
     try:
 
-        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_user["id"]}).to_list(length=None)
+        testimonials = await db.enterprise_testimonials.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
 
         return testimonials or []
 
@@ -1594,7 +1594,7 @@ async def get_testimonials(current_user = Depends(get_current_user)):
 
 @router.post("/testimonials")
 
-async def create_testimonial(testimonial_data: dict, current_user = Depends(get_current_user)):
+async def create_testimonial(testimonial_data: dict, current_enterprise = Depends(get_current_enterprise)):
 
     """Create a new testimonial for the enterprise"""
 
@@ -1640,7 +1640,7 @@ async def create_testimonial(testimonial_data: dict, current_user = Depends(get_
 
 @router.delete("/testimonials/{testimonial_id}")
 
-async def delete_testimonial(testimonial_id: str, current_user = Depends(get_current_user)):
+async def delete_testimonial(testimonial_id: str, current_enterprise = Depends(get_current_enterprise)):
 
     """Delete a testimonial"""
 
@@ -1650,7 +1650,7 @@ async def delete_testimonial(testimonial_id: str, current_user = Depends(get_cur
 
             "id": testimonial_id,
 
-            "enterprise_id": current_user["id"]
+            "enterprise_id": current_enterprise["id"]
 
         })
 
