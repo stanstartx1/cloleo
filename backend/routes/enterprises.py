@@ -690,63 +690,96 @@ async def update_enterprise_profile(data: EnterpriseUpdate, current_user = Depen
 
 
 
-@router.put("/profile-photo")
-async def update_profile_photo(photo_url: str = Body(..., embed=True), current_user = Depends(get_current_user)):
-    """Update enterprise profile photo"""
+@router.post("/profile/photo")
+async def upload_enterprise_profile_photo(file: UploadFile = File(...), current_user = Depends(get_current_user)):
+    """Upload and update enterprise profile photo"""
     try:
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
-        enterprise_id = current_user.get("_id")
+        from pathlib import Path
+        import uuid
+        from core.server import uploads_dir, _utc
+        
+        ext = Path(file.filename or "").suffix or ".bin"
+        filename = f"enterprise_profile_{current_user['id']}_{uuid.uuid4()}{ext}"
+        dest = uploads_dir / filename
+        
+        content = await file.read()
+        dest.write_bytes(content)
+        
+        url = f"/uploads/{filename}"
         
         await db.users.update_one(
-            {"_id": enterprise_id},
-            {"$set": {"profile_photo": photo_url}}
+            {"_id": current_user.get("_id")},
+            {"$set": {"profile_photo": url, "updated_at": _utc()}}
         )
         
-        return {"message": "Profile photo updated successfully", "profile_photo": photo_url}
+        return {"url": url}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/cover-photo")
-async def update_cover_photo(photo_url: str = Body(..., embed=True), current_user = Depends(get_current_user)):
-    """Update enterprise cover photo"""
+@router.post("/cover/photo")
+async def upload_enterprise_cover_photo(file: UploadFile = File(...), current_user = Depends(get_current_user)):
+    """Upload and update enterprise cover photo"""
     try:
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
-        enterprise_id = current_user.get("_id")
+        from pathlib import Path
+        import uuid
+        from core.server import uploads_dir, _utc
+        
+        ext = Path(file.filename or "").suffix or ".bin"
+        filename = f"enterprise_cover_{current_user['id']}_{uuid.uuid4()}{ext}"
+        dest = uploads_dir / filename
+        
+        content = await file.read()
+        dest.write_bytes(content)
+        
+        url = f"/uploads/{filename}"
         
         await db.users.update_one(
-            {"_id": enterprise_id},
-            {"$set": {"cover_photo": photo_url}}
+            {"_id": current_user.get("_id")},
+            {"$set": {"cover_photo": url, "updated_at": _utc()}}
         )
         
-        return {"message": "Cover photo updated successfully", "cover_photo": photo_url}
+        return {"url": url}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/shop-cover-photo")
-async def update_shop_cover_photo(photo_url: str = Body(..., embed=True), current_user = Depends(get_current_user)):
-    """Update enterprise shop cover photo"""
+@router.post("/shop-cover/photo")
+async def upload_enterprise_shop_cover_photo(file: UploadFile = File(...), current_user = Depends(get_current_user)):
+    """Upload and update enterprise shop cover photo"""
     try:
         if current_user.get("role") != "enterprise":
             raise HTTPException(status_code=403, detail="Not an enterprise user")
         
-        enterprise_id = current_user.get("_id")
+        from pathlib import Path
+        import uuid
+        from core.server import uploads_dir, _utc
+        
+        ext = Path(file.filename or "").suffix or ".bin"
+        filename = f"enterprise_shop_cover_{current_user['id']}_{uuid.uuid4()}{ext}"
+        dest = uploads_dir / filename
+        
+        content = await file.read()
+        dest.write_bytes(content)
+        
+        url = f"/uploads/{filename}"
         
         await db.users.update_one(
-            {"_id": enterprise_id},
-            {"$set": {"shop_cover_photo": photo_url}}
+            {"_id": current_user.get("_id")},
+            {"$set": {"shop_cover_photo": url, "updated_at": _utc()}}
         )
         
-        return {"message": "Shop cover photo updated successfully", "shop_cover_photo": photo_url}
+        return {"url": url}
     except HTTPException:
         raise
     except Exception as e:

@@ -7116,27 +7116,20 @@ const SettingsSection = ({ user, token, onRefresh }) => {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
       
-      const response = await axios.post(`${API}/upload`, uploadFormData, {
+      let endpoint;
+      if (field === 'profile_photo') {
+        endpoint = `${API}/enterprises/profile/photo`;
+      } else if (field === 'cover_photo') {
+        endpoint = `${API}/enterprises/cover/photo`;
+      } else if (field === 'shop_cover_photo') {
+        endpoint = `${API}/enterprises/shop-cover/photo`;
+      }
+      
+      const response = await axios.post(endpoint, uploadFormData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
-      });
-      
-      console.log(`DEBUG: Setting ${field} to ${response.data.url}`);
-      
-      // Update the photo directly via dedicated endpoint
-      let endpoint;
-      if (field === 'profile_photo') {
-        endpoint = `${API}/enterprises/profile-photo`;
-      } else if (field === 'cover_photo') {
-        endpoint = `${API}/enterprises/cover-photo`;
-      } else if (field === 'shop_cover_photo') {
-        endpoint = `${API}/enterprises/shop-cover-photo`;
-      }
-      
-      await axios.put(endpoint, { photo_url: response.data.url }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       
       setFormData(prev => ({ ...prev, [field]: response.data.url }));
