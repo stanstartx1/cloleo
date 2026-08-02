@@ -12,7 +12,7 @@ import {
 
   Menu, X, TrendingUp, Eye, Plus, Search, ChevronRight, Store,
 
-  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle,
+  ArrowUpRight, ArrowDownRight, Package2, ShoppingBag, MapPin, Truck, Phone, User, Clock, CheckCircle, RefreshCw, Loader2, MessageCircle, XCircle,
 
   Image, Upload, Trash2, Edit2, Share2, Copy, Check, Sparkles, Users, FolderOpen, Tag
 
@@ -1184,6 +1184,10 @@ const RevendeurDashboard = () => {
 
   };
 
+  // Calculate badge counts
+  const pendingOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
+  const pendingOffersCount = offers.filter(o => !['accepted', 'rejected', 'withdrawn'].includes(o.status)).length;
+
 
 
   const menuItems = [
@@ -1194,9 +1198,9 @@ const RevendeurDashboard = () => {
 
     { id: 'categories', label: 'Catégories', icon: FolderOpen },
 
-    { id: 'orders', label: 'Commandes', icon: ShoppingCart },
+    { id: 'orders', label: 'Commandes', icon: ShoppingCart, badge: true },
 
-    { id: 'offers', label: 'Offres', icon: DollarSign },
+    { id: 'offers', label: 'Offres', icon: DollarSign, badge: true },
 
     { id: 'messages', label: 'Messages', icon: MessageCircle },
 
@@ -1370,7 +1374,19 @@ const RevendeurDashboard = () => {
 
                 <item.icon className="w-5 h-5" />
 
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1 text-left">{item.label}</span>
+
+                {item.badge && item.id === 'orders' && pendingOrdersCount > 0 && (
+
+                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{pendingOrdersCount}</span>
+
+                )}
+
+                {item.badge && item.id === 'offers' && pendingOffersCount > 0 && (
+
+                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{pendingOffersCount}</span>
+
+                )}
 
               </button>
 

@@ -176,6 +176,12 @@ const EnterpriseDashboard = () => {
 
   
 
+  // Calculate badge counts
+  const pendingOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
+  const pendingOffersCount = offers.filter(o => !['accepted', 'rejected', 'withdrawn'].includes(o.status)).length;
+
+  
+
   const wsRef = React.useRef(null);
 
 
@@ -608,11 +614,31 @@ const EnterpriseDashboard = () => {
 
                   <span className="font-medium text-sm">{item.label}</span>
 
-                  {item.badge && (
+                  {item.badge && item.id === 'orders' && pendingOrdersCount > 0 && (
 
                     <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
 
-                      {item.id === 'orders' ? dashboard?.pending_orders || 0 : item.id === 'products' ? products.length : offers.length}
+                      {pendingOrdersCount}
+
+                    </span>
+
+                  )}
+
+                  {item.badge && item.id === 'offers' && pendingOffersCount > 0 && (
+
+                    <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
+
+                      {pendingOffersCount}
+
+                    </span>
+
+                  )}
+
+                  {item.badge && item.id === 'products' && products.length > 0 && (
+
+                    <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
+
+                      {products.length}
 
                     </span>
 
