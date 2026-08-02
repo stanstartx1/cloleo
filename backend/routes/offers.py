@@ -94,6 +94,10 @@ async def create_offer(
 
     
 
+    # Déterminer le rôle du vendeur depuis le produit
+    vendor_role = product.get("seller_role", "vendor")
+
+    
     # Créer l'offre
 
     offer_data = {
@@ -106,7 +110,7 @@ async def create_offer(
 
         "vendor_id": product.get("seller_id"),
 
-        "vendor_role": "vendor",
+        "vendor_role": vendor_role,
 
         "offered_price_fcfa": offer.offered_price_fcfa,
 

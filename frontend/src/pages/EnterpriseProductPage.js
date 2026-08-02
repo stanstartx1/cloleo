@@ -161,6 +161,10 @@ const EnterpriseProductPage = () => {
       return;
     }
     setShowOfferModal(true);
+    // Pre-fill with a suggested offer (90% of current price)
+    const currentPrice = product.promo_price_fcfa || product.price_fcfa;
+    setOfferPrice(Math.floor(currentPrice * 0.9).toString());
+    setOfferMessage('');
   };
 
   const submitOffer = async () => {
@@ -170,21 +174,26 @@ const EnterpriseProductPage = () => {
     }
     setSendingOffer(true);
     try {
-      await axios.post(`${API}/offers`, {
+      // Use the new offers API
+      await axios.post(`${API}/offers/create`, {
         product_id: product.id,
-        seller_id: product.seller_id,
-        offered_price: parseInt(offerPrice),
-        message: offerMessage
+        offered_price_fcfa: parseInt(offerPrice),
+        message: offerMessage,
+        quantity: 1
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Offre envoyée avec succès');
+      
+      toast.success('Offre envoyée à l\'entreprise !', {
+        description: `Vous serez notifié dès que l'entreprise répondra.`
+      });
       setShowOfferModal(false);
       setOfferPrice('');
       setOfferMessage('');
     } catch (error) {
-      console.error('Error submitting offer:', error);
-      toast.error('Erreur lors de l\'envoi de l\'offre');
+      console.error('Error sending offer:', error);
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'envoi de l\'offre';
+      toast.error(errorMessage);
     } finally {
       setSendingOffer(false);
     }

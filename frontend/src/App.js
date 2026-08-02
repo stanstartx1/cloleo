@@ -56,6 +56,7 @@ import RevendeurRegisterPage from "./pages/RevendeurRegisterPage";
 import RevendeurDashboard from "./pages/RevendeurDashboard";
 import RevendeurShopPage from "./pages/RevendeurShopPage";
 import RevendeurEditProduct from "./pages/RevendeurEditProduct";
+import RevendeurProductPage from "./pages/RevendeurProductPage";
 
 // Enterprise Pages
 import EnterpriseRegisterPage from "./pages/EnterpriseRegisterPage";
@@ -255,6 +256,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       <Route path="/boutique/:shopSlug" element={<RevendeurShopPage />} />
+      <Route path="/revendeur-produit/:productId" element={<PublicLayout><RevendeurProductPage /></PublicLayout>} />
 
       {/* Enterprise Routes */}
       <Route path="/devenir-entreprise" element={<PublicLayout><EnterpriseRegisterPage /></PublicLayout>} />
