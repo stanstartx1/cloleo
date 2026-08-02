@@ -7610,17 +7610,53 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
               <div>
 
-                <ImageUpload
+                <input
 
-                  onUpload={handleCoverUpload}
-
-                  currentImage={user?.cover_photo}
+                  type="file"
 
                   accept="image/*"
 
-                  label="Changer la photo de couverture du profil"
+                  onChange={(e) => handleCoverUpload(e.target.files?.[0])}
+
+                  disabled={uploadingCover}
+
+                  className="hidden"
+
+                  id="cover-upload"
 
                 />
+
+                <label
+
+                  htmlFor="cover-upload"
+
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-shine btn-ripple active:scale-95 text-primary-foreground shadow hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 h-9 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 cursor-pointer"
+
+                >
+
+                  {uploadingCover ? (
+
+                    <>
+
+                      <Loader2 className="w-4 h-4 animate-spin" />
+
+                      Upload en cours...
+
+                    </>
+
+                  ) : (
+
+                    <>
+
+                      <Upload className="w-4 h-4" />
+
+                      Changer la photo de couverture du profil
+
+                    </>
+
+                  )}
+
+                </label>
 
                 <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 1920x400px</p>
 
@@ -7666,17 +7702,53 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
               <div>
 
-                <ImageUpload
+                <input
 
-                  onUpload={handleShopCoverUpload}
-
-                  currentImage={user?.shop_cover_photo}
+                  type="file"
 
                   accept="image/*"
 
-                  label="Changer la photo de couverture de la boutique"
+                  onChange={(e) => handleShopCoverUpload(e.target.files?.[0])}
+
+                  disabled={uploadingShopCover}
+
+                  className="hidden"
+
+                  id="shop-cover-upload"
 
                 />
+
+                <label
+
+                  htmlFor="shop-cover-upload"
+
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-shine btn-ripple active:scale-95 text-primary-foreground shadow hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 h-9 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 cursor-pointer"
+
+                >
+
+                  {uploadingShopCover ? (
+
+                    <>
+
+                      <Loader2 className="w-4 h-4 animate-spin" />
+
+                      Upload en cours...
+
+                    </>
+
+                  ) : (
+
+                    <>
+
+                      <Upload className="w-4 h-4" />
+
+                      Changer la photo de couverture de la boutique
+
+                    </>
+
+                  )}
+
+                </label>
 
                 <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 5MB. Dimensions recommandées: 1920x400px</p>
 
