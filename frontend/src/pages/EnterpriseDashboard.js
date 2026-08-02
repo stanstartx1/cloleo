@@ -7123,7 +7123,8 @@ const SettingsSection = ({ user, token, onRefresh }) => {
         }
       });
       
-      setFormData({ ...formData, [field]: response.data.url });
+      console.log(`DEBUG: Setting ${field} to ${response.data.url}`);
+      setFormData(prev => ({ ...prev, [field]: response.data.url }));
       toast.success('Image chargée avec succès');
     } catch (error) {
       console.error('Error uploading image:', error);
