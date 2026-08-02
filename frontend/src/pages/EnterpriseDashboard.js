@@ -1066,7 +1066,7 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
           <OfferCard 
 
-            key={offer._id} 
+            key={offer.id} 
 
             offer={offer} 
 
@@ -1236,13 +1236,13 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
 
       <div className="flex gap-2">
 
-        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600" onClick={() => onAccept(offer._id)}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600" onClick={() => onAccept(offer.id)}>
 
           <CheckCircle className="w-4 h-4 mr-1" /> Accepter
 
         </Button>
 
-        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50" onClick={() => onReject(offer._id)}>
+        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50" onClick={() => onReject(offer.id)}>
 
           <XCircle className="w-4 h-4 mr-1" /> Refuser
 
@@ -2144,7 +2144,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
     if (!counterPrice || !selectedOffer) return;
 
-    onCounter(selectedOffer._id, counterPrice);
+    onCounter(selectedOffer.id, counterPrice);
 
     setShowCounterModal(false);
 
@@ -2240,7 +2240,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
         {filteredOffers.length > 0 ? filteredOffers.map((offer) => (
 
-          <div key={offer._id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+          <div key={offer.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
 
             <div className="flex items-start justify-between mb-4">
 
@@ -2342,7 +2342,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
                   size="sm"
 
-                  onClick={() => onAccept(offer._id)}
+                  onClick={() => onAccept(offer.id)}
 
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
 
@@ -2382,7 +2382,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
                   size="sm"
 
-                  onClick={() => onReject(offer._id)}
+                  onClick={() => onReject(offer.id)}
 
                   variant="outline"
 
@@ -2410,7 +2410,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
                   size="sm"
 
-                  onClick={() => onAccept(offer._id)}
+                  onClick={() => onAccept(offer.id)}
 
                   className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
 
@@ -2426,7 +2426,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
                   size="sm"
 
-                  onClick={() => onReject(offer._id)}
+                  onClick={() => onReject(offer.id)}
 
                   variant="outline"
 
@@ -2454,7 +2454,7 @@ const OffersSection = ({ offers, loading, onRefresh, onAccept, onReject, onCount
 
                   size="sm"
 
-                  onClick={() => onCopyLink(offer._id)}
+                  onClick={() => onCopyLink(offer.id)}
 
                   variant="outline"
 

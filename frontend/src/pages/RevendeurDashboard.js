@@ -2930,7 +2930,7 @@ const RevendeurDashboard = () => {
 
                     <motion.div
 
-                      key={offer._id}
+                      key={offer.id}
 
                       initial={{ opacity: 0, y: 20 }}
 
@@ -3074,7 +3074,7 @@ const RevendeurDashboard = () => {
 
                                 className="bg-green-600 hover:bg-green-700 text-white"
 
-                                onClick={() => handleAcceptOffer(offer._id)}
+                                onClick={() => handleAcceptOffer(offer.id)}
 
                               >
 
@@ -3090,7 +3090,7 @@ const RevendeurDashboard = () => {
 
                                 className="border-gray-300 text-gray-700 hover:bg-gray-50"
 
-                                onClick={() => handleRejectOffer(offer._id)}
+                                onClick={() => handleRejectOffer(offer.id)}
 
                               >
 
@@ -3106,7 +3106,7 @@ const RevendeurDashboard = () => {
 
                                 className="border-blue-300 text-blue-700 hover:bg-blue-50"
 
-                                onClick={() => handleCounterOffer(offer._id)}
+                                onClick={() => handleCounterOffer(offer.id)}
 
                               >
 
