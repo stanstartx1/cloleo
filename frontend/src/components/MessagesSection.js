@@ -35,7 +35,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [recordingTime, setRecordingTime] = useState(0);
   
   const messagesEndRef = useRef(null);
-  const wsRef = useRef(null);
   const userId = useRef(null);
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -106,57 +105,103 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     fetchMessages(conv.id);
   };
 
-  // WebSocket connection
+  // WebSocket connection with HTTP fallback
   useEffect(() => {
     if (!selectedConversation) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws/chat/${selectedConversation.id}`);
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('WebSocket message received:', data);
-      
-      if (data.type === 'new_message') {
-        setMessages(prev => [...prev, data.message]);
-        scrollToBottom();
-      } else if (data.type === 'message_deleted') {
-        setMessages(prev => prev.filter(m => m.id !== data.message_id));
-      } else if (data.type === 'pong') {
-        // Ping/pong keep-alive
+    let ws = null;
+    let pollingInterval = null;
+    let connected = false;
+
+    const connectWebSocket = () => {
+      try {
+        ws = new WebSocket(`${WS_URL}/api/ws/chat/${selectedConversation.id}`);
+        
+        ws.onopen = () => {
+          console.log('WebSocket connected');
+          connected = true;
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+        };
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
+          
+          if (data.type === 'new_message') {
+            setMessages(prev => [...prev, data.message]);
+            scrollToBottom();
+          } else if (data.type === 'message_deleted') {
+            setMessages(prev => prev.filter(m => m.id !== data.message_id));
+          } else if (data.type === 'pong') {
+            // Ping/pong keep-alive
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          connected = false;
+          // Fallback to HTTP polling
+          if (!pollingInterval) {
+            pollingInterval = setInterval(() => {
+              fetchMessages(selectedConversation.id);
+            }, 10000);
+          }
+        };
+        
+        ws.onclose = () => {
+          console.log('WebSocket disconnected');
+          connected = false;
+          // Fallback to HTTP polling
+          if (!pollingInterval) {
+            pollingInterval = setInterval(() => {
+              fetchMessages(selectedConversation.id);
+            }, 10000);
+          }
+        };
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error);
+        // Fallback to HTTP polling immediately
+        if (!pollingInterval) {
+          pollingInterval = setInterval(() => {
+            fetchMessages(selectedConversation.id);
+          }, 10000);
+        }
       }
     };
+
+    connectWebSocket();
     
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
-    
-    wsRef.current = ws;
+    // Keep-alive ping
+    const pingInterval = setInterval(() => {
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
     
     // Cleanup on unmount
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+      if (ws) {
+        ws.close();
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+      if (pingInterval) {
+        clearInterval(pingInterval);
       }
     };
-  }, [selectedConversation]);
+  }, [selectedConversation, fetchMessages]);
 
   // Keep-alive ping
   useEffect(() => {
-    if (!wsRef.current) return;
+    if (!selectedConversation) return;
     
     const pingInterval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 30000); // Ping every 30 seconds
+      // Keep-alive logic is handled in the WebSocket connection
+    }, 30000);
     
     return () => clearInterval(pingInterval);
   }, [selectedConversation]);

@@ -87,17 +87,17 @@ app = FastAPI(title="Cloleo Marketplace API")
 
 
 app.add_middleware(
-
     CORSMiddleware,
-
-    allow_origins=["*"],
-
+    allow_origins=[
+        "https://cloleo.com",
+        "http://cloleo.com",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "*"
+    ],
     allow_credentials=True,
-
     allow_methods=["*"],
-
     allow_headers=["*"],
-
 )
 
 
@@ -167,21 +167,25 @@ api.include_router(reviews_router)
 # WebSocket endpoint for chat
 @app.websocket("/api/ws/chat/{conversation_id}")
 async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
-    await manager.connect(websocket, f"chat_{conversation_id}")
+    await websocket.accept()
+    room = f"chat_{conversation_id}"
+    await manager.connect(websocket, room)
     try:
         while True:
-            data = await websocket.receive_text()
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
             # Echo back or handle incoming messages
-            await manager.broadcast_to_room(f"chat_{conversation_id}", {
+            await manager.broadcast_to_room(room, {
                 "type": "message",
                 "content": data,
                 "sender": "client"
             })
     except WebSocketDisconnect:
-        manager.disconnect(websocket, f"chat_{conversation_id}")
+        manager.disconnect(websocket, room)
     except Exception as e:
         print(f"WebSocket error: {e}")
-        manager.disconnect(websocket, f"chat_{conversation_id}")
+        manager.disconnect(websocket, room)
 
 api.include_router(enterprises_router)
 
@@ -6162,25 +6166,19 @@ async def get_offer(offer_token: str, user: Optional[dict] = Depends(get_current
 
 
 @api.websocket("/ws/chat/{conversation_id}")
-
 async def ws_chat(websocket: WebSocket, conversation_id: str):
-
+    await websocket.accept()
     room = f"chat_{conversation_id}"
-
     await manager.connect(websocket, room)
-
     try:
-
         while True:
-
             data = await websocket.receive_json()
-
             if data.get("type") == "ping":
-
                 await websocket.send_json({"type": "pong"})
-
     except WebSocketDisconnect:
-
+        manager.disconnect(websocket, room)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
         manager.disconnect(websocket, room)
 
 

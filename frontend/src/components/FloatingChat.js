@@ -156,51 +156,106 @@ const FloatingChat = () => {
     loadMessages();
   }, [isOpen, activeConversationId, loadMessages]);
 
-  // WebSocket connection for real-time updates
+  // WebSocket connection for real-time updates with HTTP fallback
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws/chat/${activeConversationId}`);
-    
-    ws.onopen = () => {
-      console.log('FloatingChat WebSocket connected');
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('FloatingChat WebSocket message received:', data);
-      
-      if (data.type === 'new_message') {
-        setMessages(prev => [...prev, data.message]);
-        refreshConversations();
-      } else if (data.type === 'message_deleted') {
-        setMessages(prev => prev.filter(m => m.id !== data.message_id));
-        refreshConversations();
-      } else if (data.type === 'pong') {
-        // Ping/pong keep-alive
+    let ws = null;
+    let pollingInterval = null;
+    let connected = false;
+
+    const connectWebSocket = () => {
+      try {
+        ws = new WebSocket(`${WS_URL}/api/ws/chat/${activeConversationId}`);
+        
+        ws.onopen = () => {
+          console.log('FloatingChat WebSocket connected');
+          connected = true;
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+        };
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log('FloatingChat WebSocket message received:', data);
+          
+          if (data.type === 'new_message') {
+            setMessages(prev => [...prev, data.message]);
+            refreshConversations();
+          } else if (data.type === 'message_deleted') {
+            setMessages(prev => prev.filter(m => m.id !== data.message_id));
+            refreshConversations();
+          } else if (data.type === 'pong') {
+            // Ping/pong keep-alive
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error('FloatingChat WebSocket error:', error);
+          connected = false;
+          // Fallback to HTTP polling
+          if (!pollingInterval) {
+            pollingInterval = setInterval(() => {
+              loadMessages();
+              refreshConversations();
+            }, 5000);
+          }
+        };
+        
+        ws.onclose = () => {
+          console.log('FloatingChat WebSocket disconnected');
+          connected = false;
+          // Fallback to HTTP polling
+          if (!pollingInterval) {
+            pollingInterval = setInterval(() => {
+              loadMessages();
+              refreshConversations();
+            }, 5000);
+          }
+        };
+      } catch (error) {
+        console.error('Failed to create FloatingChat WebSocket:', error);
+        // Fallback to HTTP polling immediately
+        if (!pollingInterval) {
+          pollingInterval = setInterval(() => {
+            loadMessages();
+            refreshConversations();
+          }, 5000);
+        }
       }
     };
+
+    connectWebSocket();
     
-    ws.onerror = (error) => {
-      console.error('FloatingChat WebSocket error:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('FloatingChat WebSocket disconnected');
-    };
+    // Keep-alive ping
+    const pingInterval = setInterval(() => {
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000);
     
     // Cleanup on unmount
     return () => {
-      ws.close();
+      if (ws) {
+        ws.close();
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+      if (pingInterval) {
+        clearInterval(pingInterval);
+      }
     };
-  }, [isOpen, activeConversationId, refreshConversations]);
+  }, [isOpen, activeConversationId, loadMessages, refreshConversations]);
 
   // Keep-alive ping
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
     
     const pingInterval = setInterval(() => {
-      // Keep-alive logic if needed
+      // Keep-alive logic is handled in the WebSocket connection
     }, 30000);
     
     return () => clearInterval(pingInterval);
