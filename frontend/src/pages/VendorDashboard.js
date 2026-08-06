@@ -463,6 +463,33 @@ const VendorDashboard = () => {
 
 
 
+  const handleCancelOrder = async (orderId, reason = '') => {
+
+    try {
+
+      await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Commande annulée avec succès');
+
+      fetchOrders();
+
+    } catch (error) {
+
+      console.error('Error cancelling order:', error);
+
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
+
+      toast.error(errorMessage);
+
+    }
+
+  };
+
+
+
   const copyNegotiatedLink = (token) => {
 
     const link = `${window.location.origin}/offer-link/${token}`;
@@ -1771,20 +1798,25 @@ const VendorDashboard = () => {
 
                             <td className="p-4">
 
-                              {order.status === 'pending' && (
+                              {['pending', 'assigned'].includes(order.status) && (
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex gap-2">
                                   <Button 
                                     size="sm" 
                                     variant="ghost"
-                                    onClick={() => handleRejectOrder(order.id)}
+                                    onClick={() => {
+                                      const reason = prompt('Raison de l\'annulation (optionnel):');
+                                      if (reason !== null) {
+                                        handleCancelOrder(order.id, reason);
+                                      }
+                                    }}
                                     className="text-red-400 hover:bg-red-500/20"
                                   >
-                                    <XCircle className="w-4 h-4 mr-1" /> Refuser
+                                    <XCircle className="w-4 h-4 mr-1" /> Annuler
                                   </Button>
                                 </motion.div>
                               )}
 
-                              {['assigned', 'picked_up', 'in_transit'].includes(order.status) && (
+                              {['picked_up', 'in_transit'].includes(order.status) && (
 
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 

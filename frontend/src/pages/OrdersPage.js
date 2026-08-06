@@ -78,10 +78,13 @@ const getStatusConfig = (status) => {
   return configs[status] || configs.pending;
 };
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, cancellationSettings, onCancelOrder }) => {
   const navigate = useNavigate();
   const statusConfig = getStatusConfig(order.status);
   const StatusIcon = statusConfig.icon;
+
+  const canCancel = cancellationSettings?.allow_customer_cancellation && 
+                    (cancellationSettings?.customer_cancellable_statuses || []).includes(order.status);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -177,13 +180,23 @@ const OrderCard = ({ order }) => {
             <Eye className="w-4 h-4 mr-2" />
             Voir détails
           </Button>
-          {order.status === 'pending' && (
+          {canCancel && (
             <Button
               variant="outline"
               size="sm"
               className="border-red-200 text-red-600 hover:bg-red-50"
               onClick={() => {
-                toast.info('Contactez le support pour annuler cette commande');
+                const reason = cancellationSettings?.require_cancellation_reason 
+                  ? prompt('Raison de l\'annulation (requis):') 
+                  : prompt('Raison de l\'annulation (optionnel):');
+                
+                if (reason !== null) {
+                  if (cancellationSettings?.require_cancellation_reason && !reason.trim()) {
+                    toast.error('Une raison est requise pour annuler la commande');
+                    return;
+                  }
+                  onCancelOrder(order.id, reason);
+                }
               }}
             >
               Annuler
@@ -202,6 +215,7 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [cancellationSettings, setCancellationSettings] = useState(null);
 
   const fetchOrders = async () => {
     if (!isAuthenticated || !token) {
@@ -225,8 +239,63 @@ const OrdersPage = () => {
     }
   };
 
+  const fetchCancellationSettings = async () => {
+    try {
+      const response = await axios.get(`${API}/order-cancellation-settings`);
+      setCancellationSettings(response.data);
+    } catch (error) {
+      console.error('Error fetching cancellation settings:', error);
+      // Utiliser les paramètres par défaut en cas d'erreur
+      setCancellationSettings({
+        customer_cancellable_statuses: ['pending', 'assigned'],
+        cancellation_time_limit_hours: 24,
+        require_cancellation_reason: false,
+        allow_customer_cancellation: true
+      });
+    }
+  };
+
+  const handleCancelOrder = async (orderId, reason = '') => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/cancel-by-customer`, 
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Commande annulée avec succès');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
+      toast.error(errorMessage);
+    }
+  };
+
+  const canCancelOrder = (order) => {
+    if (!cancellationSettings || !cancellationSettings.allow_customer_cancellation) {
+      return false;
+    }
+    
+    const cancellableStatuses = cancellationSettings.customer_cancellable_statuses || ['pending', 'assigned'];
+    if (!cancellableStatuses.includes(order.status)) {
+      return false;
+    }
+    
+    // Vérifier le délai d'annulation
+    const timeLimitHours = cancellationSettings.cancellation_time_limit_hours || 24;
+    if (timeLimitHours > 0) {
+      const orderCreatedAt = new Date(order.created_at);
+      const timeElapsed = (Date.now() - orderCreatedAt.getTime()) / (1000 * 60 * 60);
+      if (timeElapsed > timeLimitHours) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchCancellationSettings();
   }, [isAuthenticated, token, navigate]);
 
   const filteredOrders = orders.filter(order => {
@@ -361,7 +430,12 @@ const OrdersPage = () => {
         ) : (
           <div className="space-y-4">
             {filteredOrders.map(order => (
-              <OrderCard key={order.id} order={order} />
+              <OrderCard 
+                key={order.id} 
+                order={order} 
+                cancellationSettings={cancellationSettings}
+                onCancelOrder={handleCancelOrder}
+              />
             ))}
           </div>
         )}

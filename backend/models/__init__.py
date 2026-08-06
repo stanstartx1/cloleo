@@ -14,6 +14,7 @@ from models.schemas import (
     OrderAddress,
     CreateOrder,
     OrderUpdate,
+    OrderCancel,
     DropshipperRegister,
     DropshippedProductCreate,
     DropshippedProductUpdate,

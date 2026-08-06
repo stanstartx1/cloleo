@@ -681,6 +681,33 @@ const RevendeurDashboard = () => {
 
 
 
+  const handleCancelOrder = async (orderId, reason = '') => {
+
+    try {
+
+      await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Commande annulée avec succès');
+
+      fetchOrders();
+
+    } catch (error) {
+
+      console.error('Error cancelling order:', error);
+
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
+
+      toast.error(errorMessage);
+
+    }
+
+  };
+
+
+
   // Fetch earnings
 
   const fetchEarnings = async () => {
@@ -2826,15 +2853,20 @@ const RevendeurDashboard = () => {
                               </div>
 
                               {/* Actions */}
-                              {order.status === 'pending' && (
+                              {['pending', 'assigned'].includes(order.status) && (
                                 <div className="flex gap-2 mt-3">
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-red-300 text-red-600 hover:bg-red-50"
-                                    onClick={() => handleRejectOrder(order.id)}
+                                    onClick={() => {
+                                      const reason = prompt('Raison de l\'annulation (optionnel):');
+                                      if (reason !== null) {
+                                        handleCancelOrder(order.id, reason);
+                                      }
+                                    }}
                                   >
-                                    <XCircle className="w-4 h-4 mr-1" /> Refuser
+                                    <XCircle className="w-4 h-4 mr-1" /> Annuler
                                   </Button>
                                 </div>
                               )}

@@ -114,6 +114,10 @@ class OrderUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class OrderCancel(BaseModel):
+    reason: Optional[str] = None
+
+
 class DropshipperRegister(BaseModel):
     email: EmailStr
     password: str

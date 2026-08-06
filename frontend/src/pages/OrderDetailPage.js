@@ -120,10 +120,11 @@ const OrderTimeline = ({ status }) => {
 const OrderDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cancellationSettings, setCancellationSettings] = useState(null);
 
   const fetchOrder = async () => {
     if (!isAuthenticated || !token) {
@@ -146,8 +147,73 @@ const OrderDetailPage = () => {
     }
   };
 
+  const fetchCancellationSettings = async () => {
+    try {
+      const response = await axios.get(`${API}/order-cancellation-settings`);
+      setCancellationSettings(response.data);
+    } catch (error) {
+      console.error('Error fetching cancellation settings:', error);
+      // Utiliser les paramètres par défaut en cas d'erreur
+      setCancellationSettings({
+        customer_cancellable_statuses: ['pending', 'assigned'],
+        vendor_cancellable_statuses: ['pending', 'assigned'],
+        cancellation_time_limit_hours: 24,
+        require_cancellation_reason: false,
+        allow_customer_cancellation: true,
+        allow_vendor_cancellation: true
+      });
+    }
+  };
+
+  const handleCancelOrder = async (reason = '') => {
+    try {
+      const isVendor = user?.role === 'vendor' || user?.role === 'enterprise' || user?.role === 'dropshipper';
+      const endpoint = isVendor 
+        ? `${API}/orders/${id}/cancel-by-vendor`
+        : `${API}/orders/${id}/cancel-by-customer`;
+      
+      await axios.put(endpoint, 
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Commande annulée avec succès');
+      fetchOrder();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
+      toast.error(errorMessage);
+    }
+  };
+
+  const canCancelOrder = () => {
+    if (!order || !cancellationSettings) return false;
+    
+    const isVendor = user?.role === 'vendor' || user?.role === 'enterprise' || user?.role === 'dropshipper';
+    const isCustomer = user?.role === 'customer';
+    
+    if (isVendor && !cancellationSettings.allow_vendor_cancellation) return false;
+    if (isCustomer && !cancellationSettings.allow_customer_cancellation) return false;
+    
+    const cancellableStatuses = isVendor 
+      ? (cancellationSettings.vendor_cancellable_statuses || ['pending', 'assigned'])
+      : (cancellationSettings.customer_cancellable_statuses || ['pending', 'assigned']);
+    
+    if (!cancellableStatuses.includes(order.status)) return false;
+    
+    // Vérifier le délai d'annulation
+    const timeLimitHours = cancellationSettings.cancellation_time_limit_hours || 24;
+    if (timeLimitHours > 0) {
+      const orderCreatedAt = new Date(order.created_at);
+      const timeElapsed = (Date.now() - orderCreatedAt.getTime()) / (1000 * 60 * 60);
+      if (timeElapsed > timeLimitHours) return false;
+    }
+    
+    return true;
+  };
+
   useEffect(() => {
     fetchOrder();
+    fetchCancellationSettings();
   }, [id, isAuthenticated, token, navigate]);
 
   const copyOrderNumber = () => {
@@ -231,14 +297,39 @@ const OrderDetailPage = () => {
                   <p className="text-sm text-slate-500">Commande passée le {formatDate(order.created_at)}</p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyOrderNumber}
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copier
-              </Button>
+              <div className="flex gap-2">
+                {canCancelOrder() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      const reason = cancellationSettings?.require_cancellation_reason 
+                        ? prompt('Raison de l\'annulation (requis):') 
+                        : prompt('Raison de l\'annulation (optionnel):');
+                      
+                      if (reason !== null) {
+                        if (cancellationSettings?.require_cancellation_reason && !reason.trim()) {
+                          toast.error('Une raison est requise pour annuler la commande');
+                          return;
+                        }
+                        handleCancelOrder(reason);
+                      }
+                    }}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Annuler
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyOrderNumber}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copier
+                </Button>
+              </div>
             </div>
             
             {order.status !== 'cancelled' && order.status !== 'refunded' && (

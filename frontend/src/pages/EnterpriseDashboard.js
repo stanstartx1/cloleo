@@ -1607,18 +1607,23 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
     try {
 
       if (newStatus === 'cancelled') {
-        await axios.put(`${API}/orders/${orderId}/reject`, 
-          { reason: 'Produit non disponible' },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const reason = prompt('Raison de l\'annulation (optionnel):');
+        if (reason !== null) {
+          await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
+            { reason },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          toast.success('Commande annulée');
+        } else {
+          return; // User cancelled the prompt
+        }
       } else {
         await axios.put(`${API}/orders/${orderId}/status`, 
           { status: newStatus },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        toast.success('Statut mis à jour');
       }
-
-      toast.success('Statut mis à jour');
 
       onRefresh();
 
@@ -1626,7 +1631,8 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
       console.error('Error updating status:', error);
 
-      toast.error('Erreur lors de la mise à jour');
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de la mise à jour';
+      toast.error(errorMessage);
 
     }
 

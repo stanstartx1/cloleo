@@ -50,7 +50,7 @@ from core.database import db
 
 from core.websocket import manager
 
-from models.schemas import CreateOrder, DropshippedProductCreate, DropshippedProductUpdate
+from models.schemas import CreateOrder, DropshippedProductCreate, DropshippedProductUpdate, OrderCancel
 
 from routes.auth import router as auth_router
 
@@ -181,6 +181,28 @@ def _slugify(text: str) -> str:
     base = re.sub(r"[^a-z0-9]+", "-", base)
 
     return base.strip("-") or str(uuid.uuid4())[:8]
+
+
+
+async def get_order_cancellation_settings():
+    """Récupérer les paramètres d'annulation de commande avec valeurs par défaut"""
+    settings = await db.settings.find_one({"type": "order_cancellation"}, {"_id": 0})
+    
+    default_settings = {
+        "vendor_cancellable_statuses": ["pending", "assigned"],
+        "customer_cancellable_statuses": ["pending", "assigned"],
+        "cancellation_time_limit_hours": 24,
+        "require_cancellation_reason": False,
+        "auto_refund_on_cancellation": True,
+        "cancellation_fee_percentage": 0,
+        "allow_vendor_cancellation": True,
+        "allow_customer_cancellation": True
+    }
+    
+    if settings:
+        default_settings.update(settings)
+    
+    return default_settings
 
 
 
@@ -1220,6 +1242,170 @@ async def reject_order(order_id: str, reason: str = "", user: dict = Depends(get
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "cancelled", "message": "Commande refusée"})
 
     return {"ok": True}
+
+
+
+@api.put("/orders/{order_id}/cancel-by-vendor")
+async def cancel_order_by_vendor(order_id: str, payload: OrderCancel, user: dict = Depends(get_current_user)):
+    """Annulation de commande par le vendeur/entreprise/dropshipper"""
+    role = user.get("role")
+    reason = payload.reason or ""
+    
+    # Récupérer les paramètres d'annulation dynamiques
+    cancellation_settings = await get_order_cancellation_settings()
+    
+    if not cancellation_settings.get("allow_vendor_cancellation", True):
+        raise HTTPException(status_code=403, detail="L'annulation de commande par les vendeurs est désactivée")
+    
+    if role not in ["vendor", "enterprise", "dropshipper"]:
+        raise HTTPException(status_code=403, detail="Seuls les vendeurs peuvent annuler des commandes")
+    
+    query = {"id": order_id}
+    
+    if role == "vendor":
+        query["seller_id"] = user["id"]
+    elif role == "enterprise":
+        query["seller_id"] = user["id"]
+    elif role == "dropshipper":
+        query["dropshipper_id"] = user["id"]
+
+    order = await db.orders.find_one(query)
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+
+    # Vérifier si la commande peut être annulée selon les paramètres dynamiques
+    cancellable_statuses = cancellation_settings.get("vendor_cancellable_statuses", ["pending", "assigned"])
+    if order["status"] not in cancellable_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Seules les commandes avec statut {', '.join(cancellable_statuses)} peuvent être annulées"
+        )
+
+    # Vérifier le délai d'annulation
+    time_limit_hours = cancellation_settings.get("cancellation_time_limit_hours", 24)
+    if time_limit_hours > 0:
+        order_created_at = datetime.fromisoformat(order.get("created_at", _utc()).replace('Z', '+00:00'))
+        time_elapsed = (datetime.now(timezone.utc) - order_created_at).total_seconds() / 3600
+        if time_elapsed > time_limit_hours:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Le délai d'annulation de {time_limit_hours} heures est dépassé"
+            )
+
+    # Vérifier si une raison est requise
+    if cancellation_settings.get("require_cancellation_reason", False) and not reason:
+        raise HTTPException(status_code=400, detail="Une raison d'annulation est requise")
+
+    # Mettre à jour la commande
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancelled_by": role,
+                "cancellation_reason": reason,
+                "cancelled_at": _utc(),
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "cancelled",
+                    "note": f"Commande annulée par {role}: {reason}" if reason else f"Commande annulée par {role}",
+                    "cancelled_by": role,
+                    "timestamp": _utc()
+                }
+            }
+        }
+    )
+
+    # Notifier via WebSocket
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update", 
+        "status": "cancelled", 
+        "message": "Commande annulée par le vendeur",
+        "cancelled_by": role
+    })
+
+    return {"ok": True, "message": "Commande annulée avec succès"}
+
+
+
+@api.put("/orders/{order_id}/cancel-by-customer")
+async def cancel_order_by_customer(order_id: str, payload: OrderCancel, user: dict = Depends(get_current_user)):
+    """Annulation de commande par l'acheteur"""
+    role = user.get("role")
+    reason = payload.reason or ""
+    
+    # Récupérer les paramètres d'annulation dynamiques
+    cancellation_settings = await get_order_cancellation_settings()
+    
+    if not cancellation_settings.get("allow_customer_cancellation", True):
+        raise HTTPException(status_code=403, detail="L'annulation de commande par les clients est désactivée")
+    
+    if role not in ["customer"]:
+        raise HTTPException(status_code=403, detail="Seuls les clients peuvent annuler leurs commandes")
+    
+    query = {"id": order_id, "customer_id": user["id"]}
+    order = await db.orders.find_one(query)
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+
+    # Vérifier si la commande peut être annulée selon les paramètres dynamiques
+    cancellable_statuses = cancellation_settings.get("customer_cancellable_statuses", ["pending", "assigned"])
+    if order["status"] not in cancellable_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Seules les commandes avec statut {', '.join(cancellable_statuses)} peuvent être annulées"
+        )
+
+    # Vérifier le délai d'annulation
+    time_limit_hours = cancellation_settings.get("cancellation_time_limit_hours", 24)
+    if time_limit_hours > 0:
+        order_created_at = datetime.fromisoformat(order.get("created_at", _utc()).replace('Z', '+00:00'))
+        time_elapsed = (datetime.now(timezone.utc) - order_created_at).total_seconds() / 3600
+        if time_elapsed > time_limit_hours:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Le délai d'annulation de {time_limit_hours} heures est dépassé"
+            )
+
+    # Vérifier si une raison est requise
+    if cancellation_settings.get("require_cancellation_reason", False) and not reason:
+        raise HTTPException(status_code=400, detail="Une raison d'annulation est requise")
+
+    # Mettre à jour la commande
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancelled_by": "customer",
+                "cancellation_reason": reason,
+                "cancelled_at": _utc(),
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "cancelled",
+                    "note": f"Commande annulée par le client: {reason}" if reason else "Commande annulée par le client",
+                    "cancelled_by": "customer",
+                    "timestamp": _utc()
+                }
+            }
+        }
+    )
+
+    # Notifier via WebSocket
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": "order_update", 
+        "status": "cancelled", 
+        "message": "Commande annulée par le client",
+        "cancelled_by": "customer"
+    })
+
+    return {"ok": True, "message": "Commande annulée avec succès"}
 
 
 
@@ -4182,6 +4368,104 @@ async def admin_save_settings(setting_type: str, payload: dict, user: dict = Dep
     await db.settings.update_one({"type": setting_type}, {"$set": doc}, upsert=True)
 
     return {"ok": True}
+
+
+
+@api.get("/admin/settings/order-cancellation")
+async def admin_order_cancellation_settings(user: dict = Depends(require_admin)):
+    """Récupérer les paramètres d'annulation de commande"""
+    settings = await db.settings.find_one({"type": "order_cancellation"}, {"_id": 0})
+    
+    # Paramètres par défaut si non configurés
+    default_settings = {
+        "type": "order_cancellation",
+        "vendor_cancellable_statuses": ["pending", "assigned"],
+        "customer_cancellable_statuses": ["pending", "assigned"],
+        "cancellation_time_limit_hours": 24,
+        "require_cancellation_reason": False,
+        "auto_refund_on_cancellation": True,
+        "cancellation_fee_percentage": 0,
+        "allow_vendor_cancellation": True,
+        "allow_customer_cancellation": True
+    }
+    
+    if settings:
+        # Fusionner avec les paramètres par défaut pour éviter les champs manquants
+        default_settings.update(settings)
+    
+    return default_settings
+
+
+
+@api.put("/admin/settings/order-cancellation")
+async def admin_save_order_cancellation_settings(payload: dict, user: dict = Depends(require_admin)):
+    """Sauvegarder les paramètres d'annulation de commande"""
+    settings = payload.get("settings") or {}
+    
+    # Valider les paramètres
+    allowed_statuses = ["pending", "assigned", "picked_up", "in_transit", "delivered", "cancelled"]
+    
+    vendor_statuses = settings.get("vendor_cancellable_statuses", ["pending", "assigned"])
+    customer_statuses = settings.get("customer_cancellable_statuses", ["pending", "assigned"])
+    
+    # Vérifier que les statuts sont valides
+    for status in vendor_statuses:
+        if status not in allowed_statuses:
+            raise HTTPException(status_code=400, detail=f"Statut invalide: {status}")
+    
+    for status in customer_statuses:
+        if status not in allowed_statuses:
+            raise HTTPException(status_code=400, detail=f"Statut invalide: {status}")
+    
+    # Valider le délai
+    time_limit = settings.get("cancellation_time_limit_hours", 24)
+    if not isinstance(time_limit, (int, float)) or time_limit < 0:
+        raise HTTPException(status_code=400, detail="Le délai d'annulation doit être un nombre positif")
+    
+    # Valider le pourcentage de frais
+    fee_percentage = settings.get("cancellation_fee_percentage", 0)
+    if not isinstance(fee_percentage, (int, float)) or fee_percentage < 0 or fee_percentage > 100:
+        raise HTTPException(status_code=400, detail="Le pourcentage de frais doit être entre 0 et 100")
+    
+    doc = {
+        "type": "order_cancellation",
+        "vendor_cancellable_statuses": vendor_statuses,
+        "customer_cancellable_statuses": customer_statuses,
+        "cancellation_time_limit_hours": time_limit,
+        "require_cancellation_reason": settings.get("require_cancellation_reason", False),
+        "auto_refund_on_cancellation": settings.get("auto_refund_on_cancellation", True),
+        "cancellation_fee_percentage": fee_percentage,
+        "allow_vendor_cancellation": settings.get("allow_vendor_cancellation", True),
+        "allow_customer_cancellation": settings.get("allow_customer_cancellation", True),
+        "updated_at": _utc()
+    }
+    
+    await db.settings.update_one({"type": "order_cancellation"}, {"$set": doc}, upsert=True)
+    
+    return {"ok": True, "message": "Paramètres d'annulation de commande mis à jour"}
+
+
+
+@api.get("/order-cancellation-settings")
+async def public_order_cancellation_settings():
+    """Récupérer les paramètres d'annulation de commande (public)"""
+    settings = await db.settings.find_one({"type": "order_cancellation"}, {"_id": 0})
+    
+    # Paramètres par défaut si non configurés
+    default_settings = {
+        "vendor_cancellable_statuses": ["pending", "assigned"],
+        "customer_cancellable_statuses": ["pending", "assigned"],
+        "cancellation_time_limit_hours": 24,
+        "require_cancellation_reason": False,
+        "allow_vendor_cancellation": True,
+        "allow_customer_cancellation": True
+    }
+    
+    if settings:
+        # Fusionner avec les paramètres par défaut
+        default_settings.update(settings)
+    
+    return default_settings
 
 
 
