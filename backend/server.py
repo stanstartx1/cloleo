@@ -5229,18 +5229,86 @@ async def admin_toggle_category(category_id: str, user: dict = Depends(require_a
 @api.get("/subscriptions/plans")
 
 async def subscription_plans():
-
-    return [
-
-        {"id": "free", "name": "Free", "emoji": "Starter", "price_fcfa": 0, "price_usd": 0, "commission_percent": 15, "features": ["10 produits", "Support standard"]},
-
-        {"id": "artisan", "name": "Artisan", "emoji": "Artisan", "price_fcfa": 5000, "price_usd": 8, "commission_percent": 12, "features": ["50 produits", "Stats avancees"], "badge": "verified"},
-
-        {"id": "commercant", "name": "Commercant", "emoji": "Pro", "price_fcfa": 15000, "price_usd": 25, "commission_percent": 10, "features": ["Produits illimites", "Mise en avant"], "badge": "pro"},
-
-        {"id": "entreprise", "name": "Entreprise", "emoji": "Elite", "price_fcfa": 35000, "price_usd": 58, "commission_percent": 8, "features": ["Multi-boutiques", "Support prioritaire"], "badge": "premium"},
-
+    """Récupérer les plans d'abonnement (dynamiques depuis la base de données)"""
+    # Essayer de récupérer les plans depuis la base de données
+    db_plans = await db.subscription_plans.find({"is_active": True}, {"_id": 0}).sort("order", 1).to_list(20)
+    
+    if db_plans:
+        return db_plans
+    
+    # Fallback vers les plans par défaut si aucun plan n'existe dans la base
+    default_plans = [
+        {"id": "free", "name": "Free", "emoji": "🚀", "price_fcfa": 0, "price_usd": 0, "commission_percent": 15, "features": ["10 produits", "Support standard"], "order": 1, "is_active": True},
+        {"id": "artisan", "name": "Artisan", "emoji": "🛠️", "price_fcfa": 5000, "price_usd": 8, "commission_percent": 12, "features": ["50 produits", "Stats avancees"], "badge": "verified", "order": 2, "is_active": True},
+        {"id": "commercant", "name": "Commercant", "emoji": "💼", "price_fcfa": 15000, "price_usd": 25, "commission_percent": 10, "features": ["Produits illimites", "Mise en avant"], "badge": "pro", "order": 3, "is_active": True},
+        {"id": "entreprise", "name": "Entreprise", "emoji": "🏢", "price_fcfa": 35000, "price_usd": 58, "commission_percent": 8, "features": ["Multi-boutiques", "Support prioritaire"], "badge": "premium", "order": 4, "is_active": True},
     ]
+    
+    # Initialiser les plans par défaut dans la base de données
+    await db.subscription_plans.insert_many(default_plans)
+    
+    return default_plans
+
+
+
+@api.get("/admin/subscription-plans")
+async def admin_subscription_plans(user: dict = Depends(require_admin)):
+    """Récupérer tous les plans d'abonnement (admin)"""
+    plans = await db.subscription_plans.find({}, {"_id": 0}).sort("order", 1).to_list(50)
+    return {"plans": plans}
+
+
+
+@api.post("/admin/subscription-plans")
+async def create_subscription_plan(payload: dict, user: dict = Depends(require_admin)):
+    """Créer un nouveau plan d'abonnement"""
+    plan_data = {
+        "id": str(uuid.uuid4()),
+        "name": payload.get("name", "Nouveau plan"),
+        "emoji": payload.get("emoji", "⭐"),
+        "price_fcfa": payload.get("price_fcfa", 0),
+        "price_usd": payload.get("price_usd", 0),
+        "commission_percent": payload.get("commission_percent", 15),
+        "features": payload.get("features", []),
+        "badge": payload.get("badge"),
+        "order": payload.get("order", 99),
+        "is_active": payload.get("is_active", True),
+        "created_at": _utc(),
+        "updated_at": _utc()
+    }
+    
+    await db.subscription_plans.insert_one(plan_data)
+    return {"ok": True, "plan": plan_data}
+
+
+
+@api.put("/admin/subscription-plans/{plan_id}")
+async def update_subscription_plan(plan_id: str, payload: dict, user: dict = Depends(require_admin)):
+    """Mettre à jour un plan d'abonnement"""
+    update_data = {k: v for k, v in payload.items() if k != "id"}
+    update_data["updated_at"] = _utc()
+    
+    result = await db.subscription_plans.update_one(
+        {"id": plan_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Plan introuvable")
+    
+    return {"ok": True, "message": "Plan mis à jour"}
+
+
+
+@api.delete("/admin/subscription-plans/{plan_id}")
+async def delete_subscription_plan(plan_id: str, user: dict = Depends(require_admin)):
+    """Supprimer un plan d'abonnement"""
+    result = await db.subscription_plans.delete_one({"id": plan_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Plan introuvable")
+    
+    return {"ok": True, "message": "Plan supprimé"}
 
 
 

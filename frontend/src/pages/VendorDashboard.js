@@ -126,6 +126,8 @@ const VendorDashboard = () => {
 
   const [offers, setOffers] = useState([]);
 
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const [driverLocation, setDriverLocation] = useState(null);
@@ -209,6 +211,8 @@ const VendorDashboard = () => {
       fetchProducts();
 
       fetchOffers();
+
+      fetchSubscriptionPlans();
 
       try {
 
@@ -297,6 +301,26 @@ const VendorDashboard = () => {
     }
 
   }, [token]);
+
+
+
+  const fetchSubscriptionPlans = useCallback(async () => {
+
+    try {
+
+      const response = await axios.get(`${API}/subscriptions/plans`);
+
+      setSubscriptionPlans(response.data || []);
+
+    } catch (error) {
+
+      console.error('Error fetching subscription plans:', error);
+
+      setSubscriptionPlans([]);
+
+    }
+
+  }, []);
 
 
 
@@ -485,6 +509,66 @@ const VendorDashboard = () => {
 
       console.error('Erreur détaillée:', errorMessage);
       toast.error(errorMessage);
+
+    }
+
+  };
+
+
+
+  const handleUpgradePlan = async (planId) => {
+
+    try {
+
+      const response = await axios.post(`${API}/subscriptions/checkout`, 
+
+        { plan_id, origin_url: window.location.origin },
+
+        { headers: { Authorization: `Bearer ${token}` } }
+
+      );
+
+      if (response.data.redirect) {
+
+        window.location.href = response.data.redirect;
+
+      }
+
+    } catch (error) {
+
+      console.error('Error upgrading plan:', error);
+
+      toast.error('Erreur lors de la mise à niveau du plan');
+
+    }
+
+  };
+
+
+
+  const handleDowngradePlan = async () => {
+
+    if (!window.confirm('Êtes-vous sûr de vouloir revenir au plan gratuit ?')) return;
+
+    try {
+
+      await axios.post(`${API}/subscriptions/checkout`, 
+
+        { plan_id: 'free', origin_url: window.location.origin },
+
+        { headers: { Authorization: `Bearer ${token}` } }
+
+      );
+
+      toast.success('Plan changé avec succès');
+
+      fetchDashboard();
+
+    } catch (error) {
+
+      console.error('Error downgrading plan:', error);
+
+      toast.error('Erreur lors du changement de plan');
 
     }
 
@@ -715,6 +799,13 @@ const VendorDashboard = () => {
 
 
   const plan = dashboard?.subscription?.plan;
+
+  // If plan is just a string ID, get the full plan details from subscriptionPlans
+  const currentPlan = typeof plan === 'string' 
+
+    ? subscriptionPlans.find(p => p.id === plan) || { id: plan, name: plan.charAt(0).toUpperCase() + plan.slice(1), emoji: '📦', commission_percent: 15, price_fcfa: 0, features: [] }
+
+    : plan;
 
   const stats = dashboard?.stats;
 
@@ -1148,9 +1239,9 @@ const VendorDashboard = () => {
 
                       <div>
 
-                        <h3 className="font-bold text-xl text-white">{plan.name}</h3>
+                        <h3 className="font-bold text-xl text-white">{currentPlan.name}</h3>
 
-                        <p className="text-sm text-slate-400">Commission: {plan.commission_percent}%</p>
+                        <p className="text-sm text-slate-400">Commission: <span className="text-green-400 font-semibold">{currentPlan.commission_percent}%</span></p>
 
                       </div>
 
@@ -1158,9 +1249,15 @@ const VendorDashboard = () => {
 
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 
-                      <Button onClick={() => setActiveSection('subscription')} variant={plan.id === 'free' ? 'default' : 'outline'}>
+                      <Button 
+                        onClick={() => setActiveSection('subscription')} 
+                        variant={currentPlan.id === 'free' ? 'default' : 'outline'}
+                        className={currentPlan.id === 'free' 
+                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white' 
+                          : 'bg-green-600 hover:bg-green-700 text-white border-green-500'}
+                      >
 
-                        <Crown className="w-4 h-4 mr-2" /> {plan.id === 'free' ? 'Passer au plan payant' : 'Gérer'}
+                        <Crown className="w-4 h-4 mr-2" /> {currentPlan.id === 'free' ? 'Passer au plan payant' : 'Gérer'}
 
                       </Button>
 
@@ -2816,15 +2913,15 @@ const VendorDashboard = () => {
 
                     >
 
-                      {plan.emoji}
+                      {currentPlan.emoji}
 
                     </motion.div>
 
                     <div>
 
-                      <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+                      <h3 className="text-2xl font-bold text-white">{currentPlan.name}</h3>
 
-                      <p className="text-slate-400">{plan.price_fcfa > 0 ? `${formatPrice(plan.price_fcfa)} FCFA/mois` : 'Gratuit'}</p>
+                      <p className="text-slate-400">{currentPlan.price_fcfa > 0 ? `${formatPrice(currentPlan.price_fcfa)} FCFA/mois` : 'Gratuit'}</p>
 
                     </div>
 
@@ -2854,7 +2951,7 @@ const VendorDashboard = () => {
 
                       <p className="text-sm text-slate-400">Commission</p>
 
-                      <p className="text-xl font-bold text-white">{plan.commission_percent}%</p>
+                      <p className="text-xl font-bold text-green-400">{currentPlan.commission_percent}%</p>
 
                     </motion.div>
 
@@ -2868,7 +2965,7 @@ const VendorDashboard = () => {
 
                       <p className="text-sm text-slate-400">Produits max</p>
 
-                      <p className="text-xl font-bold text-white">{plan.max_products === -1 ? 'Illimité' : plan.max_products}</p>
+                      <p className="text-xl font-bold text-white">{currentPlan.max_products === -1 ? 'Illimité' : currentPlan.max_products}</p>
 
                     </motion.div>
 
@@ -2890,13 +2987,93 @@ const VendorDashboard = () => {
 
                   
 
-                  {plan.id === 'free' && (
+                  {currentPlan.id === 'free' && subscriptionPlans.length > 0 && (
 
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <div className="space-y-4 mt-6">
 
-                      <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg">
+                      <h4 className="text-lg font-semibold text-white mb-3">Plans disponibles</h4>
 
-                        <Link to="/vendeur/abonnement"><Crown className="w-4 h-4 mr-2" /> Passer à un plan supérieur</Link>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                        {subscriptionPlans.filter(p => p.id !== 'free' && p.is_active).map((availablePlan) => (
+
+                          <motion.div
+
+                            key={availablePlan.id}
+
+                            whileHover={{ scale: 1.02 }}
+
+                            className={`p-4 rounded-xl border ${
+
+                              availablePlan.badge === 'premium' 
+
+                                ? 'bg-gradient-to-br from-purple-900/50 to-indigo-900/50 border-purple-500/50' 
+
+                                : availablePlan.badge === 'pro'
+
+                                ? 'bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-500/50'
+
+                                : 'bg-slate-800/50 border-slate-600'
+
+                            }`}
+
+                          >
+
+                            <div className="flex items-center gap-2 mb-2">
+
+                              <span className="text-2xl">{availablePlan.emoji}</span>
+
+                              <h5 className="font-bold text-white">{availablePlan.name}</h5>
+
+                            </div>
+
+                            <p className="text-lg font-bold text-green-400 mb-2">
+
+                              {availablePlan.price_fcfa > 0 ? formatPrice(availablePlan.price_fcfa) + ' FCFA/mois' : 'Gratuit'}
+
+                            </p>
+
+                            <p className="text-sm text-slate-400 mb-3">Commission: <span className="text-green-400 font-semibold">{availablePlan.commission_percent}%</span></p>
+
+                            <Button
+
+                              onClick={() => handleUpgradePlan(availablePlan.id)}
+
+                              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+
+                              size="sm"
+
+                            >
+
+                              <Crown className="w-4 h-4 mr-2" /> Choisir ce plan
+
+                            </Button>
+
+                          </motion.div>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                  {currentPlan.id !== 'free' && (
+
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="mt-6">
+
+                      <Button 
+
+                        onClick={() => handleDowngradePlan()}
+
+                        variant="outline"
+
+                        className="w-full border-red-500 text-red-400 hover:bg-red-500/20"
+
+                      >
+
+                        <XCircle className="w-4 h-4 mr-2" /> Revenir au plan gratuit
 
                       </Button>
 
