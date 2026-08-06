@@ -514,6 +514,23 @@ const VendorDashboard = () => {
 
   };
 
+  const handleDeleteOrder = async (orderId, reason = '', permanent = false) => {
+    try {
+      const response = await axios.delete(`${API}/orders/${orderId}`, 
+        { 
+          data: { order_id: orderId, reason, permanent },
+          headers: { Authorization: `Bearer ${token}` } 
+        }
+      );
+      toast.success(permanent ? 'Commande supprimée définitivement' : 'Commande déplacée vers la corbeille');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de la suppression de la commande';
+      toast.error(errorMessage);
+    }
+  };
+
 
 
   const handleUpgradePlan = async (planId) => {
@@ -1911,6 +1928,25 @@ const VendorDashboard = () => {
                                     className="text-red-400 hover:bg-red-500/20"
                                   >
                                     <XCircle className="w-4 h-4 mr-1" /> Annuler
+                                  </Button>
+                                </motion.div>
+                              )}
+
+                              {['cancelled', 'rejected', 'delivered', 'refunded'].includes(order.status) && (
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const reason = prompt('Raison de la suppression (optionnel):');
+                                      const permanent = confirm('Supprimer définitivement ? (OK = définitif, Annuler = corbeille)');
+                                      if (reason !== null) {
+                                        handleDeleteOrder(order.id, reason || '', permanent);
+                                      }
+                                    }}
+                                    className="text-gray-400 hover:bg-gray-500/20"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" /> Supprimer
                                   </Button>
                                 </motion.div>
                               )}

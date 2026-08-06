@@ -54,7 +54,7 @@ from core.database import db
 
 from core.websocket import manager
 
-from models.schemas import CreateOrder, DropshippedProductCreate, DropshippedProductUpdate, OrderCancel
+from models.schemas import CreateOrder, DropshippedProductCreate, DropshippedProductUpdate, OrderCancel, OrderDeleteRequest
 
 from routes.auth import router as auth_router
 
@@ -1052,13 +1052,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
 
 @api.get("/orders")
-
 async def list_orders(user: dict = Depends(get_current_user)):
-
     role = user.get("role")
-
-    query = {}
-
+    query = {"is_deleted": {"$ne": True}}  # Exclure les commandes supprimées par défaut
     print(f"DEBUG: list_orders - role: {role}, user_id: {user['id']}")
 
     
@@ -1105,16 +1101,126 @@ async def list_orders(user: dict = Depends(get_current_user)):
 
 
 
-@api.get("/orders/{order_id}")
-
-async def get_order(order_id: str, user: dict = Depends(get_current_user)):
-
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-
+@api.delete("/orders/{order_id}")
+async def delete_order(order_id: str, data: OrderDeleteRequest, user: dict = Depends(get_current_user)):
+    """Supprimer une commande (temporaire ou permanente)"""
+    order = await db.orders.find_one({"id": order_id})
     if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    
+    # Vérifier les permissions
+    if order.get("customer_id") != user["id"] and order.get("seller_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Vous n'avez pas le droit de supprimer cette commande")
+    
+    # Ne permettre la suppression que pour les commandes terminées
+    deletable_statuses = ["cancelled", "rejected", "delivered", "refunded"]
+    if order["status"] not in deletable_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Seules les commandes terminées ({', '.join(deletable_statuses)}) peuvent être supprimées"
+        )
+    
+    if data.permanent:
+        # Suppression permanente
+        await db.orders.delete_one({"id": order_id})
+        return {"ok": True, "message": "Commande supprimée définitivement"}
+    else:
+        # Déplacer vers la corbeille
+        await db.orders.update_one(
+            {"id": order_id},
+            {
+                "$set": {
+                    "is_deleted": True,
+                    "deleted_at": _utc(),
+                    "deleted_by": user["id"],
+                    "deleted_reason": data.reason,
+                    "updated_at": _utc()
+                }
+            }
+        )
+        return {"ok": True, "message": "Commande déplacée vers la corbeille"}
 
+
+@api.get("/orders/trash")
+async def get_trashed_orders(user: dict = Depends(get_current_user)):
+    """Récupérer les commandes dans la corbeille"""
+    query = {
+        "is_deleted": True,
+        "$or": [
+            {"customer_id": user["id"]},
+            {"seller_id": user["id"]}
+        ]
+    }
+    
+    orders = await db.orders.find(query, {"_id": 0}).sort("deleted_at", -1).to_list(50)
+    return {"orders": orders}
+
+
+@api.post("/orders/{order_id}/restore")
+async def restore_order(order_id: str, user: dict = Depends(get_current_user)):
+    """Restaurer une commande depuis la corbeille"""
+    order = await db.orders.find_one({"id": order_id, "is_deleted": True})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable dans la corbeille")
+    
+    # Vérifier les permissions
+    if order.get("customer_id") != user["id"] and order.get("seller_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Vous n'avez pas le droit de restaurer cette commande")
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "is_deleted": False,
+                "deleted_at": None,
+                "deleted_by": None,
+                "deleted_reason": None,
+                "updated_at": _utc()
+            }
+        }
+    )
+    
+    return {"ok": True, "message": "Commande restaurée"}
+
+
+@api.get("/orders/active")
+async def get_active_orders(
+    user: dict = Depends(get_current_user),
+    status: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0
+):
+    """Récupérer uniquement les commandes actives (non supprimées) avec pagination"""
+    query = {
+        "is_deleted": {"$ne": True},
+        "$or": [
+            {"customer_id": user["id"]},
+            {"seller_id": user["id"]}
+        ]
+    }
+    
+    if status:
+        query["status"] = status
+    
+    # Optimisation: exclure les commandes terminées anciennes
+    query["status"] = {"$nin": ["cancelled", "rejected", "delivered", "refunded"]}
+    
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
+    total = await db.orders.count_documents(query)
+    
+    return {
+        "orders": orders,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
+
+
+@api.get("/orders/{order_id}")
+async def get_order(order_id: str, user: dict = Depends(get_current_user)):
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
-
     return order
 
 

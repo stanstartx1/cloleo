@@ -5,7 +5,7 @@ import axios from 'axios';
 import { 
   ShoppingBag, Package, Truck, CheckCircle, Clock, 
   XCircle, Eye, RefreshCw,
-  Calendar, MapPin
+  Calendar, MapPin, Trash2, Trash, Restore
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -78,13 +78,15 @@ const getStatusConfig = (status) => {
   return configs[status] || configs.pending;
 };
 
-const OrderCard = ({ order, cancellationSettings, onCancelOrder }) => {
+const OrderCard = ({ order, cancellationSettings, onCancelOrder, onDeleteOrder }) => {
   const navigate = useNavigate();
   const statusConfig = getStatusConfig(order.status);
   const StatusIcon = statusConfig.icon;
 
   const canCancel = cancellationSettings?.allow_customer_cancellation && 
                     (cancellationSettings?.customer_cancellable_statuses || []).includes(order.status);
+  
+  const canDelete = ['cancelled', 'rejected', 'delivered', 'refunded'].includes(order.status);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -202,6 +204,20 @@ const OrderCard = ({ order, cancellationSettings, onCancelOrder }) => {
               Annuler
             </Button>
           )}
+          {canDelete && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-gray-200 text-gray-600 hover:bg-gray-50"
+              onClick={() => {
+                const reason = prompt('Raison de la suppression (optionnel):');
+                const permanent = confirm('Supprimer définitivement ? (OK = définitif, Annuler = corbeille)');
+                onDeleteOrder(order.id, reason || '', permanent);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -269,6 +285,23 @@ const OrdersPage = () => {
       console.error('Error cancelling order:', error);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
       console.error('Erreur détaillée:', errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId, reason = '', permanent = false) => {
+    try {
+      const response = await axios.delete(`${API}/orders/${orderId}`, 
+        { 
+          data: { order_id: orderId, reason, permanent },
+          headers: { Authorization: `Bearer ${token}` } 
+        }
+      );
+      toast.success(permanent ? 'Commande supprimée définitivement' : 'Commande déplacée vers la corbeille');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de la suppression de la commande';
       toast.error(errorMessage);
     }
   };
@@ -438,6 +471,7 @@ const OrdersPage = () => {
                 order={order} 
                 cancellationSettings={cancellationSettings}
                 onCancelOrder={handleCancelOrder}
+                onDeleteOrder={handleDeleteOrder}
               />
             ))}
           </div>

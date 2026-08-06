@@ -157,6 +157,12 @@ class MessageMediaCreate(BaseModel):
     duration: Optional[int] = None  # For audio in seconds
 
 
+class OrderDeleteRequest(BaseModel):
+    order_id: str
+    reason: Optional[str] = None
+    permanent: bool = False  # False = move to trash, True = permanent delete
+
+
 class ConversationCreate(BaseModel):
     product_id: Optional[str] = None
     dropshipped_product_id: Optional[str] = None
