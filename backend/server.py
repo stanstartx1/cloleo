@@ -6,6 +6,7 @@ import os
 
 # Order cancellation system - dynamic configuration
 # Subscription plans system - dynamic configuration
+# Chat multimedia system - images, documents, audio
 
 import uuid
 

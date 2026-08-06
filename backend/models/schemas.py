@@ -148,6 +148,15 @@ class MessageCreate(BaseModel):
     content: str
 
 
+class MessageMediaCreate(BaseModel):
+    conversation_id: str
+    media_type: str  # image, document, audio
+    file_url: str
+    file_name: Optional[str] = None
+    file_size: Optional[int] = None
+    duration: Optional[int] = None  # For audio in seconds
+
+
 class ConversationCreate(BaseModel):
     product_id: Optional[str] = None
     dropshipped_product_id: Optional[str] = None

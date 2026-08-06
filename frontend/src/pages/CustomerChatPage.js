@@ -4,7 +4,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   MessageCircle, Send, X, Store, ArrowLeft, Search, LogOut,
-  Image as ImageIcon, Clock, Check, CheckCheck, ChevronRight, Tag
+  Image as ImageIcon, Clock, Check, CheckCheck, ChevronRight, Tag,
+  FileText, Mic, Paperclip
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
