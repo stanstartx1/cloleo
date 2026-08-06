@@ -135,9 +135,6 @@ const FloatingChat = () => {
     return `/vendeur-boutique/${activeConversation.seller_id}`;
   })();
 
-  // Hide floating chat button on chat pages
-  const isChatPage = location.pathname === '/messages' || location.pathname.startsWith('/message');
-
   const loadMessages = useCallback(async () => {
     if (!token || !activeConversationId) return;
     setLoadingMessages(true);
