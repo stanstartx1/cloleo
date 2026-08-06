@@ -66,6 +66,9 @@ const CustomerChatPage = () => {
       return;
     }
     fetchConversations();
+    // Refresh conversations less frequently since we have WebSocket
+    const interval = setInterval(fetchConversations, 60000); // 60s
+    return () => clearInterval(interval);
   }, [isAuthenticated, navigate, fetchConversations]);
 
   // Load messages when conversation is selected
@@ -90,18 +93,60 @@ const CustomerChatPage = () => {
     }
   }, [token]);
 
-  // WebSocket connection - désactivé temporairement à cause d'erreurs de connexion
-  // Les messages fonctionnent via polling HTTP normal
+  // WebSocket connection
   useEffect(() => {
     if (!selectedConversation) return;
 
-    // Refresh messages periodically instead of WebSocket
-    const interval = setInterval(() => {
-      loadMessages(selectedConversation.id);
-    }, 10000); // Refresh every 10 seconds
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${selectedConversation.id}`);
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('WebSocket message received:', data);
+      
+      if (data.type === 'new_message') {
+        setMessages(prev => [...prev, data.message]);
+        scrollToBottom();
+      } else if (data.type === 'message_deleted') {
+        setMessages(prev => prev.filter(m => m.id !== data.message_id));
+      } else if (data.type === 'pong') {
+        // Ping/pong keep-alive
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+    
+    wsRef.current = ws;
+    
+    // Cleanup on unmount
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [selectedConversation]);
 
-    return () => clearInterval(interval);
-  }, [selectedConversation, loadMessages]);
+  // Keep-alive ping
+  useEffect(() => {
+    if (!wsRef.current) return;
+    
+    const pingInterval = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000); // Ping every 30 seconds
+    
+    return () => clearInterval(pingInterval);
+  }, [selectedConversation]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -213,21 +258,29 @@ const CustomerChatPage = () => {
     formData.append('file', file);
     
     try {
+      console.log('Uploading image for conversation:', selectedConversation.id);
       const response = await axios.post(
         `${API}/conversations/${selectedConversation.id}/upload-image`,
         formData,
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
       );
       
-      setMessages(prev => [...prev, response.data.message]);
-      scrollToBottom();
-      toast.success('Image envoyée');
+      console.log('Image upload response:', response.data);
+      
+      if (response.data.message) {
+        setMessages(prev => [...prev, response.data.message]);
+        scrollToBottom();
+        toast.success('Image envoyée');
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Erreur lors de l\'envoi de l\'image');
     } finally {
       setUploadingFile(false);
       setShowMediaMenu(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -240,21 +293,29 @@ const CustomerChatPage = () => {
     formData.append('file', file);
     
     try {
+      console.log('Uploading document for conversation:', selectedConversation.id);
       const response = await axios.post(
         `${API}/conversations/${selectedConversation.id}/upload-document`,
         formData,
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
       );
       
-      setMessages(prev => [...prev, response.data.message]);
-      scrollToBottom();
-      toast.success('Document envoyé');
+      console.log('Document upload response:', response.data);
+      
+      if (response.data.message) {
+        setMessages(prev => [...prev, response.data.message]);
+        scrollToBottom();
+        toast.success('Document envoyé');
+      }
     } catch (error) {
       console.error('Error uploading document:', error);
       toast.error('Erreur lors de l\'envoi du document');
     } finally {
       setUploadingFile(false);
       setShowMediaMenu(false);
+      if (documentInputRef.current) {
+        documentInputRef.current.value = '';
+      }
     }
   };
 
@@ -267,21 +328,29 @@ const CustomerChatPage = () => {
     formData.append('file', file);
     
     try {
+      console.log('Uploading audio for conversation:', selectedConversation.id);
       const response = await axios.post(
         `${API}/conversations/${selectedConversation.id}/upload-audio`,
         formData,
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
       );
       
-      setMessages(prev => [...prev, response.data.message]);
-      scrollToBottom();
-      toast.success('Audio envoyé');
+      console.log('Audio upload response:', response.data);
+      
+      if (response.data.message) {
+        setMessages(prev => [...prev, response.data.message]);
+        scrollToBottom();
+        toast.success('Audio envoyé');
+      }
     } catch (error) {
       console.error('Error uploading audio:', error);
       toast.error('Erreur lors de l\'envoi de l\'audio');
     } finally {
       setUploadingFile(false);
       setShowMediaMenu(false);
+      if (audioInputRef.current) {
+        audioInputRef.current.value = '';
+      }
     }
   };
 
@@ -306,15 +375,20 @@ const CustomerChatPage = () => {
         formData.append('duration', recordingTime);
         
         try {
+          console.log('Uploading recorded audio for conversation:', selectedConversation.id);
           const response = await axios.post(
             `${API}/conversations/${selectedConversation.id}/upload-audio`,
             formData,
             { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
           );
           
-          setMessages(prev => [...prev, response.data.message]);
-          scrollToBottom();
-          toast.success('Message vocal envoyé');
+          console.log('Recorded audio upload response:', response.data);
+          
+          if (response.data.message) {
+            setMessages(prev => [...prev, response.data.message]);
+            scrollToBottom();
+            toast.success('Message vocal envoyé');
+          }
         } catch (error) {
           console.error('Error uploading recording:', error);
           toast.error('Erreur lors de l\'envoi du message vocal');

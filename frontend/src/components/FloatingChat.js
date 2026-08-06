@@ -156,14 +156,55 @@ const FloatingChat = () => {
     loadMessages();
   }, [isOpen, activeConversationId, loadMessages]);
 
+  // WebSocket connection for real-time updates
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
-    const timer = setInterval(() => {
-      loadMessages();
-      refreshConversations();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [isOpen, activeConversationId, loadMessages, refreshConversations]);
+
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${activeConversationId}`);
+    
+    ws.onopen = () => {
+      console.log('FloatingChat WebSocket connected');
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('FloatingChat WebSocket message received:', data);
+      
+      if (data.type === 'new_message') {
+        setMessages(prev => [...prev, data.message]);
+        refreshConversations();
+      } else if (data.type === 'message_deleted') {
+        setMessages(prev => prev.filter(m => m.id !== data.message_id));
+        refreshConversations();
+      } else if (data.type === 'pong') {
+        // Ping/pong keep-alive
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('FloatingChat WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('FloatingChat WebSocket disconnected');
+    };
+    
+    // Cleanup on unmount
+    return () => {
+      ws.close();
+    };
+  }, [isOpen, activeConversationId, refreshConversations]);
+
+  // Keep-alive ping
+  useEffect(() => {
+    if (!isOpen || !activeConversationId) return;
+    
+    const pingInterval = setInterval(() => {
+      // Keep-alive logic if needed
+    }, 30000);
+    
+    return () => clearInterval(pingInterval);
+  }, [isOpen, activeConversationId]);
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -179,15 +220,29 @@ const FloatingChat = () => {
     if (!newMessage.trim() || !activeConversationId || !token) return;
     const content = newMessage.trim();
     setNewMessage("");
+    
+    // Optimistic update
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      content: content,
+      sender_id: user?.id,
+      sender_type: 'customer',
+      created_at: new Date().toISOString(),
+      is_read: false
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    
     try {
       await axios.post(
         `${API}/conversations/${activeConversationId}/messages`,
         { content },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      await loadMessages();
-      await refreshConversations();
+      // Message will be updated via WebSocket
+      refreshConversations();
     } catch (error) {
+      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      setNewMessage(content);
       toast.error("Erreur lors de l'envoi");
     }
   };
