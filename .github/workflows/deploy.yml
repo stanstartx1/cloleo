@@ -4,12 +4,20 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:  # Allow manual trigger
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual trigger'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy with SSH Key
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -17,75 +25,139 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          timeout: 120s
-          command_timeout: 30m
+          timeout: 180s
+          command_timeout: 35m
+          script_stop: true
           script: |
             set -euo pipefail
             
             echo "🚀 Deployment started at $(date)"
+            echo "Triggered by: ${{ github.event_name }}"
+            echo "Commit: ${{ github.sha }}"
             
             cd /var/www/cloleo
             
+            echo "== Checking current status =="
+            git status
+            git log --oneline -3
+            
             echo "== Pulling latest code =="
-            for attempt in 1 2 3; do
+            for attempt in 1 2 3 4 5; do
+              echo "Attempt $attempt of 5..."
               if git fetch origin main --depth=1; then
+                echo "✅ Git fetch successful"
                 break
               fi
-              if [ "$attempt" -eq 3 ]; then
-                echo "ERROR: impossible de contacter GitHub après 3 tentatives."
+              if [ "$attempt" -eq 5 ]; then
+                echo "❌ ERROR: impossible de contacter GitHub après 5 tentatives."
                 exit 1
               fi
-              echo "GitHub indisponible, nouvelle tentative dans 5 secondes..."
-              sleep 5
+              echo "GitHub indisponible, nouvelle tentative dans 10 secondes..."
+              sleep 10
             done
+            
+            echo "== Resetting to latest =="
             git reset --hard origin/main
             git clean -fd
             
-            echo "== Backend =="
+            echo "== Backend setup =="
             cd backend
-            source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
-            pip install -r requirements.txt --quiet
+            
+            # Ensure venv exists
+            if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
+              python3 -m venv venv
+            fi
+            
+            source venv/bin/activate
+            
+            # Upgrade pip and install requirements
+            echo "Installing/upgrading dependencies..."
+            pip install --upgrade pip setuptools wheel --quiet
+            pip install -r requirements.txt --quiet || {
+              echo "⚠️ Some packages failed to install, trying individually..."
+              pip install -r requirements.txt
+            }
+            
             deactivate
             
             echo "== Frontend build =="
             cd ../frontend
             
-            # === PARTIE CORRIGÉE AVEC MAPBOX ===
+            # Create production environment
             echo "Setting up production environment..."
-            
-            # Supprime l'ancien .env.production et en crée un propre
             rm -f .env.production
             echo "REACT_APP_BACKEND_URL=https://cloleo.com" > .env.production
-            echo "REACT_APP_MAPBOX_ACCESS_TOKEN=${{ secrets.REACT_APP_MAPBOX_ACCESS_TOKEN }}" >> .env.production
             
-            # Installation et build
-            npm ci --prefer-offline || npm install
+            # Add Mapbox token if secret exists
+            if [ -n "${{ secrets.REACT_APP_MAPBOX_ACCESS_TOKEN }}" ]; then
+              echo "REACT_APP_MAPBOX_ACCESS_TOKEN=${{ secrets.REACT_APP_MAPBOX_ACCESS_TOKEN }}" >> .env.production
+            else
+              echo "⚠️ WARNING: No Mapbox token provided"
+            fi
+            
+            # Clear cache and install
+            echo "Clearing npm cache and installing..."
+            rm -rf node_modules package-lock.json
+            npm install
             npm run build
             
-            echo "✅ Frontend built successfully with HTTPS backend URL and Mapbox token"
+            echo "✅ Frontend built successfully"
             
-            echo "== Restart services =="
-            echo "Backend unit configuration:"
-            systemctl show cloleo-backend \
-              --property=ExecStart \
-              --property=WorkingDirectory \
-              --no-pager
-
+            echo "== Creating upload directories =="
+            mkdir -p ../backend/uploads/chat/images ../backend/uploads/chat/documents ../backend/uploads/chat/audio
+            chmod -R 755 ../backend/uploads
+            
+            echo "== Restarting services =="
+            cd /var/www/cloleo
+            
+            # Restart backend
+            echo "Restarting cloleo-backend..."
             systemctl restart cloleo-backend
-            systemctl is-active --quiet cloleo-backend
-
-            # The public API must expose the route that was just deployed.
-            # Do not report a successful deployment while an older service is running.
-            if ! curl --fail --silent --show-error --retry 5 --retry-connrefused \
-              http://127.0.0.1:8000/api/openapi.json | grep --quiet '"/auth-page-settings"'; then
-              echo "ERROR: cloleo-backend is not serving the code from this deployment."
+            
+            # Wait for backend to be ready
+            echo "Waiting for backend to be ready..."
+            sleep 10
+            
+            # Check if backend is running
+            if systemctl is-active --quiet cloleo-backend; then
+              echo "✅ Backend is active"
+            else
+              echo "❌ Backend failed to start"
+              systemctl status cloleo-backend
               exit 1
             fi
-
+            
+            # Health check
+            echo "Performing health check..."
+            for attempt in 1 2 3 4 5; do
+              if curl --fail --silent --show-error --max-time 10 \
+                http://127.0.0.1:8000/api/openapi.json | grep --quiet '"/auth-page-settings"'; then
+                echo "✅ Health check passed"
+                break
+              fi
+              if [ "$attempt" -eq 5 ]; then
+                echo "❌ Health check failed after 5 attempts"
+                exit 1
+              fi
+              echo "Health check attempt $attempt failed, retrying in 5 seconds..."
+              sleep 5
+            done
+            
+            # Reload Apache
             if systemctl is-active --quiet apache2; then
+              echo "Reloading Apache..."
               systemctl reload apache2
+              echo "✅ Apache reloaded"
             else
-              echo "Apache is not managed by the apache2 systemd unit; no reload performed."
+              echo "⚠️ Apache is not active, skipping reload"
             fi
             
-            echo "✅ Deployment finished at $(date)"
+            echo "== Deployment verification =="
+            echo "Backend status:"
+            systemctl status cloleo-backend --no-pager | head -5
+            echo "Apache status:"
+            systemctl status apache2 --no-pager | head -3
+            
+            echo "✅ Deployment finished successfully at $(date)"
+            echo "Deployment completed successfully!"
