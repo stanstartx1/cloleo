@@ -578,18 +578,23 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                                       </div>
                                     )}
                                     {message.media_type === 'document' && (
-                                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                                        <FileText className="w-5 h-5 text-blue-600" />
-                                        <div className="flex-1">
-                                          <p className="text-sm font-medium">{message.file_name}</p>
-                                          <p className="text-xs text-gray-500">{message.file_size ? `${(message.file_size / 1024).toFixed(1)} KB` : ''}</p>
+                                      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                          <FileText className="w-6 h-6 text-blue-600" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium text-blue-900 truncate">{message.file_name}</p>
+                                          <p className="text-xs text-blue-600">
+                                            {message.file_size ? `${(message.file_size / 1024).toFixed(1)} KB` : 'Document'}
+                                          </p>
                                         </div>
                                         <a 
                                           href={message.file_url} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800"
+                                          className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                         >
+                                          <FileText className="w-4 h-4" />
                                           Télécharger
                                         </a>
                                       </div>

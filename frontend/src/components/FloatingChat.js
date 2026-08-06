@@ -1,6 +1,7 @@
 ﻿import MediaImg from '../components/MediaImg';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 import { MessageCircle, Send, X } from "lucide-react";
 import ChatMessageDeleteButton from "./ChatMessageDeleteButton";
 import { Button } from "./ui/button";
@@ -111,6 +112,7 @@ export const useChat = () => {
 
 const FloatingChat = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, isAuthenticated } = useAuth();
   const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations } = useChat();
   const [messages, setMessages] = useState([]);
@@ -132,6 +134,9 @@ const FloatingChat = () => {
     }
     return `/vendeur-boutique/${activeConversation.seller_id}`;
   })();
+
+  // Hide floating chat button on chat pages
+  const isChatPage = location.pathname === '/messages' || location.pathname.startsWith('/message');
 
   const loadMessages = useCallback(async () => {
     if (!token || !activeConversationId) return;
@@ -190,8 +195,14 @@ const FloatingChat = () => {
     }
   };
 
+  // Hide floating chat button on chat pages
+  const isChatPage = location.pathname === '/messages' || location.pathname.startsWith('/message');
+
+  if (isChatPage) {
+    return null; // Don't render floating chat button on chat pages
+  }
+
   if (!isOpen) {
-    if (!isAuthenticated) {
       return (
         <button
           onClick={() => toast.error("Connectez-vous pour ouvrir le chat")}
