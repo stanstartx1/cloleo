@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import uuid
 import os
 from pathlib import Path
+from bson import ObjectId
 
 from core.database import db
 from core.auth import (
@@ -26,6 +27,18 @@ def set_manager(mgr):
     """Set the WebSocket manager - called from server.py"""
     global manager
     manager = mgr
+
+
+def convert_objectid_to_str(data):
+    """Convert MongoDB ObjectId to string recursively"""
+    if isinstance(data, dict):
+        return {k: convert_objectid_to_str(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_objectid_to_str(item) for item in data]
+    elif isinstance(data, ObjectId):
+        return str(data)
+    else:
+        return data
 
 
 def _message_not_deleted_filter():
@@ -312,9 +325,6 @@ async def delete_message(
 
 
 # Chat media upload endpoints
-import os
-from pathlib import Path
-
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads" / "chat"
 
 def ensure_upload_dirs():
@@ -411,6 +421,13 @@ async def upload_chat_image(
                 print(f"WebSocket notification error: {ws_error}")
         
         print(f"Image upload successful: {message['id']}")
+        
+        # Convert ObjectId to string before returning
+        message = convert_objectid_to_str(message)
+        
+        # Convert ObjectId to string before returning
+        message = convert_objectid_to_str(message)
+        
         return {"ok": True, "message": message}
     except HTTPException:
         raise
@@ -481,6 +498,9 @@ async def upload_chat_document(
                 "type": "new_message",
                 "message": message
             })
+        
+        # Convert ObjectId to string before returning
+        message = convert_objectid_to_str(message)
         
         return {"ok": True, "message": message}
     except Exception as e:
@@ -567,6 +587,13 @@ async def upload_chat_audio(
                 print(f"WebSocket notification error: {ws_error}")
         
         print(f"Audio upload successful: {message['id']}")
+        
+        # Convert ObjectId to string before returning
+        message = convert_objectid_to_str(message)
+        
+        # Convert ObjectId to string before returning
+        message = convert_objectid_to_str(message)
+        
         return {"ok": True, "message": message}
     except HTTPException:
         raise
