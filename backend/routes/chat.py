@@ -462,8 +462,8 @@ async def upload_chat_audio(
         if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
             raise HTTPException(status_code=403, detail="Accès non autorisé")
         
-        # Validate file type
-        if not file.content_type or not file.content_type.startswith("audio/"):
+        # Validate file type - be more permissive with audio types
+        if file.content_type and not file.content_type.startswith("audio/"):
             raise HTTPException(status_code=400, detail="Seuls les fichiers audio sont acceptés")
         
         # Generate unique filename
@@ -499,10 +499,13 @@ async def upload_chat_audio(
         
         # Notify via WebSocket
         if manager:
-            await manager.broadcast_to_room(f"chat_{conversation_id}", {
-                "type": "new_message",
-                "message": message
-            })
+            try:
+                await manager.broadcast_to_room(f"chat_{conversation_id}", {
+                    "type": "new_message",
+                    "message": message
+                })
+            except Exception as ws_error:
+                print(f"WebSocket notification error: {ws_error}")
         
         return {"ok": True, "message": message}
     except Exception as e:

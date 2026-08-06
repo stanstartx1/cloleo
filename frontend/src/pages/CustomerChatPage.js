@@ -30,9 +30,18 @@ const CustomerChatPage = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const audioInputRef = useRef(null);
+  const documentInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
 
   // Fetch all conversations
   const fetchConversations = useCallback(async () => {
@@ -192,6 +201,160 @@ const CustomerChatPage = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  // Media upload handlers
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedConversation) return;
+    
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${selectedConversation.id}/upload-image`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      setMessages(prev => [...prev, response.data.message]);
+      scrollToBottom();
+      toast.success('Image envoyée');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Erreur lors de l\'envoi de l\'image');
+    } finally {
+      setUploadingFile(false);
+      setShowMediaMenu(false);
+    }
+  };
+
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedConversation) return;
+    
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${selectedConversation.id}/upload-document`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      setMessages(prev => [...prev, response.data.message]);
+      scrollToBottom();
+      toast.success('Document envoyé');
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Erreur lors de l\'envoi du document');
+    } finally {
+      setUploadingFile(false);
+      setShowMediaMenu(false);
+    }
+  };
+
+  const handleAudioUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedConversation) return;
+    
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${selectedConversation.id}/upload-audio`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      setMessages(prev => [...prev, response.data.message]);
+      scrollToBottom();
+      toast.success('Audio envoyé');
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      toast.error('Erreur lors de l\'envoi de l\'audio');
+    } finally {
+      setUploadingFile(false);
+      setShowMediaMenu(false);
+    }
+  };
+
+  // Audio recording functionality
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      const chunks = [];
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+      
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+        
+        setUploadingFile(true);
+        const formData = new FormData();
+        formData.append('file', audioFile);
+        formData.append('duration', recordingTime);
+        
+        try {
+          const response = await axios.post(
+            `${API}/conversations/${selectedConversation.id}/upload-audio`,
+            formData,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+          );
+          
+          setMessages(prev => [...prev, response.data.message]);
+          scrollToBottom();
+          toast.success('Message vocal envoyé');
+        } catch (error) {
+          console.error('Error uploading recording:', error);
+          toast.error('Erreur lors de l\'envoi du message vocal');
+        } finally {
+          setUploadingFile(false);
+        }
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Impossible d\'accéder au microphone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+    }
+  };
+
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Filter conversations
@@ -429,7 +592,51 @@ const CustomerChatPage = () => {
                                   {message.text && <p className="text-xs opacity-90">{message.text}</p>}
                                 </div>
                               ) : (
-                                <p className="text-sm whitespace-pre-wrap">{message.text || message.content}</p>
+                                <div className="space-y-2">
+                                  {message.media_type === 'image' && (
+                                    <div>
+                                      <MediaImg 
+                                        src={message.file_url} 
+                                        alt="Image partagée" 
+                                        className="max-w-full rounded-lg"
+                                      />
+                                    </div>
+                                  )}
+                                  {message.media_type === 'document' && (
+                                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                                      <FileText className="w-5 h-5 text-blue-600" />
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium">{message.file_name}</p>
+                                        <p className="text-xs text-gray-500">{message.file_size ? `${(message.file_size / 1024).toFixed(1)} KB` : ''}</p>
+                                      </div>
+                                      <a 
+                                        href={message.file_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800"
+                                      >
+                                        Télécharger
+                                      </a>
+                                    </div>
+                                  )}
+                                  {message.media_type === 'audio' && (
+                                    <div className="space-y-2">
+                                      <audio controls className="w-full">
+                                        <source src={message.file_url} type="audio/mpeg" />
+                                        Votre navigateur ne supporte pas l'audio
+                                      </audio>
+                                      {message.duration && (
+                                        <p className="text-xs text-gray-500">Durée: {formatRecordingTime(message.duration)}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                  {message.content && (
+                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                  )}
+                                  {message.text && !message.content && (
+                                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                                  )}
+                                </div>
                               )}
                               <div className={`flex items-center justify-end gap-1 mt-1 ${
                                 isOwn ? 'text-purple-200' : 'text-gray-400'
@@ -457,19 +664,127 @@ const CustomerChatPage = () => {
                   {/* Message Input */}
                   <form onSubmit={handleSend} className="p-4 border-t border-gray-200 bg-white">
                     <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowMediaMenu(!showMediaMenu)}
+                          disabled={uploadingFile}
+                        >
+                          <Paperclip className="w-4 h-4" />
+                        </Button>
+                        
+                        {showMediaMenu && (
+                          <div className="absolute bottom-full left-0 mb-2 bg-white border rounded-lg shadow-lg p-2 space-y-1 z-10">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                fileInputRef.current?.click();
+                                setShowMediaMenu(false);
+                              }}
+                              className="w-full justify-start"
+                            >
+                              <ImageIcon className="w-4 h-4 mr-2" />
+                              Image
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                documentInputRef.current?.click();
+                                setShowMediaMenu(false);
+                              }}
+                              className="w-full justify-start"
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              Document
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                audioInputRef.current?.click();
+                                setShowMediaMenu(false);
+                              }}
+                              className="w-full justify-start"
+                            >
+                              <Mic className="w-4 h-4 mr-2" />
+                              Audio
+                            </Button>
+                            <div className="border-t pt-1">
+                              {isRecording ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={stopRecording}
+                                  className="w-full justify-start text-red-600"
+                                >
+                                  <X className="w-4 h-4 mr-2" />
+                                  Stop ({formatRecordingTime(recordingTime)})
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={startRecording}
+                                  className="w-full justify-start"
+                                >
+                                  <Mic className="w-4 h-4 mr-2" />
+                                  Enregistrer
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Hidden file inputs */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                        <input
+                          ref={documentInputRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx,.txt"
+                          onChange={handleDocumentUpload}
+                          className="hidden"
+                        />
+                        <input
+                          ref={audioInputRef}
+                          type="file"
+                          accept="audio/*"
+                          onChange={handleAudioUpload}
+                          className="hidden"
+                        />
+                      </div>
+                      
                       <Input
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Écrivez votre message..."
                         className="flex-1 bg-gray-50 border-gray-200 focus:border-purple-400"
-                        disabled={sending}
+                        disabled={sending || uploadingFile}
                       />
                       <Button
                         type="submit"
-                        disabled={!newMessage.trim() || sending}
+                        disabled={!newMessage.trim() || sending || uploadingFile}
                         className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-6"
                       >
-                        <Send className="w-4 h-4" />
+                        {sending || uploadingFile ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                   </form>
