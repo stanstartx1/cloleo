@@ -162,6 +162,27 @@ api.include_router(dropshipper_chat_router)
 
 api.include_router(reviews_router)
 
+
+
+# WebSocket endpoint for chat
+@app.websocket("/api/ws/chat/{conversation_id}")
+async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
+    await manager.connect(websocket, f"chat_{conversation_id}")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Echo back or handle incoming messages
+            await manager.broadcast_to_room(f"chat_{conversation_id}", {
+                "type": "message",
+                "content": data,
+                "sender": "client"
+            })
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, f"chat_{conversation_id}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(websocket, f"chat_{conversation_id}")
+
 api.include_router(enterprises_router)
 
 api.include_router(offers_router)
@@ -5232,13 +5253,16 @@ async def admin_toggle_category(category_id: str, user: dict = Depends(require_a
 
 async def subscription_plans():
     """Récupérer les plans d'abonnement (dynamiques depuis la base de données)"""
-    # Essayer de récupérer les plans depuis la base de données
-    db_plans = await db.subscription_plans.find({"is_active": True}, {"_id": 0}).sort("order", 1).to_list(20)
+    try:
+        # Essayer de récupérer les plans depuis la base de données
+        db_plans = await db.subscription_plans.find({"is_active": True}, {"_id": 0}).sort("order", 1).to_list(20)
+        
+        if db_plans:
+            return db_plans
+    except Exception as e:
+        print(f"Error fetching subscription plans from database: {e}")
     
-    if db_plans:
-        return db_plans
-    
-    # Fallback vers les plans par défaut si aucun plan n'existe dans la base
+    # Fallback vers les plans par défaut si erreur ou aucun plan n'existe
     default_plans = [
         {"id": "free", "name": "Free", "emoji": "🚀", "price_fcfa": 0, "price_usd": 0, "commission_percent": 15, "features": ["10 produits", "Support standard"], "order": 1, "is_active": True},
         {"id": "artisan", "name": "Artisan", "emoji": "🛠️", "price_fcfa": 5000, "price_usd": 8, "commission_percent": 12, "features": ["50 produits", "Stats avancees"], "badge": "verified", "order": 2, "is_active": True},
@@ -5246,8 +5270,11 @@ async def subscription_plans():
         {"id": "entreprise", "name": "Entreprise", "emoji": "🏢", "price_fcfa": 35000, "price_usd": 58, "commission_percent": 8, "features": ["Multi-boutiques", "Support prioritaire"], "badge": "premium", "order": 4, "is_active": True},
     ]
     
-    # Initialiser les plans par défaut dans la base de données
-    await db.subscription_plans.insert_many(default_plans)
+    # Essayer d'initialiser les plans par défaut dans la base de données (sans bloquer si ça échoue)
+    try:
+        await db.subscription_plans.insert_many(default_plans)
+    except Exception as e:
+        print(f"Could not initialize subscription plans in database: {e}")
     
     return default_plans
 

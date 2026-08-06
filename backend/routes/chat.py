@@ -323,57 +323,58 @@ async def upload_chat_image(
     user: dict = Depends(get_current_user)
 ):
     """Upload an image in chat"""
-    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation non trouvée")
-    
-    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Accès non autorisé")
-    
-    # Validate file type
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Seules les images sont acceptées")
-    
-    # Generate unique filename
-    file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-    unique_filename = f"{uuid.uuid4()}.{file_extension}"
-    file_path = UPLOAD_DIR / "images" / unique_filename
-    (UPLOAD_DIR / "images").mkdir(parents=True, exist_ok=True)
-    
-    # Save file
     try:
+        conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation non trouvée")
+        
+        if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Seules les images sont acceptées")
+        
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = UPLOAD_DIR / "images" / unique_filename
+        (UPLOAD_DIR / "images").mkdir(parents=True, exist_ok=True)
+        
+        # Save file
+        content = await file.read()
         with open(file_path, "wb") as buffer:
-            content = await file.read()
             buffer.write(content)
+        
+        file_url = f"/uploads/chat/images/{unique_filename}"
+        
+        # Create message with image
+        message = {
+            "id": str(uuid.uuid4()),
+            "conversation_id": conversation_id,
+            "sender_id": user["id"],
+            "sender_type": "customer" if conversation["customer_id"] == user["id"] else "seller",
+            "media_type": "image",
+            "file_url": file_url,
+            "file_name": file.filename,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.messages.insert_one(message)
+        await _refresh_conversation_last_message(conversation_id)
+        
+        # Notify via WebSocket
+        if manager:
+            await manager.broadcast_to_room(f"chat_{conversation_id}", {
+                "type": "new_message",
+                "message": message
+            })
+        
+        return {"ok": True, "message": message}
     except Exception as e:
+        print(f"Error uploading chat image: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
-    
-    file_url = f"/uploads/chat/images/{unique_filename}"
-    
-    # Create message with image
-    message = {
-        "id": str(uuid.uuid4()),
-        "conversation_id": conversation_id,
-        "sender_id": user["id"],
-        "sender_type": "customer" if conversation["customer_id"] == user["id"] else "seller",
-        "media_type": "image",
-        "file_url": file_url,
-        "file_name": file.filename,
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.messages.insert_one(message)
-    await _refresh_conversation_last_message(conversation_id)
-    
-    # Notify via WebSocket
-    if manager:
-        await manager.broadcast_to_room(f"chat_{conversation_id}", {
-            "type": "new_message",
-            "message": message
-        })
-    
-    return {"ok": True, "message": message}
 
 
 @router.post("/{conversation_id}/upload-document")
@@ -383,65 +384,66 @@ async def upload_chat_document(
     user: dict = Depends(get_current_user)
 ):
     """Upload a document in chat"""
-    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation non trouvée")
-    
-    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Accès non autorisé")
-    
-    # Validate file type (PDF, DOC, DOCX, etc.)
-    allowed_types = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain"
-    ]
-    
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Type de fichier non supporté")
-    
-    # Generate unique filename
-    file_extension = file.filename.split(".")[-1] if "." in file.filename else "pdf"
-    unique_filename = f"{uuid.uuid4()}.{file_extension}"
-    file_path = UPLOAD_DIR / "documents" / unique_filename
-    (UPLOAD_DIR / "documents").mkdir(parents=True, exist_ok=True)
-    
-    # Save file
     try:
+        conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation non trouvée")
+        
+        if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+        
+        # Validate file type (PDF, DOC, DOCX, etc.)
+        allowed_types = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "text/plain"
+        ]
+        
+        if not file.content_type or file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Type de fichier non supporté")
+        
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "pdf"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = UPLOAD_DIR / "documents" / unique_filename
+        (UPLOAD_DIR / "documents").mkdir(parents=True, exist_ok=True)
+        
+        # Save file
+        content = await file.read()
         with open(file_path, "wb") as buffer:
-            content = await file.read()
             buffer.write(content)
+        
+        file_url = f"/uploads/chat/documents/{unique_filename}"
+        
+        # Create message with document
+        message = {
+            "id": str(uuid.uuid4()),
+            "conversation_id": conversation_id,
+            "sender_id": user["id"],
+            "sender_type": "customer" if conversation["customer_id"] == user["id"] else "seller",
+            "media_type": "document",
+            "file_url": file_url,
+            "file_name": file.filename,
+            "file_size": len(content),
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.messages.insert_one(message)
+        await _refresh_conversation_last_message(conversation_id)
+        
+        # Notify via WebSocket
+        if manager:
+            await manager.broadcast_to_room(f"chat_{conversation_id}", {
+                "type": "new_message",
+                "message": message
+            })
+        
+        return {"ok": True, "message": message}
     except Exception as e:
+        print(f"Error uploading chat document: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
-    
-    file_url = f"/uploads/chat/documents/{unique_filename}"
-    
-    # Create message with document
-    message = {
-        "id": str(uuid.uuid4()),
-        "conversation_id": conversation_id,
-        "sender_id": user["id"],
-        "sender_type": "customer" if conversation["customer_id"] == user["id"] else "seller",
-        "media_type": "document",
-        "file_url": file_url,
-        "file_name": file.filename,
-        "file_size": len(content),
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.messages.insert_one(message)
-    await _refresh_conversation_last_message(conversation_id)
-    
-    # Notify via WebSocket
-    if manager:
-        await manager.broadcast_to_room(f"chat_{conversation_id}", {
-            "type": "new_message",
-            "message": message
-        })
-    
-    return {"ok": True, "message": message}
 
 
 @router.post("/{conversation_id}/upload-audio")
@@ -452,59 +454,60 @@ async def upload_chat_audio(
     user: dict = Depends(get_current_user)
 ):
     """Upload an audio file in chat"""
-    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation non trouvée")
-    
-    if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Accès non autorisé")
-    
-    # Validate file type
-    if not file.content_type.startswith("audio/"):
-        raise HTTPException(status_code=400, detail="Seuls les fichiers audio sont acceptés")
-    
-    # Generate unique filename
-    file_extension = file.filename.split(".")[-1] if "." in file.filename else "mp3"
-    unique_filename = f"{uuid.uuid4()}.{file_extension}"
-    file_path = UPLOAD_DIR / "audio" / unique_filename
-    (UPLOAD_DIR / "audio").mkdir(parents=True, exist_ok=True)
-    
-    # Save file
     try:
+        conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation non trouvée")
+        
+        if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("audio/"):
+            raise HTTPException(status_code=400, detail="Seuls les fichiers audio sont acceptés")
+        
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "mp3"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = UPLOAD_DIR / "audio" / unique_filename
+        (UPLOAD_DIR / "audio").mkdir(parents=True, exist_ok=True)
+        
+        # Save file
+        content = await file.read()
         with open(file_path, "wb") as buffer:
-            content = await file.read()
             buffer.write(content)
+        
+        file_url = f"/uploads/chat/audio/{unique_filename}"
+        
+        # Create message with audio
+        message = {
+            "id": str(uuid.uuid4()),
+            "conversation_id": conversation_id,
+            "sender_id": user["id"],
+            "sender_type": "customer" if conversation["customer_id"] == user["id"] else "seller",
+            "media_type": "audio",
+            "file_url": file_url,
+            "file_name": file.filename,
+            "file_size": len(content),
+            "duration": duration,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.messages.insert_one(message)
+        await _refresh_conversation_last_message(conversation_id)
+        
+        # Notify via WebSocket
+        if manager:
+            await manager.broadcast_to_room(f"chat_{conversation_id}", {
+                "type": "new_message",
+                "message": message
+            })
+        
+        return {"ok": True, "message": message}
     except Exception as e:
+        print(f"Error uploading chat audio: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
-    
-    file_url = f"/uploads/chat/audio/{unique_filename}"
-    
-    # Create message with audio
-    message = {
-        "id": str(uuid.uuid4()),
-        "conversation_id": conversation_id,
-        "sender_id": user["id"],
-        "sender_type": "customer" if conversation["customer_id"] == user["id"] else "seller",
-        "media_type": "audio",
-        "file_url": file_url,
-        "file_name": file.filename,
-        "file_size": len(content),
-        "duration": duration,
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.messages.insert_one(message)
-    await _refresh_conversation_last_message(conversation_id)
-    
-    # Notify via WebSocket
-    if manager:
-        await manager.broadcast_to_room(f"chat_{conversation_id}", {
-            "type": "new_message",
-            "message": message
-        })
-    
-    return {"ok": True, "message": message}
 
 
 # Vendor-specific routes
