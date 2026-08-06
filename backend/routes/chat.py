@@ -312,8 +312,27 @@ async def delete_message(
 
 
 # Chat media upload endpoints
+import os
+from pathlib import Path
+
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads" / "chat"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+def ensure_upload_dirs():
+    """Ensure all upload directories exist"""
+    dirs = [
+        UPLOAD_DIR / "images",
+        UPLOAD_DIR / "documents", 
+        UPLOAD_DIR / "audio"
+    ]
+    for dir_path in dirs:
+        try:
+            dir_path.mkdir(parents=True, exist_ok=True)
+            print(f"Upload directory ensured: {dir_path}")
+        except Exception as e:
+            print(f"Error creating directory {dir_path}: {e}")
+
+# Ensure directories exist when module loads
+ensure_upload_dirs()
 
 
 @router.post("/{conversation_id}/upload-image")
@@ -324,27 +343,44 @@ async def upload_chat_image(
 ):
     """Upload an image in chat"""
     try:
+        print(f"Starting image upload for conversation {conversation_id}")
+        
         conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
         if not conversation:
+            print(f"Conversation {conversation_id} not found")
             raise HTTPException(status_code=404, detail="Conversation non trouvée")
         
         if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+            print(f"User {user['id']} not authorized for conversation {conversation_id}")
             raise HTTPException(status_code=403, detail="Accès non autorisé")
         
         # Validate file type
-        if not file.content_type or not file.content_type.startswith("image/"):
+        if file.content_type and not file.content_type.startswith("image/"):
+            print(f"Invalid file type: {file.content_type}")
             raise HTTPException(status_code=400, detail="Seules les images sont acceptées")
+        
+        # Ensure upload directory exists
+        images_dir = UPLOAD_DIR / "images"
+        try:
+            images_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Error creating images directory: {e}")
+            raise HTTPException(status_code=500, detail="Erreur de configuration du serveur")
         
         # Generate unique filename
         file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        file_path = UPLOAD_DIR / "images" / unique_filename
-        (UPLOAD_DIR / "images").mkdir(parents=True, exist_ok=True)
+        file_path = images_dir / unique_filename
         
         # Save file
-        content = await file.read()
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
+        try:
+            content = await file.read()
+            with open(file_path, "wb") as buffer:
+                buffer.write(content)
+            print(f"Image saved successfully: {file_path}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
+            raise HTTPException(status_code=500, detail=f"Erreur lors de la sauvegarde: {str(e)}")
         
         file_url = f"/uploads/chat/images/{unique_filename}"
         
@@ -366,14 +402,20 @@ async def upload_chat_image(
         
         # Notify via WebSocket
         if manager:
-            await manager.broadcast_to_room(f"chat_{conversation_id}", {
-                "type": "new_message",
-                "message": message
-            })
+            try:
+                await manager.broadcast_to_room(f"chat_{conversation_id}", {
+                    "type": "new_message",
+                    "message": message
+                })
+            except Exception as ws_error:
+                print(f"WebSocket notification error: {ws_error}")
         
+        print(f"Image upload successful: {message['id']}")
         return {"ok": True, "message": message}
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error uploading chat image: {e}")
+        print(f"Unexpected error uploading chat image: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
 
 
@@ -455,27 +497,44 @@ async def upload_chat_audio(
 ):
     """Upload an audio file in chat"""
     try:
+        print(f"Starting audio upload for conversation {conversation_id}")
+        
         conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
         if not conversation:
+            print(f"Conversation {conversation_id} not found")
             raise HTTPException(status_code=404, detail="Conversation non trouvée")
         
         if conversation["customer_id"] != user["id"] and conversation["seller_id"] != user["id"]:
+            print(f"User {user['id']} not authorized for conversation {conversation_id}")
             raise HTTPException(status_code=403, detail="Accès non autorisé")
         
         # Validate file type - be more permissive with audio types
         if file.content_type and not file.content_type.startswith("audio/"):
+            print(f"Invalid file type: {file.content_type}")
             raise HTTPException(status_code=400, detail="Seuls les fichiers audio sont acceptés")
+        
+        # Ensure upload directory exists
+        audio_dir = UPLOAD_DIR / "audio"
+        try:
+            audio_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Error creating audio directory: {e}")
+            raise HTTPException(status_code=500, detail="Erreur de configuration du serveur")
         
         # Generate unique filename
         file_extension = file.filename.split(".")[-1] if "." in file.filename else "mp3"
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        file_path = UPLOAD_DIR / "audio" / unique_filename
-        (UPLOAD_DIR / "audio").mkdir(parents=True, exist_ok=True)
+        file_path = audio_dir / unique_filename
         
         # Save file
-        content = await file.read()
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
+        try:
+            content = await file.read()
+            with open(file_path, "wb") as buffer:
+                buffer.write(content)
+            print(f"Audio saved successfully: {file_path}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
+            raise HTTPException(status_code=500, detail=f"Erreur lors de la sauvegarde: {str(e)}")
         
         file_url = f"/uploads/chat/audio/{unique_filename}"
         
@@ -507,9 +566,12 @@ async def upload_chat_audio(
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
         
+        print(f"Audio upload successful: {message['id']}")
         return {"ok": True, "message": message}
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error uploading chat audio: {e}")
+        print(f"Unexpected error uploading chat audio: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
 
 
