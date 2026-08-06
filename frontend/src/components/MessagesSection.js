@@ -106,84 +106,18 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     fetchMessages(conv.id);
   };
 
-  // WebSocket connection
+  // WebSocket connection - désactivé temporairement à cause d'erreurs de connexion
+  // Les messages fonctionnent via polling HTTP normal
   useEffect(() => {
     if (!selectedConversation) return;
 
-    let ws = null;
-    let reconnectAttempts = 0;
-    let pingInterval = null;
-    let isMounted = true;
+    // Refresh messages periodically instead of WebSocket
+    const interval = setInterval(() => {
+      fetchMessages(selectedConversation.id);
+    }, 10000); // Refresh every 10 seconds
 
-    const connectWs = () => {
-      if (!isMounted) return;
-      
-      ws = new WebSocket(`${WS_URL}/api/ws/chat/${selectedConversation.id}`);
-      
-      ws.onopen = () => {
-        console.log('Vendor Chat WebSocket connected');
-        reconnectAttempts = 0;
-        
-        // Start ping/pong to keep connection alive
-        pingInterval = setInterval(() => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'ping' }));
-          }
-        }, 25000);
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'message_deleted' && data.message_id) {
-            setMessages(prev => prev.filter(m => m.id !== data.message_id));
-            fetchConversations();
-          } else if (data.type === 'new_message' && data.message.sender_id !== userId.current) {
-            setMessages(prev => [...prev, data.message]);
-            // Play notification sound
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleUMOOpO5IAVNEW7h1o5wPAdE0+UBC1FiDtDNiXFGDEzO');
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
-            scrollToBottom();
-            
-            // Update conversation list unread count
-            setConversations(prev => prev.map(c => 
-              c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c
-            ));
-          }
-        } catch (e) {
-          console.error('WS parse error:', e);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      ws.onclose = () => {
-        console.log('Vendor Chat WebSocket disconnected');
-        if (pingInterval) clearInterval(pingInterval);
-        
-        if (isMounted && selectedConversation && reconnectAttempts < 5) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-          reconnectAttempts++;
-          setTimeout(connectWs, delay);
-        }
-      };
-
-      wsRef.current = ws;
-    };
-
-    connectWs();
-
-    return () => {
-      isMounted = false;
-      if (pingInterval) clearInterval(pingInterval);
-      if (ws) {
-        ws.close();
-      }
-    };
-  }, [selectedConversation]);
+    return () => clearInterval(interval);
+  }, [selectedConversation, fetchMessages]);
 
   // Send message
   const handleSend = async (e) => {
