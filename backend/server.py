@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 
 # Order cancellation system - dynamic configuration
+# Subscription plans system - dynamic configuration
 
 import uuid
 
