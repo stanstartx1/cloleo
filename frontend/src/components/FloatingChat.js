@@ -200,6 +200,7 @@ const FloatingChat = () => {
   }
 
   if (!isOpen) {
+    if (!isAuthenticated) {
       return (
         <button
           onClick={() => toast.error("Connectez-vous pour ouvrir le chat")}
