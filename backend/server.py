@@ -1299,6 +1299,13 @@ async def cancel_order_by_vendor(order_id: str, payload: OrderCancel, user: dict
     if cancellation_settings.get("require_cancellation_reason", False) and not reason:
         raise HTTPException(status_code=400, detail="Une raison d'annulation est requise")
 
+    # Récupérer les informations pour la synchronisation
+    seller_id = order.get("seller_id")
+    driver_id = order.get("driver_id")
+    dropshipper_id = order.get("dropshipper_id")
+    customer_id = order.get("customer_id")
+    vendor_name = user.get("name", "Vendeur")
+
     # Mettre à jour la commande
     await db.orders.update_one(
         {"id": order_id},
@@ -1321,13 +1328,56 @@ async def cancel_order_by_vendor(order_id: str, payload: OrderCancel, user: dict
         }
     )
 
-    # Notifier via WebSocket
+    # Notification WebSocket principale pour la commande
     await manager.broadcast_to_room(f"order_{order_id}", {
         "type": "order_update", 
         "status": "cancelled", 
         "message": "Commande annulée par le vendeur",
-        "cancelled_by": role
+        "cancelled_by": role,
+        "reason": reason,
+        "vendor_name": vendor_name
     })
+
+    # Notification spécifique pour le client
+    if customer_id:
+        await manager.broadcast_to_room(f"user_{customer_id}", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Votre commande #{order_id} a été annulée par le vendeur",
+            "vendor_name": vendor_name,
+            "reason": reason,
+            "timestamp": _utc()
+        })
+
+    # Notification spécifique pour le dropshipper si applicable
+    if dropshipper_id and dropshipper_id != user["id"]:
+        await manager.broadcast_to_room(f"user_{dropshipper_id}", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Commande dropshippée #{order_id} annulée par le vendeur",
+            "vendor_name": vendor_name,
+            "reason": reason,
+            "timestamp": _utc()
+        })
+
+    # Notification spécifique pour le livreur si assigné
+    if driver_id:
+        await manager.broadcast_to_room(f"user_{driver_id}", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Livraison annulée - Commande #{order_id}",
+            "vendor_name": vendor_name,
+            "reason": reason,
+            "timestamp": _utc()
+        })
+        
+        # Notification spécifique pour les drivers (room globale)
+        await manager.broadcast_to_room("drivers", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Commande #{order_id} annulée - plus besoin de livraison",
+            "timestamp": _utc()
+        })
 
     return {"ok": True, "message": "Commande annulée avec succès"}
 
@@ -1377,6 +1427,12 @@ async def cancel_order_by_customer(order_id: str, payload: OrderCancel, user: di
     if cancellation_settings.get("require_cancellation_reason", False) and not reason:
         raise HTTPException(status_code=400, detail="Une raison d'annulation est requise")
 
+    # Récupérer les informations pour la synchronisation
+    seller_id = order.get("seller_id")
+    driver_id = order.get("driver_id")
+    dropshipper_id = order.get("dropshipper_id")
+    customer_name = user.get("name", "Client")
+
     # Mettre à jour la commande
     await db.orders.update_one(
         {"id": order_id},
@@ -1399,13 +1455,56 @@ async def cancel_order_by_customer(order_id: str, payload: OrderCancel, user: di
         }
     )
 
-    # Notifier via WebSocket
+    # Notification WebSocket principale pour la commande
     await manager.broadcast_to_room(f"order_{order_id}", {
         "type": "order_update", 
         "status": "cancelled", 
         "message": "Commande annulée par le client",
-        "cancelled_by": "customer"
+        "cancelled_by": "customer",
+        "reason": reason,
+        "customer_name": customer_name
     })
+
+    # Notification spécifique pour le vendeur
+    if seller_id:
+        await manager.broadcast_to_room(f"user_{seller_id}", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Commande #{order_id} annulée par le client",
+            "customer_name": customer_name,
+            "reason": reason,
+            "timestamp": _utc()
+        })
+
+    # Notification spécifique pour le dropshipper si applicable
+    if dropshipper_id:
+        await manager.broadcast_to_room(f"user_{dropshipper_id}", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Commande dropshippée #{order_id} annulée par le client",
+            "customer_name": customer_name,
+            "reason": reason,
+            "timestamp": _utc()
+        })
+
+    # Notification spécifique pour le livreur si assigné
+    if driver_id:
+        await manager.broadcast_to_room(f"user_{driver_id}", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Livraison annulée - Commande #{order_id}",
+            "customer_name": customer_name,
+            "reason": reason,
+            "timestamp": _utc()
+        })
+        
+        # Notification spécifique pour les drivers (room globale)
+        await manager.broadcast_to_room("drivers", {
+            "type": "order_cancelled",
+            "order_id": order_id,
+            "message": f"Commande #{order_id} annulée - plus besoin de livraison",
+            "timestamp": _utc()
+        })
 
     return {"ok": True, "message": "Commande annulée avec succès"}
 

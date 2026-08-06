@@ -1609,10 +1609,12 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
       if (newStatus === 'cancelled') {
         const reason = prompt('Raison de l\'annulation (optionnel):');
         if (reason !== null) {
-          await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
+          console.log('Tentative d\'annulation de commande par entreprise:', orderId, 'Raison:', reason);
+          const response = await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
             { reason },
             { headers: { Authorization: `Bearer ${token}` } }
           );
+          console.log('Réponse d\'annulation:', response.data);
           toast.success('Commande annulée');
         } else {
           return; // User cancelled the prompt
@@ -1632,6 +1634,7 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
       console.error('Error updating status:', error);
 
       const errorMessage = error.response?.data?.detail || 'Erreur lors de la mise à jour';
+      console.error('Erreur détaillée:', errorMessage);
       toast.error(errorMessage);
 
     }

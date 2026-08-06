@@ -167,20 +167,23 @@ const OrderDetailPage = () => {
 
   const handleCancelOrder = async (reason = '') => {
     try {
+      console.log('Tentative d\'annulation de commande:', id, 'Raison:', reason, 'Role:', user?.role);
       const isVendor = user?.role === 'vendor' || user?.role === 'enterprise' || user?.role === 'dropshipper';
       const endpoint = isVendor 
         ? `${API}/orders/${id}/cancel-by-vendor`
         : `${API}/orders/${id}/cancel-by-customer`;
       
-      await axios.put(endpoint, 
+      const response = await axios.put(endpoint, 
         { reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      console.log('Réponse d\'annulation:', response.data);
       toast.success('Commande annulée avec succès');
       fetchOrder();
     } catch (error) {
       console.error('Error cancelling order:', error);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
+      console.error('Erreur détaillée:', errorMessage);
       toast.error(errorMessage);
     }
   };

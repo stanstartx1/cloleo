@@ -685,11 +685,12 @@ const RevendeurDashboard = () => {
 
     try {
 
-      await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
+      console.log('Tentative d\'annulation de commande par dropshipper:', orderId, 'Raison:', reason);
+      const response = await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
         { reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      console.log('Réponse d\'annulation:', response.data);
       toast.success('Commande annulée avec succès');
 
       fetchOrders();
@@ -700,6 +701,7 @@ const RevendeurDashboard = () => {
 
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
 
+      console.error('Erreur détaillée:', errorMessage);
       toast.error(errorMessage);
 
     }

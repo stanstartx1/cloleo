@@ -257,15 +257,18 @@ const OrdersPage = () => {
 
   const handleCancelOrder = async (orderId, reason = '') => {
     try {
-      await axios.put(`${API}/orders/${orderId}/cancel-by-customer`, 
+      console.log('Tentative d\'annulation de commande:', orderId, 'Raison:', reason);
+      const response = await axios.put(`${API}/orders/${orderId}/cancel-by-customer`, 
         { reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      console.log('Réponse d\'annulation:', response.data);
       toast.success('Commande annulée avec succès');
       fetchOrders();
     } catch (error) {
       console.error('Error cancelling order:', error);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
+      console.error('Erreur détaillée:', errorMessage);
       toast.error(errorMessage);
     }
   };
