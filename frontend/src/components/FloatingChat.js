@@ -225,7 +225,6 @@ const FloatingChat = () => {
 
       setMessages(prev => [...prev, response.data.message]);
       refreshConversations();
-      toast.success('Image envoyée');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Erreur lors de l\'envoi de l\'image');
@@ -252,7 +251,6 @@ const FloatingChat = () => {
 
       setMessages(prev => [...prev, response.data.message]);
       refreshConversations();
-      toast.success('Document envoyé');
     } catch (error) {
       console.error('Error uploading document:', error);
       toast.error('Erreur lors de l\'envoi du document');
@@ -279,7 +277,6 @@ const FloatingChat = () => {
 
       setMessages(prev => [...prev, response.data.message]);
       refreshConversations();
-      toast.success('Audio envoyé');
     } catch (error) {
       console.error('Error uploading audio:', error);
       toast.error('Erreur lors de l\'envoi de l\'audio');
@@ -318,7 +315,6 @@ const FloatingChat = () => {
           
           setMessages(prev => [...prev, response.data.message]);
           refreshConversations();
-          toast.success('Message vocal envoyé');
         } catch (error) {
           console.error('Error uploading recording:', error);
           toast.error('Erreur lors de l\'envoi du message vocal');

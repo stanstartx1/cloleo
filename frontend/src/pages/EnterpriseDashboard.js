@@ -2726,8 +2726,6 @@ const EnterpriseMessagesSection = ({ user, token }) => {
 
       fetchMessages(selectedConversation._id);
 
-      toast.success('Message envoyé');
-
     } catch (error) {
 
       console.error('Error sending message:', error);

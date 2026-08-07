@@ -193,9 +193,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
           ? { ...c, last_message: messageContent, last_message_at: new Date().toISOString() }
           : c
       ));
-      
-      // Refresh messages to get the full state
-      setTimeout(() => fetchMessages(selectedConversation.id, true), 1000);
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setNewMessage(messageContent);
@@ -233,7 +230,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       if (response.data.message) {
         setMessages(prev => [...prev, response.data.message]);
         scrollToBottom();
-        toast.success('Image envoyée');
       }
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -269,7 +265,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       if (response.data.message) {
         setMessages(prev => [...prev, response.data.message]);
         scrollToBottom();
-        toast.success('Document envoyé');
       }
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -304,7 +299,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       if (response.data.message) {
         setMessages(prev => [...prev, response.data.message]);
         scrollToBottom();
-        toast.success('Audio envoyé');
       }
     } catch (error) {
       console.error('Error uploading audio:', error);
@@ -351,7 +345,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
           if (response.data.message) {
             setMessages(prev => [...prev, response.data.message]);
             scrollToBottom();
-            toast.success('Message vocal envoyé');
           }
         } catch (error) {
           console.error('Error uploading recording:', error);

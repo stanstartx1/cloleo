@@ -252,7 +252,6 @@ const CustomerChatPage = () => {
       if (response.data.message) {
         setMessages(prev => [...prev, response.data.message]);
         scrollToBottom();
-        toast.success('Image envoyée');
       }
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -287,7 +286,6 @@ const CustomerChatPage = () => {
       if (response.data.message) {
         setMessages(prev => [...prev, response.data.message]);
         scrollToBottom();
-        toast.success('Document envoyé');
       }
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -322,7 +320,6 @@ const CustomerChatPage = () => {
       if (response.data.message) {
         setMessages(prev => [...prev, response.data.message]);
         scrollToBottom();
-        toast.success('Audio envoyé');
       }
     } catch (error) {
       console.error('Error uploading audio:', error);
@@ -369,7 +366,6 @@ const CustomerChatPage = () => {
           if (response.data.message) {
             setMessages(prev => [...prev, response.data.message]);
             scrollToBottom();
-            toast.success('Message vocal envoyé');
           }
         } catch (error) {
           console.error('Error uploading recording:', error);
