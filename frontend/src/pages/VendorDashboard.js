@@ -493,7 +493,7 @@ const VendorDashboard = () => {
 
     try {
 
-      await axios.put(`${API}/orders/${orderId}/accept`,
+      await axios.put(`${API}/orders/${orderId}/vendor-accept`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

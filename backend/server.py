@@ -1281,6 +1281,47 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
 
 
 
+@api.put("/orders/{order_id}/vendor-accept")
+
+async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_user)):
+
+    """Acceptation de commande par le vendeur"""
+    role = user.get("role")
+    
+    if role not in ["vendor", "enterprise", "dropshipper"]:
+        raise HTTPException(status_code=403, detail="Seuls les vendeurs peuvent accepter des commandes")
+    
+    query = {"id": order_id}
+    
+    if role == "vendor":
+        query["seller_id"] = user["id"]
+    elif role == "enterprise":
+        query["seller_id"] = user["id"]
+    elif role == "dropshipper":
+        query["dropshipper_id"] = user["id"]
+
+    order = await db.orders.find_one(query, {"_id": 0})
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+
+    if order["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Seules les commandes en attente peuvent être acceptées")
+
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {"status": "confirmed", "updated_at": _utc()},
+            "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
+        },
+    )
+
+    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
+
+    return {"ok": True}
+
+
+
 
 
 @api.put("/orders/{order_id}/pickup")
