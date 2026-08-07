@@ -4,7 +4,7 @@
     return process.env.REACT_APP_BACKEND_URL;
   }
   
-  // In production, use the backend URL directly
+  // In production, use the backend URL directly (for WebSocket)
   if (process.env.NODE_ENV === 'production') {
     return 'https://cloleo.com';
   }
@@ -21,6 +21,7 @@ const BACKEND_URL = getBackendUrl().replace(/\/$/, "");
 
 export const API_BASE = BACKEND_URL;
 export const API_URL = `${BACKEND_URL}/api`;
-export const WS_URL = BACKEND_URL.replace('http', 'ws');
+// Use wss:// for production, ws:// for development
+export const WS_URL = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 export default BACKEND_URL;

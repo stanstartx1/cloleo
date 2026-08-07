@@ -92,106 +92,16 @@ const CustomerChatPage = () => {
     }
   }, [token]);
 
-  // WebSocket connection with HTTP fallback
+  // HTTP polling for messages (WebSocket disabled due to Apache configuration)
   useEffect(() => {
     if (!selectedConversation) return;
 
-    let ws = null;
-    let pollingInterval = null;
-    let connected = false;
-
-    const connectWebSocket = () => {
-      try {
-        ws = new WebSocket(`${WS_URL}/api/ws/chat/${selectedConversation.id}`);
-        
-        ws.onopen = () => {
-          console.log('WebSocket connected');
-          connected = true;
-          if (pollingInterval) {
-            clearInterval(pollingInterval);
-            pollingInterval = null;
-          }
-        };
-        
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
-          
-          if (data.type === 'new_message') {
-            setMessages(prev => [...prev, data.message]);
-            scrollToBottom();
-          } else if (data.type === 'message_deleted') {
-            setMessages(prev => prev.filter(m => m.id !== data.message_id));
-          } else if (data.type === 'pong') {
-            // Ping/pong keep-alive
-          }
-        };
-        
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          connected = false;
-          // Fallback to HTTP polling
-          if (!pollingInterval) {
-            pollingInterval = setInterval(() => {
-              loadMessages(selectedConversation.id);
-            }, 10000);
-          }
-        };
-        
-        ws.onclose = () => {
-          console.log('WebSocket disconnected');
-          connected = false;
-          // Fallback to HTTP polling
-          if (!pollingInterval) {
-            pollingInterval = setInterval(() => {
-              loadMessages(selectedConversation.id);
-            }, 10000);
-          }
-        };
-      } catch (error) {
-        console.error('Failed to create WebSocket:', error);
-        // Fallback to HTTP polling immediately
-        if (!pollingInterval) {
-          pollingInterval = setInterval(() => {
-            loadMessages(selectedConversation.id);
-          }, 10000);
-        }
-      }
-    };
-
-    connectWebSocket();
+    const pollingInterval = setInterval(() => {
+      loadMessages(selectedConversation.id);
+    }, 10000); // Poll every 10 seconds
     
-    // Keep-alive ping
-    const pingInterval = setInterval(() => {
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 30000);
-    
-    // Cleanup on unmount
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-      if (pingInterval) {
-        clearInterval(pingInterval);
-      }
-    };
+    return () => clearInterval(pollingInterval);
   }, [selectedConversation, loadMessages]);
-
-  // Keep-alive ping
-  useEffect(() => {
-    if (!selectedConversation) return;
-    
-    const pingInterval = setInterval(() => {
-      // Keep-alive logic is handled in the WebSocket connection
-    }, 30000);
-    
-    return () => clearInterval(pingInterval);
-  }, [selectedConversation]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -245,6 +155,9 @@ const CustomerChatPage = () => {
           ? { ...c, last_message: messageContent, last_message_at: new Date().toISOString() }
           : c
       ));
+      
+      // Refresh messages to get the full state
+      setTimeout(() => loadMessages(selectedConversation.id), 1000);
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setNewMessage(messageContent);
