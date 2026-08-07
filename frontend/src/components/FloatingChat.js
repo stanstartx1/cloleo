@@ -166,6 +166,7 @@ export const ChatProvider = ({ children }) => {
       openChat,
       closeChat,
       refreshConversations: fetchConversations,
+      setConversations,
     }),
     [isOpen, conversations, activeConversationId, startConversation, openConversation, openChat, closeChat, fetchConversations]
   );
@@ -185,6 +186,7 @@ export const useChat = () => {
       openChat: () => {},
       closeChat: () => {},
       refreshConversations: async () => {},
+      setConversations: () => {},
     };
   }
   return ctx;
@@ -300,15 +302,13 @@ const FloatingChat = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Remove conversation from list
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-
       // If the deleted conversation was selected, clear selected conversation and messages
       if (activeConversationId === conversationId) {
         setActiveConversationId(null);
         setMessages([]);
       }
 
+      // Refresh conversations to remove deleted one from list
       refreshConversations();
     } catch (error) {
       console.error('Error deleting conversation:', error);
