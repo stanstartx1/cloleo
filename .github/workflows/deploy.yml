@@ -99,7 +99,7 @@ jobs:
             # Clear cache and install
             echo "Clearing npm cache and installing..."
             rm -rf node_modules package-lock.json
-            npm install
+            npm install --legacy-peer-deps
             npm run build
             
             echo "✅ Frontend built successfully"
