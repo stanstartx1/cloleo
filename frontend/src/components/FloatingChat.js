@@ -190,13 +190,14 @@ const FloatingChat = () => {
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
 
-    const pollingInterval = setInterval(() => {
-      loadMessages(false); // Don't force reload, just merge new messages
-      refreshConversations();
-    }, 10000); // Poll every 10 seconds
+    // Disabled polling to prevent message flickering
+    // const pollingInterval = setInterval(() => {
+    //   loadMessages(false); // Don't force reload, just merge new messages
+    //   refreshConversations();
+    // }, 10000); // Poll every 10 seconds
     
-    return () => clearInterval(pollingInterval);
-  }, [isOpen, activeConversationId, loadMessages, refreshConversations]);
+    // return () => clearInterval(pollingInterval);
+  }, [isOpen, activeConversationId]);
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });

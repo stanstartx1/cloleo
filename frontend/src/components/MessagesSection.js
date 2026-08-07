@@ -90,9 +90,9 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
 
   useEffect(() => {
     fetchConversations();
-    // Refresh conversations less frequently since we have WebSocket
-    const interval = setInterval(fetchConversations, 60000); // 60s instead of 30s
-    return () => clearInterval(interval);
+    // Disabled polling to prevent message flickering
+    // const interval = setInterval(fetchConversations, 60000); // 60s instead of 30s
+    // return () => clearInterval(interval);
   }, [fetchConversations]);
 
   // Fetch messages for selected conversation
@@ -177,11 +177,12 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   useEffect(() => {
     if (!selectedConversation) return;
 
-    const pollingInterval = setInterval(() => {
-      fetchMessages(selectedConversation.id);
-    }, 15000); // Reduced from 10s to 15s to reduce flickering
+    // Disabled polling to prevent message flickering
+    // const pollingInterval = setInterval(() => {
+    //   fetchMessages(selectedConversation.id);
+    // }, 15000); // Reduced from 10s to 15s to reduce flickering
     
-    return () => clearInterval(pollingInterval);
+    // return () => clearInterval(pollingInterval);
   }, [selectedConversation, fetchMessages]);
 
   // Send message

@@ -65,9 +65,9 @@ const CustomerChatPage = () => {
       return;
     }
     fetchConversations();
-    // Refresh conversations less frequently since we have WebSocket
-    const interval = setInterval(fetchConversations, 60000); // 60s
-    return () => clearInterval(interval);
+    // Disabled polling to prevent message flickering
+    // const interval = setInterval(fetchConversations, 60000); // 60s
+    // return () => clearInterval(interval);
   }, [isAuthenticated, navigate, fetchConversations]);
 
   // Scroll to top on page load and conversation change
@@ -120,11 +120,12 @@ const CustomerChatPage = () => {
   useEffect(() => {
     if (!selectedConversation) return;
 
-    const pollingInterval = setInterval(() => {
-      loadMessages(selectedConversation.id);
-    }, 15000); // Reduced from 10s to 15s to reduce flickering
+    // Disabled polling to prevent message flickering
+    // const pollingInterval = setInterval(() => {
+    //   loadMessages(selectedConversation.id);
+    // }, 15000); // Reduced from 10s to 15s to reduce flickering
     
-    return () => clearInterval(pollingInterval);
+    // return () => clearInterval(pollingInterval);
   }, [selectedConversation, loadMessages]);
 
   // Scroll to bottom

@@ -6060,6 +6060,64 @@ async def create_offer(payload: dict, user: dict = Depends(get_current_user)):
 
 
 
+@api.delete("/conversations/{conversation_id}")
+
+async def delete_conversation(conversation_id: str, user: dict = Depends(get_current_user)):
+
+    """Delete a conversation and all its messages"""
+
+    conv = await db.conversations.find_one({"id": conversation_id}, {"_id": 0})
+
+    if not conv:
+
+        raise HTTPException(status_code=404, detail="Conversation non trouvée")
+
+
+
+    # Check if user is authorized to delete the conversation
+
+    user_id = user.get("id")
+
+    user_role = user.get("role")
+
+
+
+    is_authorized = (
+
+        conv.get("customer_id") == user_id or
+
+        conv.get("seller_id") == user_id or
+
+        conv.get("dropshipper_id") == user_id or
+
+        user_role in {"admin", "super_admin"}
+
+    )
+
+
+
+    if not is_authorized:
+
+        raise HTTPException(status_code=403, detail="Non autorisé à supprimer cette conversation")
+
+
+
+    # Delete all messages in the conversation
+
+    await db.messages.delete_many({"conversation_id": conversation_id})
+
+
+
+    # Delete the conversation
+
+    await db.conversations.delete_one({"id": conversation_id})
+
+
+
+    return {"message": "Conversation supprimée avec succès"}
+
+
+
 
 
 @api.post("/admin/conversations/start")
