@@ -1417,8 +1417,8 @@ async def cancel_order_by_vendor(order_id: str, payload: OrderCancel, user: dict
             detail=f"Seules les commandes avec statut {', '.join(cancellable_statuses)} peuvent être annulées"
         )
 
-    # Vérifier le délai d'annulation
-    time_limit_hours = cancellation_settings.get("cancellation_time_limit_hours", 24)
+    # Vérifier le délai d'annulation (désactivé pour permettre l'annulation sans délai)
+    time_limit_hours = cancellation_settings.get("cancellation_time_limit_hours", 0)
     if time_limit_hours > 0:
         order_created_at = datetime.fromisoformat(order.get("created_at", _utc()).replace('Z', '+00:00'))
         time_elapsed = (datetime.now(timezone.utc) - order_created_at).total_seconds() / 3600
@@ -1545,8 +1545,8 @@ async def cancel_order_by_customer(order_id: str, payload: OrderCancel, user: di
             detail=f"Seules les commandes avec statut {', '.join(cancellable_statuses)} peuvent être annulées"
         )
 
-    # Vérifier le délai d'annulation
-    time_limit_hours = cancellation_settings.get("cancellation_time_limit_hours", 24)
+    # Vérifier le délai d'annulation (désactivé pour permettre l'annulation sans délai)
+    time_limit_hours = cancellation_settings.get("cancellation_time_limit_hours", 0)
     if time_limit_hours > 0:
         order_created_at = datetime.fromisoformat(order.get("created_at", _utc()).replace('Z', '+00:00'))
         time_elapsed = (datetime.now(timezone.utc) - order_created_at).total_seconds() / 3600

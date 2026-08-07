@@ -30,6 +30,8 @@ import { toast } from 'sonner';
 
 import { toAbsoluteMediaUrl } from '../utils/media';
 
+import MediaImg from '../components/MediaImg';
+
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 import MapboxMap from '../components/MapboxMap';
@@ -480,6 +482,31 @@ const VendorDashboard = () => {
       console.error('Error rejecting order:', error);
 
       toast.error('Erreur lors du refus de la commande');
+
+    }
+
+  };
+
+
+
+  const handleAcceptOrder = async (orderId) => {
+
+    try {
+
+      await axios.put(`${API}/orders/${orderId}/accept`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Commande acceptée');
+
+      fetchOrders();
+
+    } catch (error) {
+
+      console.error('Error accepting order:', error);
+
+      toast.error('Erreur lors de l\'acceptation de la commande');
 
     }
 
@@ -1850,7 +1877,7 @@ const VendorDashboard = () => {
 
                         {orders.map((order, index) => (
 
-                          <tr key={order.id} className="border-t border-slate-700">
+                          <tr key={order.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
 
                             <td className="p-4">
 
@@ -1858,20 +1885,25 @@ const VendorDashboard = () => {
 
                               {(order.items || []).map((item) => (
 
-                                <div key={`${order.id}-${item.product_id}`} className="mt-2 rounded-md bg-slate-900/60 p-2 text-xs">
-
-                                  <p className="font-medium text-slate-100">{item.product_name} × {item.quantity}</p>
-
-                                  <p className="mt-1 text-slate-300">{formatPrice(item.price_fcfa)} / unité · {formatPrice(item.subtotal_fcfa)}</p>
-
-                                  {item.is_wholesale_price && <span className="mt-1 inline-block rounded-full bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-300">Prix de gros</span>}
-
-                                  {Object.keys(item.selected_attributes || {}).length > 0 && (
-
-                                    <p className="mt-1 text-amber-300">{Object.entries(item.selected_attributes).map(([key, value]) => `${key}: ${value}`).join(' · ')}</p>
-
-                                  )}
-
+                                <div key={`${order.id}-${item.product_id}`} className="mt-3 rounded-md bg-slate-900/60 p-3 text-xs border border-slate-700/50">
+                                  <div className="flex items-start gap-3">
+                                    {item.product_image && (
+                                      <MediaImg 
+                                        src={item.product_image} 
+                                        alt={item.product_name}
+                                        className="w-12 h-12 rounded object-cover flex-shrink-0"
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-slate-100 truncate">{item.product_name}</p>
+                                      <p className="mt-1 text-slate-300">× {item.quantity} · {formatPrice(item.price_fcfa)} / unité</p>
+                                      <p className="text-slate-400 font-semibold mt-1">{formatPrice(item.subtotal_fcfa)}</p>
+                                      {item.is_wholesale_price && <span className="mt-1 inline-block rounded-full bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-300">Prix de gros</span>}
+                                      {Object.keys(item.selected_attributes || {}).length > 0 && (
+                                        <p className="mt-1 text-amber-300">{Object.entries(item.selected_attributes).map(([key, value]) => `${key}: ${value}`).join(' · ')}</p>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
 
                               ))}
@@ -1914,7 +1946,32 @@ const VendorDashboard = () => {
 
                             <td className="p-4">
 
-                              {['pending', 'assigned'].includes(order.status) && (
+                              {order.status === 'pending' && (
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleAcceptOrder(order.id)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-1" /> Accepter
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const reason = prompt('Raison du refus (optionnel):');
+                                      if (reason !== null) {
+                                        handleRejectOrder(order.id);
+                                      }
+                                    }}
+                                    className="text-red-400 hover:bg-red-500/20"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" /> Refuser
+                                  </Button>
+                                </motion.div>
+                              )}
+
+                              {['assigned', 'picked_up', 'in_transit'].includes(order.status) && (
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex gap-2">
                                   <Button 
                                     size="sm" 
