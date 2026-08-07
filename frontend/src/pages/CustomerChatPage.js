@@ -5,7 +5,7 @@ import axios from 'axios';
 import { 
   MessageCircle, Send, X, Store, ArrowLeft, Search, LogOut,
   Image as ImageIcon, Clock, Check, CheckCheck, ChevronRight, Tag,
-  FileText, Mic, Paperclip
+  FileText, Mic, Paperclip, Upload, Radio, Play, Pause
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -16,6 +16,86 @@ import ChatMessageDeleteButton from '../components/ChatMessageDeleteButton';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 const API = API_URL;
+
+// Custom Audio Player Component (WhatsApp-style)
+const CustomAudioPlayer = ({ audioUrl, duration }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(duration || 0);
+  const audioRef = useRef(null);
+
+  const handlePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setTotalDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e) => {
+    const seekTime = parseFloat(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    }
+  };
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={() => setIsPlaying(false)}
+        className="hidden"
+      />
+      <button
+        onClick={handlePlayPause}
+        className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition-colors flex-shrink-0"
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 flex items-center gap-2">
+        <input
+          type="range"
+          min="0"
+          max={totalDuration || 100}
+          value={currentTime}
+          onChange={handleSeek}
+          className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #9333ea 0%, #9333ea ${(currentTime / (totalDuration || 1)) * 100}%, #e5e7eb ${(currentTime / (totalDuration || 1)) * 100}%, #e5e7eb 100%)`
+          }}
+        />
+        <span className="text-xs text-gray-500 w-12 text-right flex-shrink-0">
+          {formatTime(currentTime)} / {formatTime(totalDuration)}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 
 const CustomerChatPage = () => {
@@ -716,13 +796,7 @@ const CustomerChatPage = () => {
                                   )}
                                   {message.media_type === 'audio' && (
                                     <div className="space-y-2">
-                                      <audio controls className="w-full">
-                                        <source src={message.file_url} type="audio/mpeg" />
-                                        Votre navigateur ne supporte pas l'audio
-                                      </audio>
-                                      {message.duration && (
-                                        <p className="text-xs text-gray-500">Durée: {formatRecordingTime(message.duration)}</p>
-                                      )}
+                                      <CustomAudioPlayer audioUrl={message.file_url} duration={message.duration} />
                                     </div>
                                   )}
                                   {message.content && (
@@ -767,7 +841,7 @@ const CustomerChatPage = () => {
                           onClick={() => setShowMediaMenu(!showMediaMenu)}
                           disabled={uploadingFile}
                         >
-                          <Paperclip className="w-4 h-4" />
+                          <Upload className="w-4 h-4" />
                         </Button>
                         
                         {showMediaMenu && (
@@ -808,7 +882,7 @@ const CustomerChatPage = () => {
                               }}
                               className="w-full justify-start"
                             >
-                              <Mic className="w-4 h-4 mr-2" />
+                              <Radio className="w-4 h-4 mr-2" />
                               Audio
                             </Button>
                             <div className="border-t pt-1">

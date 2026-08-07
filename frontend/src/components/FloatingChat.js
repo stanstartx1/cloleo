@@ -2,7 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useLocation } from "react-router-dom";
-import { MessageCircle, Send, X, Mic, Paperclip, Image as ImageIcon, FileText } from "lucide-react";
+import { MessageCircle, Send, X, Mic, Paperclip, Image as ImageIcon, FileText, Upload, Radio, Play, Pause } from "lucide-react";
 import ChatMessageDeleteButton from "./ChatMessageDeleteButton";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -13,6 +13,86 @@ import { useNavigate } from "react-router-dom";
 const ChatContext = createContext(null);
 import { API_URL, WS_URL } from '../config/api';
 const API = API_URL;
+
+// Custom Audio Player Component (WhatsApp-style)
+const CustomAudioPlayer = ({ audioUrl, duration }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(duration || 0);
+  const audioRef = useRef(null);
+
+  const handlePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setTotalDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e) => {
+    const seekTime = parseFloat(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    }
+  };
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={() => setIsPlaying(false)}
+        className="hidden"
+      />
+      <button
+        onClick={handlePlayPause}
+        className="w-8 h-8 rounded-full bg-fuchsia-600 text-white flex items-center justify-center hover:bg-fuchsia-700 transition-colors flex-shrink-0"
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 flex items-center gap-2">
+        <input
+          type="range"
+          min="0"
+          max={totalDuration || 100}
+          value={currentTime}
+          onChange={handleSeek}
+          className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #d946ef 0%, #d946ef ${(currentTime / (totalDuration || 1)) * 100}%, #e5e7eb ${(currentTime / (totalDuration || 1)) * 100}%, #e5e7eb 100%)`
+          }}
+        />
+        <span className="text-xs text-gray-500 w-12 text-right flex-shrink-0">
+          {formatTime(currentTime)} / {formatTime(totalDuration)}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 export const ChatProvider = ({ children }) => {
   const { token } = useAuth();
@@ -673,13 +753,7 @@ const FloatingChat = () => {
                       )}
                       {m.media_type === 'audio' && (
                         <div className="space-y-1">
-                          <audio controls className="w-full">
-                            <source src={m.file_url} type="audio/mpeg" />
-                            Votre navigateur ne supporte pas l'audio
-                          </audio>
-                          {m.duration && (
-                            <p className="text-[10px] text-slate-500">Durée: {formatRecordingTime(m.duration)}</p>
-                          )}
+                          <CustomAudioPlayer audioUrl={m.file_url} duration={m.duration} />
                         </div>
                       )}
                       {m.content || m.text}
@@ -715,7 +789,7 @@ const FloatingChat = () => {
                   onClick={() => setShowMediaMenu(!showMediaMenu)}
                   className="h-9 w-9 text-slate-500 hover:text-slate-700"
                 >
-                  <Paperclip className="w-4 h-4" />
+                  <Upload className="w-4 h-4" />
                 </Button>
                 
                 {showMediaMenu && (
@@ -756,7 +830,7 @@ const FloatingChat = () => {
                       }}
                       className="w-full justify-start"
                     >
-                      <Mic className="w-4 h-4 mr-2" />
+                      <Radio className="w-4 h-4 mr-2" />
                       Audio
                     </Button>
                     <div className="border-t pt-1">
