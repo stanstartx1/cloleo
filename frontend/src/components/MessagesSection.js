@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, Send, User, Clock, Search, ChevronLeft, 
   Loader2, Package, Store, Check, CheckCheck, Bell, Tag,
-  Image as ImageIcon, FileText, Mic, Phone, Paperclip, X
+  Image as ImageIcon, FileText, Mic, Phone, Paperclip, X,
+  Share2, Forward, Play, Pause, RotateCcw
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -32,7 +33,11 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [showMessageMenu, setShowMessageMenu] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showForwardDialog, setShowForwardDialog] = useState(false);
   
   const messagesEndRef = useRef(null);
   const userId = useRef(null);
@@ -41,6 +46,19 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const documentInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordingIntervalRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  // Close message menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMessageMenu && !event.target.closest('.message-menu-container')) {
+        setShowMessageMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMessageMenu]);
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -305,14 +323,14 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
-      const chunks = [];
+      audioChunksRef.current = [];
       
       mediaRecorderRef.current.ondataavailable = (e) => {
-        chunks.push(e.data);
+        audioChunksRef.current.push(e.data);
       };
       
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
         
         setUploadingFile(true);
@@ -344,14 +362,18 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
         
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
+        audioChunksRef.current = [];
       };
       
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setIsPaused(false);
       setRecordingTime(0);
       
       recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        if (!isPaused) {
+          setRecordingTime(prev => prev + 1);
+        }
       }, 1000);
       
     } catch (error) {
@@ -360,10 +382,39 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     }
   };
 
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording && !isPaused) {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && isRecording && isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsPaused(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+      audioChunksRef.current = [];
+      toast.info('Enregistrement annulé');
+    }
+  };
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setIsPaused(false);
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
@@ -375,6 +426,73 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Message actions
+  const handleShareMessage = (message) => {
+    if (navigator.share) {
+      const shareData = {
+        title: 'Message partagé',
+        text: message.content || message.text || 'Regarde ce message',
+        url: window.location.href
+      };
+      navigator.share(shareData).catch(() => {
+        toast.error('Partage annulé');
+      });
+    } else {
+      // Fallback: copy to clipboard
+      const textToCopy = message.content || message.text || window.location.href;
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        toast.success('Message copié dans le presse-papier');
+      }).catch(() => {
+        toast.error('Impossible de copier le message');
+      });
+    }
+    setShowMessageMenu(null);
+  };
+
+  const handleForwardMessage = (message) => {
+    setSelectedMessage(message);
+    setShowForwardDialog(true);
+    setShowMessageMenu(null);
+  };
+
+  const handleForwardToConversation = async (targetConversationId) => {
+    if (!selectedMessage) return;
+    
+    try {
+      const messageContent = selectedMessage.content || selectedMessage.text || '';
+      
+      if (selectedMessage.media_type === 'image' && selectedMessage.file_url) {
+        // Forward image
+        await axios.post(
+          `${API}/conversations/${targetConversationId}/upload-image`,
+          { file_url: selectedMessage.file_url, file_name: selectedMessage.file_name },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else if (selectedMessage.media_type === 'document' && selectedMessage.file_url) {
+        // Forward document
+        await axios.post(
+          `${API}/conversations/${targetConversationId}/upload-document`,
+          { file_url: selectedMessage.file_url, file_name: selectedMessage.file_name },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else if (messageContent) {
+        // Forward text message
+        await axios.post(
+          `${API}/conversations/${targetConversationId}/messages`,
+          { content: `[Transféré]: ${messageContent}` },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      
+      toast.success('Message transféré avec succès');
+      setShowForwardDialog(false);
+      setSelectedMessage(null);
+    } catch (error) {
+      console.error('Error forwarding message:', error);
+      toast.error('Erreur lors du transfert du message');
+    }
   };
 
   const handleSendOffer = async () => {
@@ -586,16 +704,66 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                             key={message.id}
                             className={`flex mb-3 items-end gap-1 ${isSeller ? 'justify-end' : 'justify-start'}`}
                           >
-                            {isOwn && selectedConversation && (
-                              <ChatMessageDeleteButton
-                                token={token}
-                                conversationId={selectedConversation.id}
-                                messageId={message.id}
-                                onDeleted={handleMessageDeleted}
-                                className={isSeller ? 'text-purple-200 hover:text-white' : 'text-gray-400 hover:text-red-500'}
-                                disabled={String(message.id).startsWith('temp-')}
-                              />
-                            )}
+                            {/* Message Actions Menu */}
+                            <div className="relative message-menu-container">
+                              <button
+                                onClick={() => setShowMessageMenu(showMessageMenu === message.id ? null : message.id)}
+                                className={`p-1.5 rounded-full hover:bg-gray-100 transition-colors ${isSeller ? 'text-purple-200 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <circle cx="12" cy="12" r="1" />
+                                  <circle cx="12" cy="5" r="1" />
+                                  <circle cx="12" cy="19" r="1" />
+                                </svg>
+                              </button>
+                              
+                              {showMessageMenu === message.id && (
+                                <div className={`absolute ${isSeller ? 'right-0' : 'left-0'} mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[150px]`}>
+                                  {isOwn && (
+                                    <>
+                                      <button
+                                        onClick={() => handleShareMessage(message)}
+                                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                      >
+                                        <Share2 className="w-4 h-4" />
+                                        Partager
+                                      </button>
+                                      <button
+                                        onClick={() => handleForwardMessage(message)}
+                                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                      >
+                                        <Forward className="w-4 h-4" />
+                                        Transférer
+                                      </button>
+                                      <div className="border-t border-gray-200 my-1" />
+                                      <ChatMessageDeleteButton
+                                        token={token}
+                                        conversationId={selectedConversation.id}
+                                        messageId={message.id}
+                                        onDeleted={() => {
+                                          handleMessageDeleted(message.id);
+                                          setShowMessageMenu(null);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
+                                        disabled={String(message.id).startsWith('temp-')}
+                                      >
+                                        <X className="w-4 h-4" />
+                                        Supprimer
+                                      </ChatMessageDeleteButton>
+                                    </>
+                                  )}
+                                  {!isOwn && (
+                                    <button
+                                      onClick={() => handleShareMessage(message)}
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    >
+                                      <Share2 className="w-4 h-4" />
+                                      Partager
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             <div className={`max-w-[80%] ${isSeller ? '' : ''}`}>
                               <div
                                 className={`px-4 py-2 rounded-2xl ${
@@ -769,16 +937,56 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         </Button>
                         <div className="border-t pt-1">
                           {isRecording ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={stopRecording}
-                              className="w-full justify-start text-red-600"
-                            >
-                              <X className="w-4 h-4 mr-2" />
-                              Stop ({formatRecordingTime(recordingTime)})
-                            </Button>
+                            <div className="space-y-1">
+                              <div className="text-center text-sm font-medium text-purple-600">
+                                {formatRecordingTime(recordingTime)}
+                              </div>
+                              <div className="flex gap-1">
+                                {isPaused ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={resumeRecording}
+                                    className="flex-1 justify-start"
+                                  >
+                                    <Play className="w-4 h-4 mr-2" />
+                                    Reprendre
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={pauseRecording}
+                                    className="flex-1 justify-start"
+                                  >
+                                    <Pause className="w-4 h-4 mr-2" />
+                                    Pause
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={cancelRecording}
+                                  className="flex-1 justify-start text-red-600"
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  Annuler
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={stopRecording}
+                                  className="flex-1 justify-start text-green-600"
+                                >
+                                  <Check className="w-4 h-4 mr-2" />
+                                  Envoyer
+                                </Button>
+                              </div>
+                            </div>
                           ) : (
                             <Button
                               type="button"
@@ -855,6 +1063,44 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
             </div>
           )}
         </Card>
+        
+        {/* Forward Dialog */}
+        {showForwardDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="font-semibold text-lg">Transférer le message</h3>
+                <button
+                  onClick={() => {
+                    setShowForwardDialog(false);
+                    setSelectedMessage(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-[60vh]">
+                <p className="text-sm text-gray-600 mb-4">Sélectionnez une conversation :</p>
+                {conversations.filter(c => c.id !== selectedConversation?.id).map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => handleForwardToConversation(conv.id)}
+                    className="w-full p-3 text-left hover:bg-gray-100 rounded-lg mb-2 flex items-center gap-3"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Store className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{conv.seller_name || 'Vendeur'}</p>
+                      <p className="text-sm text-gray-500 truncate">{conv.product_name || 'Discussion'}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
