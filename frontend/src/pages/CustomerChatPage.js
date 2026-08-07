@@ -688,7 +688,7 @@ const CustomerChatPage = () => {
                                       <MediaImg 
                                         src={message.file_url} 
                                         alt="Image partagée" 
-                                        className="max-w-full rounded-lg"
+                                        className="max-w-[200px] max-h-[200px] rounded-lg object-contain"
                                       />
                                     </div>
                                   )}

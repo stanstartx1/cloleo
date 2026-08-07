@@ -496,7 +496,7 @@ const FloatingChat = () => {
             conversations.map((conv) => (
               <div
                 key={conv.id}
-                className={`relative w-full text-left p-2 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
+                className={`relative w-full text-left p-3 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
               >
                 <button
                   onClick={() => {
@@ -505,12 +505,27 @@ const FloatingChat = () => {
                   }}
                   className="w-full text-left pr-6"
                 >
-                  <p className="text-xs font-semibold truncate">{conv.seller_name || "Contact"}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{conv.product_name || "Discussion"}</p>
+                  <div className="flex items-center gap-3">
+                    {conv.seller_avatar ? (
+                      <MediaImg 
+                        src={conv.seller_avatar} 
+                        alt={conv.seller_name}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                        {conv.seller_name?.[0] || "C"}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{conv.seller_name || "Contact"}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{conv.product_name || "Discussion"}</p>
+                    </div>
+                  </div>
                 </button>
                 <button
                   onClick={(e) => handleDeleteConversation(conv.id, e)}
-                  className="absolute top-2 right-2 p-1 hover:bg-red-100 rounded transition-colors"
+                  className="absolute top-3 right-2 p-1 hover:bg-red-100 rounded transition-colors"
                   title="Supprimer la conversation"
                 >
                   <X className="w-3 h-3 text-red-500 hover:text-red-700" />
@@ -523,23 +538,44 @@ const FloatingChat = () => {
         <div className="flex-1 flex flex-col">
           <div className="h-10 px-3 border-b border-slate-200 flex items-center justify-between gap-2 min-w-0">
             {activeConversation?.seller_name && sellerShopPath ? (
-              <button
-                type="button"
-                onClick={() => navigate(sellerShopPath)}
-                className="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-700 truncate"
-                title="Voir la boutique"
-              >
-                {activeConversation.seller_name}
-              </button>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {activeConversation.seller_avatar ? (
+                  <MediaImg 
+                    src={activeConversation.seller_avatar} 
+                    alt={activeConversation.seller_name}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs">
+                    {activeConversation.seller_name?.[0] || "S"}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigate(sellerShopPath)}
+                  className="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-700 truncate"
+                  title="Voir la boutique"
+                >
+                  {activeConversation.seller_name}
+                </button>
+              </div>
             ) : (
-              <span className="text-xs font-medium text-slate-700 truncate">
-                {activeConversation?.seller_name || activeConversation?.product_name || "Choisir une conversation"}
-              </span>
-            )}
-            {activeConversation?.product_name && (
-              <span className="text-[10px] text-slate-500 truncate max-w-[45%]">
-                {activeConversation.product_name}
-              </span>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {activeConversation.seller_avatar ? (
+                  <MediaImg 
+                    src={activeConversation.seller_avatar} 
+                    alt={activeConversation.seller_name}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs">
+                    {activeConversation.seller_name?.[0] || "S"}
+                  </div>
+                )}
+                <span className="text-xs font-semibold text-slate-900 truncate">
+                  {activeConversation.seller_name || "Contact"}
+                </span>
+              </div>
             )}
           </div>
 
@@ -609,7 +645,7 @@ const FloatingChat = () => {
                           <MediaImg 
                             src={m.file_url} 
                             alt="Image partagée" 
-                            className="max-w-full rounded-lg"
+                            className="max-w-[200px] max-h-[200px] rounded-lg object-contain"
                           />
                         </div>
                       )}
