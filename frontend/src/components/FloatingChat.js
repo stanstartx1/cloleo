@@ -2,7 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useLocation } from "react-router-dom";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, Mic, Paperclip, Image as ImageIcon, FileText } from "lucide-react";
 import ChatMessageDeleteButton from "./ChatMessageDeleteButton";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -118,7 +118,17 @@ const FloatingChat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const listEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const audioInputRef = useRef(null);
+  const documentInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
   const canOpenProduct =
@@ -196,6 +206,174 @@ const FloatingChat = () => {
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
     refreshConversations();
   }, [refreshConversations]);
+
+  // Media upload handlers
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeConversationId) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${activeConversationId}/upload-image`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      setMessages(prev => [...prev, response.data.message]);
+      refreshConversations();
+      toast.success('Image envoyée');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Erreur lors de l\'envoi de l\'image');
+    } finally {
+      setUploadingFile(false);
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeConversationId) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${activeConversationId}/upload-document`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      setMessages(prev => [...prev, response.data.message]);
+      refreshConversations();
+      toast.success('Document envoyé');
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Erreur lors de l\'envoi du document');
+    } finally {
+      setUploadingFile(false);
+      documentInputRef.current.value = '';
+    }
+  };
+
+  const handleAudioUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeConversationId) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `${API}/conversations/${activeConversationId}/upload-audio`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      setMessages(prev => [...prev, response.data.message]);
+      refreshConversations();
+      toast.success('Audio envoyé');
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      toast.error('Erreur lors de l\'envoi de l\'audio');
+    } finally {
+      setUploadingFile(false);
+      audioInputRef.current.value = '';
+    }
+  };
+
+  // Audio recording functionality
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        audioChunksRef.current.push(e.data);
+      };
+      
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+        
+        setUploadingFile(true);
+        const formData = new FormData();
+        formData.append('file', audioFile);
+        formData.append('duration', recordingTime);
+        
+        try {
+          const response = await axios.post(
+            `${API}/conversations/${activeConversationId}/upload-audio`,
+            formData,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+          );
+          
+          setMessages(prev => [...prev, response.data.message]);
+          refreshConversations();
+          toast.success('Message vocal envoyé');
+        } catch (error) {
+          console.error('Error uploading recording:', error);
+          toast.error('Erreur lors de l\'envoi du message vocal');
+        } finally {
+          setUploadingFile(false);
+        }
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        audioChunksRef.current = [];
+      };
+      
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Impossible d\'accéder au microphone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+      audioChunksRef.current = [];
+      toast.info('Enregistrement annulé');
+    }
+  };
+
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -390,6 +568,48 @@ const FloatingChat = () => {
                         isCustomerBubble ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
                       }`}
                     >
+                      {m.media_type === 'image' && (
+                        <div>
+                          <MediaImg 
+                            src={m.file_url} 
+                            alt="Image partagée" 
+                            className="max-w-full rounded-lg"
+                          />
+                        </div>
+                      )}
+                      {m.media_type === 'document' && (
+                        <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-blue-900 truncate">{m.file_name}</p>
+                            <p className="text-[10px] text-blue-600">
+                              {m.file_size ? `${(m.file_size / 1024).toFixed(1)} KB` : 'Document'}
+                            </p>
+                          </div>
+                          <a 
+                            href={m.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                          >
+                            <FileText className="w-3 h-3" />
+                            Télécharger
+                          </a>
+                        </div>
+                      )}
+                      {m.media_type === 'audio' && (
+                        <div className="space-y-1">
+                          <audio controls className="w-full">
+                            <source src={m.file_url} type="audio/mpeg" />
+                            Votre navigateur ne supporte pas l'audio
+                          </audio>
+                          {m.duration && (
+                            <p className="text-[10px] text-slate-500">Durée: {formatRecordingTime(m.duration)}</p>
+                          )}
+                        </div>
+                      )}
                       {m.content || m.text}
                     </div>
                     {isOwn && activeConversationId && (
@@ -413,16 +633,141 @@ const FloatingChat = () => {
             <div ref={listEndRef} />
           </div>
 
-          <form onSubmit={handleSend} className="p-2 border-t border-slate-200 flex items-center gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Écrire un message..."
-              className="h-9 text-sm"
+          <form onSubmit={handleSend} className="p-2 border-t border-slate-200">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowMediaMenu(!showMediaMenu)}
+                  className="h-9 w-9 text-slate-500 hover:text-slate-700"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
+                
+                {showMediaMenu && (
+                  <div className="absolute bottom-10 left-0 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 min-w-[140px]">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        fileInputRef.current?.click();
+                        setShowMediaMenu(false);
+                      }}
+                      className="w-full justify-start"
+                    >
+                      <ImageIcon className="w-4 h-4 mr-2" />
+                      Image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        documentInputRef.current?.click();
+                        setShowMediaMenu(false);
+                      }}
+                      className="w-full justify-start"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Document
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        audioInputRef.current?.click();
+                        setShowMediaMenu(false);
+                      }}
+                      className="w-full justify-start"
+                    >
+                      <Mic className="w-4 h-4 mr-2" />
+                      Audio
+                    </Button>
+                    <div className="border-t pt-1">
+                      {isRecording ? (
+                        <div className="space-y-1 px-2">
+                          <div className="text-center text-xs font-medium text-fuchsia-600">
+                            {formatRecordingTime(recordingTime)}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelRecording}
+                              className="flex-1 justify-start text-xs text-red-600"
+                            >
+                              Annuler
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={stopRecording}
+                              className="flex-1 justify-start text-xs text-green-600"
+                            >
+                              Envoyer
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={startRecording}
+                          className="w-full justify-start"
+                        >
+                          <Mic className="w-4 h-4 mr-2" />
+                          Enregistrer
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Écrire un message..."
+                className="h-9 text-sm flex-1"
+              />
+              <Button type="submit" size="icon" className="h-9 w-9 bg-fuchsia-600 hover:bg-fuchsia-700" disabled={uploadingFile}>
+                {uploadingFile ? (
+                  <div className="w-4 h-4 border-2 border-fuchsia-200 border-t-fuchsia-600 rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            
+            {/* Hidden file inputs */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
             />
-            <Button type="submit" size="icon" className="h-9 w-9 bg-fuchsia-600 hover:bg-fuchsia-700">
-              <Send className="w-4 h-4" />
-            </Button>
+            <input
+              ref={documentInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              onChange={handleDocumentUpload}
+              className="hidden"
+            />
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*"
+              onChange={handleAudioUpload}
+              className="hidden"
+            />
           </form>
         </div>
       </div>
