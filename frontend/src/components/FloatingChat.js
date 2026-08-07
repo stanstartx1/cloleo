@@ -167,6 +167,7 @@ export const ChatProvider = ({ children }) => {
       closeChat,
       refreshConversations: fetchConversations,
       setConversations,
+      setActiveConversationId,
     }),
     [isOpen, conversations, activeConversationId, startConversation, openConversation, openChat, closeChat, fetchConversations]
   );
@@ -187,6 +188,7 @@ export const useChat = () => {
       closeChat: () => {},
       refreshConversations: async () => {},
       setConversations: () => {},
+      setActiveConversationId: () => {},
     };
   }
   return ctx;
@@ -196,7 +198,7 @@ const FloatingChat = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, isAuthenticated } = useAuth();
-  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations } = useChat();
+  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations, setActiveConversationId } = useChat();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
