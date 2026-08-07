@@ -70,7 +70,11 @@ const CustomerChatPage = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated, navigate, fetchConversations]);
 
-  // Load messages when conversation is selected
+  // Scroll to top on page load and conversation change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedConversation]);
+
   const loadMessages = useCallback(async (conversationId, forceReload = false) => {
     try {
       const response = await axios.get(`${API}/conversations/${conversationId}`, {
@@ -439,29 +443,29 @@ const CustomerChatPage = () => {
   return (
     <div className="min-h-screen home-premium-gradient pt-20" data-testid="customer-chat-page">
       <div className="container mx-auto px-4 py-6">
-        <div className="premium-panel-soft rounded-2xl shadow-lg border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '500px' }}>
+        <div className="premium-panel-soft rounded-2xl shadow-lg border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '500px', maxHeight: '800px' }}>
           <div className="flex h-full">
             
             {/* Conversations List (Left Panel) */}
-            <div className={`w-full md:w-96 border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
               {/* Header */}
               <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-indigo-600">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                      <MessageCircle className="w-6 h-6" />
-                      Mes Messages
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+                      <span className="truncate">Mes Messages</span>
                     </h1>
-                    <p className="text-purple-200 text-sm mt-1">{conversations.length} conversation(s)</p>
+                    <p className="text-purple-200 text-xs md:text-sm mt-1 truncate">{conversations.length} conversation(s)</p>
                   </div>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={handleLogout}
-                    className="bg-white/20 text-white hover:bg-white/30 border border-white/30"
+                    className="bg-white/20 text-white hover:bg-white/30 border border-white/30 flex-shrink-0"
                   >
                     <LogOut className="w-4 h-4 mr-1" />
-                    Déconnexion
+                    <span className="hidden sm:inline">Déconnexion</span>
                   </Button>
                 </div>
               </div>
@@ -495,7 +499,7 @@ const CustomerChatPage = () => {
                         setSelectedConversation(conv);
                         loadMessages(conv.id, true);
                       }}
-                      className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 text-left ${
+                      className={`w-full p-3 md:p-4 flex items-start gap-2 md:gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 text-left ${
                         selectedConversation?.id === conv.id ? 'bg-purple-50 border-l-4 border-l-purple-600' : ''
                       }`}
                       data-testid={`conversation-${conv.id}`}
@@ -506,11 +510,11 @@ const CustomerChatPage = () => {
                           <MediaImg 
                             src={conv.product_image} 
                             alt="" 
-                            className="w-14 h-14 rounded-xl object-cover border border-gray-200"
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover border border-gray-200"
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-                            <Store className="w-6 h-6 text-white" />
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                            <Store className="w-5 h-5 md:w-6 md:h-6 text-white" />
                           </div>
                         )}
                         {conv.unread_count > 0 && (
@@ -523,13 +527,13 @@ const CustomerChatPage = () => {
                       {/* Conversation Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-semibold text-gray-900 truncate">{conv.seller_name || 'Vendeur'}</p>
+                          <p className="font-semibold text-gray-900 truncate text-sm md:text-base">{conv.seller_name || 'Vendeur'}</p>
                           <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
                             {formatLastMessageTime(conv.last_message_at)}
                           </span>
                         </div>
-                        <p className="text-sm text-purple-600 truncate">{conv.product_name}</p>
-                        <p className="text-sm text-gray-500 truncate mt-1">
+                        <p className="text-xs md:text-sm text-purple-600 truncate">{conv.product_name}</p>
+                        <p className="text-xs md:text-sm text-gray-500 truncate mt-1">
                           {conv.last_message || 'Démarrez la conversation...'}
                         </p>
                       </div>
@@ -546,10 +550,13 @@ const CustomerChatPage = () => {
               {selectedConversation ? (
                 <>
                   {/* Chat Header */}
-                  <div className="p-4 border-b border-gray-200 bg-white flex items-center gap-4">
+                  <div className="p-3 md:p-4 border-b border-gray-200 bg-white flex items-center gap-3 md:gap-4">
                     <button
-                      onClick={() => setSelectedConversation(null)}
-                      className="md:hidden p-2 hover:bg-gray-100 rounded-full"
+                      onClick={() => {
+                        setSelectedConversation(null);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="md:hidden p-2 hover:bg-gray-100 rounded-full flex-shrink-0"
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -564,11 +571,11 @@ const CustomerChatPage = () => {
                         <MediaImg 
                           src={selectedConversation.product_image} 
                           alt="" 
-                          className="w-12 h-12 rounded-xl object-cover border-2 border-purple-200 hover:border-purple-400 transition-colors"
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover border-2 border-purple-200 hover:border-purple-400 transition-colors"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-                          <ImageIcon className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                          <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
                         </div>
                       )}
                     </Link>
