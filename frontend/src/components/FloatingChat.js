@@ -213,16 +213,16 @@ const FloatingChat = () => {
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
   const canOpenProduct =
     activeConversation?.product_id &&
-    typeof activeConversation.product_id === "string" &&
-    !activeConversation.product_id.startsWith("admin-chat-");
+    typeof activeConversation?.product_id === "string" &&
+    !activeConversation?.product_id.startsWith("admin-chat-");
 
   const sellerShopPath = (() => {
     if (!activeConversation?.seller_id) return null;
-    if (activeConversation.seller_type === "dropshipper") {
-      const slug = activeConversation.seller_shop_slug;
+    if (activeConversation?.seller_type === "dropshipper") {
+      const slug = activeConversation?.seller_shop_slug;
       return slug ? `/boutique/${slug}` : null;
     }
-    return `/vendeur-boutique/${activeConversation.seller_id}`;
+    return `/vendeur-boutique/${activeConversation?.seller_id}`;
   })();
 
   const loadMessages = useCallback(async (forceReload = false) => {
@@ -586,7 +586,7 @@ const FloatingChat = () => {
                   className="w-full text-left pr-6"
                 >
                   <div className="flex items-center gap-3">
-                    {conv.seller_avatar ? (
+                    {conv?.seller_avatar ? (
                       <MediaImg 
                         src={conv.seller_avatar} 
                         alt={conv.seller_name}
@@ -594,12 +594,12 @@ const FloatingChat = () => {
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold">
-                        {conv.seller_name?.[0] || "C"}
+                        {conv?.seller_name?.[0] || "C"}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{conv.seller_name || "Contact"}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{conv.product_name || "Discussion"}</p>
+                      <p className="text-xs font-semibold truncate">{conv?.seller_name || "Contact"}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{conv?.product_name || "Discussion"}</p>
                     </div>
                   </div>
                 </button>
@@ -619,15 +619,15 @@ const FloatingChat = () => {
           <div className="h-10 px-3 border-b border-slate-200 flex items-center justify-between gap-2 min-w-0">
             {activeConversation?.seller_name && sellerShopPath ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                {activeConversation.seller_avatar ? (
+                {activeConversation?.seller_avatar ? (
                   <MediaImg 
-                    src={activeConversation.seller_avatar} 
-                    alt={activeConversation.seller_name}
+                    src={activeConversation?.seller_avatar} 
+                    alt={activeConversation?.seller_name}
                     className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs">
-                    {activeConversation.seller_name?.[0] || "S"}
+                    {activeConversation?.seller_name?.[0] || "S"}
                   </div>
                 )}
                 <button
@@ -641,19 +641,19 @@ const FloatingChat = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                {activeConversation.seller_avatar ? (
+                {activeConversation?.seller_avatar ? (
                   <MediaImg 
-                    src={activeConversation.seller_avatar} 
-                    alt={activeConversation.seller_name}
+                    src={activeConversation?.seller_avatar} 
+                    alt={activeConversation?.seller_name}
                     className="w-8 h-8 rounded-full object-cover border-2 border-slate-200"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs">
-                    {activeConversation.seller_name?.[0] || "S"}
+                    {activeConversation?.seller_name?.[0] || "S"}
                   </div>
                 )}
                 <span className="text-xs font-semibold text-slate-900 truncate">
-                  {activeConversation.seller_name || "Contact"}
+                  {activeConversation?.seller_name || "Contact"}
                 </span>
               </div>
             )}
@@ -662,35 +662,35 @@ const FloatingChat = () => {
           {canOpenProduct && (
             <button
               type="button"
-              onClick={() => navigate(`/produit/${activeConversation.product_id}`)}
+              onClick={() => navigate(`/produit/${activeConversation?.product_id}`)}
               className="px-3 py-2 border-b border-slate-200 hover:bg-slate-50 flex items-center gap-2 text-left"
             >
               {activeConversation?.product_image ? (
                 <MediaImg
-                  src={activeConversation.product_image}
-                  alt={activeConversation.product_name || "Produit"}
+                  src={activeConversation?.product_image}
+                  alt={activeConversation?.product_name || "Produit"}
                   className="w-10 h-10 rounded object-cover border border-slate-200"
                 />
               ) : (
                 <div className="w-10 h-10 rounded bg-slate-100 border border-slate-200" />
               )}
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-800 truncate">{activeConversation.product_name || "Produit"}</p>
+                <p className="text-xs font-semibold text-slate-800 truncate">{activeConversation?.product_name || "Produit"}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {activeConversation?.product_promo_price_fcfa ? (
                     <>
                       <span className="text-[11px] font-bold text-emerald-600">
-                        {new Intl.NumberFormat("fr-FR").format(activeConversation.product_promo_price_fcfa)} FCFA
+                        {new Intl.NumberFormat("fr-FR").format(activeConversation?.product_promo_price_fcfa)} FCFA
                       </span>
                       {activeConversation?.product_price_fcfa && (
                         <span className="text-[10px] text-slate-400 line-through">
-                          {new Intl.NumberFormat("fr-FR").format(activeConversation.product_price_fcfa)} FCFA
+                          {new Intl.NumberFormat("fr-FR").format(activeConversation?.product_price_fcfa)} FCFA
                         </span>
                       )}
                     </>
                   ) : activeConversation?.product_price_fcfa ? (
                     <span className="text-[11px] font-bold text-slate-700">
-                      {new Intl.NumberFormat("fr-FR").format(activeConversation.product_price_fcfa)} FCFA
+                      {new Intl.NumberFormat("fr-FR").format(activeConversation?.product_price_fcfa)} FCFA
                     </span>
                   ) : null}
                 </div>
