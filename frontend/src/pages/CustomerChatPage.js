@@ -142,6 +142,34 @@ const CustomerChatPage = () => {
     fetchConversations();
   }, [fetchConversations]);
 
+  const handleDeleteConversation = async (conversationId, e) => {
+    e.stopPropagation(); // Prevent selecting the conversation when clicking delete
+    
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette conversation et tous ses messages ?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API}/conversations/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Remove conversation from list
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+
+      // If the deleted conversation was selected, clear selected conversation and messages
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+
+      toast.success('Conversation supprimée');
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast.error('Erreur lors de la suppression de la conversation');
+    }
+  };
+
   const handleSend = async (e) => {
     e?.preventDefault();
     if (!newMessage.trim() || !selectedConversation || sending) return;
@@ -179,9 +207,6 @@ const CustomerChatPage = () => {
           ? { ...c, last_message: messageContent, last_message_at: new Date().toISOString() }
           : c
       ));
-      
-      // Refresh messages to get the full state
-      setTimeout(() => loadMessages(selectedConversation.id, true), 1000);
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setNewMessage(messageContent);
@@ -524,9 +549,18 @@ const CustomerChatPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-gray-900 truncate text-sm md:text-base">{conv.seller_name || 'Vendeur'}</p>
-                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                            {formatLastMessageTime(conv.last_message_at)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              {formatLastMessageTime(conv.last_message_at)}
+                            </span>
+                            <button
+                              onClick={(e) => handleDeleteConversation(conv.id, e)}
+                              className="p-1 hover:bg-red-100 rounded transition-colors"
+                              title="Supprimer la conversation"
+                            >
+                              <X className="w-4 h-4 text-red-500 hover:text-red-700" />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs md:text-sm text-purple-600 truncate">{conv.product_name}</p>
                         <p className="text-xs md:text-sm text-gray-500 truncate mt-1">

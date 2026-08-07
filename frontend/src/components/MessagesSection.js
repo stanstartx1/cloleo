@@ -144,6 +144,35 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     fetchMessages(conv.id, true); // Force reload on conversation change
   };
 
+  // Delete conversation
+  const handleDeleteConversation = async (conversationId, e) => {
+    e.stopPropagation(); // Prevent selecting the conversation when clicking delete
+    
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette conversation et tous ses messages ?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API}/conversations/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Remove conversation from list
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+
+      // If the deleted conversation was selected, clear selected conversation and messages
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+
+      toast.success('Conversation supprimée');
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast.error('Erreur lors de la suppression de la conversation');
+    }
+  };
+
   // HTTP polling for messages (WebSocket disabled due to Apache configuration)
   useEffect(() => {
     if (!selectedConversation) return;
@@ -609,9 +638,18 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-sm truncate">{conv.customer_name}</p>
-                          {conv.unread_count > 0 && (
-                            <Badge className="bg-purple-600 text-white text-xs">{conv.unread_count}</Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {conv.unread_count > 0 && (
+                              <Badge className="bg-purple-600 text-white text-xs">{conv.unread_count}</Badge>
+                            )}
+                            <button
+                              onClick={(e) => handleDeleteConversation(conv.id, e)}
+                              className="p-1 hover:bg-red-100 rounded transition-colors"
+                              title="Supprimer la conversation"
+                            >
+                              <X className="w-4 h-4 text-red-500 hover:text-red-700" />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
                           <Package className="w-3 h-3" />

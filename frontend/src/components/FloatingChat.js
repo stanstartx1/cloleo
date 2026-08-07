@@ -207,6 +207,34 @@ const FloatingChat = () => {
     refreshConversations();
   }, [refreshConversations]);
 
+  const handleDeleteConversation = async (conversationId, e) => {
+    e.stopPropagation(); // Prevent selecting the conversation when clicking delete
+    
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette conversation et tous ses messages ?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API}/conversations/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Remove conversation from list
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+
+      // If the deleted conversation was selected, clear selected conversation and messages
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+
+      refreshConversations();
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast.error('Erreur lors de la suppression de la conversation');
+    }
+  };
+
   // Media upload handlers
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -465,17 +493,28 @@ const FloatingChat = () => {
             <div className="p-3 text-xs text-slate-500">Aucune conversation</div>
           ) : (
             conversations.map((conv) => (
-              <button
+              <div
                 key={conv.id}
-                onClick={() => {
-                  openConversation(conv.id);
-                  loadMessages(true); // Force reload on conversation change
-                }}
-                className={`w-full text-left p-2 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
+                className={`relative w-full text-left p-2 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
               >
-                <p className="text-xs font-semibold truncate">{conv.seller_name || "Contact"}</p>
-                <p className="text-[11px] text-slate-500 truncate">{conv.product_name || "Discussion"}</p>
-              </button>
+                <button
+                  onClick={() => {
+                    openConversation(conv.id);
+                    loadMessages(true); // Force reload on conversation change
+                  }}
+                  className="w-full text-left pr-6"
+                >
+                  <p className="text-xs font-semibold truncate">{conv.seller_name || "Contact"}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{conv.product_name || "Discussion"}</p>
+                </button>
+                <button
+                  onClick={(e) => handleDeleteConversation(conv.id, e)}
+                  className="absolute top-2 right-2 p-1 hover:bg-red-100 rounded transition-colors"
+                  title="Supprimer la conversation"
+                >
+                  <X className="w-3 h-3 text-red-500 hover:text-red-700" />
+                </button>
+              </div>
             ))
           )}
         </div>
