@@ -569,46 +569,46 @@ const FloatingChat = () => {
       </div>
 
       <div className="h-[calc(100%-56px)] flex">
-        <div className="w-32 sm:w-40 border-r border-slate-200 overflow-y-auto bg-slate-50">
+        <div className="w-48 sm:w-56 border-r border-slate-200 overflow-y-auto bg-slate-50">
           {conversations.length === 0 ? (
             <div className="p-3 text-xs text-slate-500">Aucune conversation</div>
           ) : (
             conversations.map((conv) => (
               <div
                 key={conv.id}
-                className={`relative w-full text-left p-3 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
+                className={`relative w-full text-left p-4 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
               >
                 <button
                   onClick={() => {
                     openConversation(conv.id);
                     loadMessages(true); // Force reload on conversation change
                   }}
-                  className="w-full text-left pr-6"
+                  className="w-full text-left pr-8"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     {conv?.seller_avatar ? (
                       <MediaImg 
                         src={conv.seller_avatar} 
                         alt={conv.seller_name}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-200"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-slate-200"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg">
                         {conv?.seller_name?.[0] || "C"}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{conv?.seller_name || "Contact"}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{conv?.product_name || "Discussion"}</p>
+                      <p className="text-sm font-semibold truncate">{conv?.seller_name || "Contact"}</p>
+                      <p className="text-xs text-slate-500 truncate">{conv?.product_name || "Discussion"}</p>
                     </div>
                   </div>
                 </button>
                 <button
                   onClick={(e) => handleDeleteConversation(conv.id, e)}
-                  className="absolute top-3 right-2 p-1 hover:bg-red-100 rounded transition-colors"
+                  className="absolute top-4 right-2 p-1 hover:bg-red-100 rounded transition-colors"
                   title="Supprimer la conversation"
                 >
-                  <X className="w-3 h-3 text-red-500 hover:text-red-700" />
+                  <X className="w-4 h-4 text-red-500 hover:text-red-700" />
                 </button>
               </div>
             ))

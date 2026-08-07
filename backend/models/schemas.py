@@ -9,7 +9,7 @@ class UserRole:
     ADMIN = "admin"
     DRIVER = "driver"
     DROPSHIPPER = "dropshipper"
-    REVENDEUR = "dropshipper"
+    REVENDEUR = "revendeur"
 
 
 class OrderStatus:

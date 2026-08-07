@@ -12,6 +12,7 @@ from core.auth import (
     get_current_user,
     require_vendor,
     require_dropshipper,
+    require_revendeur,
     decode_token,
     security
 )
@@ -189,6 +190,11 @@ async def get_my_conversations(user: dict = Depends(get_current_user)):
             "id": conv["seller_id"] if conv["customer_id"] == user["id"] else conv["customer_id"],
             "role": conv.get("seller_type", "vendor") if conv["customer_id"] == user["id"] else "customer"
         }
+        # Add seller avatar if not present
+        if "seller_avatar" not in conv and conv.get("seller_id"):
+            seller = await db.users.find_one({"id": conv["seller_id"]}, {"_id": 0, "profile_photo": 1})
+            if seller:
+                conv["seller_avatar"] = seller.get("profile_photo")
     
     return {"conversations": conversations}
 
@@ -615,6 +621,11 @@ async def vendor_get_conversations(user: dict = Depends(require_vendor)):
     
     for conv in conversations:
         conv["unread_count"] = conv.get("unread_seller", 0)
+        # Add seller avatar if not present
+        if "seller_avatar" not in conv and conv.get("seller_id"):
+            seller = await db.users.find_one({"id": conv["seller_id"]}, {"_id": 0, "profile_photo": 1})
+            if seller:
+                conv["seller_avatar"] = seller.get("profile_photo")
     
     return conversations
 
@@ -632,6 +643,11 @@ async def dropshipper_get_conversations(user: dict = Depends(require_dropshipper
     
     for conv in conversations:
         conv["unread_count"] = conv.get("unread_seller", 0)
+        # Add seller avatar if not present
+        if "seller_avatar" not in conv and conv.get("seller_id"):
+            seller = await db.users.find_one({"id": conv["seller_id"]}, {"_id": 0, "profile_photo": 1})
+            if seller:
+                conv["seller_avatar"] = seller.get("profile_photo")
     
     return conversations
 
@@ -649,5 +665,10 @@ async def revendeur_get_conversations(user: dict = Depends(require_revendeur)):
     
     for conv in conversations:
         conv["unread_count"] = conv.get("unread_seller", 0)
+        # Add seller avatar if not present
+        if "seller_avatar" not in conv and conv.get("seller_id"):
+            seller = await db.users.find_one({"id": conv["seller_id"]}, {"_id": 0, "profile_photo": 1})
+            if seller:
+                conv["seller_avatar"] = seller.get("profile_photo")
     
     return conversations
