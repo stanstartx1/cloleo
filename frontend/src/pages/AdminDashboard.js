@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import MediaImg from '../components/MediaImg';
 import { 
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
@@ -2427,8 +2428,23 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
               {conversations.map((conv) => (
                 <tr key={conv.id} className="border-t border-slate-700 hover:bg-slate-700/20">
                   <td className="p-4">
-                    <p className="font-medium">{conv.seller_name || 'Utilisateur'}</p>
-                    <p className="text-xs text-slate-400">{conv.product_name || 'Message direct'}</p>
+                    <div className="flex items-center gap-3">
+                      {conv?.seller_avatar ? (
+                        <MediaImg 
+                          src={conv.seller_avatar} 
+                          alt={conv.seller_name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-slate-600"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                          {conv?.seller_name?.[0] || "U"}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{conv.seller_name || 'Utilisateur'}</p>
+                        <p className="text-xs text-slate-400">{conv.product_name || 'Message direct'}</p>
+                      </div>
+                    </div>
                   </td>
                   <td className="p-4 text-sm text-slate-300">{conv.last_message || 'Aucun message'}</td>
                   <td className="p-4 text-sm text-slate-400">

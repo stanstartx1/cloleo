@@ -629,7 +629,20 @@ const CustomerChatPage = () => {
                       {/* Conversation Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-semibold text-gray-900 truncate text-sm md:text-base">{conv.seller_name || 'Vendeur'}</p>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {conv?.seller_avatar ? (
+                              <MediaImg 
+                                src={conv.seller_avatar} 
+                                alt={conv.seller_name}
+                                className="w-8 h-8 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm">
+                                {conv?.seller_name?.[0] || "V"}
+                              </div>
+                            )}
+                            <p className="font-semibold text-gray-900 truncate text-sm md:text-base">{conv.seller_name || 'Vendeur'}</p>
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-400 flex-shrink-0">
                               {formatLastMessageTime(conv.last_message_at)}
@@ -692,15 +705,28 @@ const CustomerChatPage = () => {
                     </Link>
                     
                     <div className="flex-1 min-w-0">
-                      {/* Clickable Seller Name */}
-                      <Link 
-                        to={`/vendeur-boutique/${selectedConversation.seller_id}`}
-                        className="font-semibold text-gray-900 hover:text-purple-600 transition-colors flex items-center gap-1"
-                        title="Voir la boutique"
-                      >
-                        {selectedConversation.seller_name}
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
+                      {/* Clickable Seller Name with Avatar */}
+                      <div className="flex items-center gap-2">
+                        {selectedConversation?.seller_avatar ? (
+                          <MediaImg 
+                            src={selectedConversation.seller_avatar} 
+                            alt={selectedConversation.seller_name}
+                            className="w-8 h-8 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm">
+                            {selectedConversation?.seller_name?.[0] || "V"}
+                          </div>
+                        )}
+                        <Link 
+                          to={`/vendeur-boutique/${selectedConversation.seller_id}`}
+                          className="font-semibold text-gray-900 hover:text-purple-600 transition-colors flex items-center gap-1"
+                          title="Voir la boutique"
+                        >
+                          {selectedConversation.seller_name}
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </div>
                       <Link 
                         to={`/produit/${selectedConversation.product_id}`}
                         className="text-sm text-purple-600 truncate hover:underline block"
