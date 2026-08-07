@@ -14,7 +14,7 @@ import {
 
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
 
-  LogOut, Edit, Edit2, X, MessageCircle, Trash2, Users, User, Copy, Building2, Trophy,
+  LogOut, Edit, Edit2, X, MessageCircle, Trash2, Users, User, Copy, Building2, Trophy, Eye,
 
   Award, Image as ImageIcon, Briefcase, Star, FileText, Upload, Download,
 
@@ -37,6 +37,8 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 
 import { toAbsoluteMediaUrl } from '../utils/media';
+
+import MediaImg from '../components/MediaImg';
 
 import { COUNTRIES, getCountryByCode } from '../utils/countries';
 
@@ -270,7 +272,12 @@ const EnterpriseDashboard = () => {
 
       const response = await axios.get(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } });
 
-      setOrders(response.data.orders || []);
+      // Filter orders by seller_id for enterprises
+      const enterpriseOrders = (response.data.orders || []).filter(order => 
+        order.seller_id === user?.id
+      );
+      
+      setOrders(enterpriseOrders);
 
     } catch (error) {
 
@@ -278,7 +285,7 @@ const EnterpriseDashboard = () => {
 
     }
 
-  }, [token]);
+  }, [token, user?.id]);
 
 
 
@@ -1600,6 +1607,34 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
   ) || [];
 
+  const handleAcceptOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/vendor-accept`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Commande acceptée');
+      onRefresh();
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      toast.error('Erreur lors de l\'acceptation de la commande');
+    }
+  };
+
+  const handleRejectOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/reject`,
+        { reason: 'Produit non disponible' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Commande refusée');
+      onRefresh();
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      toast.error('Erreur lors du refus de la commande');
+    }
+  };
+
 
 
   const handleUpdateStatus = async (orderId, newStatus) => {
@@ -1803,24 +1838,24 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
               {order.items?.map((item, index) => (
 
-                <div key={index} className="flex items-center gap-3 py-2 border-b border-slate-700/50 last:border-0">
-
+                <div key={index} className="flex items-center gap-3 py-3 border-b border-slate-700/50 last:border-0">
                   {item.image && (
-
-                    <img src={toAbsoluteMediaUrl(item.image)} alt="" className="w-12 h-12 rounded-lg object-cover" />
-
+                    <MediaImg 
+                      src={item.image} 
+                      alt={item.name}
+                      className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                    />
                   )}
-
-                  <div className="flex-1">
-
-                    <p className="text-sm font-medium text-white">{item.name}</p>
-
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{item.name}</p>
                     <p className="text-xs text-slate-400">Qté: {item.quantity}</p>
-
+                    {item.selected_attributes && Object.keys(item.selected_attributes).length > 0 && (
+                      <p className="text-xs text-amber-300 mt-1">
+                        {Object.entries(item.selected_attributes).map(([key, value]) => `${key}: ${value}`).join(' · ')}
+                      </p>
+                    )}
                   </div>
-
-                  <p className="text-sm text-slate-300">{formatPrice(item.price_fcfa)} FCFA</p>
-
+                  <p className="text-sm text-slate-300 font-semibold">{formatPrice(item.price_fcfa)} FCFA</p>
                 </div>
 
               ))}
@@ -1867,7 +1902,7 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
                     size="sm"
 
-                    onClick={() => handleUpdateStatus(order.id, 'confirmed')}
+                    onClick={() => handleAcceptOrder(order.id)}
 
                     className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
 
@@ -1875,7 +1910,7 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
                     <CheckCircle className="w-4 h-4 mr-1" />
 
-                    Confirmer
+                    Accepter
 
                   </Button>
 
@@ -1885,7 +1920,7 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
                     variant="outline"
 
-                    onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                    onClick={() => handleRejectOrder(order.id)}
 
                     className="border-red-500 text-red-400 hover:bg-red-500/20"
 
@@ -1893,7 +1928,7 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
                     <XCircle className="w-4 h-4 mr-1" />
 
-                    Annuler
+                    Refuser
 
                   </Button>
 
