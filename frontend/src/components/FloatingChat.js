@@ -135,14 +135,34 @@ const FloatingChat = () => {
     return `/vendeur-boutique/${activeConversation.seller_id}`;
   })();
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (forceReload = false) => {
     if (!token || !activeConversationId) return;
     setLoadingMessages(true);
     try {
       const response = await axios.get(`${API}/conversations/${activeConversationId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(response.data?.messages || []);
+      
+      const newMessages = response.data?.messages || [];
+      
+      // On force reload, replace all messages
+      if (forceReload) {
+        setMessages(newMessages);
+      } else {
+        // Merge messages intelligently - only add new messages, don't replace all
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMessagesToAdd = newMessages.filter(m => !existingIds.has(m.id));
+          
+          // If we have existing messages, only add new ones
+          if (prev.length > 0) {
+            return [...prev, ...newMessagesToAdd];
+          }
+          
+          // First load, use all messages
+          return newMessages;
+        });
+      }
     } catch (error) {
       console.error("Error loading messages:", error);
       toast.error("Impossible de charger les messages");
@@ -153,17 +173,17 @@ const FloatingChat = () => {
 
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
-    loadMessages();
-  }, [isOpen, activeConversationId, loadMessages]);
+    loadMessages(true); // Force reload on open
+  }, [isOpen, activeConversationId]);
 
   // HTTP polling for messages (WebSocket disabled due to Apache configuration)
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
 
     const pollingInterval = setInterval(() => {
-      loadMessages();
+      loadMessages(false); // Don't force reload, just merge new messages
       refreshConversations();
-    }, 5000); // Poll every 5 seconds
+    }, 10000); // Poll every 10 seconds
     
     return () => clearInterval(pollingInterval);
   }, [isOpen, activeConversationId, loadMessages, refreshConversations]);
@@ -273,7 +293,10 @@ const FloatingChat = () => {
             conversations.map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => openConversation(conv.id)}
+                onClick={() => {
+                  openConversation(conv.id);
+                  loadMessages(true); // Force reload on conversation change
+                }}
                 className={`w-full text-left p-2 border-b border-slate-200 hover:bg-slate-100 ${conv.id === activeConversationId ? "bg-white" : ""}`}
               >
                 <p className="text-xs font-semibold truncate">{conv.seller_name || "Contact"}</p>

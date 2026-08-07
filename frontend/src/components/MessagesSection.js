@@ -78,13 +78,34 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   }, [fetchConversations]);
 
   // Fetch messages for selected conversation
-  const fetchMessages = useCallback(async (conversationId) => {
+  const fetchMessages = useCallback(async (conversationId, forceReload = false) => {
     setLoadingMessages(true);
     try {
       const response = await axios.get(`${API}/conversations/${conversationId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(response.data.messages || []);
+      
+      const newMessages = response.data.messages || [];
+      
+      // On force reload, replace all messages
+      if (forceReload) {
+        setMessages(newMessages);
+      } else {
+        // Merge messages intelligently - only add new messages, don't replace all
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMessagesToAdd = newMessages.filter(m => !existingIds.has(m.id));
+          
+          // If we have existing messages, only add new ones
+          if (prev.length > 0) {
+            return [...prev, ...newMessagesToAdd];
+          }
+          
+          // First load, use all messages
+          return newMessages;
+        });
+      }
+      
       userId.current = response.data.conversation.seller_id;
       
       // Update unread count in local state
@@ -102,7 +123,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   // Select conversation
   const handleSelectConversation = (conv) => {
     setSelectedConversation(conv);
-    fetchMessages(conv.id);
+    fetchMessages(conv.id, true); // Force reload on conversation change
   };
 
   // HTTP polling for messages (WebSocket disabled due to Apache configuration)
@@ -111,7 +132,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
 
     const pollingInterval = setInterval(() => {
       fetchMessages(selectedConversation.id);
-    }, 10000); // Poll every 10 seconds
+    }, 15000); // Reduced from 10s to 15s to reduce flickering
     
     return () => clearInterval(pollingInterval);
   }, [selectedConversation, fetchMessages]);
@@ -156,7 +177,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       ));
       
       // Refresh messages to get the full state
-      setTimeout(() => fetchMessages(selectedConversation.id), 1000);
+      setTimeout(() => fetchMessages(selectedConversation.id, true), 1000);
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setNewMessage(messageContent);

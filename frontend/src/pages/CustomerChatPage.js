@@ -71,12 +71,32 @@ const CustomerChatPage = () => {
   }, [isAuthenticated, navigate, fetchConversations]);
 
   // Load messages when conversation is selected
-  const loadMessages = useCallback(async (conversationId) => {
+  const loadMessages = useCallback(async (conversationId, forceReload = false) => {
     try {
       const response = await axios.get(`${API}/conversations/${conversationId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(response.data.messages || []);
+      
+      const newMessages = response.data.messages || [];
+      
+      // On force reload, replace all messages
+      if (forceReload) {
+        setMessages(newMessages);
+      } else {
+        // Merge messages intelligently - only add new messages, don't replace all
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMessagesToAdd = newMessages.filter(m => !existingIds.has(m.id));
+          
+          // If we have existing messages, only add new ones
+          if (prev.length > 0) {
+            return [...prev, ...newMessagesToAdd];
+          }
+          
+          // First load, use all messages
+          return newMessages;
+        });
+      }
       
       // Mark as read
       await axios.put(`${API}/conversations/${conversationId}/read`, {}, {
@@ -98,7 +118,7 @@ const CustomerChatPage = () => {
 
     const pollingInterval = setInterval(() => {
       loadMessages(selectedConversation.id);
-    }, 10000); // Poll every 10 seconds
+    }, 15000); // Reduced from 10s to 15s to reduce flickering
     
     return () => clearInterval(pollingInterval);
   }, [selectedConversation, loadMessages]);
@@ -157,7 +177,7 @@ const CustomerChatPage = () => {
       ));
       
       // Refresh messages to get the full state
-      setTimeout(() => loadMessages(selectedConversation.id), 1000);
+      setTimeout(() => loadMessages(selectedConversation.id, true), 1000);
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       setNewMessage(messageContent);
@@ -402,7 +422,7 @@ const CustomerChatPage = () => {
     const target = conversations.find((c) => c.id === targetConversationId);
     if (target) {
       setSelectedConversation(target);
-      loadMessages(target.id);
+      loadMessages(target.id, true);
     }
   }, [searchParams, conversations, loadMessages]);
 
@@ -473,7 +493,7 @@ const CustomerChatPage = () => {
                       key={conv.id}
                       onClick={() => {
                         setSelectedConversation(conv);
-                        loadMessages(conv.id);
+                        loadMessages(conv.id, true);
                       }}
                       className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 text-left ${
                         selectedConversation?.id === conv.id ? 'bg-purple-50 border-l-4 border-l-purple-600' : ''
