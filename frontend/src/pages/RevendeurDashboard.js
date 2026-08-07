@@ -656,58 +656,6 @@ const RevendeurDashboard = () => {
 
 
 
-  const handleRejectOrder = async (orderId) => {
-
-    try {
-
-      await axios.put(`${API}/orders/${orderId}/reject`, 
-        { reason: 'Produit non disponible' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      toast.success('Commande refusée');
-
-      fetchOrders();
-
-    } catch (error) {
-
-      console.error('Error rejecting order:', error);
-
-      toast.error('Erreur lors du refus de la commande');
-
-    }
-
-  };
-
-
-
-  const handleCancelOrder = async (orderId, reason = '') => {
-
-    try {
-
-      console.log('Tentative d\'annulation de commande par dropshipper:', orderId, 'Raison:', reason);
-      const response = await axios.put(`${API}/orders/${orderId}/cancel-by-vendor`, 
-        { reason },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('Réponse d\'annulation:', response.data);
-      toast.success('Commande annulée avec succès');
-
-      fetchOrders();
-
-    } catch (error) {
-
-      console.error('Error cancelling order:', error);
-
-      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'annulation de la commande';
-
-      console.error('Erreur détaillée:', errorMessage);
-      toast.error(errorMessage);
-
-    }
-
-  };
-
 
 
   // Fetch earnings
@@ -2821,57 +2769,21 @@ const RevendeurDashboard = () => {
                                 </div>
 
                                 
-
-                                {/* Customer Info */}
-
+                                {/* Vendor Info - Show vendor instead of customer */}
                                 <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-
                                   <div className="flex items-center gap-1">
-
-                                    <User className="w-3 h-3" />
-
-                                    <span className="truncate">{order.customer_name}</span>
-
+                                    <Store className="w-3 h-3" />
+                                    <span className="truncate">{order.vendor_name || order.seller_name || 'Vendeur'}</span>
                                   </div>
-
-                                  <div className="flex items-center gap-1">
-
-                                    <MapPin className="w-3 h-3" />
-
-                                    <span>{order.delivery_address?.city}</span>
-
-                                  </div>
-
-                                  <div className="flex items-center gap-1">
-
-                                    <Phone className="w-3 h-3" />
-
-                                    <span>{order.customer_phone}</span>
-
-                                  </div>
-
+                                  {order.vendor_shop_name && (
+                                    <div className="flex items-center gap-1">
+                                      <ShoppingBag className="w-3 h-3" />
+                                      <span>{order.vendor_shop_name}</span>
+                                    </div>
+                                  )}
                                 </div>
 
                               </div>
-
-                              {/* Actions */}
-                              {['pending', 'assigned'].includes(order.status) && (
-                                <div className="flex gap-2 mt-3">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-red-300 text-red-600 hover:bg-red-50"
-                                    onClick={() => {
-                                      const reason = prompt('Raison de l\'annulation (optionnel):');
-                                      if (reason !== null) {
-                                        handleCancelOrder(order.id, reason);
-                                      }
-                                    }}
-                                  >
-                                    <XCircle className="w-4 h-4 mr-1" /> Annuler
-                                  </Button>
-                                </div>
-                              )}
 
                             </div>
 

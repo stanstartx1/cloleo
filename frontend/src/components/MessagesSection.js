@@ -152,9 +152,14 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
     try {
-      const endpoint = (userType === 'dropshipper' || userType === 'revendeur')
-        ? '/dropshipper/conversations'
-        : '/vendor/conversations';
+      let endpoint;
+      if (userType === 'dropshipper') {
+        endpoint = '/dropshipper/conversations';
+      } else if (userType === 'revendeur') {
+        endpoint = '/revendeur/conversations';
+      } else {
+        endpoint = '/vendor/conversations';
+      }
         
       const response = await axios.get(`${API}${endpoint}`, {
         headers: { Authorization: `Bearer ${token}` }

@@ -634,3 +634,20 @@ async def dropshipper_get_conversations(user: dict = Depends(require_dropshipper
         conv["unread_count"] = conv.get("unread_seller", 0)
     
     return conversations
+
+
+# Revendeur-specific routes
+revendeur_chat_router = APIRouter(prefix="/revendeur/conversations", tags=["Revendeur Chat"])
+
+
+@revendeur_chat_router.get("")
+async def revendeur_get_conversations(user: dict = Depends(require_revendeur)):
+    """Get all conversations for revendeur"""
+    conversations = await db.conversations.find(
+        {"seller_id": user["id"], "seller_type": "revendeur"}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    for conv in conversations:
+        conv["unread_count"] = conv.get("unread_seller", 0)
+    
+    return conversations
