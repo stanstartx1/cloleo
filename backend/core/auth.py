@@ -141,7 +141,8 @@ async def require_dropshipper(user: dict = Depends(get_current_user)):
 
 
 async def require_revendeur(user: dict = Depends(get_current_user)):
-    if user["role"] != "revendeur":
+    # Support both "revendeur" and "dropshipper" roles for backwards compatibility
+    if user["role"] not in ["revendeur", "dropshipper"]:
         raise HTTPException(status_code=403, detail="Acces reserve aux revendeurs")
     if not user.get("is_active", False) or not user.get("is_verified", False):
         # Check if auto-approve is enabled — if so, approve on-the-fly
