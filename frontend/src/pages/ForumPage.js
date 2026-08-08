@@ -58,6 +58,25 @@ const ForumPage = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingInterval, setRecordingInterval] = useState(null);
 
+  // Real-time updates with polling (WebSocket can be added later)
+  useEffect(() => {
+    if (!currentTopic) return;
+    
+    // Poll for new comments every 30 seconds for real-time feel
+    const interval = setInterval(() => {
+      axios.get(`${API}/forum/topics/${currentTopic.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(response => {
+        setCurrentTopic(response.data);
+        setComments(response.data.comments || []);
+      }).catch(error => {
+        console.error('Error polling for updates:', error);
+      });
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [currentTopic?.id, token]);
+
   // Media upload handlers
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -210,6 +229,25 @@ const ForumPage = () => {
       toast.error('Erreur lors du chargement du sujet');
     }
   }, [token]);
+
+  // Real-time updates with polling (WebSocket can be added later)
+  useEffect(() => {
+    if (!currentTopic) return;
+    
+    // Poll for new comments every 30 seconds for real-time feel
+    const interval = setInterval(() => {
+      axios.get(`${API}/forum/topics/${currentTopic.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(response => {
+        setCurrentTopic(response.data);
+        setComments(response.data.comments || []);
+      }).catch(error => {
+        console.error('Error polling for updates:', error);
+      });
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [currentTopic?.id, token]);
 
   useEffect(() => {
     if (!isAuthenticated) {
