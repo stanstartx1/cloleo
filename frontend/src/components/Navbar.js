@@ -348,7 +348,7 @@ const Navbar = () => {
             </a>
 
             {/* ── Desktop Navigation ── (sans le menu Parcourir) */}
-            <div className="hidden lg:flex items-center gap-8 shrink-0">
+            <div className="hidden lg:flex items-center gap-10 shrink-0">
               <Link
                 to="/produits?featured=true"
                 className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
@@ -356,10 +356,10 @@ const Navbar = () => {
                 Tendances
               </Link>
               <Link
-                to="/forum"
+                to="/produits?discount=true"
                 className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
               >
-                Forum
+                Promotions
               </Link>
               <Link
                 to="/devenir-vendeur"

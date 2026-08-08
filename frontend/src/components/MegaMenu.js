@@ -243,6 +243,13 @@ const MegaMenu = () => {
               <MessageSquare className="w-4 h-4" />
               <span className="font-semibold text-sm">Forum</span>
             </Link>
+            <Link
+              to="/produits?discount=true"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200 hover:scale-105"
+            >
+              <Gift className="w-4 h-4" />
+              <span className="font-semibold text-sm">Promotions</span>
+            </Link>
           </div>
         </div>
       </div>
