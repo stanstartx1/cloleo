@@ -157,6 +157,8 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
         endpoint = '/dropshipper/conversations';
       } else if (userType === 'revendeur') {
         endpoint = '/revendeur/conversations';
+      } else if (userType === 'driver') {
+        endpoint = '/driver/conversations';
       } else {
         endpoint = '/vendor/conversations';
       }

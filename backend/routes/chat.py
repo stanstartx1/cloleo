@@ -13,6 +13,7 @@ from core.auth import (
     require_vendor,
     require_dropshipper,
     require_revendeur,
+    require_driver,
     decode_token,
     security
 )
@@ -661,6 +662,28 @@ async def revendeur_get_conversations(user: dict = Depends(require_revendeur)):
     """Get all conversations for revendeur"""
     conversations = await db.conversations.find(
         {"seller_id": user["id"], "seller_type": "revendeur"}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(100)
+    
+    for conv in conversations:
+        conv["unread_count"] = conv.get("unread_seller", 0)
+        # Add seller avatar if not present
+        if "seller_avatar" not in conv and conv.get("seller_id"):
+            seller = await db.users.find_one({"id": conv["seller_id"]}, {"_id": 0, "profile_photo": 1})
+            if seller:
+                conv["seller_avatar"] = seller.get("profile_photo")
+    
+    return conversations
+
+
+# Driver-specific routes
+driver_chat_router = APIRouter(prefix="/driver/conversations", tags=["Driver Chat"])
+
+
+@driver_chat_router.get("")
+async def driver_get_conversations(user: dict = Depends(require_driver)):
+    """Get all conversations for driver"""
+    conversations = await db.conversations.find(
+        {"seller_id": user["id"], "seller_type": "driver"}, {"_id": 0}
     ).sort("updated_at", -1).to_list(100)
     
     for conv in conversations:

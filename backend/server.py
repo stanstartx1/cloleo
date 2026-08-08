@@ -62,7 +62,7 @@ from routes.cart import router as cart_router
 
 from routes.categories import router as categories_router
 
-from routes.chat import router as chat_router, vendor_chat_router, dropshipper_chat_router, revendeur_chat_router, set_manager
+from routes.chat import router as chat_router, vendor_chat_router, dropshipper_chat_router, revendeur_chat_router, driver_chat_router, set_manager
 
 from routes.enterprises import router as enterprises_router
 
@@ -161,6 +161,8 @@ api.include_router(vendor_chat_router)
 api.include_router(dropshipper_chat_router)
 
 api.include_router(revendeur_chat_router)
+
+api.include_router(driver_chat_router)
 
 api.include_router(reviews_router)
 

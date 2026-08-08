@@ -5,13 +5,14 @@ import {
   Truck, Package, DollarSign, MapPin, Clock, CheckCircle, 
   XCircle, AlertCircle, Phone, LogOut, Navigation, 
   Loader2, Star, Play, Flag, PackageCheck, Bell,
-  Menu, Home, Map, List, History, ChevronRight, X
+  Menu, Home, Map, List, History, ChevronRight, X, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import MapboxMap from '../components/MapboxMap';
+import MessagesSection from '../components/MessagesSection';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 
@@ -31,6 +32,7 @@ const ORDER_STATUSES = {
 const NAV_ITEMS = [
   { id: 'map', label: 'Carte & Navigation', icon: Map },
   { id: 'orders', label: 'Commandes', icon: Package, badge: true },
+  { id: 'messages', label: 'Messages', icon: MessageCircle },
   { id: 'history', label: 'Historique', icon: History },
   { id: 'stats', label: 'Mes gains', icon: DollarSign },
 ];
@@ -681,6 +683,21 @@ const DriverDashboard = () => {
                     <p className="text-slate-400">Aucune commande disponible</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Messages Section */}
+          {activeSection === 'messages' && (
+            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              <div className="p-4 border-b border-slate-700">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-purple-400" />
+                  Messages
+                </h3>
+              </div>
+              <div className="p-4">
+                <MessagesSection token={token} userType="driver" />
               </div>
             </div>
           )}
