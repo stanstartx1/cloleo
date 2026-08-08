@@ -360,6 +360,8 @@ async def create_comment(topic_id: str, comment: ForumCommentCreate, user: dict 
         "topic_id": topic_id,
         "parent_id": comment.parent_id,
         "content": comment.content,
+        "media_url": comment.media_url,
+        "audio_url": comment.audio_url,
         "author_id": user["id"],
         "author_name": user.get("name", "Anonymous"),
         "author_avatar": user.get("profile_photo"),

@@ -40,6 +40,8 @@ class ForumTopicUpdate(BaseModel):
 class ForumCommentCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
     parent_id: Optional[str] = None  # For nested comments
+    media_url: Optional[str] = None
+    audio_url: Optional[str] = None
 
 
 class ForumCommentUpdate(BaseModel):
