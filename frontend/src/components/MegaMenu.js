@@ -7,7 +7,7 @@ import {
   Monitor, Phone, User, Crown, Eye, Droplet, 
   Scissors, Dumbbell, Bike, Trophy, Users, Mountain, 
   Book, Shield, ShoppingCart, Leaf, Zap, Armchair, 
-  Building2, Utensils, ArrowRight
+  Building2, Utensils, ArrowRight, MessageSquare
 } from 'lucide-react';
 
 const MegaMenu = () => {
@@ -235,20 +235,13 @@ const MegaMenu = () => {
           </div>
 
           {/* Special Offers */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Link
-              to="/tendances"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition-all duration-200 hover:scale-105"
+              to="/forum"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 hover:scale-105"
             >
-              <Sparkles className="w-4 h-4" />
-              <span className="font-semibold text-sm">Tendances</span>
-            </Link>
-            <Link
-              to="/promotions"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200 hover:scale-105"
-            >
-              <Gift className="w-4 h-4" />
-              <span className="font-semibold text-sm">Promotions</span>
+              <MessageSquare className="w-4 h-4" />
+              <span className="font-semibold text-sm">Forum</span>
             </Link>
           </div>
         </div>

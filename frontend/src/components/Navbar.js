@@ -348,7 +348,7 @@ const Navbar = () => {
             </a>
 
             {/* ── Desktop Navigation ── (sans le menu Parcourir) */}
-            <div className="hidden lg:flex items-center gap-5 shrink-0">
+            <div className="hidden lg:flex items-center gap-8 shrink-0">
               <Link
                 to="/produits?featured=true"
                 className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
@@ -356,10 +356,10 @@ const Navbar = () => {
                 Tendances
               </Link>
               <Link
-                to="/produits?sort_by=created_at"
+                to="/forum"
                 className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
               >
-                Nouveautés
+                Forum
               </Link>
               <Link
                 to="/devenir-vendeur"
@@ -395,7 +395,7 @@ const Navbar = () => {
             </div>
 
             {/* ── Actions ── */}
-            <div className="ml-auto flex items-center gap-1 shrink-0" style={{ overflow: 'visible' }}>
+            <div className="ml-auto flex items-center gap-3 shrink-0" style={{ overflow: 'visible' }}>
               
               {/* Bouton recherche mobile */}
               <Button
