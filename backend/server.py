@@ -1065,8 +1065,6 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
         "seller_id": seller_id,
 
-        "dropshipper_id": dropshipper_id,
-
         "items": order_items,
 
         "delivery_address": payload.delivery_address.model_dump(),
