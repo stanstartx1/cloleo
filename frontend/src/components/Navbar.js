@@ -361,12 +361,42 @@ const Navbar = () => {
               >
                 Promotions
               </Link>
-              <Link
-                to="/devenir-vendeur"
-                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
-              >
-                Devenir vendeur
-              </Link>
+              
+              {/* Dropdown pour Devenir partenaire */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide flex items-center gap-1">
+                    Devenir partenaire
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to="/devenir-vendeur" className="flex items-center gap-2">
+                      <Store className="w-4 h-4" />
+                      <span>Vendeur</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/inscription-livreur" className="flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      <span>Livreur</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/inscription-revendeur" className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      <span>Revendeur</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/inscription-entreprise" className="flex items-center gap-2">
+                      <Crown className="w-4 h-4" />
+                      <span>Entreprise</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* ── Barre de recherche stylée ── */}
