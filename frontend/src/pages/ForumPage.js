@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -60,9 +60,9 @@ const ForumPage = () => {
     } else {
       loadCategories();
     }
-  }, [isAuthenticated, categoryId, topicId]);
+  }, [isAuthenticated, categoryId, topicId, loadCategories, loadCategory, loadTopic, navigate]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const response = await axios.get(`${API}/forum/categories`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -75,9 +75,9 @@ const ForumPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const loadCategory = async (id) => {
+  const loadCategory = useCallback(async (id) => {
     try {
       const response = await axios.get(`${API}/forum/categories/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -88,9 +88,9 @@ const ForumPage = () => {
       console.error('Error loading category:', error);
       toast.error('Erreur lors du chargement de la catégorie');
     }
-  };
+  }, [token]);
 
-  const loadTopic = async (id) => {
+  const loadTopic = useCallback(async (id) => {
     try {
       const response = await axios.get(`${API}/forum/topics/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -102,7 +102,7 @@ const ForumPage = () => {
       console.error('Error loading topic:', error);
       toast.error('Erreur lors du chargement du sujet');
     }
-  };
+  }, [token]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -206,7 +206,7 @@ const ForumPage = () => {
     }
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = useCallback((dateStr) => {
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now - date;
@@ -219,7 +219,133 @@ const ForumPage = () => {
     if (hours < 24) return `Il y a ${hours} h`;
     if (days < 7) return `Il y a ${days} j`;
     return date.toLocaleDateString('fr-FR');
-  };
+  }, []);
+
+  // Memoize comment rendering for performance
+  const CommentItem = React.memo(({ comment, user, formatDate, handleAddReaction, handleDeleteComment, setNewComment, setShowNewCommentModal }) => (
+    <div className="border-b border-gray-100 pb-4 last:border-0">
+      <div className="flex items-start gap-3">
+        {comment.author_avatar ? (
+          <MediaImg 
+            src={comment.author_avatar} 
+            alt={comment.author_name}
+            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            {comment.author_name?.[0] || 'U'}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-medium text-sm">{comment.author_name}</span>
+            <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+          </div>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+          
+          {/* Reactions */}
+          {comment.reactions && comment.reactions.length > 0 && (
+            <div className="flex gap-1 mt-2">
+              {comment.reactions.map((reaction, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">
+                  {reaction.emoji} {reaction.user_name}
+                </Badge>
+              ))}
+            </div>
+          )}
+          
+          {/* Actions */}
+          <div className="flex items-center gap-2 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setNewComment({ ...newComment, parent_id: comment.id });
+                setShowNewCommentModal(true);
+              }}
+            >
+              <Reply className="w-4 h-4 mr-1" />
+              Répondre
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleAddReaction(comment.id, '👍')}
+            >
+              👍
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleAddReaction(comment.id, '❤️')}
+            >
+              ❤️
+            </Button>
+            {(comment.author_id === user?.id || user?.role === 'admin') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteComment(comment.id)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          
+          {/* Nested Comments */}
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="ml-8 mt-4 space-y-4 border-l-2 border-purple-200 pl-4">
+              {comment.replies.map((reply) => (
+                <div key={reply.id} className="flex items-start gap-3">
+                  {reply.author_avatar ? (
+                    <MediaImg 
+                      src={reply.author_avatar} 
+                      alt={reply.author_name}
+                      className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                      {reply.author_name?.[0] || 'U'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-xs">{reply.author_name}</span>
+                      <span className="text-xs text-gray-400">{formatDate(reply.created_at)}</span>
+                    </div>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{reply.content}</p>
+                    
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAddReaction(reply.id, '👍')}
+                      >
+                        👍
+                      </Button>
+                      {(reply.author_id === user?.id || user?.role === 'admin') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteComment(reply.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ));
+
+  CommentItem.displayName = 'CommentItem';
 
   if (loading) {
     return (

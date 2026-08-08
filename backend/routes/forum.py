@@ -19,37 +19,55 @@ router = APIRouter(prefix="/forum", tags=["Forum"])
 # ==================== CATEGORIES ====================
 
 @router.get("/categories")
-async def get_categories():
-    """Get all forum categories"""
+async def get_categories(user: dict = Depends(get_current_user)):
+    """Get all forum categories - optimized with aggregation (requires authentication)"""
     categories = await db.forum_categories.find({}, {"_id": 0}).sort("sort_order", 1).to_list(100)
     
-    # Add topic count for each category
-    for category in categories:
-        topic_count = await db.forum_topics.count_documents({"category_id": category["id"]})
-        category["topic_count"] = topic_count
+    # Add topic count for each category using aggregation for better performance
+    category_ids = [c["id"] for c in categories]
+    if category_ids:
+        topic_counts = await db.forum_topics.aggregate([
+            {"$match": {"category_id": {"$in": category_ids}}},
+            {"$group": {"_id": "$category_id", "count": {"$sum": 1}}}
+        ]).to_list(100)
+        
+        count_map = {doc["_id"]: doc["count"] for doc in topic_counts}
+        for category in categories:
+            category["topic_count"] = count_map.get(category["id"], 0)
+    else:
+        for category in categories:
+            category["topic_count"] = 0
     
     return categories
 
 
 @router.get("/categories/{category_id}")
-async def get_category(category_id: str):
-    """Get a specific category with its topics"""
+async def get_category(category_id: str, user: dict = Depends(get_current_user)):
+    """Get a specific category with its topics - optimized with aggregation (requires authentication)"""
     category = await db.forum_categories.find_one({"id": category_id}, {"_id": 0})
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    # Get topics for this category
-    topics = await db.forum_topics.find(
-        {"category_id": category_id},
-        {"_id": 0}
-    ).sort("is_pinned", -1).sort("updated_at", -1).to_list(50)
+    # Get topics for this category with comment counts in single aggregation
+    topics = await db.forum_topics.aggregate([
+        {"$match": {"category_id": category_id}},
+        {"$sort": {"is_pinned": -1, "updated_at": -1}},
+        {"$limit": 50},
+        {"$lookup": {
+            "from": "forum_comments",
+            "localField": "id",
+            "foreignField": "topic_id",
+            "as": "comments"
+        }},
+        {"$addFields": {"comment_count": {"$size": "$comments"}}},
+        {"$project": {
+            "_id": 0,
+            "comments": 0
+        }}
+    ]).to_list(50)
     
-    # Add comment counts and last activity
+    # Get last comment for each topic
     for topic in topics:
-        comment_count = await db.forum_comments.count_documents({"topic_id": topic["id"]})
-        topic["comment_count"] = comment_count
-        
-        # Get last comment
         last_comment = await db.forum_comments.find_one(
             {"topic_id": topic["id"]},
             {"_id": 0, "created_at": 1, "author_name": 1}
@@ -135,9 +153,10 @@ async def get_topics(
     category_id: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    sort: str = "recent"
+    sort: str = "recent",
+    user: dict = Depends(get_current_user)
 ):
-    """Get forum topics with pagination"""
+    """Get forum topics with pagination - optimized with aggregation (requires authentication)"""
     query = {}
     if category_id:
         query["category_id"] = category_id
@@ -150,17 +169,30 @@ async def get_topics(
         sort_field = "view_count"
     
     skip = (page - 1) * limit
-    topics = await db.forum_topics.find(
-        query,
-        {"_id": 0}
-    ).sort(sort_field, -1).skip(skip).to_list(limit)
     
-    # Add comment counts and author info
+    # Use aggregation for better performance with counts
+    pipeline = [
+        {"$match": query},
+        {"$sort": {sort_field: -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "forum_comments",
+            "localField": "id",
+            "foreignField": "topic_id",
+            "as": "comments"
+        }},
+        {"$addFields": {"comment_count": {"$size": "$comments"}}},
+        {"$project": {
+            "_id": 0,
+            "comments": 0
+        }}
+    ]
+    
+    topics = await db.forum_topics.aggregate(pipeline).to_list(limit)
+    
+    # Get last comment for each topic
     for topic in topics:
-        comment_count = await db.forum_comments.count_documents({"topic_id": topic["id"]})
-        topic["comment_count"] = comment_count
-        
-        # Get last comment
         last_comment = await db.forum_comments.find_one(
             {"topic_id": topic["id"]},
             {"_id": 0, "created_at": 1, "author_name": 1}
@@ -179,8 +211,8 @@ async def get_topics(
 
 
 @router.get("/topics/{topic_id}")
-async def get_topic(topic_id: str):
-    """Get a specific topic with its comments"""
+async def get_topic(topic_id: str, user: dict = Depends(get_current_user)):
+    """Get a specific topic with its comments (requires authentication)"""
     topic = await db.forum_topics.find_one({"id": topic_id}, {"_id": 0})
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
@@ -440,8 +472,8 @@ async def add_reaction(comment_id: str, reaction: ForumReactionCreate, user: dic
 # ==================== SEARCH ====================
 
 @router.post("/search")
-async def search_forum(search: ForumSearchQuery):
-    """Search forum topics"""
+async def search_forum(search: ForumSearchQuery, user: dict = Depends(get_current_user)):
+    """Search forum topics (requires authentication)"""
     query = {
         "$or": [
             {"title": {"$regex": search.query, "$options": "i"}},
@@ -485,8 +517,8 @@ async def search_forum(search: ForumSearchQuery):
 # ==================== STATS ====================
 
 @router.get("/stats")
-async def get_forum_stats():
-    """Get forum statistics"""
+async def get_forum_stats(user: dict = Depends(get_current_user)):
+    """Get forum statistics (requires authentication)"""
     category_count = await db.forum_categories.count_documents({})
     topic_count = await db.forum_topics.count_documents({})
     comment_count = await db.forum_comments.count_documents({})
