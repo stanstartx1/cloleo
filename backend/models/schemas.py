@@ -43,6 +43,7 @@ class VendorProduct(BaseModel):
     wholesale_min_quantity: Optional[int] = None
     wholesale_unit_price_fcfa: Optional[int] = None
     stock: int
+    vendor_stock: Optional[int] = None  # Stock spécifique pour dropshipping
     condition: str
     category_slug: str
     subcategory_slug: Optional[str] = None
@@ -129,6 +130,7 @@ class DropshipperRegister(BaseModel):
 
 class DropshippedProductCreate(BaseModel):
     original_product_id: str
+    original_vendor_id: str  # Store the original vendor ID
     custom_description: Optional[str] = None
     selling_price_fcfa: int
     custom_images: Optional[List[str]] = None
@@ -145,6 +147,7 @@ class MessageCreate(BaseModel):
     conversation_id: Optional[str] = None
     product_id: Optional[str] = None
     dropshipped_product_id: Optional[str] = None
+    original_vendor_id: Optional[str] = None  # For dropshipped products to chat with original vendor
     content: str
 
 

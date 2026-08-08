@@ -105,12 +105,20 @@ async def start_conversation(
     
     # Determine who to chat with based on product type
     if data.dropshipped_product_id:
-        # Dropshipped product - chat with dropshipper
+        # Dropshipped product - chat with ORIGINAL VENDOR (not dropshipper)
         dp = await db.dropshipped_products.find_one({"id": data.dropshipped_product_id}, {"_id": 0})
         if not dp:
             raise HTTPException(status_code=404, detail="Produit non trouvé")
-        seller_id = dp["dropshipper_id"]
-        seller_type = "dropshipper"
+        
+        # Chat with the original vendor, not the dropshipper
+        seller_id = dp.get("original_vendor_id")
+        if not seller_id:
+            # Fallback to dropshipper if original_vendor_id not set (for backward compatibility)
+            seller_id = dp["dropshipper_id"]
+            seller_type = "dropshipper"
+        else:
+            seller_type = "vendor"
+        
         product_name = dp.get("original_name")
         product_image = dp.get("original_images", [None])[0]
         product_price_fcfa = dp.get("original_price_fcfa")

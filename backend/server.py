@@ -807,7 +807,33 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
         print(f"DEBUG: dropshipped_product_info: {dropshipped_product_info}")
 
-        
+        # Check and update vendor_stock for the original product
+        original_product = await db.products.find_one({"id": dropshipped_product_info["original_product_id"]}, {"_id": 0})
+        if original_product:
+            current_vendor_stock = original_product.get("vendor_stock", original_product.get("stock", 0))
+            if current_vendor_stock < order_items[0]["quantity"]:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Stock vendeur insuffisant. Disponible: {current_vendor_stock}, Demandé: {order_items[0]['quantity']}"
+                )
+            # Decrement vendor_stock
+            new_vendor_stock = current_vendor_stock - order_items[0]["quantity"]
+            await db.products.update_one(
+                {"id": dropshipped_product_info["original_product_id"]},
+                {"$set": {"vendor_stock": new_vendor_stock, "updated_at": _utc()}}
+            )
+            
+            # Notify vendor if vendor_stock is low (less than 5)
+            if new_vendor_stock < 5:
+                await manager.broadcast_to_room(f"vendor_{seller_id}", {
+                    "type": "low_stock_alert",
+                    "product_id": dropshipped_product_info["original_product_id"],
+                    "product_name": dropshipped_product_info.get("original_name"),
+                    "current_stock": new_vendor_stock,
+                    "message": f"Alerte: Stock vendeur faible pour {dropshipped_product_info.get('original_name')} ({new_vendor_stock} restants)"
+                })
+
+
 
         # Commande optimisée pour le vendeur
 
@@ -872,6 +898,20 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             "updated_at": _utc(),
 
         }
+
+        # Notify vendor and dropshipper via WebSocket about new dropshipped order
+        await manager.broadcast_to_room(f"vendor_{seller_id}", {
+            "type": "new_dropshipped_order",
+            "order_id": seller_order["id"],
+            "order_number": seller_order["order_number"],
+            "message": "Nouvelle commande dropshippée reçue"
+        })
+        await manager.broadcast_to_room(f"dropshipper_{dropshipper_id}", {
+            "type": "new_dropshipped_order",
+            "order_id": dropshipper_order["id"],
+            "order_number": dropshipper_order["order_number"],
+            "message": "Nouvelle commande dropshippée reçue"
+        })
 
         await db.orders.insert_one(seller_order)
 
@@ -1423,7 +1463,17 @@ async def reject_order(order_id: str, reason: str = "", user: dict = Depends(get
         }
     )
 
-    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "cancelled", "message": "Commande refusée"})
+        await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "cancelled", "message": "Commande refusée"})
+        
+        # Notify dropshipper if vendor cancels a dropshipped order
+        if order.get("is_dropshipped_order") and role == "vendor":
+            dropshipper_id = order.get("dropshipper_id")
+            if dropshipper_id:
+                await manager.broadcast_to_room(f"dropshipper_{dropshipper_id}", {
+                    "type": "dropshipped_order_cancelled",
+                    "order_id": order_id,
+                    "message": f"Commande dropshippée annulée par le vendeur: {reason}" if reason else "Commande dropshippée annulée par le vendeur"
+                })
 
     return {"ok": True}
 
@@ -1457,6 +1507,63 @@ async def cancel_order_by_vendor(order_id: str, payload: OrderCancel, user: dict
 
     if not order:
         raise HTTPException(status_code=404, detail="Commande introuvable")
+
+    # NEW LOGIC: For dropshipped orders, only the original vendor can cancel
+    if order.get("is_dropshipped_order"):
+        if role == "dropshipper":
+            raise HTTPException(
+                status_code=403, 
+                detail="Pour les commandes dropshippées, seul le vendeur original peut annuler la commande"
+            )
+        # Vendor can cancel, continue with validation
+        # When vendor cancels, also cancel the related dropshipper order
+        # Find the related dropshipper order
+        dropshipper_order = await db.orders.find_one({
+            "id": {"$ne": order_id},
+            "is_dropshipped_order": True,
+            "seller_id": order.get("seller_id"),
+            "dropshipper_id": order.get("dropshipper_id"),
+            "customer_id": order.get("customer_id")
+        })
+        if dropshipper_order:
+            await db.orders.update_one(
+                {"id": dropshipper_order["id"]},
+                {
+                    "$set": {
+                        "status": "cancelled",
+                        "cancelled_by": "vendor",
+                        "cancellation_reason": f"Annulé par le vendeur original: {reason}" if reason else "Annulé par le vendeur original",
+                        "cancelled_at": _utc(),
+                        "updated_at": _utc()
+                    },
+                    "$push": {
+                        "status_history": {
+                            "status": "cancelled",
+                            "note": f"Commande annulée par le vendeur original: {reason}" if reason else "Commande annulée par le vendeur original",
+                            "cancelled_by": "vendor",
+                            "timestamp": _utc()
+                        }
+                    }
+                }
+            )
+        
+        # Restore vendor_stock when vendor cancels a dropshipped order
+        if order.get("items") and len(order.get("items")) > 0:
+            item = order["items"][0]
+            original_product_id = item.get("original_product_id")
+            quantity = item.get("quantity", 0)
+            if original_product_id and quantity > 0:
+                original_product = await db.products.find_one({"id": original_product_id}, {"_id": 0})
+                if original_product:
+                    current_vendor_stock = original_product.get("vendor_stock", 0)
+                    new_vendor_stock = current_vendor_stock + quantity
+                    await db.products.update_one(
+                        {"id": original_product_id},
+                        {"$set": {"vendor_stock": new_vendor_stock, "updated_at": _utc()}}
+                    )
+
+
+   
 
     # Vérifier si la commande peut être annulée selon les paramètres dynamiques
     cancellable_statuses = cancellation_settings.get("vendor_cancellable_statuses", ["pending", "assigned"])
@@ -1900,6 +2007,8 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
 
         "stock": int(payload.get("stock") or 0),
 
+        "vendor_stock": int(payload.get("vendor_stock") or payload.get("stock") or 0),  # Initialize vendor_stock
+
         "images": payload.get("images") or [],
 
         "tags": payload.get("tags") or [],
@@ -1981,6 +2090,10 @@ async def update_vendor_product(product_id: str, payload: dict, user: dict = Dep
     if "stock" in update and int(update["stock"] or 0) < 0:
 
         raise HTTPException(status_code=400, detail="Le stock est invalide")
+
+    if "vendor_stock" in update and int(update["vendor_stock"] or 0) < 0:
+
+        raise HTTPException(status_code=400, detail="Le stock vendeur est invalide")
 
     if update.get("wholesale_enabled"):
 
@@ -2353,6 +2466,8 @@ async def create_revendeur_product(payload: DropshippedProductCreate, user: dict
         "id": dp_id,
 
         "dropshipper_id": user["id"],
+
+        "original_vendor_id": original.get("seller_id"),  # Track original vendor for chat logic
 
         "original_product_id": original["id"],
 
