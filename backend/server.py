@@ -1463,17 +1463,17 @@ async def reject_order(order_id: str, reason: str = "", user: dict = Depends(get
         }
     )
 
-        await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "cancelled", "message": "Commande refusée"})
-        
-        # Notify dropshipper if vendor cancels a dropshipped order
-        if order.get("is_dropshipped_order") and role == "vendor":
-            dropshipper_id = order.get("dropshipper_id")
-            if dropshipper_id:
-                await manager.broadcast_to_room(f"dropshipper_{dropshipper_id}", {
-                    "type": "dropshipped_order_cancelled",
-                    "order_id": order_id,
-                    "message": f"Commande dropshippée annulée par le vendeur: {reason}" if reason else "Commande dropshippée annulée par le vendeur"
-                })
+    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "cancelled", "message": "Commande refusée"})
+    
+    # Notify dropshipper if vendor cancels a dropshipped order
+    if order.get("is_dropshipped_order") and role == "vendor":
+        dropshipper_id = order.get("dropshipper_id")
+        if dropshipper_id:
+            await manager.broadcast_to_room(f"dropshipper_{dropshipper_id}", {
+                "type": "dropshipped_order_cancelled",
+                "order_id": order_id,
+                "message": f"Commande dropshippée annulée par le vendeur: {reason}" if reason else "Commande dropshippée annulée par le vendeur"
+            })
 
     return {"ok": True}
 
