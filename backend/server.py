@@ -1517,13 +1517,13 @@ async def cancel_order_by_vendor(order_id: str, payload: OrderCancel, user: dict
             )
         # Vendor can cancel, continue with validation
         # When vendor cancels, also cancel the related dropshipper order
-        # Find the related dropshipper order
+        # Find the related dropshipper order (dropshipper's order for this same purchase)
         dropshipper_order = await db.orders.find_one({
             "id": {"$ne": order_id},
             "is_dropshipped_order": True,
-            "seller_id": order.get("seller_id"),
             "dropshipper_id": order.get("dropshipper_id"),
-            "customer_id": order.get("customer_id")
+            "customer_id": order.get("customer_id"),
+            "status": {"$ne": "cancelled"}  # Only cancel if not already cancelled
         })
         if dropshipper_order:
             await db.orders.update_one(
