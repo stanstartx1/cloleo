@@ -74,6 +74,8 @@ from routes.products import router as products_router
 
 from routes.reviews import router as reviews_router
 
+from routes.forum import router as forum_router
+
 
 
 
@@ -165,6 +167,8 @@ api.include_router(revendeur_chat_router)
 api.include_router(driver_chat_router)
 
 api.include_router(reviews_router)
+
+api.include_router(forum_router)
 
 
 

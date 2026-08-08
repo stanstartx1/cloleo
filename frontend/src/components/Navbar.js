@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
   Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
-  Filter, Star, DollarSign, Building2
+  Filter, Star, DollarSign, Building2, MessageSquare
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -527,6 +527,9 @@ const Navbar = () => {
                       <Link to="/mes-messages" className="font-semibold"><MessageCircle className="w-4 h-4 mr-2" /> Mes messages</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link to="/forum" className="font-semibold"><MessageSquare className="w-4 h-4 mr-2" /> Forum</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link to="/parametres" className="font-semibold"><Settings className="w-4 h-4 mr-2" /> Paramètres</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -639,6 +642,9 @@ const Navbar = () => {
                 <>
                   <Link to="/commandes" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <ShoppingCart className="w-4 h-4" /> Mes commandes
+                  </Link>
+                  <Link to="/forum" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <MessageSquare className="w-4 h-4" /> Forum
                   </Link>
                   <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <Bell className="w-4 h-4" /> Mes abonnements

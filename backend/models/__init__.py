@@ -25,3 +25,13 @@ from models.schemas import (
     ReviewCreate,
     ReviewUpdate
 )
+from models.forum_schemas import (
+    ForumCategoryCreate,
+    ForumCategoryUpdate,
+    ForumTopicCreate,
+    ForumTopicUpdate,
+    ForumCommentCreate,
+    ForumCommentUpdate,
+    ForumReactionCreate,
+    ForumSearchQuery
+)

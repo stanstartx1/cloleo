@@ -72,6 +72,9 @@ import VendorShopPage from "./pages/VendorShopPage";
 // Settings
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 
+// Forum
+import ForumPage from "./pages/ForumPage";
+
 const API = API_URL;
 
 // Protected Route Component
@@ -184,6 +187,9 @@ const AppRoutes = () => {
           <PublicLayout><OrdersPage /></PublicLayout>
         </ProtectedRoute>
       } />
+      <Route path="/forum" element={<PublicLayout><ForumPage /></PublicLayout>} />
+      <Route path="/forum/category/:categoryId" element={<PublicLayout><ForumPage /></PublicLayout>} />
+      <Route path="/forum/topic/:topicId" element={<PublicLayout><ForumPage /></PublicLayout>} />
       <Route path="/commande/:id" element={
         <ProtectedRoute>
           <PublicLayout><OrderDetailPage /></PublicLayout>
