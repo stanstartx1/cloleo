@@ -13,6 +13,7 @@ import { ChatProvider } from "./components/FloatingChat";
 
 // Layout
 import Navbar from "./components/Navbar";
+import MegaMenu from "./components/MegaMenu";
 import Footer from "./components/Footer";
 import FloatingChat from "./components/FloatingChat";
 import MobileBottomNav from "./components/MobileBottomNav";
@@ -143,6 +144,7 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false,
 const PublicLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
+    <MegaMenu />
     <main className="flex-1 pb-mobile-nav">{children}</main>
     <Footer />
   </div>
