@@ -48,20 +48,6 @@ const ForumPage = () => {
     parent_id: null
   });
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/connexion');
-      return;
-    }
-    if (topicId) {
-      loadTopic(topicId);
-    } else if (categoryId) {
-      loadCategory(categoryId);
-    } else {
-      loadCategories();
-    }
-  }, [isAuthenticated, categoryId, topicId, loadCategories, loadCategory, loadTopic, navigate]);
-
   const loadCategories = useCallback(async () => {
     try {
       const response = await axios.get(`${API}/forum/categories`, {
@@ -103,6 +89,20 @@ const ForumPage = () => {
       toast.error('Erreur lors du chargement du sujet');
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/connexion');
+      return;
+    }
+    if (topicId) {
+      loadTopic(topicId);
+    } else if (categoryId) {
+      loadCategory(categoryId);
+    } else {
+      loadCategories();
+    }
+  }, [isAuthenticated, categoryId, topicId, loadCategories, loadCategory, loadTopic, navigate]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
