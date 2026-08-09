@@ -40,20 +40,28 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
     occasion: false,
   });
   const [suggestions, setSuggestions] = useState([]);
+  const [userSuggestions, setUserSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchType, setSearchType] = useState('products'); // 'products' or 'users'
   const menuRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen || !searchQuery.trim() || searchQuery.length < 2) {
       setSuggestions([]);
+      setUserSuggestions([]);
       return;
     }
 
     const delayDebounce = setTimeout(async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`);
-        setSuggestions(response.data.suggestions || []);
+        // Récupérer les suggestions de produits
+        const [productsRes, usersRes] = await Promise.all([
+          axios.get(`${API}/search/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`),
+          axios.get(`${API}/search/users/suggestions?q=${encodeURIComponent(searchQuery)}&limit=6`)
+        ]);
+        setSuggestions(productsRes.data.suggestions || []);
+        setUserSuggestions(usersRes.data.suggestions || []);
       } catch (error) {
         console.error('Erreur suggestions:', error);
       } finally {
@@ -130,95 +138,139 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
               </button>
             )}
           </div>
+          {/* Toggle search type */}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => setSearchType('products')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                searchType === 'products' 
+                  ? 'bg-orange-500 text-white' 
+                  : 'bg-white text-slate-600 hover:bg-orange-100'
+              }`}
+            >
+              Produits
+            </button>
+            <button
+              onClick={() => setSearchType('users')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                searchType === 'users' 
+                  ? 'bg-orange-500 text-white' 
+                  : 'bg-white text-slate-600 hover:bg-orange-100'
+              }`}
+            >
+              Utilisateurs
+            </button>
+          </div>
         </div>
 
         {/* Suggestions */}
         {searchQuery.trim() && searchQuery.length >= 2 && (
           <div className="mb-4">
-            <h3 className="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-2">Suggestions</h3>
+            <h3 className="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-2">
+              {searchType === 'products' ? 'Suggestions de produits' : 'Suggestions d\'utilisateurs'}
+            </h3>
             {loading ? (
               <div className="space-y-2">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="h-10 bg-slate-100 animate-pulse rounded-lg"></div>
                 ))}
               </div>
-            ) : suggestions.length > 0 ? (
-              <div className="space-y-1">
-                {suggestions.map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm"
-                  >
-                    <Search className="w-4 h-4 text-orange-400" />
-                    <span className="text-slate-700 font-medium">{suggestion}</span>
-                  </button>
-                ))}
-              </div>
             ) : (
-              <p className="text-xs text-slate-400 text-center py-2 font-medium">Aucune suggestion pour "{searchQuery}"</p>
+              <div className="space-y-1">
+                {(searchType === 'products' ? suggestions : userSuggestions).length > 0 ? (
+                  (searchType === 'products' ? suggestions : userSuggestions).map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-3 text-sm"
+                    >
+                      {searchType === 'products' ? (
+                        <>
+                          <Search className="w-4 h-4 text-orange-400" />
+                          <span className="text-slate-700 font-medium">{suggestion}</span>
+                        </>
+                      ) : (
+                        <>
+                          <User className="w-4 h-4 text-blue-400" />
+                          <span className="text-slate-700 font-medium">{suggestion}</span>
+                        </>
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 text-center py-2 font-medium">
+                    Aucune {searchType === 'products' ? 'suggestion de produit' : 'suggestion d\'utilisateur'} pour "{searchQuery}"
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}
 
-        {/* Filtres */}
-        <div className="border-t border-slate-100 pt-4">
-          <h3 className="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5" /> Filtres
-          </h3>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.certifiedVendor}
-                onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-              />
-              <span className="text-xs text-slate-700 font-semibold flex items-center gap-1.5 group-hover:text-orange-600 transition-colors">
-                <Star className="w-3.5 h-3.5 text-amber-500" /> Vendeur certifié
-              </span>
-            </label>
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.neuf}
-                onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-              />
-              <span className="text-xs text-slate-700 font-semibold group-hover:text-orange-600 transition-colors">Neuf</span>
-            </label>
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.occasion}
-                onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
-              />
-              <span className="text-xs text-slate-700 font-semibold group-hover:text-orange-600 transition-colors">Occasion</span>
-            </label>
-          </div>
+        {/* Filtres - seulement pour produits */}
+        {searchType === 'products' && (
+          <div className="border-t border-slate-100 pt-4">
+            <h3 className="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5" /> Filtres
+            </h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.certifiedVendor}
+                  onChange={(e) => setFilters({ ...filters, certifiedVendor: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-700 font-semibold flex items-center gap-1.5 group-hover:text-orange-600 transition-colors">
+                  <Star className="w-3.5 h-3.5 text-amber-500" /> Vendeur certifié
+                </span>
+              </label>
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.neuf}
+                  onChange={(e) => setFilters({ ...filters, neuf: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-700 font-semibold group-hover:text-orange-600 transition-colors">Neuf</span>
+              </label>
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.occasion}
+                  onChange={(e) => setFilters({ ...filters, occasion: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                />
+                <span className="text-xs text-slate-700 font-semibold group-hover:text-orange-600 transition-colors">Occasion</span>
+              </label>
+            </div>
 
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={handleApplyFilters}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2 rounded-xl font-bold text-xs hover:from-orange-600 hover:to-amber-600 transition shadow-sm"
-            >
-              Appliquer les filtres
-            </button>
-            <button
-              onClick={handleResetFilters}
-              className="px-4 py-2 border border-slate-200 rounded-xl text-xs text-slate-600 font-semibold hover:bg-slate-100 transition"
-            >
-              Reset
-            </button>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleApplyFilters} className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold h-9 hover:from-orange-600 hover:to-amber-600">
+                Rechercher
+              </Button>
+              <Button onClick={handleResetFilters} variant="outline" className="text-xs font-semibold h-9 border-slate-300 text-slate-600 hover:bg-slate-50">
+                Réinitialiser
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex justify-end mt-3 pt-2 border-t border-slate-100">
-          <button onClick={onClose} className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors">
-            Fermer ✕
-          </button>
-        </div>
+        {/* Bouton de recherche pour utilisateurs */}
+        {searchType === 'users' && (
+          <div className="border-t border-slate-100 pt-4">
+            <Button 
+              onClick={() => {
+                // Redirect to users search page
+                window.location.href = `/admin?search=${encodeURIComponent(searchQuery)}`;
+              }}
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold h-9 hover:from-blue-600 hover:to-cyan-600"
+            >
+              Rechercher des utilisateurs
+            </Button>
+          </div>
+        )}
+
       </div>
     </div>
   );
