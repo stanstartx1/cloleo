@@ -284,17 +284,51 @@ async def create_topic(topic: ForumTopicCreate, user: dict = Depends(get_current
     topic_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
-    # Verify category exists
+    # Verify category exists - if not, create default category based on role
     category = await db.forum_categories.find_one({"id": topic.category_id}, {"_id": 0})
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        # Create default category if it doesn't exist
+        user_role = user.get("role", "customer")
+        if user_role == "vendor":
+            default_cat_id = "cat-vendor-general"
+            default_cat_name = "Discussion Générale Vendeurs"
+            default_cat_icon = "💼"
+            default_cat_color = "bg-blue-100"
+        elif user_role == "enterprise":
+            default_cat_id = "cat-enterprise-general"
+            default_cat_name = "Discussion Générale Entreprises"
+            default_cat_icon = "🏢"
+            default_cat_color = "bg-purple-100"
+        else:
+            default_cat_id = "cat-general"
+            default_cat_name = "Discussion Générale"
+            default_cat_icon = "💬"
+            default_cat_color = "bg-blue-100"
+        
+        # Create the category if it doesn't exist
+        if not await db.forum_categories.find_one({"id": default_cat_id}):
+            await db.forum_categories.insert_one({
+                "id": default_cat_id,
+                "name": default_cat_name,
+                "description": f"Catégorie par défaut pour {user_role}",
+                "icon": default_cat_icon,
+                "color": default_cat_color,
+                "sort_order": 1,
+                "target_role": user_role if user_role in ["vendor", "enterprise"] else "all",
+                "created_at": now,
+                "updated_at": now,
+                "created_by": "system"
+            })
+        
+        # Use the default category
+        topic.category_id = default_cat_id
+        category = await db.forum_categories.find_one({"id": topic.category_id}, {"_id": 0})
     
     topic_data = {
         "id": topic_id,
         "category_id": topic.category_id,
         "title": topic.title,
         "content": topic.content,
-        "tags": topic.tags or [],
         "is_pinned": topic.is_pinned,
         "is_locked": topic.is_locked,
         "author_id": user["id"],
