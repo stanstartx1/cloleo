@@ -170,6 +170,129 @@ api.include_router(reviews_router)
 
 api.include_router(forum_router)
 
+api.include_router(enterprises_router)
+
+api.include_router(offers_router)
+
+
+
+# Startup event to initialize forum categories
+@app.on_event("startup")
+async def startup_event():
+    """Initialize forum categories on server startup"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Default forum categories
+    default_categories = [
+        # Vendor categories
+        {
+            "id": "cat-vendor-general",
+            "name": "Discussion Générale Vendeurs",
+            "description": "Discussions générales entre vendeurs",
+            "icon": "💼",
+            "color": "bg-blue-100",
+            "sort_order": 1,
+            "target_role": "vendor",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        {
+            "id": "cat-vendor-marketing",
+            "name": "Marketing & Promotion",
+            "description": "Stratégies marketing et promotion des produits",
+            "icon": "📢",
+            "color": "bg-green-100",
+            "sort_order": 2,
+            "target_role": "vendor",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        {
+            "id": "cat-vendor-tips",
+            "name": "Conseils & Astuces",
+            "description": "Partage d'expériences et conseils pour vendeurs",
+            "icon": "💡",
+            "color": "bg-yellow-100",
+            "sort_order": 3,
+            "target_role": "vendor",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        # Enterprise categories
+        {
+            "id": "cat-enterprise-general",
+            "name": "Discussion Générale Entreprises",
+            "description": "Discussions générales entre entreprises",
+            "icon": "🏢",
+            "color": "bg-purple-100",
+            "sort_order": 1,
+            "target_role": "enterprise",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        {
+            "id": "cat-enterprise-b2b",
+            "name": "Partenariats B2B",
+            "description": "Opportunités de partenariats business-to-business",
+            "icon": "🤝",
+            "color": "bg-indigo-100",
+            "sort_order": 2,
+            "target_role": "enterprise",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        {
+            "id": "cat-enterprise-logistics",
+            "name": "Logistique & Supply Chain",
+            "description": "Discussions sur la logistique et la chaîne d'approvisionnement",
+            "icon": "🚚",
+            "color": "bg-orange-100",
+            "sort_order": 3,
+            "target_role": "enterprise",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        # General categories (admin)
+        {
+            "id": "cat-general",
+            "name": "Discussion Générale",
+            "description": "Discussions générales",
+            "icon": "💬",
+            "color": "bg-blue-100",
+            "sort_order": 1,
+            "target_role": "all",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        },
+        {
+            "id": "cat-announcements",
+            "name": "Annonces",
+            "description": "Annonces officielles de la plateforme",
+            "icon": "📢",
+            "color": "bg-red-100",
+            "sort_order": 2,
+            "target_role": "all",
+            "created_at": now,
+            "updated_at": now,
+            "created_by": "system"
+        }
+    ]
+    
+    # Insert categories if they don't exist
+    for category in default_categories:
+        existing = await db.forum_categories.find_one({"id": category["id"]})
+        if not existing:
+            await db.forum_categories.insert_one(category)
+            print(f"✅ Forum category created: {category['name']} ({category['id']})")
+        else:
+            print(f"ℹ️ Forum category already exists: {category['name']} ({category['id']})")
 
 
 # WebSocket endpoint for chat
@@ -194,10 +317,6 @@ async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
     except Exception as e:
         print(f"WebSocket error: {e}")
         manager.disconnect(websocket, room)
-
-api.include_router(enterprises_router)
-
-api.include_router(offers_router)
 
 
 
