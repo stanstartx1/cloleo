@@ -260,9 +260,18 @@ const ForumPage = () => {
       setLoading(true);
       try {
         if (topicId) {
-          await loadTopic(topicId);
+          const response = await axios.get(`${API}/forum/topics/${topicId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setCurrentTopic(response.data);
+          setComments(response.data.comments || []);
+          setActiveView('topic');
         } else if (categoryId) {
-          await loadCategory(categoryId);
+          const response = await axios.get(`${API}/forum/categories/${categoryId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setTopics(response.data.topics || []);
+          setActiveView('topics');
         } else {
           const response = await axios.get(`${API}/forum/categories`, {
             headers: { Authorization: `Bearer ${token}` }
