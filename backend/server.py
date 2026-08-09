@@ -967,35 +967,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
         print(f"DEBUG: dropshipped_product_info: {dropshipped_product_info}")
 
-        # Check and update vendor_stock for the original product (only for dropshipped orders)
-        # This logic only applies when we have dropshipped_product_info (meaning it's a dropshipped order)
-        if dropshipped_product_info and dropshipped_product_info.get("original_product_id") and order_items and len(order_items) > 0:
-            original_product = await db.products.find_one({"id": dropshipped_product_info["original_product_id"]}, {"_id": 0})
-            if original_product and "vendor_stock" in original_product and original_product["vendor_stock"] is not None:
-                # Only check vendor_stock if it's explicitly set and not None
-                current_vendor_stock = original_product.get("vendor_stock", 0)
-                if current_vendor_stock < order_items[0]["quantity"]:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Stock vendeur insuffisant. Disponible: {current_vendor_stock}, Demandé: {order_items[0]['quantity']}"
-                    )
-                
-                # Decrement vendor_stock
-                new_vendor_stock = current_vendor_stock - order_items[0]["quantity"]
-                await db.products.update_one(
-                    {"id": dropshipped_product_info["original_product_id"]},
-                    {"$set": {"vendor_stock": new_vendor_stock, "updated_at": _utc()}}
-                )
-                
-                # Notify vendor if vendor_stock is low (less than 5)
-                if new_vendor_stock < 5:
-                    await manager.broadcast_to_room(f"vendor_{seller_id}", {
-                        "type": "low_stock_alert",
-                        "product_id": dropshipped_product_info["original_product_id"],
-                        "product_name": dropshipped_product_info.get("original_name"),
-                        "current_stock": new_vendor_stock,
-                        "message": f"Alerte: Stock vendeur faible pour {dropshipped_product_info.get('original_name')} ({new_vendor_stock} restants)"
-                    })
+        # Disable vendor_stock check for dropshipped orders to match normal vendor behavior
+        # Normal vendor orders don't check vendor_stock, so dropshipped orders should work the same way
 
 
 
