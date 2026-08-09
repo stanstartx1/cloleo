@@ -58,13 +58,6 @@ const ForumPage = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingInterval, setRecordingInterval] = useState(null);
 
-  // Load categories when modal opens
-  useEffect(() => {
-    if (showNewTopicModal && categories.length === 0) {
-      loadCategories();
-    }
-  }, [showNewTopicModal, categories.length, loadCategories]);
-
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
     if (!currentTopic) return;
@@ -237,13 +230,6 @@ const ForumPage = () => {
     }
   }, [token]);
 
-  // Load categories when modal opens
-  useEffect(() => {
-    if (showNewTopicModal && categories.length === 0) {
-      loadCategories();
-    }
-  }, [showNewTopicModal, categories.length, loadCategories]);
-
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
     if (!currentTopic) return;
@@ -273,9 +259,16 @@ const ForumPage = () => {
     } else if (categoryId) {
       loadCategory(categoryId);
     } else {
-      loadCategories();
+      axios.get(`${API}/forum/categories`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(response => {
+        setCategories(response.data);
+        setActiveView('categories');
+      }).catch(error => {
+        console.error('Error loading categories:', error);
+      });
     }
-  }, [isAuthenticated, categoryId, topicId, loadCategories, loadCategory, loadTopic, navigate]);
+  }, [isAuthenticated, categoryId, topicId, loadCategory, loadTopic, navigate, token]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -306,7 +299,14 @@ const ForumPage = () => {
       if (newTopic.category_id) {
         loadCategory(newTopic.category_id);
       } else {
-        loadCategories();
+        axios.get(`${API}/forum/categories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => {
+          setCategories(response.data);
+          setActiveView('categories');
+        }).catch(error => {
+          console.error('Error loading categories:', error);
+        });
       }
     } catch (error) {
       console.error('Error creating topic:', error);
@@ -353,7 +353,14 @@ const ForumPage = () => {
       if (categoryId) {
         loadCategory(categoryId);
       } else {
-        loadCategories();
+        axios.get(`${API}/forum/categories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => {
+          setCategories(response.data);
+          setActiveView('categories');
+        }).catch(error => {
+          console.error('Error loading categories:', error);
+        });
       }
     } catch (error) {
       console.error('Error deleting topic:', error);
@@ -569,9 +576,14 @@ const ForumPage = () => {
               </div>
               <Button onClick={() => {
                 setShowNewTopicModal(true);
-                if (categories.length === 0) {
-                  loadCategories();
-                }
+                // Load categories directly without useEffect dependency
+                axios.get(`${API}/forum/categories`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).then(response => {
+                  setCategories(response.data);
+                }).catch(error => {
+                  console.error('Error loading categories:', error);
+                });
               }} className="bg-purple-600 hover:bg-purple-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau Sujet
@@ -584,7 +596,16 @@ const ForumPage = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <Link to="/forum" className="hover:text-purple-600" onClick={() => { setActiveView('categories'); loadCategories(); }}>
+          <Link to="/forum" className="hover:text-purple-600" onClick={() => { 
+            setActiveView('categories');
+            axios.get(`${API}/forum/categories`, {
+              headers: { Authorization: `Bearer ${token}` }
+            }).then(response => {
+              setCategories(response.data);
+            }).catch(error => {
+              console.error('Error loading categories:', error);
+            });
+          }}>
             Forum
           </Link>
           {categoryId && activeView === 'topics' && (
@@ -645,7 +666,17 @@ const ForumPage = () => {
               <h2 className="text-xl font-bold text-gray-900">
                 Sujets
               </h2>
-              <Button variant="outline" onClick={() => { setActiveView('categories'); loadCategories(); }}>
+              <Button variant="outline" onClick={() => { 
+                setActiveView('categories');
+                // Load categories directly without useEffect dependency
+                axios.get(`${API}/forum/categories`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).then(response => {
+                  setCategories(response.data);
+                }).catch(error => {
+                  console.error('Error loading categories:', error);
+                });
+              }}>
                 <ChevronRight className="w-4 h-4 mr-2 rotate-180" />
                 Retour aux catégories
               </Button>
@@ -750,7 +781,16 @@ const ForumPage = () => {
         {activeView === 'topic' && currentTopic && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <Button variant="outline" onClick={() => { setActiveView('categories'); loadCategories(); }}>
+              <Button variant="outline" onClick={() => { 
+                setActiveView('categories');
+                axios.get(`${API}/forum/categories`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).then(response => {
+                  setCategories(response.data);
+                }).catch(error => {
+                  console.error('Error loading categories:', error);
+                });
+              }}>
                 <ChevronRight className="w-4 h-4 mr-2 rotate-180" />
                 Retour au forum
               </Button>
@@ -1010,7 +1050,16 @@ const ForumPage = () => {
               <h2 className="text-xl font-bold text-gray-900">
                 Résultats pour "{searchQuery}"
               </h2>
-              <Button variant="outline" onClick={() => { setActiveView('categories'); loadCategories(); }}>
+              <Button variant="outline" onClick={() => { 
+                setActiveView('categories');
+                axios.get(`${API}/forum/categories`, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).then(response => {
+                  setCategories(response.data);
+                }).catch(error => {
+                  console.error('Error loading categories:', error);
+                });
+              }}>
                 <X className="w-4 h-4 mr-2" />
                 Effacer
               </Button>
