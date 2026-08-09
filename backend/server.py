@@ -971,8 +971,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         # This logic only applies when we have dropshipped_product_info (meaning it's a dropshipped order)
         if dropshipped_product_info and dropshipped_product_info.get("original_product_id") and order_items and len(order_items) > 0:
             original_product = await db.products.find_one({"id": dropshipped_product_info["original_product_id"]}, {"_id": 0})
-            if original_product and "vendor_stock" in original_product:
-                # Only check vendor_stock if it's explicitly set (not for normal products)
+            if original_product and "vendor_stock" in original_product and original_product["vendor_stock"] is not None:
+                # Only check vendor_stock if it's explicitly set and not None
                 current_vendor_stock = original_product.get("vendor_stock", 0)
                 if current_vendor_stock < order_items[0]["quantity"]:
                     raise HTTPException(
