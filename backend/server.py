@@ -459,6 +459,39 @@ async def search_suggestions(q: str = "", limit: int = 8):
 
 
 
+@api.get("/search/users/suggestions")
+
+async def search_users_suggestions(q: str = "", limit: int = 8):
+
+    """Retourne des suggestions de noms d'utilisateurs en temps réel"""
+
+    if not q or len(q) < 2:
+
+        return {"suggestions": []}
+
+    # Recherche insensible à la casse dans les utilisateurs actifs
+    query = {"is_active": True, "$or": [
+        {"name": {"$regex": q, "$options": "i"}},
+        {"shop_name": {"$regex": q, "$options": "i"}},
+        {"email": {"$regex": q, "$options": "i"}},
+    ]}
+
+    users = await db.users.find(
+        query,
+        {"_id": 0, "name": 1, "shop_name": 1, "role": 1}
+    ).limit(limit).to_list(limit)
+
+    suggestions = []
+    for user in users:
+        if user.get("shop_name"):
+            suggestions.append(f"{user['shop_name']} ({user.get('role', 'user')})")
+        else:
+            suggestions.append(f"{user.get('name', 'Anonymous')} ({user.get('role', 'user')})")
+
+    return {"suggestions": suggestions[:limit]}
+
+
+
 
 
 @api.get("/search/products")
@@ -1848,6 +1881,44 @@ async def get_user_by_id(user_id: str):
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
+
+
+
+@api.get("/users/search")
+
+async def search_users(q: str = "", role: Optional[str] = None, page: int = 1, limit: int = 20):
+
+    """Search users by name, email, shop_name, or role"""
+
+    if not q or len(q) < 2:
+
+        return {"users": [], "total": 0, "page": page, "limit": limit}
+
+    query = {"is_active": True}
+
+    if q:
+
+        query["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}},
+            {"shop_name": {"$regex": q, "$options": "i"}},
+            {"location": {"$regex": q, "$options": "i"}},
+        ]
+
+    if role:
+
+        query["role"] = role
+
+    skip = (page - 1) * limit
+
+    total = await db.users.count_documents(query)
+
+    users = await db.users.find(
+        query,
+        {"_id": 0, "password": 0}
+    ).skip(skip).limit(limit).sort("created_at", -1).to_list(limit)
+
+    return {"users": users, "total": total, "page": page, "limit": limit}
 
 
 
