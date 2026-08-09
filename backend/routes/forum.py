@@ -56,51 +56,33 @@ async def get_categories(user: dict = Depends(get_current_user)):
     
     categories = await db.forum_categories.find(role_filter, {"_id": 0}).sort("sort_order", 1).to_list(100)
     
-    # Add topic count for each category using aggregation for better performance
-    category_ids = [c["id"] for c in categories]
-    if category_ids:
-        topic_counts = await db.forum_topics.aggregate([
-            {"$match": {"category_id": {"$in": category_ids}}},
-            {"$group": {"_id": "$category_id", "count": {"$sum": 1}}}
-        ]).to_list(100)
-        
-        count_map = {doc["_id"]: doc["count"] for doc in topic_counts}
-        for category in categories:
-            category["topic_count"] = count_map.get(category["id"], 0)
-    else:
-        for category in categories:
-            category["topic_count"] = 0
+    # Add topic count for each category using simple count
+    for category in categories:
+        topic_count = await db.forum_topics.count_documents({"category_id": category["id"]})
+        category["topic_count"] = topic_count
     
     return categories
 
 
 @router.get("/categories/{category_id}")
 async def get_category(category_id: str, user: dict = Depends(get_current_user)):
-    """Get a specific category with its topics - optimized with aggregation (requires authentication)"""
+    """Get a specific category with its topics - simplified for MongoDB Atlas compatibility"""
     category = await db.forum_categories.find_one({"id": category_id}, {"_id": 0})
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    # Get topics for this category with comment counts in single aggregation
-    topics = await db.forum_topics.aggregate([
-        {"$match": {"category_id": category_id}},
-        {"$sort": {"is_pinned": -1, "updated_at": -1}},
-        {"$limit": 50},
-        {"$lookup": {
-            "from": "forum_comments",
-            "localField": "id",
-            "foreignField": "topic_id",
-            "as": "comments"
-        }},
-        {"$addFields": {"comment_count": {"$size": "$comments"}}},
-        {"$project": {
-            "_id": 0,
-            "comments": 0
-        }}
-    ]).to_list(50)
+    # Get topics for this category using simple find
+    topics = await db.forum_topics.find(
+        {"category_id": category_id},
+        {"_id": 0}
+    ).sort({"is_pinned": -1, "updated_at": -1}).limit(50).to_list(50)
     
-    # Get last comment for each topic
+    # Add comment counts manually
     for topic in topics:
+        comment_count = await db.forum_comments.count_documents({"topic_id": topic["id"]})
+        topic["comment_count"] = comment_count
+        
+        # Get last comment
         last_comment = await db.forum_comments.find_one(
             {"topic_id": topic["id"]},
             {"_id": 0, "created_at": 1, "author_name": 1}
@@ -203,29 +185,18 @@ async def get_topics(
     
     skip = (page - 1) * limit
     
-    # Use aggregation for better performance with counts
-    pipeline = [
-        {"$match": query},
-        {"$sort": {sort_field: -1}},
-        {"$skip": skip},
-        {"$limit": limit},
-        {"$lookup": {
-            "from": "forum_comments",
-            "localField": "id",
-            "foreignField": "topic_id",
-            "as": "comments"
-        }},
-        {"$addFields": {"comment_count": {"$size": "$comments"}}},
-        {"$project": {
-            "_id": 0,
-            "comments": 0
-        }}
-    ]
+    # Use simple find instead of aggregation for better MongoDB Atlas compatibility
+    topics = await db.forum_topics.find(
+        query,
+        {"_id": 0}
+    ).sort(sort_field, -1).skip(skip).limit(limit).to_list(limit)
     
-    topics = await db.forum_topics.aggregate(pipeline).to_list(limit)
-    
-    # Get last comment for each topic
+    # Add comment counts manually
     for topic in topics:
+        comment_count = await db.forum_comments.count_documents({"topic_id": topic["id"]})
+        topic["comment_count"] = comment_count
+        
+        # Get last comment
         last_comment = await db.forum_comments.find_one(
             {"topic_id": topic["id"]},
             {"_id": 0, "created_at": 1, "author_name": 1}
