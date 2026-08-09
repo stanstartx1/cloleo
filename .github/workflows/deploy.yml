@@ -100,11 +100,15 @@ jobs:
             echo "Clearing npm cache and installing..."
             rm -rf node_modules package-lock.json || {
               echo "⚠️ Could not remove node_modules, trying with force..."
-              find node_modules -type f -delete
-              find node_modules -type d -delete
+              find node_modules -type f -delete 2>/dev/null || true
+              find node_modules -type d -delete 2>/dev/null || true
               rm -rf node_modules package-lock.json
             }
-            npm install --legacy-peer-deps
+            npm cache clean --force
+            npm install --legacy-peer-deps --no-optional || {
+              echo "⚠️ npm install failed, trying with --force..."
+              npm install --legacy-peer-deps --force --no-optional
+            }
             npm run build
             
             echo "✅ Frontend built successfully"
