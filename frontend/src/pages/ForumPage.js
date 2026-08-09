@@ -237,6 +237,13 @@ const ForumPage = () => {
     }
   }, [token]);
 
+  // Load categories when modal opens
+  useEffect(() => {
+    if (showNewTopicModal && categories.length === 0) {
+      loadCategories();
+    }
+  }, [showNewTopicModal, categories.length, loadCategories]);
+
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
     if (!currentTopic) return;
