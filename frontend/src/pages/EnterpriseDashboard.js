@@ -14,7 +14,7 @@ import {
 
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
 
-  LogOut, Edit, Edit2, X, MessageCircle, Trash2, Users, User, Copy, Building2, Trophy, Eye,
+  LogOut, Edit, Edit2, X, MessageCircle, Trash2, Users, User, Copy, Building2, Trophy, Eye, MessageSquare,
 
   Award, Image as ImageIcon, Briefcase, Star, FileText, Upload, Download,
 

@@ -14,7 +14,7 @@ import {
 
   Menu, Home, Truck, MapPin, Phone, RefreshCw, Loader2, ChevronRight,
 
-  LogOut, Edit, X, MessageCircle, Trash2, Users, Copy
+  LogOut, Edit, X, MessageCircle, Trash2, Users, Copy, MessageSquare
 
 } from 'lucide-react';
 
