@@ -58,6 +58,13 @@ const ForumPage = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingInterval, setRecordingInterval] = useState(null);
 
+  // Load categories when modal opens
+  useEffect(() => {
+    if (showNewTopicModal && categories.length === 0) {
+      loadCategories();
+    }
+  }, [showNewTopicModal, categories.length, loadCategories]);
+
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
     if (!currentTopic) return;
