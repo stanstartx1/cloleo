@@ -46,8 +46,7 @@ const ForumPage = () => {
   // New topic form
   const [newTopic, setNewTopic] = useState({
     title: '',
-    content: '',
-    category_id: ''
+    content: ''
   });
   
   // New comment form
@@ -304,32 +303,33 @@ const ForumPage = () => {
       toast.error('Veuillez entrer un contenu');
       return;
     }
-    if (!newTopic.category_id) {
-      toast.error('Veuillez sélectionner une catégorie');
-      return;
-    }
     
     try {
-      const response = await axios.post(`${API}/forum/topics`, newTopic, {
+      // Determine default category based on user role
+      let defaultCategoryId = 'cat-general'; // default
+      if (isVendor) {
+        defaultCategoryId = 'cat-vendor-general';
+      } else if (isEnterprise) {
+        defaultCategoryId = 'cat-enterprise-general';
+      }
+      
+      const topicData = {
+        ...newTopic,
+        category_id: defaultCategoryId
+      };
+      
+      const response = await axios.post(`${API}/forum/topics`, topicData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Sujet créé avec succès');
       setShowNewTopicModal(false);
-      setNewTopic({ title: '', content: '', category_id: '' });
+      setNewTopic({ title: '', content: '' });
       // Reload the category or topics to show the new topic
-      if (newTopic.category_id) {
-        const catResponse = await axios.get(`${API}/forum/categories/${newTopic.category_id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setTopics(catResponse.data.topics || []);
-        setActiveView('topics');
-      } else {
-        const catsResponse = await axios.get(`${API}/forum/categories`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setCategories(catsResponse.data);
-        setActiveView('categories');
-      }
+      const catResponse = await axios.get(`${API}/forum/categories/${defaultCategoryId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTopics(catResponse.data.topics || []);
+      setActiveView('topics');
     } catch (error) {
       console.error('Error creating topic:', error);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de la création du sujet';
@@ -597,17 +597,7 @@ const ForumPage = () => {
                   className="pl-9 w-64"
                 />
               </div>
-              <Button onClick={() => {
-                setShowNewTopicModal(true);
-                // Load categories directly without useEffect dependency
-                axios.get(`${API}/forum/categories`, {
-                  headers: { Authorization: `Bearer ${token}` }
-                }).then(response => {
-                  setCategories(response.data);
-                }).catch(error => {
-                  console.error('Error loading categories:', error);
-                });
-              }} className="bg-purple-600 hover:bg-purple-700">
+              <Button onClick={() => setShowNewTopicModal(true)} className="bg-purple-600 hover:bg-purple-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau Sujet
               </Button>
@@ -1160,19 +1150,6 @@ const ForumPage = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Catégorie *</label>
-                <select
-                  value={newTopic.category_id}
-                  onChange={(e) => setNewTopic({ ...newTopic, category_id: e.target.value })}
-                  className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="">Sélectionner une catégorie</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-300">Titre *</label>
                 <Input
