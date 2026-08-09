@@ -98,7 +98,12 @@ jobs:
             
             # Clear cache and install
             echo "Clearing npm cache and installing..."
-            rm -rf node_modules package-lock.json
+            rm -rf node_modules package-lock.json || {
+              echo "⚠️ Could not remove node_modules, trying with force..."
+              find node_modules -type f -delete
+              find node_modules -type d -delete
+              rm -rf node_modules package-lock.json
+            }
             npm install --legacy-peer-deps
             npm run build
             
