@@ -308,6 +308,20 @@ const ForumPage = () => {
   };
 
   const handleCreateTopic = async () => {
+    // Validation
+    if (!newTopic.title.trim()) {
+      toast.error('Veuillez entrer un titre');
+      return;
+    }
+    if (!newTopic.content.trim()) {
+      toast.error('Veuillez entrer un contenu');
+      return;
+    }
+    if (!newTopic.category_id) {
+      toast.error('Veuillez sélectionner une catégorie');
+      return;
+    }
+    
     try {
       const response = await axios.post(`${API}/forum/topics`, newTopic, {
         headers: { Authorization: `Bearer ${token}` }
@@ -317,20 +331,22 @@ const ForumPage = () => {
       setNewTopic({ title: '', content: '', category_id: '', tags: [] });
       // Reload the category or topics to show the new topic
       if (newTopic.category_id) {
-        loadCategory(newTopic.category_id);
-      } else {
-        axios.get(`${API}/forum/categories`, {
+        const catResponse = await axios.get(`${API}/forum/categories/${newTopic.category_id}`, {
           headers: { Authorization: `Bearer ${token}` }
-        }).then(response => {
-          setCategories(response.data);
-          setActiveView('categories');
-        }).catch(error => {
-          console.error('Error loading categories:', error);
         });
+        setTopics(catResponse.data.topics || []);
+        setActiveView('topics');
+      } else {
+        const catsResponse = await axios.get(`${API}/forum/categories`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCategories(catsResponse.data);
+        setActiveView('categories');
       }
     } catch (error) {
       console.error('Error creating topic:', error);
-      toast.error('Erreur lors de la création du sujet');
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de la création du sujet';
+      toast.error(errorMessage);
     }
   };
 
@@ -1147,22 +1163,22 @@ const ForumPage = () => {
       {/* New Topic Modal */}
       {showNewTopicModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Créer un nouveau sujet</CardTitle>
-                <Button variant="ghost" onClick={() => setShowNewTopicModal(false)}>
+                <CardTitle className="text-white">Créer un nouveau sujet</CardTitle>
+                <Button variant="ghost" onClick={() => setShowNewTopicModal(false)} className="text-slate-400 hover:text-white">
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Catégorie</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Catégorie *</label>
                 <select
                   value={newTopic.category_id}
                   onChange={(e) => setNewTopic({ ...newTopic, category_id: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">Sélectionner une catégorie</option>
                   {categories.map((cat) => (
@@ -1171,32 +1187,34 @@ const ForumPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Titre</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Titre *</label>
                 <Input
                   value={newTopic.title}
                   onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
                   placeholder="Titre du sujet..."
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Contenu</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Contenu *</label>
                 <textarea
                   value={newTopic.content}
                   onChange={(e) => setNewTopic({ ...newTopic, content: e.target.value })}
                   placeholder="Écrivez votre message..."
                   rows={6}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Tags (séparés par des virgules)</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Tags (séparés par des virgules)</label>
                 <Input
                   value={newTopic.tags.join(', ')}
-                  onChange={(e) => setNewTopic({ ...newTopic, tags: e.target.value.split(',').map(t => t.trim()) })}
+                  onChange={(e) => setNewTopic({ ...newTopic, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) })}
                   placeholder="tag1, tag2, tag3..."
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              <Button onClick={handleCreateTopic} className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button onClick={handleCreateTopic} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                 Créer le sujet
               </Button>
             </CardContent>
