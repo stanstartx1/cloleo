@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   MessageSquare, Plus, Search, Hash, Bell, Settings, 
   Users, Clock, Eye, Pin, Lock, ChevronRight, 
-  Edit, Trash2, Reply, Smile, Send, 
-  LayoutDashboard, Home, X, Filter, Upload, Mic, Square, Loader2
+  Edit, Trash2, Reply, Smile, 
+  LayoutDashboard, Home, X, Filter, Image, FileText, Mic
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -20,8 +20,17 @@ const API = API_URL;
 
 const ForumPage = () => {
   const navigate = useNavigate();
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated, isVendor, isEnterprise, isCustomer, isDropshipper } = useAuth();
   const { categoryId, topicId } = useParams();
+
+  // Redirect customers and revendeurs away from forum
+  useEffect(() => {
+    if (isAuthenticated && (isCustomer || isDropshipper)) {
+      toast.error('Accès non autorisé');
+      navigate('/');
+      return;
+    }
+  }, [isAuthenticated, isCustomer, isDropshipper, navigate]);
   
   const [activeView, setActiveView] = useState('categories'); // categories, topic, search
   const [categories, setCategories] = useState([]);
@@ -38,8 +47,7 @@ const ForumPage = () => {
   const [newTopic, setNewTopic] = useState({
     title: '',
     content: '',
-    category_id: '',
-    tags: []
+    category_id: ''
   });
   
   // New comment form
@@ -57,6 +65,11 @@ const ForumPage = () => {
   const [audioChunks, setAudioChunks] = useState([]);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingInterval, setRecordingInterval] = useState(null);
+  
+  // File input refs
+  const imageInputRef = useRef(null);
+  const documentInputRef = useRef(null);
+  const audioInputRef = useRef(null);
 
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
@@ -77,115 +90,89 @@ const ForumPage = () => {
     return () => clearInterval(interval);
   }, [currentTopic?.id, token]);
 
-  // Media upload handlers
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Media upload handlers (forum-specific)
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !currentTopic) return;
 
     setUploadingMedia(true);
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await axios.post(`${API}/upload/single`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-      });
-      setNewComment({ ...newComment, media_url: response.data.url });
-      toast.success('Image uploadée');
+      const response = await axios.post(
+        `${API}/forum/topics/${currentTopic.id}/upload-image`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      setNewComment({ ...newComment, media_url: response.data.media_url });
+      toast.success('Image téléchargée avec succès');
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Erreur lors de l\'upload de l\'image');
+      toast.error('Erreur lors du téléchargement de l\'image');
     } finally {
       setUploadingMedia(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
+  };
+
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !currentTopic) return;
+
+    setUploadingMedia(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `${API}/forum/topics/${currentTopic.id}/upload-document`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      setNewComment({ ...newComment, media_url: response.data.media_url });
+      toast.success('Document téléchargé avec succès');
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Erreur lors du téléchargement du document');
+    } finally {
+      setUploadingMedia(false);
+      if (documentInputRef.current) documentInputRef.current.value = '';
     }
   };
 
   const handleAudioUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !currentTopic) return;
 
     setUploadingMedia(true);
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await axios.post(`${API}/upload/single`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-      });
-      setNewComment({ ...newComment, audio_url: response.data.url });
-      toast.success('Audio uploadé');
+      const response = await axios.post(
+        `${API}/forum/topics/${currentTopic.id}/upload-audio`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      setNewComment({ ...newComment, audio_url: response.data.audio_url });
+      toast.success('Audio téléchargé avec succès');
     } catch (error) {
       console.error('Error uploading audio:', error);
-      toast.error('Erreur lors de l\'upload de l\'audio');
+      toast.error('Erreur lors du téléchargement de l\'audio');
     } finally {
       setUploadingMedia(false);
+      if (audioInputRef.current) audioInputRef.current.value = '';
     }
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks = [];
-
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
-
-        setUploadingMedia(true);
-        const formData = new FormData();
-        formData.append('file', audioFile);
-        formData.append('duration', recordingTime);
-
-        try {
-          const response = await axios.post(`${API}/upload/single`, formData, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-          });
-          setNewComment({ ...newComment, audio_url: response.data.url });
-          toast.success('Enregistrement uploadé');
-        } catch (error) {
-          console.error('Error uploading recording:', error);
-          toast.error('Erreur lors de l\'upload de l\'enregistrement');
-        } finally {
-          setUploadingMedia(false);
-        }
-
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      setAudioRecorder(recorder);
-      setAudioChunks(chunks);
-      recorder.start();
-      setRecordingAudio(true);
-      setRecordingTime(0);
-
-      const interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-      setRecordingInterval(interval);
-
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Impossible d\'accéder au microphone');
-    }
-  };
-
-  const stopRecording = () => {
-    if (audioRecorder) {
-      audioRecorder.stop();
-      setRecordingAudio(false);
-      if (recordingInterval) {
-        clearInterval(recordingInterval);
-      }
-    }
-  };
-
-  const formatRecordingTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const loadCategories = useCallback(async () => {
@@ -328,7 +315,7 @@ const ForumPage = () => {
       });
       toast.success('Sujet créé avec succès');
       setShowNewTopicModal(false);
-      setNewTopic({ title: '', content: '', category_id: '', tags: [] });
+      setNewTopic({ title: '', content: '', category_id: '' });
       // Reload the category or topics to show the new topic
       if (newTopic.category_id) {
         const catResponse = await axios.get(`${API}/forum/categories/${newTopic.category_id}`, {
@@ -595,7 +582,7 @@ const ForumPage = () => {
               </Link>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <MessageSquare className="w-8 h-8 text-purple-600" />
-                Forum Communautaire
+                {isVendor ? 'Forum Vendeurs' : isEnterprise ? 'Forum Entreprises' : 'Forum Communautaire'}
               </h1>
             </div>
             
@@ -1205,15 +1192,6 @@ const ForumPage = () => {
                   className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-slate-300">Tags (séparés par des virgules)</label>
-                <Input
-                  value={newTopic.tags.join(', ')}
-                  onChange={(e) => setNewTopic({ ...newTopic, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) })}
-                  placeholder="tag1, tag2, tag3..."
-                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
               <Button onClick={handleCreateTopic} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                 Créer le sujet
               </Button>
@@ -1225,46 +1203,67 @@ const ForumPage = () => {
       {/* New Comment Modal */}
       {showNewCommentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-xl">
+          <Card className="w-full max-w-xl bg-slate-800 border-slate-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>
+                <CardTitle className="text-white">
                   {newComment.parent_id ? 'Répondre au commentaire' : 'Nouveau commentaire'}
                 </CardTitle>
-                <Button variant="ghost" onClick={() => setShowNewCommentModal(false)}>
+                <Button variant="ghost" onClick={() => setShowNewCommentModal(false)} className="text-slate-400 hover:text-white">
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Commentaire</label>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Commentaire</label>
                 <textarea
                   value={newComment.content}
                   onChange={(e) => setNewComment({ ...newComment, content: e.target.value })}
                   placeholder="Écrivez votre commentaire..."
                   rows={4}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
               
               {/* Media Upload */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
                   className="hidden"
                   id="forum-image-upload"
+                  ref={imageInputRef}
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => document.getElementById('forum-image-upload').click()}
+                  onClick={() => imageInputRef.current?.click()}
                   disabled={uploadingMedia}
+                  className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Image className="w-4 h-4 mr-2" />
                   Image
+                </Button>
+                
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleDocumentUpload}
+                  className="hidden"
+                  id="forum-document-upload"
+                  ref={documentInputRef}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => documentInputRef.current?.click()}
+                  disabled={uploadingMedia}
+                  className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Document
                 </Button>
                 
                 <input
@@ -1273,85 +1272,55 @@ const ForumPage = () => {
                   onChange={handleAudioUpload}
                   className="hidden"
                   id="forum-audio-upload"
+                  ref={audioInputRef}
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => document.getElementById('forum-audio-upload').click()}
+                  onClick={() => audioInputRef.current?.click()}
                   disabled={uploadingMedia}
+                  className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
                 >
                   <Mic className="w-4 h-4 mr-2" />
                   Audio
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={recordingAudio ? stopRecording : startRecording}
-                  disabled={uploadingMedia}
-                  className={recordingAudio ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
-                >
-                  {recordingAudio ? (
-                    <>
-                      <Square className="w-4 h-4 mr-2" />
-                      Arrêter ({formatRecordingTime(recordingTime)})
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-4 h-4 mr-2" />
-                      Enregistrer
-                    </>
-                  )}
                 </Button>
               </div>
               
               {/* Preview uploaded media */}
               {newComment.media_url && (
-                <div className="relative">
+                <div className="relative p-2 bg-slate-700 rounded-lg">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setNewComment({ ...newComment, media_url: null })}
+                    className="absolute top-1 right-1 h-6 w-6 p-0 bg-red-500 hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
                   <MediaImg 
                     src={newComment.media_url} 
                     alt="Preview"
                     className="max-w-[200px] h-auto rounded-lg"
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setNewComment({ ...newComment, media_url: null })}
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
               )}
-              
+
               {newComment.audio_url && (
-                <div className="relative">
-                  <audio controls className="w-full">
-                    <source src={newComment.audio_url} type="audio/webm" />
-                  </audio>
+                <div className="relative p-2 bg-slate-700 rounded-lg">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setNewComment({ ...newComment, audio_url: null })}
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                    className="absolute top-1 right-1 h-6 w-6 p-0 bg-red-500 hover:bg-red-600"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3 h-3" />
                   </Button>
+                  <audio controls src={newComment.audio_url} className="w-full" />
                 </div>
               )}
-              
-              <Button onClick={handleCreateComment} className="w-full bg-purple-600 hover:bg-purple-700" disabled={uploadingMedia}>
-                {uploadingMedia ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Envoi en cours...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Envoyer
-                  </>
-                )}
+
+              <Button onClick={handleCreateComment} className="w-full bg-purple-600 hover:bg-purple-700 text-white" disabled={uploadingMedia}>
+                {uploadingMedia ? 'Envoi en cours...' : 'Publier le commentaire'}
               </Button>
             </CardContent>
           </Card>

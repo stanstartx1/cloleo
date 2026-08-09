@@ -10,6 +10,7 @@ class ForumCategoryCreate(BaseModel):
     icon: Optional[str] = None
     color: Optional[str] = None
     sort_order: int = 0
+    target_role: Optional[str] = "all"  # "vendor", "enterprise", "all"
 
 
 class ForumCategoryUpdate(BaseModel):
@@ -24,7 +25,6 @@ class ForumTopicCreate(BaseModel):
     category_id: str
     title: str = Field(..., min_length=1, max_length=200)
     content: str = Field(..., min_length=1, max_length=10000)
-    tags: Optional[List[str]] = []
     is_pinned: bool = False
     is_locked: bool = False
 
@@ -32,7 +32,6 @@ class ForumTopicCreate(BaseModel):
 class ForumTopicUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     content: Optional[str] = Field(None, min_length=1, max_length=10000)
-    tags: Optional[List[str]] = None
     is_pinned: Optional[bool] = None
     is_locked: Optional[bool] = None
 

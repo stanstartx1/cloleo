@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from typing import List, Optional
 from bson import ObjectId
+from pathlib import Path
 
 from core.database import db
 from core.auth import get_current_user, require_admin
@@ -15,13 +16,45 @@ from models.forum_schemas import (
 
 router = APIRouter(prefix="/forum", tags=["Forum"])
 
+# Forum upload directories
+FORUM_UPLOAD_DIR = Path(__file__).parent.parent / "uploads" / "forum"
+
+def ensure_forum_upload_dirs():
+    """Ensure all forum upload directories exist"""
+    dirs = [
+        FORUM_UPLOAD_DIR / "images",
+        FORUM_UPLOAD_DIR / "documents",
+        FORUM_UPLOAD_DIR / "audio"
+    ]
+    for dir_path in dirs:
+        try:
+            dir_path.mkdir(parents=True, exist_ok=True)
+            print(f"Forum upload directory ensured: {dir_path}")
+        except Exception as e:
+            print(f"Error creating forum directory {dir_path}: {e}")
+
+# Ensure directories exist when module loads
+ensure_forum_upload_dirs()
+
 
 # ==================== CATEGORIES ====================
 
 @router.get("/categories")
 async def get_categories(user: dict = Depends(get_current_user)):
     """Get all forum categories - optimized with aggregation (requires authentication)"""
-    categories = await db.forum_categories.find({}, {"_id": 0}).sort("sort_order", 1).to_list(100)
+    # Filter categories based on user role
+    user_role = user.get("role", "customer")
+    
+    # Base query - only get categories that match user role or are general
+    if user_role == "vendor":
+        role_filter = {"$or": [{"target_role": "vendor"}, {"target_role": "all"}]}
+    elif user_role == "enterprise":
+        role_filter = {"$or": [{"target_role": "enterprise"}, {"target_role": "all"}]}
+    else:
+        # Admin and other roles can see all categories
+        role_filter = {}
+    
+    categories = await db.forum_categories.find(role_filter, {"_id": 0}).sort("sort_order", 1).to_list(100)
     
     # Add topic count for each category using aggregation for better performance
     category_ids = [c["id"] for c in categories]
@@ -300,8 +333,6 @@ async def update_topic(topic_id: str, topic: ForumTopicUpdate, user: dict = Depe
         update_data["title"] = topic.title
     if topic.content is not None:
         update_data["content"] = topic.content
-    if topic.tags is not None:
-        update_data["tags"] = topic.tags
     if topic.is_pinned is not None and user.get("role") == "admin":
         update_data["is_pinned"] = topic.is_pinned
     if topic.is_locked is not None and user.get("role") == "admin":
@@ -479,16 +510,12 @@ async def search_forum(search: ForumSearchQuery, user: dict = Depends(get_curren
     query = {
         "$or": [
             {"title": {"$regex": search.query, "$options": "i"}},
-            {"content": {"$regex": search.query, "$options": "i"}},
-            {"tags": {"$in": [search.query]}}
+            {"content": {"$regex": search.query, "$options": "i"}}
         ]
     }
     
     if search.category_id:
         query["category_id"] = search.category_id
-    
-    if search.tags:
-        query["tags"] = {"$in": search.tags}
     
     if search.author_id:
         query["author_id"] = search.author_id
@@ -514,6 +541,125 @@ async def search_forum(search: ForumSearchQuery, user: dict = Depends(get_curren
         "results": topics,
         "total": len(topics)
     }
+
+
+# ==================== MEDIA UPLOADS ====================
+
+@router.post("/topics/{topic_id}/upload-image")
+async def upload_forum_image(
+    topic_id: str,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Upload an image for forum comments"""
+    try:
+        topic = await db.forum_topics.find_one({"id": topic_id}, {"_id": 0})
+        if not topic:
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        # Validate file type
+        if file.content_type and not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = FORUM_UPLOAD_DIR / "images" / unique_filename
+
+        # Save file
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+
+        # Return URL
+        media_url = f"/uploads/forum/images/{unique_filename}"
+        return {"media_url": media_url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error uploading forum image: {e}")
+        raise HTTPException(status_code=500, detail=f"Error uploading image: {str(e)}")
+
+
+@router.post("/topics/{topic_id}/upload-document")
+async def upload_forum_document(
+    topic_id: str,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Upload a document for forum comments"""
+    try:
+        topic = await db.forum_topics.find_one({"id": topic_id}, {"_id": 0})
+        if not topic:
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        # Validate file type
+        allowed_types = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "text/plain"
+        ]
+        if file.content_type and file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, DOC, DOCX, and TXT are allowed.")
+
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "pdf"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = FORUM_UPLOAD_DIR / "documents" / unique_filename
+
+        # Save file
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+
+        # Return URL
+        media_url = f"/uploads/forum/documents/{unique_filename}"
+        return {"media_url": media_url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error uploading forum document: {e}")
+        raise HTTPException(status_code=500, detail=f"Error uploading document: {str(e)}")
+
+
+@router.post("/topics/{topic_id}/upload-audio")
+async def upload_forum_audio(
+    topic_id: str,
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """Upload an audio file for forum comments"""
+    try:
+        topic = await db.forum_topics.find_one({"id": topic_id}, {"_id": 0})
+        if not topic:
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        # Validate file type
+        if file.content_type and not file.content_type.startswith("audio/"):
+            raise HTTPException(status_code=400, detail="Invalid file type. Only audio files are allowed.")
+
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "mp3"
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = FORUM_UPLOAD_DIR / "audio" / unique_filename
+
+        # Save file
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+
+        # Return URL
+        audio_url = f"/uploads/forum/audio/{unique_filename}"
+        return {"audio_url": audio_url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error uploading forum audio: {e}")
+        raise HTTPException(status_code=500, detail=f"Error uploading audio: {str(e)}")
 
 
 # ==================== STATS ====================

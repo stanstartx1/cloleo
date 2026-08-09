@@ -94,6 +94,8 @@ const NAV_ITEMS = [
 
   { id: 'messages', label: 'Messages', icon: MessageCircle },
 
+  { id: 'forum', label: 'Forum', icon: MessageSquare },
+
   { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
 
   { id: 'stats', label: 'Statistiques', icon: BarChart3 },
@@ -3223,19 +3225,106 @@ const VendorDashboard = () => {
               </motion.h2>
 
               <motion.div 
-
                 className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg"
-
                 initial={{ opacity: 0, y: 20 }}
-
                 animate={{ opacity: 1, y: 0 }}
-
                 transition={{ delay: 0.2 }}
-
               >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white">Forum Vendeurs</h3>
+                  <Link to="/forum" className="text-sm text-purple-400 hover:text-purple-300">
+                    Voir tout le forum →
+                  </Link>
+                </div>
+                <p className="text-slate-400 text-sm mb-4">
+                  Discutez avec d'autres vendeurs, partagez vos expériences et obtenez des conseils.
+                </p>
+                <div className="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 rounded-lg p-4 border border-purple-500/30">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-8 h-8 text-purple-400" />
+                    <div>
+                      <p className="text-white font-medium">Rejoindre la communauté</p>
+                      <p className="text-slate-400 text-sm">Échangez avec d'autres vendeurs</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
 
+          {/* Forum Section */}
+          {activeSection === 'forum' && (
+            <motion.div
+              key="forum"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.h2 
+                className="text-xl font-bold text-white flex items-center gap-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <MessageSquare className="w-6 h-6 text-slate-400" />
+                Forum Vendeurs
+              </motion.h2>
+
+              <motion.div 
+                className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white">Forum Vendeurs</h3>
+                  <Link to="/forum" className="text-sm text-purple-400 hover:text-purple-300">
+                    Voir tout le forum →
+                  </Link>
+                </div>
+                <p className="text-slate-400 text-sm mb-4">
+                  Discutez avec d'autres vendeurs, partagez vos expériences et obtenez des conseils.
+                </p>
+                <div className="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 rounded-lg p-4 border border-purple-500/30">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-8 h-8 text-purple-400" />
+                    <div>
+                      <p className="text-white font-medium">Rejoindre la communauté</p>
+                      <p className="text-slate-400 text-sm">Échangez avec d'autres vendeurs</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Settings Section */}
+          {activeSection === 'settings' && (
+            <motion.div
+              key="settings"
+              variants={tabContentVariant}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="space-y-6"
+            >
+              <motion.h2 
+                className="text-xl font-bold text-white flex items-center gap-2"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Settings className="w-6 h-6 text-slate-400" />
+                Paramètres
+              </motion.h2>
+
+              <motion.div 
+                className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 <h3 className="font-bold text-white mb-4">Informations de la boutique</h3>
-
                 <div className="space-y-4">
 
                   <motion.div whileHover={{ x: 5 }} className="p-3 bg-slate-700/30 rounded-lg">

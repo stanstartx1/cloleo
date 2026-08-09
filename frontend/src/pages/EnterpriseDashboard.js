@@ -108,6 +108,8 @@ const NAV_ITEMS = [
 
   { id: 'messages', label: 'Messages', icon: MessageCircle },
 
+  { id: 'forum', label: 'Forum', icon: MessageSquare },
+
   { id: 'tracking', label: 'Suivi livraisons', icon: Truck },
 
   { id: 'stats', label: 'Statistiques', icon: BarChart3 },
@@ -974,6 +976,36 @@ const EnterpriseDashboard = () => {
           )}
 
           
+
+          {activeSection === 'forum' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-slate-400" />
+                Forum Entreprises
+              </h2>
+
+              <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white">Forum Entreprises</h3>
+                  <Link to="/forum" className="text-sm text-purple-400 hover:text-purple-300">
+                    Voir tout le forum →
+                  </Link>
+                </div>
+                <p className="text-slate-400 text-sm mb-4">
+                  Discutez avec d'autres entreprises, trouvez des partenariats B2B et partagez vos expériences.
+                </p>
+                <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-lg p-4 border border-indigo-500/30">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-8 h-8 text-indigo-400" />
+                    <div>
+                      <p className="text-white font-medium">Réseau B2B</p>
+                      <p className="text-slate-400 text-sm">Connectez-vous avec d'autres entreprises</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {activeSection === 'settings' && (
 
