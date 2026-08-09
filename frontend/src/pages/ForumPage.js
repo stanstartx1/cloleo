@@ -60,7 +60,7 @@ const ForumPage = () => {
 
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
-    if (!currentTopic) return;
+    if (!currentTopic?.id) return;
     
     // Poll for new comments every 30 seconds for real-time feel
     const interval = setInterval(() => {
@@ -203,7 +203,7 @@ const ForumPage = () => {
     }
   }, [token]);
 
-  const loadCategory = useCallback(async (id) => {
+  const loadCategory = async (id) => {
     try {
       const response = await axios.get(`${API}/forum/categories/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -214,9 +214,9 @@ const ForumPage = () => {
       console.error('Error loading category:', error);
       toast.error('Erreur lors du chargement de la catégorie');
     }
-  }, [token]);
+  };
 
-  const loadTopic = useCallback(async (id) => {
+  const loadTopic = async (id) => {
     try {
       const response = await axios.get(`${API}/forum/topics/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -228,11 +228,11 @@ const ForumPage = () => {
       console.error('Error loading topic:', error);
       toast.error('Erreur lors du chargement du sujet');
     }
-  }, [token]);
+  };
 
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
-    if (!currentTopic) return;
+    if (!currentTopic?.id) return;
     
     // Poll for new comments every 30 seconds for real-time feel
     const interval = setInterval(() => {
@@ -254,21 +254,32 @@ const ForumPage = () => {
       navigate('/connexion');
       return;
     }
-    if (topicId) {
-      loadTopic(topicId);
-    } else if (categoryId) {
-      loadCategory(categoryId);
-    } else {
-      axios.get(`${API}/forum/categories`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(response => {
-        setCategories(response.data);
-        setActiveView('categories');
-      }).catch(error => {
-        console.error('Error loading categories:', error);
-      });
-    }
-  }, [isAuthenticated, categoryId, topicId, loadCategory, loadTopic, navigate, token]);
+    
+    // Simple initial load without complex dependencies
+    const initializeForum = async () => {
+      setLoading(true);
+      try {
+        if (topicId) {
+          await loadTopic(topicId);
+        } else if (categoryId) {
+          await loadCategory(categoryId);
+        } else {
+          const response = await axios.get(`${API}/forum/categories`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setCategories(response.data);
+          setActiveView('categories');
+        }
+      } catch (error) {
+        console.error('Error initializing forum:', error);
+        toast.error('Erreur lors du chargement du forum');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeForum();
+  }, [isAuthenticated, categoryId, topicId, token, navigate]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;

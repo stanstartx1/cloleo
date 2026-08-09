@@ -685,17 +685,23 @@ async def upload_multiple(files: list[UploadFile] = File(...), user: dict = Depe
 @api.post("/orders")
 
 async def create_order(payload: CreateOrder, user: dict = Depends(get_current_user)):
+    # Validation supplémentaire du payload
+    if not payload.items or len(payload.items) == 0:
+        raise HTTPException(status_code=400, detail="Le panier ne peut pas être vide")
+    
+    if not payload.delivery_address:
+        raise HTTPException(status_code=400, detail="L'adresse de livraison est requise")
+    
+    required_address_fields = ["street", "city", "phone", "name"]
+    missing_fields = [field for field in required_address_fields if not getattr(payload.delivery_address, field, None)]
+    if missing_fields:
+        raise HTTPException(status_code=400, detail=f"Champs d'adresse manquants: {', '.join(missing_fields)}")
 
     subtotal = 0
-
     order_items = []
-
     seller_id = None
-
     dropshipper_id = None
-
     is_dropshipped_order = False
-
     dropshipped_product_info = None
 
     

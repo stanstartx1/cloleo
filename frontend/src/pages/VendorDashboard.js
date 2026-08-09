@@ -1193,12 +1193,14 @@ const VendorDashboard = () => {
 
         <main className="flex-1 lg:ml-64 p-4 lg:p-6">
 
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex justify-end gap-2">
+
+            <Link to="/" className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl flex items-center gap-2">
+              <Home className="w-4 h-4" /> Voir le site
+            </Link>
 
             <Button variant="destructive" onClick={handleLogout}>
-
               <LogOut className="w-4 h-4 mr-2" /> Déconnexion
-
             </Button>
 
           </div>
