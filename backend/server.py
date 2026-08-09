@@ -2207,7 +2207,7 @@ async def create_vendor_product(payload: dict, user: dict = Depends(require_vend
 
         "stock": int(payload.get("stock") or 0),
 
-        "vendor_stock": int(payload.get("vendor_stock") or payload.get("stock") or 0),  # Initialize vendor_stock
+        "vendor_stock": int(payload.get("vendor_stock")) if payload.get("vendor_stock") is not None else None,  # Only set if explicitly provided
 
         "images": payload.get("images") or [],
 
