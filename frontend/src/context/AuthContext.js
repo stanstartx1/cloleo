@@ -144,6 +144,7 @@ export const AuthProvider = ({ children }) => {
       isDriver: user?.role === 'driver',
       isDropshipper: user?.role === 'dropshipper',
       isEnterprise: user?.role === 'enterprise',
+      isCustomer: user?.role === 'customer',
       userRole: user?.role
     }}>
       {children}

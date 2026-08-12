@@ -41,9 +41,13 @@ ensure_forum_upload_dirs()
 
 @router.get("/categories")
 async def get_categories(user: dict = Depends(get_current_user)):
-    """Get all forum categories - optimized with aggregation (requires authentication)"""
+    """Get all forum categories - vendors and enterprises only"""
     # Filter categories based on user role
     user_role = user.get("role", "customer")
+    
+    # Block access for customers, dropshippers, and drivers
+    if user_role in ["customer", "dropshipper", "driver"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
     
     # Base query - only get categories that match user role or are general
     if user_role == "vendor":
@@ -66,7 +70,12 @@ async def get_categories(user: dict = Depends(get_current_user)):
 
 @router.get("/categories/{category_id}")
 async def get_category(category_id: str, user: dict = Depends(get_current_user)):
-    """Get a specific category with its topics - maximum compatibility for MongoDB Atlas"""
+    """Get a specific category with its topics - vendors and enterprises only"""
+    # Block access for customers, dropshippers, and drivers
+    user_role = user.get("role", "customer")
+    if user_role in ["customer", "dropshipper", "driver"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
     category = await db.forum_categories.find_one({"id": category_id}, {"_id": 0})
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -170,7 +179,12 @@ async def get_topics(
     sort: str = "recent",
     user: dict = Depends(get_current_user)
 ):
-    """Get forum topics with pagination - optimized with aggregation (requires authentication)"""
+    """Get forum topics with pagination - vendors and enterprises only"""
+    # Block access for customers, dropshippers, and drivers
+    user_role = user.get("role", "customer")
+    if user_role in ["customer", "dropshipper", "driver"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
     query = {}
     if category_id:
         query["category_id"] = category_id
@@ -214,7 +228,12 @@ async def get_topics(
 
 @router.get("/topics/{topic_id}")
 async def get_topic(topic_id: str, user: dict = Depends(get_current_user)):
-    """Get a specific topic with its comments (requires authentication)"""
+    """Get a specific topic with its comments - vendors and enterprises only"""
+    # Block access for customers, dropshippers, and drivers
+    user_role = user.get("role", "customer")
+    if user_role in ["customer", "dropshipper", "driver"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
     topic = await db.forum_topics.find_one({"id": topic_id}, {"_id": 0})
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
@@ -249,7 +268,12 @@ async def get_topic(topic_id: str, user: dict = Depends(get_current_user)):
 
 @router.post("/topics")
 async def create_topic(topic: ForumTopicCreate, user: dict = Depends(get_current_user)):
-    """Create a new forum topic"""
+    """Create a new forum topic - vendors and enterprises only"""
+    # Block access for customers, dropshippers, and drivers
+    user_role = user.get("role", "customer")
+    if user_role in ["customer", "dropshipper", "driver"]:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
     topic_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     

@@ -140,6 +140,39 @@ const ProtectedRoute = ({ children, requireVendor = false, requireAdmin = false,
   return children;
 };
 
+// Forum Protected Route - Only vendors and enterprises can access
+const ForumProtectedRoute = ({ children }) => {
+  const { user, loading, isVendor, isEnterprise, userRole } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    console.log('DEBUG: No user, redirecting to /connexion');
+    return <Navigate to="/connexion" replace />;
+  }
+
+  // Block access for customers, dropshippers, and drivers
+  if (userRole === 'customer' || userRole === 'dropshipper' || userRole === 'driver') {
+    console.log('DEBUG: Forum access blocked for role:', userRole);
+    return <Navigate to="/" replace />;
+  }
+
+  // Only allow vendors and enterprises
+  if (!isVendor && !isEnterprise) {
+    console.log('DEBUG: Forum access blocked - not vendor or enterprise');
+    return <Navigate to="/" replace />;
+  }
+
+  console.log('DEBUG: Forum access granted for role:', userRole);
+  return children;
+};
+
 // Public Layout (with Navbar/Footer)
 const PublicLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
@@ -189,9 +222,21 @@ const AppRoutes = () => {
           <PublicLayout><OrdersPage /></PublicLayout>
         </ProtectedRoute>
       } />
-      <Route path="/forum" element={<PublicLayout><ForumPage /></PublicLayout>} />
-      <Route path="/forum/category/:categoryId" element={<PublicLayout><ForumPage /></PublicLayout>} />
-      <Route path="/forum/topic/:topicId" element={<PublicLayout><ForumPage /></PublicLayout>} />
+      <Route path="/forum" element={
+        <ForumProtectedRoute>
+          <PublicLayout><ForumPage /></PublicLayout>
+        </ForumProtectedRoute>
+      } />
+      <Route path="/forum/category/:categoryId" element={
+        <ForumProtectedRoute>
+          <PublicLayout><ForumPage /></PublicLayout>
+        </ForumProtectedRoute>
+      } />
+      <Route path="/forum/topic/:topicId" element={
+        <ForumProtectedRoute>
+          <PublicLayout><ForumPage /></PublicLayout>
+        </ForumProtectedRoute>
+      } />
       <Route path="/commande/:id" element={
         <ProtectedRoute>
           <PublicLayout><OrderDetailPage /></PublicLayout>

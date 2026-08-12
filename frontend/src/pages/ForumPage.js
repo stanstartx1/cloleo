@@ -20,17 +20,17 @@ const API = API_URL;
 
 const ForumPage = () => {
   const navigate = useNavigate();
-  const { user, token, isAuthenticated, isVendor, isEnterprise, isCustomer, isDropshipper } = useAuth();
+  const { user, token, isAuthenticated, isVendor, isEnterprise, isCustomer, isDropshipper, isDriver } = useAuth();
   const { categoryId, topicId } = useParams();
 
-  // Redirect customers and revendeurs away from forum
+  // Redirect customers, revendeurs, and drivers away from forum
   useEffect(() => {
-    if (isAuthenticated && (isCustomer || isDropshipper)) {
+    if (isAuthenticated && (isCustomer || isDropshipper || isDriver)) {
       toast.error('Accès non autorisé');
       navigate('/');
       return;
     }
-  }, [isAuthenticated, isCustomer, isDropshipper, navigate]);
+  }, [isAuthenticated, isCustomer, isDropshipper, isDriver, navigate]);
   
   const [activeView, setActiveView] = useState('categories'); // categories, topic, search
   const [categories, setCategories] = useState([]);
