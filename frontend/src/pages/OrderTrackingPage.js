@@ -128,15 +128,18 @@ const OrderTrackingPage = () => {
       container: mapRef.current,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: toLngLat(customerPos),
-      zoom: 14,
+      zoom: 13,
     });
     mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     
+    // Customer marker
     upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
       color: '#ef4444',
-      title: 'Votre position'
+      title: 'Votre position',
+      size: 'large'
     });
     
+    // Driver marker with animation
     const driverPos = driverLocation 
       ? { latitude: driverLocation.latitude, longitude: driverLocation.longitude }
       : null;
@@ -144,11 +147,16 @@ const OrderTrackingPage = () => {
     if (driverPos) {
       upsertMarker(mapboxgl, mapInstance.current, driverMarker, driverPos, {
         color: '#2563eb',
-        title: 'Livreur'
+        title: 'Livreur',
+        size: 'large',
+        pulse: true
       });
 
       updateRoute(driverPos);
       fitToLocations(mapboxgl, mapInstance.current, [customerPos, driverPos], 50);
+    } else if (driverInfo) {
+      // Show notification if driver is assigned but no location yet
+      console.log('Driver assigned but location not yet available');
     }
   };
 
@@ -283,34 +291,61 @@ const OrderTrackingPage = () => {
               )}
 
               {/* Driver Info */}
-              {order.driver_id && (
-                <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-4">
-                  <UserAvatar
-                    photo={order.driver?.profile_photo}
-                    name={order.driver_name || order.driver?.name}
-                    size="w-12 h-12"
-                    textSize="text-lg"
-                    className="ring-2 ring-blue-100"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium">{order.driver_name}</p>
-                    <p className="text-sm text-muted-foreground">Votre livreur</p>
+              {driverInfo && (
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-lg">{driverInfo.name}</p>
+                      <p className="text-sm text-blue-700">Livreur assigné</p>
+                    </div>
                   </div>
-                  {order.driver?.phone && (
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`tel:${order.driver.phone}`}>
-                        <Phone className="w-4 h-4 mr-1" /> Appeler
-                      </a>
-                    </Button>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {driverInfo.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                        <a href={`tel:${driverInfo.phone}`} className="text-blue-600 hover:underline">
+                          {driverInfo.phone}
+                        </a>
+                      </div>
+                    )}
+                    {driverInfo.vehicle_type && (
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-blue-600" />
+                        <span className="text-blue-600">{driverInfo.vehicle_type}</span>
+                      </div>
+                    )}
+                  </div>
+                  {etaMinutes && (
+                    <div className="mt-3 pt-3 border-t border-blue-200 flex items-center gap-2">
+                      <Navigation className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-700 font-medium">
+                        Arrivée estimée: {etaMinutes} minutes
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
 
-              {!order.driver_id && order.status === 'pending' && (
-                <div className="bg-amber-50 rounded-xl p-4 text-center">
-                  <Clock className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                  <p className="font-medium text-amber-800">Recherche d'un livreur...</p>
-                  <p className="text-sm text-amber-600">Un livreur va bientôt prendre votre commande</p>
+              {!driverInfo && order.status === 'pending' && (
+                <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+                      <Clock className="w-8 h-8 text-amber-600 animate-pulse" />
+                    </div>
+                  </div>
+                  <p className="font-bold text-amber-800 text-center">Recherche du livreur en cours...</p>
+                  <p className="text-sm text-amber-600 text-center mt-2">
+                    Le système trouve automatiquement le livreur le plus proche disponible
+                  </p>
+                  <div className="mt-4 bg-amber-100 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-sm text-amber-700">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Recherche optimale basée sur la localisation</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

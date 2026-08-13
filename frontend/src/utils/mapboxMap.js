@@ -9,17 +9,39 @@ export const toLngLat = (location, fallback = DEFAULT_MAP_CENTER) => {
   return [longitude, latitude];
 };
 
-export const createMarkerElement = (color = '#2563eb', label = '') => {
+export const createMarkerElement = (color = '#2563eb', label = '', size = 'normal', pulse = false) => {
   const el = document.createElement('div');
   el.className = 'mapbox-custom-marker';
   el.title = label;
-  el.style.width = '34px';
-  el.style.height = '34px';
+  
+  const sizeMap = {
+    normal: { width: '34px', height: '34px' },
+    large: { width: '48px', height: '48px' },
+    small: { width: '24px', height: '24px' }
+  };
+  
+  const sizeStyles = sizeMap[size] || sizeMap.normal;
+  el.style.width = sizeStyles.width;
+  el.style.height = sizeStyles.height;
   el.style.borderRadius = '9999px';
   el.style.background = color;
   el.style.border = '3px solid #fff';
   el.style.boxShadow = '0 10px 24px rgba(15, 23, 42, 0.28)';
   el.style.cursor = 'pointer';
+  
+  if (pulse) {
+    el.style.animation = 'pulse 2s infinite';
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
   return el;
 };
 
@@ -35,7 +57,7 @@ export const upsertMarker = (mapboxgl, map, markerRef, location, options = {}) =
   }
 
   markerRef.current = new mapboxgl.Marker({
-    element: createMarkerElement(options.color, options.title),
+    element: createMarkerElement(options.color, options.title, options.size, options.pulse),
     draggable: Boolean(options.draggable),
   })
     .setLngLat(lngLat)
