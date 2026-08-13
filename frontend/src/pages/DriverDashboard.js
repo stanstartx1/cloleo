@@ -21,11 +21,11 @@ const API = API_URL;
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const ORDER_STATUSES = {
-  pending: { label: 'Disponible', action: 'Accepter', bgColor: 'bg-amber-500/20', textColor: 'text-amber-400' },
-  assigned: { label: 'Acceptée', action: 'Récupérer colis', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+  assigned: { label: 'Assignée', action: 'Accepter commande', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+  accepted: { label: 'Acceptée', action: 'Récupérer colis', bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
   picked_up: { label: 'Colis récupéré', action: 'Démarrer livraison', bgColor: 'bg-indigo-500/20', textColor: 'text-indigo-400' },
-  in_transit: { label: 'En cours', action: 'Confirmer livraison', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400' },
-  delivered: { label: 'Livrée', action: null, bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
+  in_transit: { label: 'En cours de livraison', action: 'Confirmer livraison', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400' },
+  delivered: { label: 'Livrée', action: null, bgColor: 'bg-emerald-500/20', textColor: 'text-emerald-400' },
   cancelled: { label: 'Annulée', action: null, bgColor: 'bg-red-500/20', textColor: 'text-red-400' }
 };
 
@@ -232,19 +232,19 @@ const DriverDashboard = () => {
       let endpoint = '';
       
       switch (action) {
-        case 'accept': endpoint = `/orders/${order.id}/accept`; break;
+        case 'driver-accept': endpoint = `/orders/${order.id}/driver-accept`; break;
         case 'pickup': endpoint = `/orders/${order.id}/pickup`; setTrackingEnabled(true); break;
         case 'in-transit': endpoint = `/orders/${order.id}/in-transit`; break;
         case 'deliver': endpoint = `/orders/${order.id}/deliver`; break;
         default: return;
       }
       
-      await axios.put(`${API}${endpoint}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.put(`${API}${endpoint}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       
       toast.success(
-        action === 'accept' ? 'Commande acceptée !' :
+        action === 'driver-accept' ? 'Commande acceptée !' :
         action === 'pickup' ? 'Colis récupéré !' :
-        action === 'in-transit' ? 'Livraison démarrée !' :
+        action === 'in-transit' ? `Livraison démarrée ${response.data?.eta_minutes ? `(ETA: ${response.data.eta_minutes} min)` : ''} !` :
         'Livraison terminée !'
       );
       
@@ -565,7 +565,8 @@ const DriverDashboard = () => {
                           <Button
                             onClick={() => handleOrderAction(
                               activeOrderForMap,
-                              activeOrderForMap.status === 'assigned' ? 'pickup' :
+                              activeOrderForMap.status === 'assigned' ? 'driver-accept' :
+                              activeOrderForMap.status === 'accepted' ? 'pickup' :
                               activeOrderForMap.status === 'picked_up' ? 'in-transit' : 'deliver'
                             )}
                             disabled={updatingStatus}
@@ -573,7 +574,8 @@ const DriverDashboard = () => {
                             className={activeOrderForMap.status === 'in_transit' ? 'bg-green-600 hover:bg-green-700' : ''}
                           >
                             {updatingStatus ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> :
-                             activeOrderForMap.status === 'assigned' ? <PackageCheck className="w-5 h-5 mr-2" /> :
+                             activeOrderForMap.status === 'assigned' ? <CheckCircle className="w-5 h-5 mr-2" /> :
+                             activeOrderForMap.status === 'accepted' ? <PackageCheck className="w-5 h-5 mr-2" /> :
                              activeOrderForMap.status === 'picked_up' ? <Play className="w-5 h-5 mr-2" /> :
                              <Flag className="w-5 h-5 mr-2" />}
                             {ORDER_STATUSES[activeOrderForMap.status]?.action}
@@ -676,12 +678,12 @@ const DriverDashboard = () => {
                           </div>
                         </div>
                         <Button
-                          onClick={() => handleOrderAction(order, 'accept')}
+                          onClick={() => handleOrderAction(order, 'driver-accept')}
                           disabled={updatingStatus || isPendingVerification}
                           className="w-full bg-green-600 hover:bg-green-700"
                         >
                           {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                          Accepter
+                          Accepter la commande
                         </Button>
                       </div>
                     ))}

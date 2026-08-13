@@ -16,13 +16,15 @@ import re
 
 import math
 
+import time
+
 
 
 from dotenv import load_dotenv
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Request
-
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -102,6 +104,57 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     
     distance = R * c
     return distance
+
+# Helper function to calculate ETA based on distance and average speed
+def calculate_eta(distance_km, average_speed_kmh=30):
+    """Calculate estimated time of arrival in minutes"""
+    if distance_km <= 0:
+        return 0
+    time_hours = distance_km / average_speed_kmh
+    time_minutes = int(time_hours * 60)
+    return time_minutes
+
+# Helper function to broadcast notifications to all parties involved in an order
+async def notify_all_parties(order_id, notification_type, message, manager):
+    """Broadcast notification to seller, dropshipper (if applicable), and customer"""
+    # Get order details
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        return
+    
+    # Broadcast to order room (customer following tracking)
+    await manager.broadcast_to_room(f"order_{order_id}", {
+        "type": notification_type,
+        "order_id": order_id,
+        "message": message
+    })
+    
+    # Notify seller
+    seller_id = order.get("seller_id")
+    if seller_id:
+        await manager.broadcast_to_room(f"vendor_{seller_id}", {
+            "type": notification_type,
+            "order_id": order_id,
+            "message": message
+        })
+    
+    # Notify dropshipper if applicable
+    dropshipper_id = order.get("dropshipper_id")
+    if dropshipper_id:
+        await manager.broadcast_to_room(f"dropshipper_{dropshipper_id}", {
+            "type": notification_type,
+            "order_id": order_id,
+            "message": message
+        })
+    
+    # Notify customer
+    customer_id = order.get("customer_id")
+    if customer_id:
+        await manager.broadcast_to_room(f"user_{customer_id}", {
+            "type": notification_type,
+            "order_id": order_id,
+            "message": message
+        })
 
 
 app = FastAPI(title="Cloleo Marketplace API")
@@ -1538,53 +1591,225 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
 
 
 
-@api.put("/orders/{order_id}/pickup")
-
-async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver)):
-
+@api.put("/orders/{order_id}/driver-accept")
+async def driver_accept_order(order_id: str, user: dict = Depends(require_driver)):
+    """Driver accepts the order assignment - first validation step"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée ou non assignée")
+    
+    if order["status"] != "assigned":
+        raise HTTPException(status_code=400, detail="Cette commande n'est pas en attente d'acceptation")
+    
+    # Update order status to 'accepted'
     await db.orders.update_one(
-
         {"id": order_id},
-
         {
-
-            "$set": {"status": "picked_up", "updated_at": _utc()},
-
-            "$push": {"status_history": {"status": "picked_up", "note": "Colis récupéré", "timestamp": _utc()}},
-
+            "$set": {
+                "status": "accepted",
+                "driver_accepted_at": _utc(),
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "accepted",
+                    "note": f"Livreur {user.get('name')} a accepté la commande",
+                    "timestamp": _utc()
+                }
+            },
         },
-
     )
+    
+    # Notify all parties
+    await notify_all_parties(order_id, "order_update", f"Livreur {user.get('name')} a accepté la commande", manager)
+    
+    return {"ok": True, "message": "Commande acceptée avec succès"}
 
-    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "picked_up", "message": "Colis récupéré"})
 
-    return {"ok": True}
+@api.put("/orders/{order_id}/pickup")
+async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver)):
+    """Driver confirms pickup of the package - second validation step"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order["status"] not in ["accepted", "assigned"]:
+        raise HTTPException(status_code=400, detail="Statut de commande invalide pour récupération")
+    
+    # Update order status to 'picked_up'
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "picked_up",
+                "picked_up_at": _utc(),
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "picked_up",
+                    "note": f"Colis récupéré par {user.get('name')}",
+                    "timestamp": _utc()
+                }
+            },
+        },
+    )
+    
+    # Notify all parties
+    await notify_all_parties(order_id, "order_update", f"Colis récupéré par le livreur {user.get('name')}", manager)
+    
+    return {"ok": True, "message": "Colis récupéré avec succès"}
+
+
+@api.put("/orders/{order_id}/in-transit")
+async def driver_start_delivery(order_id: str, user: dict = Depends(require_driver)):
+    """Driver starts delivery route - third validation step"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order["status"] != "picked_up":
+        raise HTTPException(status_code=400, detail="Le colis doit être récupéré avant de démarrer la livraison")
+    
+    # Calculate ETA if location data available
+    delivery_address = order.get("delivery_address", {})
+    order_lat = delivery_address.get("latitude")
+    order_lon = delivery_address.get("longitude")
+    
+    eta_minutes = None
+    if order_lat and order_lon:
+        driver_location = user.get("location", {})
+        driver_lat = driver_location.get("latitude")
+        driver_lon = driver_location.get("longitude")
+        
+        if driver_lat and driver_lon:
+            distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
+            eta_minutes = calculate_eta(distance)
+    
+    # Update order status to 'in_transit'
+    update_data = {
+        "status": "in_transit",
+        "in_transit_at": _utc(),
+        "updated_at": _utc()
+    }
+    
+    if eta_minutes:
+        update_data["eta_minutes"] = eta_minutes
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": update_data,
+            "$push": {
+                "status_history": {
+                    "status": "in_transit",
+                    "note": f"Livraison en cours par {user.get('name')}",
+                    "timestamp": _utc(),
+                    "eta_minutes": eta_minutes
+                }
+            },
+        },
+    )
+    
+    # Notify all parties with ETA information
+    eta_message = f"Livraison en cours (arrivée estimée: {eta_minutes} min)" if eta_minutes else "Livraison en cours"
+    await notify_all_parties(order_id, "order_update", f"{eta_message} - Livreur {user.get('name')}", manager)
+    
+    return {"ok": True, "message": "Livraison démarrée", "eta_minutes": eta_minutes}
 
 
 
 
 
 @api.put("/orders/{order_id}/deliver")
-
 async def driver_deliver_order(order_id: str, user: dict = Depends(require_driver)):
-
+    """Driver confirms delivery - final validation step with proof of delivery"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order["status"] != "in_transit":
+        raise HTTPException(status_code=400, detail="La livraison doit être en cours pour confirmer")
+    
+    # Update order status to 'delivered'
     await db.orders.update_one(
-
         {"id": order_id},
-
         {
-
-            "$set": {"status": "delivered", "updated_at": _utc()},
-
-            "$push": {"status_history": {"status": "delivered", "note": "Commande livrée", "timestamp": _utc()}},
-
+            "$set": {
+                "status": "delivered",
+                "delivered_at": _utc(),
+                "delivery_completed_by": user["id"],
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "delivered",
+                    "note": f"Livraison confirmée par {user.get('name')}",
+                    "timestamp": _utc()
+                }
+            },
         },
-
     )
+    
+    # Notify all parties
+    await notify_all_parties(order_id, "order_update", f"Commande livrée avec succès par {user.get('name')}", manager)
+    
+    return {"ok": True, "message": "Livraison confirmée avec succès"}
 
-    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "delivered", "message": "Commande livrée"})
 
-    return {"ok": True}
+@api.post("/orders/{order_id}/delivery-proof")
+async def submit_delivery_proof(order_id: str, photo: UploadFile = File(...), signature: str = None, notes: str = None, user: dict = Depends(require_driver)):
+    """Submit proof of delivery (photo, signature, notes)"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Ensure delivery_proofs collection exists
+    try:
+        await db.create_collection("delivery_proofs")
+    except:
+        pass  # Collection already exists
+    
+    # Upload delivery photo
+    ext = Path(photo.filename or "").suffix or ".jpg"
+    filename = f"delivery_proof_{order_id}_{int(time.time())}{ext}"
+    upload_path = Path("uploads/delivery_proofs")
+    upload_path.mkdir(parents=True, exist_ok=True)
+    
+    file_path = upload_path / filename
+    with open(file_path, "wb") as f:
+        f.write(await photo.read())
+    
+    photo_url = f"/uploads/delivery_proofs/{filename}"
+    
+    # Store delivery proof
+    delivery_proof = {
+        "order_id": order_id,
+        "driver_id": user["id"],
+        "driver_name": user.get("name"),
+        "photo_url": photo_url,
+        "signature": signature,
+        "notes": notes,
+        "submitted_at": _utc()
+    }
+    
+    # Store in order document for simplicity
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "delivery_proof": delivery_proof,
+                "updated_at": _utc()
+            }
+        }
+    )
+    
+    return {"ok": True, "photo_url": photo_url, "message": "Preuve de livraison enregistrée"}
 
 
 
