@@ -1005,6 +1005,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "seller_id": seller_id,
                 "dropshipper_id": dropshipper_id,
                 "is_dropshipped_order": True,
+                "seller_order_id": seller_order["id"],  # Store seller order ID for tracking
                 "items": [{
                     **order_items[0],
                     "original_product_id": dropshipped_product_info["original_product_id"],
@@ -1045,6 +1046,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "seller_id": seller_id,
                 "dropshipper_id": dropshipper_id,
                 "is_dropshipped_order": True,
+                "seller_order_id": seller_order["id"],  # Store seller order ID for tracking
+                "dropshipper_order_id": dropshipper_order["id"],  # Store dropshipper order ID for tracking
                 "items": order_items,
                 "delivery_address": payload.delivery_address.model_dump(),
                 "notes": payload.notes,
@@ -1351,9 +1354,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
 
 
 @api.put("/orders/{order_id}/vendor-accept")
-
 async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_user)):
-
     """Acceptation de commande par le vendeur"""
     role = user.get("role")
     
@@ -1377,15 +1378,117 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
     if order["status"] != "pending":
         raise HTTPException(status_code=400, detail="Seules les commandes en attente peuvent être acceptées")
 
-    await db.orders.update_one(
-        {"id": order_id},
-        {
-            "$set": {"status": "confirmed", "updated_at": _utc()},
-            "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
-        },
-    )
+    # Check if this is a dropshipped order
+    is_dropshipped = order.get("is_dropshipped_order", False)
+    
+    # Update all related orders if dropshipped
+    if is_dropshipped:
+        # Update the main order
+        await db.orders.update_one(
+            {"id": order_id},
+            {
+                "$set": {"status": "confirmed", "updated_at": _utc()},
+                "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
+            },
+        )
+        
+        # Update seller order (for dropshipped orders)
+        seller_order_id = order.get("seller_order_id")
+        if seller_order_id:
+            await db.orders.update_one(
+                {"id": seller_order_id},
+                {
+                    "$set": {"status": "confirmed", "updated_at": _utc()},
+                    "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
+                },
+            )
+        
+        # Update dropshipper order (for dropshipped orders)
+        dropshipper_order_id = order.get("dropshipper_order_id")
+        if dropshipper_order_id:
+            await db.orders.update_one(
+                {"id": dropshipper_order_id},
+                {
+                    "$set": {"status": "confirmed", "updated_at": _utc()},
+                    "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
+                },
+            )
+    else:
+        # Normal order update
+        await db.orders.update_one(
+            {"id": order_id},
+            {
+                "$set": {"status": "confirmed", "updated_at": _utc()},
+                "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
+            },
+        )
 
+    # Check for auto-assign driver setting
+    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
+    auto_assign = delivery_settings.get("auto_assign", False)
+    
+    if auto_assign:
+        # Find available drivers
+        available_drivers = await db.users.find(
+            {"role": "driver", "is_active": True, "is_verified": True},
+            {"_id": 0, "id": 1, "name": 1, "phone": 1}
+        ).to_list(100)
+        
+        if available_drivers:
+            # Simple assignment: pick the first available driver
+            # In production, this could be based on location, load balancing, etc.
+            assigned_driver = available_drivers[0]
+            
+            # Update order with driver assignment
+            await db.orders.update_one(
+                {"id": order_id},
+                {
+                    "$set": {
+                        "status": "assigned",
+                        "driver_id": assigned_driver["id"],
+                        "driver_name": assigned_driver.get("name"),
+                        "driver_phone": assigned_driver.get("phone"),
+                        "updated_at": _utc()
+                    },
+                    "$push": {
+                        "status_history": {
+                            "status": "assigned",
+                            "note": f"Livreur assigné automatiquement: {assigned_driver.get('name')}",
+                            "timestamp": _utc()
+                        }
+                    },
+                },
+            )
+            
+            # Broadcast driver assignment
+            await manager.broadcast_to_room(f"order_{order_id}", {
+                "type": "order_update",
+                "status": "assigned",
+                "driver_id": assigned_driver["id"],
+                "driver_name": assigned_driver.get("name"),
+                "message": f"Livreur {assigned_driver.get('name')} assigné"
+            })
+            
+            # Notify the assigned driver
+            await manager.broadcast_to_room(f"driver_{assigned_driver['id']}", {
+                "type": "new_order",
+                "order_id": order_id,
+                "message": "Nouvelle commande assignée"
+            })
+
+    # Broadcast update to all order-related rooms
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
+    
+    # Notify dropshipper if this is a dropshipped order
+    if is_dropshipped:
+        dropshipper_id = order.get("dropshipper_id")
+        if dropshipper_id:
+            await manager.broadcast_to_room(f"dropshipper_{dropshipper_id}", {
+                "type": "order_update",
+                "order_id": order_id,
+                "status": "confirmed",
+                "message": "Commande acceptée par le vendeur"
+            })
 
     return {"ok": True}
 
@@ -2199,11 +2302,8 @@ async def delete_vendor_product(product_id: str, user: dict = Depends(require_ve
 
 
 @api.get("/driver/dashboard")
-
 async def driver_dashboard(user: dict = Depends(require_driver)):
-
     orders = await db.orders.count_documents({"driver_id": user["id"]})
-
     active = await db.orders.count_documents({"driver_id": user["id"], "status": {"$in": ["assigned", "picked_up", "in_transit"]}})
 
     return {
@@ -2215,6 +2315,47 @@ async def driver_dashboard(user: dict = Depends(require_driver)):
         },
         "stats": {"total_orders": orders, "active_orders": active}
     }
+
+
+@api.get("/driver/orders")
+async def driver_orders(user: dict = Depends(require_driver)):
+    """Get all orders assigned to the driver with complete information"""
+    orders = await db.orders.find(
+        {"driver_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich orders with seller and customer information
+    for order in orders:
+        # Get seller information
+        seller_id = order.get("seller_id")
+        if seller_id:
+            seller = await db.users.find_one(
+                {"id": seller_id},
+                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1}
+            )
+            if seller:
+                order["seller_info"] = {
+                    "name": seller.get("shop_name") or seller.get("name"),
+                    "phone": seller.get("phone"),
+                    "email": seller.get("email")
+                }
+        
+        # Get dropshipper information if applicable
+        dropshipper_id = order.get("dropshipper_id")
+        if dropshipper_id:
+            dropshipper = await db.users.find_one(
+                {"id": dropshipper_id},
+                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1}
+            )
+            if dropshipper:
+                order["dropshipper_info"] = {
+                    "name": dropshipper.get("shop_name") or dropshipper.get("name"),
+                    "phone": dropshipper.get("phone"),
+                    "email": dropshipper.get("email")
+                }
+    
+    return {"orders": orders}
 
 
 

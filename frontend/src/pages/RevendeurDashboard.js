@@ -1399,25 +1399,23 @@ const RevendeurDashboard = () => {
 
 
           {/* Logout */}
-
-          <div className="p-4 border-t">
-
+          <div className="p-4 border-t space-y-2">
             <Button
-
-              variant="ghost"
-
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-
-              onClick={handleLogout}
-
+              variant="outline"
+              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => window.open('/', '_blank')}
             >
-
-              <LogOut className="w-5 h-5 mr-3" />
-
-              Déconnexion
-
+              <Store className="w-5 h-5 mr-3" />
+              Voir le site
             </Button>
-
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              Déconnexion
+            </Button>
           </div>
 
         </div>
@@ -1432,14 +1430,17 @@ const RevendeurDashboard = () => {
 
         <div className="p-6 lg:p-8">
 
-          <div className="mb-4 flex justify-end">
-
-            <Button variant="destructive" onClick={handleLogout}>
-
-              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
-
+          <div className="mb-4 flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => window.open('/', '_blank')}
+            >
+              <Store className="w-4 h-4 mr-2" /> Voir le site
             </Button>
-
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+            </Button>
           </div>
 
 
