@@ -126,28 +126,64 @@ const DriverDashboard = () => {
       const ws = new WebSocket(`${WS_URL}/api/ws/driver/${user.id}`);
       
       ws.onopen = () => {
-        toast.success('Connecté au système');
+        console.log('WebSocket connected');
+        toast.success('Connecté au système en temps réel');
       };
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log('WebSocket message:', data);
         
         if (data.type === 'new_order') {
-          setOrders(prev => [data.order, ...prev.filter(o => o.id !== data.order.id)]);
-          toast.info('Nouvelle commande !');
+          // Refresh orders to get the new assignment
+          fetchOrders();
+          toast.info('Nouvelle commande assignée !');
           audioRef.current?.play().catch(() => {});
         }
         
-        if (data.type === 'order_taken') {
-          setOrders(prev => prev.filter(o => o.id !== data.order_id));
+        if (data.type === 'order_reassigned') {
+          // Refresh orders
+          fetchOrders();
+          toast.info('Commande réassignée à un autre livreur');
         }
         
-        if (data.type === 'available_orders') {
-          setOrders(data.orders || []);
+        if (data.type === 'order_cancelled') {
+          // Refresh orders
+          fetchOrders();
+          toast.info('Commande annulée');
+        }
+        
+        if (data.type === 'order_available') {
+          // Refresh orders
+          fetchOrders();
+          toast.info('Commande disponible pour réassignation');
+        }
+        
+        if (data.type === 'order_assigned') {
+          // Refresh orders if this driver is the one assigned
+          if (data.driver_id === user.id) {
+            fetchOrders();
+            toast.success('Commande assignée !');
+            audioRef.current?.play().catch(() => {});
+          }
+        }
+        
+        if (data.type === 'order_update') {
+          // Refresh orders on status changes
+          fetchOrders();
         }
       };
       
-      ws.onclose = () => setTimeout(connectWebSocket, 3000);
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting...');
+        toast.warning('Connexion perdue, reconnexion...');
+        setTimeout(connectWebSocket, 3000);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        toast.error('Erreur de connexion temps réel');
+      };
       wsRef.current = ws;
     };
     
@@ -161,7 +197,9 @@ const DriverDashboard = () => {
     
     return () => {
       clearInterval(pingInterval);
-      wsRef.current?.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
     };
   }, [user?.id]);
 

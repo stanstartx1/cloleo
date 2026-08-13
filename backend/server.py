@@ -150,11 +150,18 @@ async def notify_all_parties(order_id, notification_type, message, manager):
     # Notify customer
     customer_id = order.get("customer_id")
     if customer_id:
-        await manager.broadcast_to_room(f"user_{customer_id}", {
+        await manager.send_to_user(customer_id, {
             "type": notification_type,
             "order_id": order_id,
             "message": message
         })
+    
+    # Broadcast to all drivers for driver-specific notifications
+    await manager.broadcast_to_all_drivers({
+        "type": notification_type,
+        "order_id": order_id,
+        "message": message
+    })
 
 
 app = FastAPI(title="Cloleo Marketplace API")
@@ -1377,20 +1384,46 @@ async def get_order(order_id: str, user: dict = Depends(get_current_user)):
 
 
 @api.get("/orders/track/{order_id}")
-
 async def track_order(order_id: str):
-
+    """Get real-time order tracking information with ETA"""
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-
+    
     if not order:
-
         raise HTTPException(status_code=404, detail="Commande non trouvée")
-
+    
+    # Get driver location if order is assigned
+    driver_location = None
+    driver_info = None
+    eta_minutes = None
+    
     if order.get("driver_id"):
-
-        order["driver_live_location"] = manager.get_driver_location(order["driver_id"])
-
-    return order
+        driver_id = order.get("driver_id")
+        driver_location = manager.get_driver_location(driver_id)
+        driver_info = await db.users.find_one(
+            {"id": driver_id},
+            {"_id": 0, "name": 1, "phone": 1, "vehicle_type": 1}
+        )
+        
+        # Calculate ETA if driver location exists
+        if driver_location and order.get("delivery_address"):
+            delivery_address = order.get("delivery_address", {})
+            order_lat = delivery_address.get("latitude")
+            order_lon = delivery_address.get("longitude")
+            driver_lat = driver_location.get("latitude")
+            driver_lon = driver_location.get("longitude")
+            
+            if driver_lat and driver_lon and order_lat and order_lon:
+                distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
+                eta_minutes = calculate_eta(distance)
+    
+    return {
+        "order": order,
+        "driver_live_location": driver_location,
+        "driver_info": driver_info,
+        "eta_minutes": eta_minutes,
+        "active_connections": manager.get_active_connections_count(),
+        "connected_drivers": manager.get_connected_drivers()
+    }
 
 
 
@@ -1555,16 +1588,16 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
                     },
                 )
                 
-                # Broadcast driver assignment
-                await manager.broadcast_to_room(f"order_{order_id}", {
-                    "type": "order_update",
-                    "status": "assigned",
+                # Broadcast driver assignment to all drivers
+                await manager.broadcast_to_all_drivers({
+                    "type": "order_assigned",
+                    "order_id": order_id,
                     "driver_id": closest_driver["id"],
                     "driver_name": closest_driver.get("name"),
-                    "message": f"Livreur {closest_driver.get('name')} assigné"
+                    "message": f"Commande assignée à {closest_driver.get('name')}"
                 })
                 
-                # Notify the assigned driver
+                # Notify the assigned driver specifically
                 await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
                     "type": "new_order",
                     "order_id": order_id,
