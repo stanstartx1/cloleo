@@ -1812,6 +1812,139 @@ async def submit_delivery_proof(order_id: str, photo: UploadFile = File(...), si
     return {"ok": True, "photo_url": photo_url, "message": "Preuve de livraison enregistrée"}
 
 
+@api.put("/orders/{order_id}/driver-cancel")
+async def driver_cancel_order(order_id: str, reason: str = "", user: dict = Depends(require_driver)):
+    """Driver cancels an order (e.g., due to accident) and system reassigns to another driver"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Only allow cancellation for orders in early stages
+    if order["status"] not in ["assigned", "accepted"]:
+        raise HTTPException(status_code=400, detail="Seules les commandes assignées ou acceptées peuvent être annulées par le livreur")
+    
+    # Cancel current driver assignment
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "pending",
+                "driver_id": None,
+                "driver_name": None,
+                "driver_phone": None,
+                "cancelled_by_driver": user["id"],
+                "cancellation_reason": reason,
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "driver_cancelled",
+                    "note": f"Commande annulée par le livreur {user.get('name')}: {reason}" if reason else f"Commande annulée par le livreur {user.get('name')}",
+                    "timestamp": _utc()
+                }
+            },
+        },
+    )
+    
+    # Notify the cancelled driver
+    await manager.broadcast_to_room(f"driver_{user['id']}", {
+        "type": "order_cancelled",
+        "order_id": order_id,
+        "message": "Commande annulée avec succès"
+    })
+    
+    # Immediately reassign to another available driver
+    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
+    auto_assign = delivery_settings.get("auto_assign", False)
+    
+    if auto_assign:
+        # Get order delivery address for location-based assignment
+        delivery_address = order.get("delivery_address", {})
+        order_lat = delivery_address.get("latitude")
+        order_lon = delivery_address.get("longitude")
+        
+        # Find available online drivers (excluding the cancelled driver)
+        available_drivers = await db.users.find(
+            {"role": "driver", "is_active": True, "is_verified": True, "is_online": True, "id": {"$ne": user["id"]}},
+            {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
+        ).to_list(100)
+        
+        if available_drivers:
+            # Find the closest driver based on location
+            closest_driver = None
+            min_distance = float('inf')
+            
+            for driver in available_drivers:
+                driver_location = driver.get("location", {})
+                driver_lat = driver_location.get("latitude")
+                driver_lon = driver_location.get("longitude")
+                
+                if driver_lat and driver_lon and order_lat and order_lon:
+                    # Calculate distance using Haversine formula
+                    distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
+                    
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_driver = driver
+                elif not closest_driver:
+                    # Fallback to first driver if no location data
+                    closest_driver = driver
+            
+            if closest_driver:
+                # Update order with new driver assignment
+                await db.orders.update_one(
+                    {"id": order_id},
+                    {
+                        "$set": {
+                            "status": "assigned",
+                            "driver_id": closest_driver["id"],
+                            "driver_name": closest_driver.get("name"),
+                            "driver_phone": closest_driver.get("phone"),
+                            "updated_at": _utc()
+                        },
+                        "$push": {
+                            "status_history": {
+                                "status": "reassigned",
+                                "note": f"Réassigné automatiquement à {closest_driver.get('name')} (distance: {min_distance:.2f} km)",
+                                "timestamp": _utc()
+                            }
+                        },
+                    },
+                )
+                
+                # Broadcast new assignment to all drivers
+                await manager.broadcast_to_room("all_drivers", {
+                    "type": "order_reassigned",
+                    "order_id": order_id,
+                    "driver_id": closest_driver["id"],
+                    "message": f"Commande réassignée à {closest_driver.get('name')}"
+                })
+                
+                # Notify the newly assigned driver specifically
+                await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
+                    "type": "new_order",
+                    "order_id": order_id,
+                    "message": "Nouvelle commande assignée (réassignation)"
+                })
+                
+                return {
+                    "ok": True, 
+                    "message": "Commande annulée et réassignée à un autre livreur",
+                    "reassigned_to": closest_driver.get("name"),
+                    "distance_km": round(min_distance, 2) if min_distance != float('inf') else None
+                }
+    
+    # If auto-assign is disabled or no drivers available
+    await manager.broadcast_to_room("all_drivers", {
+        "type": "order_available",
+        "order_id": order_id,
+        "message": "Commande disponible pour réassignation"
+    })
+    
+    return {"ok": True, "message": "Commande annulée, disponible pour réassignation"}
+
+
 
 @api.put("/orders/{order_id}/reject")
 

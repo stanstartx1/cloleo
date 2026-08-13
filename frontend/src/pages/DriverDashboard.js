@@ -81,7 +81,7 @@ const DriverDashboard = () => {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await axios.get(`${API}/orders`, {
+      const response = await axios.get(`${API}/driver/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOrders(response.data.orders || []);
@@ -89,7 +89,7 @@ const DriverDashboard = () => {
       // Get all active orders for this driver
       const active = (response.data.orders || []).filter(o => 
         o.driver_id === user?.id && 
-        ['assigned', 'picked_up', 'in_transit'].includes(o.status)
+        ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(o.status)
       );
       setActiveOrders(active);
       
@@ -236,17 +236,23 @@ const DriverDashboard = () => {
         case 'pickup': endpoint = `/orders/${order.id}/pickup`; setTrackingEnabled(true); break;
         case 'in-transit': endpoint = `/orders/${order.id}/in-transit`; break;
         case 'deliver': endpoint = `/orders/${order.id}/deliver`; break;
+        case 'driver-cancel': endpoint = `/orders/${order.id}/driver-cancel`; break;
         default: return;
       }
       
       const response = await axios.put(`${API}${endpoint}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       
-      toast.success(
-        action === 'driver-accept' ? 'Commande acceptée !' :
-        action === 'pickup' ? 'Colis récupéré !' :
-        action === 'in-transit' ? `Livraison démarrée ${response.data?.eta_minutes ? `(ETA: ${response.data.eta_minutes} min)` : ''} !` :
-        'Livraison terminée !'
-      );
+      if (action === 'driver-cancel') {
+        toast.success('Commande annulée et réassignée');
+        setActiveOrder(null);
+      } else {
+        toast.success(
+          action === 'driver-accept' ? 'Commande acceptée !' :
+          action === 'pickup' ? 'Colis récupéré !' :
+          action === 'in-transit' ? `Livraison démarrée ${response.data?.eta_minutes ? `(ETA: ${response.data.eta_minutes} min)` : ''} !` :
+          'Livraison terminée !'
+        );
+      }
       
       await fetchOrders();
       await fetchDashboard();
@@ -296,7 +302,7 @@ const DriverDashboard = () => {
   const stats = dashboard?.stats;
   const driverUser = dashboard?.user;
   const isPendingVerification = !driverUser?.is_verified || !driverUser?.is_active;
-  const availableOrders = orders.filter(o => o.status === 'pending');
+  const availableOrders = orders.filter(o => o.driver_id === user?.id && o.status === 'assigned');
   const completedOrders = orders.filter(o => o.driver_id === user?.id && o.status === 'delivered');
 
   // Use selected order for map navigation, fallback to first active order
@@ -555,11 +561,23 @@ const DriverDashboard = () => {
                         </div>
                       )}
                       
-                      <div className="p-4 flex items-center justify-between">
-                        <div>
+                      <div className="p-4 flex items-center justify-between gap-2">
+                        <div className="flex-1">
                           <p className="text-xs text-slate-400">Total</p>
                           <p className="font-bold text-white text-lg">{formatPrice(activeOrderForMap.total_fcfa)} FCFA</p>
                         </div>
+                        
+                        {activeOrderForMap.status in ['assigned', 'accepted'] && (
+                          <Button
+                            onClick={() => handleOrderAction(activeOrderForMap, 'driver-cancel')}
+                            disabled={updatingStatus}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                            Annuler
+                          </Button>
+                        )}
                         
                         {ORDER_STATUSES[activeOrderForMap.status]?.action && (
                           <Button
