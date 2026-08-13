@@ -5,6 +5,32 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import axios from "axios";
 
+// Configure axios for mobile compatibility
+axios.defaults.timeout = 30000; // 30 second timeout for mobile
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+// Add retry logic for failed requests (especially for mobile)
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Retry on network errors or timeouts (max 2 retries)
+    if ((error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') && !originalRequest._retry) {
+      originalRequest._retry = true;
+      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+      
+      if (originalRequest._retryCount <= 2) {
+        console.log(`Retrying request (${originalRequest._retryCount}/2):`, originalRequest.url);
+        await new Promise(resolve => setTimeout(resolve, 1000 * originalRequest._retryCount));
+        return axios(originalRequest);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // Context
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";

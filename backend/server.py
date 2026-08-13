@@ -93,6 +93,8 @@ app.add_middleware(
     allow_origins=[
         "https://cloleo.com",
         "http://cloleo.com",
+        "https://www.cloleo.com",
+        "http://www.cloleo.com",
         "http://localhost:3000",
         "http://localhost:8000",
         "http://localhost:3001",
@@ -102,6 +104,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 
