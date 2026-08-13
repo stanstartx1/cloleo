@@ -66,68 +66,12 @@ const OrderTrackingPage = () => {
   useEffect(() => {
     fetchOrder();
     
-    // Connect to WebSocket for real-time updates
-    const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${orderId}`);
-      
-      ws.onopen = () => {
-        console.log('WebSocket connected for order tracking');
-      };
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'order_update') {
-          setOrder(prev => prev ? { ...prev, status: data.status } : prev);
-          toast.info(data.message);
-          
-          // Play notification sound
-          try {
-            const audio = new Audio('/notification.mp3');
-            audio.play().catch(() => {});
-          } catch {}
-        }
-        
-        if (data.type === 'driver_location') {
-          setDriverLocation(data.location);
-        }
-      };
-      
-      ws.onclose = () => {
-        console.log('WebSocket disconnected, reconnecting...');
-        setTimeout(connectWebSocket, 5000);
-      };
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        // Fallback to polling if WebSocket fails
-        console.log('WebSocket failed, using polling fallback');
-        setUsingPolling(true);
-        if (!pollingIntervalRef.current) {
-          pollingIntervalRef.current = setInterval(fetchOrder, 10000);
-        }
-      };
-      
-      wsRef.current = ws;
-    };
-    
-    connectWebSocket();
-    
-    // Ping to keep connection alive
-    const pingInterval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 30000);
+    // Use polling instead of WebSocket for production stability
+    // WebSocket connection issues on production server
+    const pollingInterval = setInterval(fetchOrder, 10000);
     
     return () => {
-      clearInterval(pingInterval);
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      clearInterval(pollingInterval);
     };
   }, [orderId, fetchOrder]);
 

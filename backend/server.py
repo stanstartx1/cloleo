@@ -1217,17 +1217,19 @@ async def list_orders(user: dict = Depends(get_current_user)):
 
     if role == "vendor":
 
-        # Les vendeurs voient toutes leurs commandes (directes et dropshippées)
-
+        # Les vendeurs voient uniquement leurs commandes directes (non dropshippées)
+        # Les commandes dropshippées sont gérées séparément par les revendeurs
         query["seller_id"] = user["id"]
+        query["is_dropshipped_order"] = {"$ne": True}  # Exclure les commandes dropshippées
 
-        print(f"DEBUG: Vendor query - seller_id: {user['id']}")
+        print(f"DEBUG: Vendor query - seller_id: {user['id']}, excluding dropshipped orders")
 
     elif role == "enterprise":
 
-        # Les entreprises voient leurs commandes
+        # Les entreprises voient uniquement leurs commandes directes (non dropshippées)
         query["seller_id"] = user["id"]
-        print(f"DEBUG: Enterprise query - seller_id: {user['id']}")
+        query["is_dropshipped_order"] = {"$ne": True}  # Exclure les commandes dropshippées
+        print(f"DEBUG: Enterprise query - seller_id: {user['id']}, excluding dropshipped orders")
 
     elif role == "dropshipper":
 

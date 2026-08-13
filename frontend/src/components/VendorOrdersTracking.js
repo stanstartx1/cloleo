@@ -60,38 +60,8 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
-  // WebSocket for selected order
-  useEffect(() => {
-    if (!selectedOrder) return;
-    
-    const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${selectedOrder.id}`);
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'driver_location') {
-          setDriverLocation(data.location);
-          updateDriverMarker(data.location);
-        }
-        
-        if (data.type === 'order_update') {
-          fetchOrders();
-          toast.info(data.message);
-        }
-      };
-      
-      ws.onclose = () => {
-        setTimeout(connectWebSocket, 3000);
-      };
-      
-      wsRef.current = ws;
-    };
-    
-    connectWebSocket();
-    
-    return () => wsRef.current?.close();
-  }, [selectedOrder, fetchOrders]);
+  // WebSocket for selected order - disabled for production stability
+  // Polling is already active above
 
   // Initialize map when order is selected
   useEffect(() => {

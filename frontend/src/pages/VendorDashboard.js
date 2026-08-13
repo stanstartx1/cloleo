@@ -792,44 +792,16 @@ const VendorDashboard = () => {
 
 
 
-  // WebSocket for tracking
-
+  // WebSocket for tracking - disabled for production stability
   useEffect(() => {
-
     if (!selectedOrder || activeSection !== 'tracking') return;
 
-    
+    // Use polling instead of WebSocket for production stability
+    const pollingInterval = setInterval(() => {
+      fetchOrders();
+    }, 10000);
 
-    const ws = new WebSocket(`${WS_URL}/ws/orders/order_${selectedOrder.id}`);
-
-    
-
-    ws.onmessage = (event) => {
-
-      const data = JSON.parse(event.data);
-
-      if (data.type === 'driver_location') setDriverLocation(data.location);
-
-      if (data.type === 'order_update') {
-
-        fetchOrders();
-
-        toast.info(data.message);
-
-      }
-
-    };
-
-    
-
-    ws.onclose = () => setTimeout(() => {}, 3000);
-
-    wsRef.current = ws;
-
-    
-
-    return () => ws.close();
-
+    return () => clearInterval(pollingInterval);
   }, [selectedOrder, activeSection, fetchOrders]);
 
 
