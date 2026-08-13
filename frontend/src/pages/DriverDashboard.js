@@ -118,7 +118,8 @@ const DriverDashboard = () => {
     init();
   }, [isDriver, navigate, fetchDashboard, fetchOrders]);
 
-  // WebSocket
+  // WebSocket - disabled for production stability
+  /* DISABLED: WebSocket causes "Unexpected response code: 200" errors
   useEffect(() => {
     if (!user?.id) return;
     
@@ -202,6 +203,19 @@ const DriverDashboard = () => {
       }
     };
   }, [user?.id]);
+  */
+
+  // Polling instead of WebSocket for production stability
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const pollingInterval = setInterval(() => {
+      fetchOrders();
+      fetchDashboard();
+    }, 10000);
+
+    return () => clearInterval(pollingInterval);
+  }, [user?.id, fetchOrders, fetchDashboard]);
 
   // Geolocation
   useEffect(() => {

@@ -36,6 +36,8 @@ const OrderTrackingPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [driverLocation, setDriverLocation] = useState(null);
+  const [driverInfo, setDriverInfo] = useState(null);
+  const [etaMinutes, setEtaMinutes] = useState(null);
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -49,10 +51,23 @@ const OrderTrackingPage = () => {
     try {
       // Use public tracking endpoint (no auth required)
       const response = await axios.get(`${API}/orders/track/${orderId}`);
-      setOrder(response.data);
+      const data = response.data;
       
-      if (response.data.driver_live_location) {
-        setDriverLocation(response.data.driver_live_location);
+      // Handle the new response structure
+      if (data.order) {
+        setOrder(data.order);
+      }
+      
+      if (data.driver_live_location) {
+        setDriverLocation(data.driver_live_location);
+      }
+      
+      if (data.driver_info) {
+        setDriverInfo(data.driver_info);
+      }
+      
+      if (data.eta_minutes) {
+        setEtaMinutes(data.eta_minutes);
       }
     } catch (error) {
       console.error('Error fetching order:', error);
