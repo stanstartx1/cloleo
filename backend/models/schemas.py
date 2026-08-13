@@ -130,7 +130,7 @@ class DropshipperRegister(BaseModel):
 
 class DropshippedProductCreate(BaseModel):
     original_product_id: str
-    original_vendor_id: str  # Store the original vendor ID
+    original_vendor_id: Optional[str] = None  # Made optional - can be retrieved from original product
     custom_description: Optional[str] = None
     selling_price_fcfa: int
     custom_images: Optional[List[str]] = None
