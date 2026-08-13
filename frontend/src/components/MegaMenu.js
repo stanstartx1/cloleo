@@ -9,8 +9,10 @@ import {
   Book, Shield, ShoppingCart, Leaf, Zap, Armchair, 
   Building2, Utensils, ArrowRight, MessageSquare
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const MegaMenu = () => {
+  const { isVendor, isEnterprise } = useAuth();
   const [activeCategory, setActiveCategory] = useState(null);
   const menuRef = useRef(null);
 
@@ -236,13 +238,15 @@ const MegaMenu = () => {
 
           {/* Special Offers */}
           <div className="flex items-center gap-4">
-            <Link
-              to="/forum"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 hover:scale-105"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span className="font-semibold text-sm">Forum</span>
-            </Link>
+            {(isVendor || isEnterprise) && (
+              <Link
+                to="/forum"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="font-semibold text-sm">Forum</span>
+              </Link>
+            )}
             <Link
               to="/produits?discount=true"
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200 hover:scale-105"
