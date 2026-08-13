@@ -232,7 +232,7 @@ async def register_driver(data: DriverRegister):
         "license_number": data.license_number,
         "city": data.city,
         "country": data.country or "Cote d'Ivoire",
-        "driver_status": "offline",
+        "is_online": True,  # Drivers are online by default
         "is_active": auto_approve,
         "is_verified": auto_approve,
         "approval_status": "approved" if auto_approve else "pending",

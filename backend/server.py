@@ -14,6 +14,8 @@ from typing import Optional
 
 import re
 
+import math
+
 
 
 from dotenv import load_dotenv
@@ -82,6 +84,24 @@ from routes.forum import router as forum_router
 
 load_dotenv()
 
+# Helper function to calculate distance between two coordinates using Haversine formula
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance in kilometers between two coordinates using Haversine formula"""
+    R = 6371  # Earth's radius in kilometers
+    
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    distance = R * c
+    return distance
 
 
 app = FastAPI(title="Cloleo Marketplace API")
@@ -1428,53 +1448,75 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
     auto_assign = delivery_settings.get("auto_assign", False)
     
     if auto_assign:
-        # Find available drivers
+        # Get order delivery address for location-based assignment
+        delivery_address = order.get("delivery_address", {})
+        order_lat = delivery_address.get("latitude")
+        order_lon = delivery_address.get("longitude")
+        
+        # Find available online drivers
         available_drivers = await db.users.find(
-            {"role": "driver", "is_active": True, "is_verified": True},
-            {"_id": 0, "id": 1, "name": 1, "phone": 1}
+            {"role": "driver", "is_active": True, "is_verified": True, "is_online": True},
+            {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
         ).to_list(100)
         
         if available_drivers:
-            # Simple assignment: pick the first available driver
-            # In production, this could be based on location, load balancing, etc.
-            assigned_driver = available_drivers[0]
+            # Find the closest driver based on location
+            closest_driver = None
+            min_distance = float('inf')
             
-            # Update order with driver assignment
-            await db.orders.update_one(
-                {"id": order_id},
-                {
-                    "$set": {
-                        "status": "assigned",
-                        "driver_id": assigned_driver["id"],
-                        "driver_name": assigned_driver.get("name"),
-                        "driver_phone": assigned_driver.get("phone"),
-                        "updated_at": _utc()
-                    },
-                    "$push": {
-                        "status_history": {
+            for driver in available_drivers:
+                driver_location = driver.get("location", {})
+                driver_lat = driver_location.get("latitude")
+                driver_lon = driver_location.get("longitude")
+                
+                if driver_lat and driver_lon and order_lat and order_lon:
+                    # Calculate distance using Haversine formula
+                    distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
+                    
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_driver = driver
+                elif not closest_driver:
+                    # Fallback to first driver if no location data
+                    closest_driver = driver
+            
+            if closest_driver:
+                # Update order with driver assignment
+                await db.orders.update_one(
+                    {"id": order_id},
+                    {
+                        "$set": {
                             "status": "assigned",
-                            "note": f"Livreur assigné automatiquement: {assigned_driver.get('name')}",
-                            "timestamp": _utc()
-                        }
+                            "driver_id": closest_driver["id"],
+                            "driver_name": closest_driver.get("name"),
+                            "driver_phone": closest_driver.get("phone"),
+                            "updated_at": _utc()
+                        },
+                        "$push": {
+                            "status_history": {
+                                "status": "assigned",
+                                "note": f"Livreur assigné automatiquement: {closest_driver.get('name')} (distance: {min_distance:.2f} km)",
+                                "timestamp": _utc()
+                            }
+                        },
                     },
-                },
-            )
-            
-            # Broadcast driver assignment
-            await manager.broadcast_to_room(f"order_{order_id}", {
-                "type": "order_update",
-                "status": "assigned",
-                "driver_id": assigned_driver["id"],
-                "driver_name": assigned_driver.get("name"),
-                "message": f"Livreur {assigned_driver.get('name')} assigné"
-            })
-            
-            # Notify the assigned driver
-            await manager.broadcast_to_room(f"driver_{assigned_driver['id']}", {
-                "type": "new_order",
-                "order_id": order_id,
-                "message": "Nouvelle commande assignée"
-            })
+                )
+                
+                # Broadcast driver assignment
+                await manager.broadcast_to_room(f"order_{order_id}", {
+                    "type": "order_update",
+                    "status": "assigned",
+                    "driver_id": closest_driver["id"],
+                    "driver_name": closest_driver.get("name"),
+                    "message": f"Livreur {closest_driver.get('name')} assigné"
+                })
+                
+                # Notify the assigned driver
+                await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
+                    "type": "new_order",
+                    "order_id": order_id,
+                    "message": "Nouvelle commande assignée"
+                })
 
     # Broadcast update to all order-related rooms
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
@@ -2311,7 +2353,9 @@ async def driver_dashboard(user: dict = Depends(require_driver)):
             "id": user["id"],
             "name": user.get("name"),
             "is_verified": user.get("is_verified", False),
-            "is_active": user.get("is_active", False)
+            "is_active": user.get("is_active", False),
+            "is_online": user.get("is_online", True),  # Default to online
+            "driver_status": user.get("driver_status", "available")
         },
         "stats": {"total_orders": orders, "active_orders": active}
     }
@@ -2362,15 +2406,18 @@ async def driver_orders(user: dict = Depends(require_driver)):
 
 
 @api.post("/driver/location/update")
-
 async def driver_location_update(payload: dict, user: dict = Depends(require_driver)):
-
     location = {"latitude": payload.get("latitude"), "longitude": payload.get("longitude")}
-
+    
+    # Update both websocket manager and user document for distance calculations
     manager.update_driver_location(user["id"], location)
-
+    await db.users.update_one(
+        {"id": user["id"]}, 
+        {"$set": {"location": location, "updated_at": _utc()}}
+    )
+    
     await manager.broadcast_to_room("admin_tracking", {"type": "driver_location", "location": manager.get_driver_location(user["id"])})
-
+    
     return {"ok": True}
 
 
@@ -2378,12 +2425,18 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
 
 
 @api.put("/driver/status")
-
 async def driver_status_update(payload: dict, user: dict = Depends(require_driver)):
-
-    await db.users.update_one({"id": user["id"]}, {"$set": {"driver_status": payload.get("status", "available"), "updated_at": _utc()}})
-
-    return {"ok": True}
+    status = payload.get("status", "available")
+    
+    # Map status to is_online field
+    is_online = status in ["available", "online"]
+    
+    await db.users.update_one(
+        {"id": user["id"]}, 
+        {"$set": {"is_online": is_online, "driver_status": status, "updated_at": _utc()}}
+    )
+    
+    return {"ok": True, "is_online": is_online, "status": status}
 
 
 

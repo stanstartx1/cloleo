@@ -67,7 +67,13 @@ const DriverDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDashboard(response.data);
-      setCurrentStatus(response.data.user?.status || 'offline');
+      // Use is_online field from backend
+      const isOnline = response.data.user?.is_online ?? true;
+      if (isOnline) {
+        setCurrentStatus(response.data.user?.driver_status || 'available');
+      } else {
+        setCurrentStatus('offline');
+      }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     }
@@ -206,6 +212,9 @@ const DriverDashboard = () => {
       if (newStatus === 'available') {
         setTrackingEnabled(true);
         toast.success('Vous êtes disponible !');
+      } else if (newStatus === 'busy') {
+        setTrackingEnabled(true);
+        toast.info('Vous êtes occupé');
       } else if (newStatus === 'offline') {
         setTrackingEnabled(false);
         toast.info('Vous êtes hors ligne');
