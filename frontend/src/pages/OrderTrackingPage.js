@@ -68,7 +68,7 @@ const OrderTrackingPage = () => {
     
     // Connect to WebSocket for real-time updates
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/api/ws/orders/order_${orderId}`);
+      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${orderId}`);
       
       ws.onopen = () => {
         console.log('WebSocket connected for order tracking');
@@ -95,11 +95,17 @@ const OrderTrackingPage = () => {
       
       ws.onclose = () => {
         console.log('WebSocket disconnected, reconnecting...');
-        setTimeout(connectWebSocket, 3000);
+        setTimeout(connectWebSocket, 5000);
       };
       
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        // Fallback to polling if WebSocket fails
+        console.log('WebSocket failed, using polling fallback');
+        setUsingPolling(true);
+        if (!pollingIntervalRef.current) {
+          pollingIntervalRef.current = setInterval(fetchOrder, 10000);
+        }
       };
       
       wsRef.current = ws;
@@ -116,6 +122,9 @@ const OrderTrackingPage = () => {
     
     return () => {
       clearInterval(pingInterval);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
       if (wsRef.current) {
         wsRef.current.close();
       }

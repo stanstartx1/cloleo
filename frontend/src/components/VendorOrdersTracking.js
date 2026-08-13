@@ -17,11 +17,11 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber' },
-  assigned: { label: 'Livreur assigné', color: 'blue' },
-  picked_up: { label: 'Colis récupéré', color: 'indigo' },
+  assigned: { label: 'Livreur assignï¿½', color: 'blue' },
+  picked_up: { label: 'Colis rï¿½cupï¿½rï¿½', color: 'indigo' },
   in_transit: { label: 'En livraison', color: 'purple' },
-  delivered: { label: 'Livrée', color: 'green' },
-  cancelled: { label: 'Annulée', color: 'red' }
+  delivered: { label: 'Livrï¿½e', color: 'green' },
+  cancelled: { label: 'Annulï¿½e', color: 'red' }
 };
 
 const VendorOrdersTracking = ({ token, vendorId }) => {
@@ -65,7 +65,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
     if (!selectedOrder) return;
     
     const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/api/ws/orders/order_${selectedOrder.id}`);
+      const ws = new WebSocket(`${WS_URL}/ws/orders/order_${selectedOrder.id}`);
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -172,7 +172,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
           <p className="text-2xl font-bold text-green-700">
             {orders.filter(o => o.status === 'delivered').length}
           </p>
-          <p className="text-sm text-green-600">Livrées</p>
+          <p className="text-sm text-green-600">Livrï¿½es</p>
         </div>
         <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
           <Truck className="w-6 h-6 text-purple-500 mb-2" />
@@ -324,7 +324,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
               <div className="text-center">
                 <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                 <p className="text-muted-foreground">
-                  Sélectionnez une commande pour voir le suivi
+                  Sï¿½lectionnez une commande pour voir le suivi
                 </p>
               </div>
             </div>
@@ -338,7 +338,7 @@ const VendorOrdersTracking = ({ token, vendorId }) => {
           <div className="p-4 border-b">
             <h3 className="font-bold flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
-              Commandes terminées
+              Commandes terminï¿½es
             </h3>
           </div>
           <div className="overflow-x-auto touch-scroll-x">

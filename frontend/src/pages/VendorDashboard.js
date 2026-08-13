@@ -800,7 +800,7 @@ const VendorDashboard = () => {
 
     
 
-    const ws = new WebSocket(`${WS_URL}/api/ws/orders/order_${selectedOrder.id}`);
+    const ws = new WebSocket(`${WS_URL}/ws/orders/order_${selectedOrder.id}`);
 
     
 
