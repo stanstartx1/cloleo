@@ -347,21 +347,31 @@ const DriverDashboard = () => {
     setUpdatingStatus(true);
     try {
       let endpoint = '';
+      let payload = {};
       
       switch (action) {
         case 'driver-accept': endpoint = `/orders/${order.id}/driver-accept`; break;
         case 'pickup': endpoint = `/orders/${order.id}/pickup`; setTrackingEnabled(true); break;
         case 'in-transit': endpoint = `/orders/${order.id}/in-transit`; break;
         case 'deliver': endpoint = `/orders/${order.id}/deliver`; break;
-        case 'driver-cancel': endpoint = `/orders/${order.id}/driver-cancel`; break;
+        case 'driver-cancel': 
+          endpoint = `/orders/${order.id}/driver-cancel`;
+          const reason = prompt("Veuillez indiquer la raison de l'annulation (ex: accident, problème véhicule) :");
+          if (!reason) {
+            toast.error('Annulation annulée');
+            setUpdatingStatus(false);
+            return;
+          }
+          payload = { reason };
+          break;
         default: return;
       }
       
-      const response = await axios.put(`${API}${endpoint}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.put(`${API}${endpoint}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       
       if (action === 'driver-cancel') {
         toast.success('Commande annulée et réassignée');
-        setActiveOrder(null);
+        setSelectedOrder(null);
       } else {
         toast.success(
           action === 'driver-accept' ? 'Commande acceptée !' :
@@ -369,12 +379,27 @@ const DriverDashboard = () => {
           action === 'in-transit' ? `Livraison démarrée ${response.data?.eta_minutes ? `(ETA: ${response.data.eta_minutes} min)` : ''} !` :
           'Livraison terminée !'
         );
+        
+        // Manually update the selected order status for immediate UI feedback
+        const statusMap = {
+          'driver-accept': 'accepted',
+          'pickup': 'picked_up', 
+          'in-transit': 'in_transit',
+          'deliver': 'delivered'
+        };
+        
+        if (statusMap[action]) {
+          setSelectedOrder({
+            ...order,
+            status: statusMap[action]
+          });
+        }
       }
       
       await fetchOrders();
       await fetchDashboard();
       
-      if (action === 'deliver') setActiveOrder(null);
+      if (action === 'deliver') setSelectedOrder(null);
       
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erreur');

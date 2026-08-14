@@ -1848,8 +1848,9 @@ async def submit_delivery_proof(order_id: str, photo: UploadFile = File(...), si
 
 
 @api.put("/orders/{order_id}/driver-cancel")
-async def driver_cancel_order(order_id: str, reason: str = "", user: dict = Depends(require_driver)):
+async def driver_cancel_order(order_id: str, payload: dict = {}, user: dict = Depends(require_driver)):
     """Driver cancels an order (e.g., due to accident) and system reassigns to another driver"""
+    reason = payload.get("reason", "")
     order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
     
     if not order:
@@ -1891,7 +1892,7 @@ async def driver_cancel_order(order_id: str, reason: str = "", user: dict = Depe
     
     # Immediately reassign to another available driver
     delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
-    auto_assign = delivery_settings.get("auto_assign", False)
+    auto_assign = delivery_settings.get("auto_assign", True)
     
     if auto_assign:
         # Get order delivery address for location-based assignment
