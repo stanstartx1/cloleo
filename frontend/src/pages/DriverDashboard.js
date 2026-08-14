@@ -640,7 +640,7 @@ const DriverDashboard = () => {
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                           >
-                            #{order.order_number?.slice(-6)} - {ORDER_STATUSES[order.status]?.label}
+                            {order.order_number || `#${order.id?.slice(-8)}`} - {ORDER_STATUSES[order.status]?.label}
                           </button>
                         ))}
                       </div>
@@ -657,7 +657,7 @@ const DriverDashboard = () => {
                           </div>
                           <div>
                             <h3 className="font-bold text-white">Commande en cours</h3>
-                            <p className="text-xs text-slate-400">#{activeOrderForMap.order_number?.slice(-8)}</p>
+                            <p className="text-xs text-slate-400">{activeOrderForMap.order_number || `#${activeOrderForMap.id?.slice(-8)}`}</p>
                           </div>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-sm ${ORDER_STATUSES[activeOrderForMap.status]?.bgColor} ${ORDER_STATUSES[activeOrderForMap.status]?.textColor}`}>
@@ -670,12 +670,15 @@ const DriverDashboard = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-3">
                             <MapPin className="w-5 h-5 text-red-400 mt-0.5" />
-                            <div>
+                            <div className="flex-1">
                               <p className="font-medium text-white">{activeOrderForMap.delivery_address?.name}</p>
                               <p className="text-sm text-slate-400">{activeOrderForMap.delivery_address?.street}</p>
                               <p className="text-sm text-slate-400">{activeOrderForMap.delivery_address?.city}</p>
                               {activeOrderForMap.delivery_address?.phone && (
                                 <p className="text-sm text-green-400 mt-1">📞 {activeOrderForMap.delivery_address?.phone}</p>
+                              )}
+                              {activeOrderForMap.customer_info?.address?.latitude && activeOrderForMap.customer_info?.address?.longitude && (
+                                <p className="text-xs text-slate-500 mt-1">📍 GPS: {activeOrderForMap.customer_info.address.latitude.toFixed(4)}, {activeOrderForMap.customer_info.address.longitude.toFixed(4)}</p>
                               )}
                             </div>
                           </div>
@@ -686,19 +689,60 @@ const DriverDashboard = () => {
                       </div>
 
                       {/* Vendor Info */}
-                      {activeOrderForMap.items?.length > 0 && (
+                      {activeOrderForMap.seller_info && (
                         <div className="p-4 border-t border-slate-700 bg-slate-700/20">
                           <p className="text-xs text-slate-400 mb-2">Récupérer chez :</p>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-start gap-3">
                             <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center">
                               <span className="text-purple-400 font-bold text-sm">
-                                {activeOrderForMap.items[0]?.seller_name?.[0] || 'V'}
+                                {activeOrderForMap.seller_info.name?.[0] || 'V'}
                               </span>
                             </div>
-                            <div>
-                              <p className="font-medium text-white text-sm">{activeOrderForMap.items[0]?.seller_name || 'Vendeur'}</p>
-                              <p className="text-xs text-slate-400">{activeOrderForMap.items?.length} article(s)</p>
+                            <div className="flex-1">
+                              <p className="font-medium text-white text-sm">{activeOrderForMap.seller_info.name}</p>
+                              {activeOrderForMap.seller_info.phone && (
+                                <p className="text-sm text-slate-400">📞 {activeOrderForMap.seller_info.phone}</p>
+                              )}
+                              {activeOrderForMap.seller_info.address && (
+                                <p className="text-sm text-slate-400">📍 {activeOrderForMap.seller_info.address}</p>
+                              )}
+                              {activeOrderForMap.seller_info.location && (
+                                <p className="text-xs text-slate-500 mt-1">📍 GPS: {activeOrderForMap.seller_info.location.latitude.toFixed(4)}, {activeOrderForMap.seller_info.location.longitude.toFixed(4)}</p>
+                              )}
                             </div>
+                            {activeOrderForMap.seller_info.phone && (
+                              <a href={`tel:${activeOrderForMap.seller_info.phone}`} className="p-2 bg-purple-500/20 rounded-full text-purple-400">
+                                <Phone className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dropshipper Info if applicable */}
+                      {activeOrderForMap.dropshipper_info && (
+                        <div className="p-4 border-t border-slate-700 bg-slate-700/20">
+                          <p className="text-xs text-slate-400 mb-2">Revendeur :</p>
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center">
+                              <span className="text-amber-400 font-bold text-sm">
+                                {activeOrderForMap.dropshipper_info.name?.[0] || 'R'}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-white text-sm">{activeOrderForMap.dropshipper_info.name}</p>
+                              {activeOrderForMap.dropshipper_info.phone && (
+                                <p className="text-sm text-slate-400">📞 {activeOrderForMap.dropshipper_info.phone}</p>
+                              )}
+                              {activeOrderForMap.dropshipper_info.address && (
+                                <p className="text-sm text-slate-400">📍 {activeOrderForMap.dropshipper_info.address}</p>
+                              )}
+                            </div>
+                            {activeOrderForMap.dropshipper_info.phone && (
+                              <a href={`tel:${activeOrderForMap.dropshipper_info.phone}`} className="p-2 bg-amber-500/20 rounded-full text-amber-400">
+                                <Phone className="w-4 h-4" />
+                              </a>
+                            )}
                           </div>
                         </div>
                       )}
@@ -830,7 +874,7 @@ const DriverDashboard = () => {
                       <div key={order.id} className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <p className="font-medium text-white">#{order.order_number?.slice(-8)}</p>
+                            <p className="font-medium text-white">{order.order_number || `#${order.id?.slice(-8)}`}</p>
                             <p className="text-sm text-slate-400">{order.delivery_address?.city}</p>
                           </div>
                           <div className="text-right">
@@ -888,7 +932,7 @@ const DriverDashboard = () => {
                   {completedOrders.map(order => (
                     <div key={order.id} className="p-4 flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-white">#{order.order_number?.slice(-8)}</p>
+                        <p className="font-medium text-white">{order.order_number || `#${order.id?.slice(-8)}`}</p>
                         <p className="text-sm text-slate-400">{order.customer_name}</p>
                       </div>
                       <div className="text-right">

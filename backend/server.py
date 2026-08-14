@@ -1042,13 +1042,14 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             # Commande optimisée pour le vendeur
             seller_order = {
                 "id": str(uuid.uuid4()),
-                "order_number": f"CLO-{order_id[:8].upper()}-V",
+                "order_number": f"CLO-{order_id[:8].upper()}",  # Same order number for consistency
                 "customer_id": user["id"],
                 "customer_name": payload.delivery_address.name,
                 "customer_phone": payload.delivery_address.phone,
                 "seller_id": seller_id,
                 "dropshipper_id": dropshipper_id,
                 "is_dropshipped_order": True,
+                "is_seller_order": True,  # Mark as seller order
                 "items": [{
                     **order_items[0],
                     "original_product_id": dropshipped_product_info["original_product_id"],
@@ -1078,13 +1079,14 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             # Commande optimisée pour le revendeur
             dropshipper_order = {
                 "id": str(uuid.uuid4()),
-                "order_number": f"CLO-{order_id[:8].upper()}-R",
+                "order_number": f"CLO-{order_id[:8].upper()}",  # Same order number for consistency
                 "customer_id": user["id"],
                 "customer_name": payload.delivery_address.name,
                 "customer_phone": payload.delivery_address.phone,
                 "seller_id": seller_id,
                 "dropshipper_id": dropshipper_id,
                 "is_dropshipped_order": True,
+                "is_dropshipper_order": True,  # Mark as dropshipper order
                 "seller_order_id": seller_order["id"],  # Store seller order ID for tracking
                 "items": [{
                     **order_items[0],
@@ -2775,18 +2777,20 @@ async def driver_orders(user: dict = Depends(require_driver)):
     
     # Enrich orders with seller and customer information
     for order in orders:
-        # Get seller information
+        # Get seller information with location
         seller_id = order.get("seller_id")
         if seller_id:
             seller = await db.users.find_one(
                 {"id": seller_id},
-                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1}
+                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1, "location": 1, "address": 1}
             )
             if seller:
                 order["seller_info"] = {
                     "name": seller.get("shop_name") or seller.get("name"),
                     "phone": seller.get("phone"),
-                    "email": seller.get("email")
+                    "email": seller.get("email"),
+                    "location": seller.get("location"),
+                    "address": seller.get("address")
                 }
         
         # Get dropshipper information if applicable
@@ -2794,14 +2798,24 @@ async def driver_orders(user: dict = Depends(require_driver)):
         if dropshipper_id:
             dropshipper = await db.users.find_one(
                 {"id": dropshipper_id},
-                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1}
+                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1, "location": 1, "address": 1}
             )
             if dropshipper:
                 order["dropshipper_info"] = {
                     "name": dropshipper.get("shop_name") or dropshipper.get("name"),
                     "phone": dropshipper.get("phone"),
-                    "email": dropshipper.get("email")
+                    "email": dropshipper.get("email"),
+                    "location": dropshipper.get("location"),
+                    "address": dropshipper.get("address")
                 }
+        
+        # Ensure customer information is complete
+        if not order.get("customer_info"):
+            order["customer_info"] = {
+                "name": order.get("customer_name"),
+                "phone": order.get("customer_phone"),
+                "address": order.get("delivery_address", {})
+            }
     
     return {"orders": orders}
 
