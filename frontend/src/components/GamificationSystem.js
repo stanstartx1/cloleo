@@ -266,7 +266,7 @@ const GamificationSystem = ({ isOpen, onClose, userRole }) => {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
                         <div className={`p-3 rounded-lg ${achievement.unlocked ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                          <Achievement.unlocked ? (
+                          {achievement.unlocked ? (
                             <CheckCircle className="w-6 h-6 text-purple-600" />
                           ) : (
                             <XCircle className="w-6 h-6 text-gray-400" />

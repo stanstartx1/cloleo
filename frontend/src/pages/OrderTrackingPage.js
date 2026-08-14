@@ -4,7 +4,8 @@ import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Package, Truck, MapPin, Phone, CheckCircle, Clock,
-  User, Navigation, Home, XCircle, Loader2
+  User, Navigation, Home, XCircle, Loader2, MessageCircle,
+  Calendar, Star, Trophy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -12,6 +13,9 @@ import { toast } from 'sonner';
 import { loadMapbox } from '../utils/mapboxLoader';
 import { fitToLocations, setRouteLine, toLngLat, upsertMarker } from '../utils/mapboxMap';
 import UserAvatar from '../components/UserAvatar';
+import TripartiteChat from '../components/TripartiteChat';
+import DeliveryScheduler from '../components/DeliveryScheduler';
+import RatingSystem from '../components/RatingSystem';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
@@ -40,6 +44,11 @@ const OrderTrackingPage = () => {
   const [driverInfo, setDriverInfo] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [lastStatus, setLastStatus] = useState(null);
+  
+  // New component states
+  const [chatOpen, setChatOpen] = useState(false);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -381,6 +390,28 @@ const OrderTrackingPage = () => {
                       <span>Position GPS en cours de synchronisation...</span>
                     </div>
                   )}
+                  
+                  {/* Action Buttons */}
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      onClick={() => setChatOpen(true)}
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Contacter
+                    </Button>
+                    <Button
+                      onClick={() => setSchedulerOpen(true)}
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Planifier
+                    </Button>
+                  </div>
                 </div>
               ) : order.driver_id ? (
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
@@ -412,6 +443,17 @@ const OrderTrackingPage = () => {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Rating Button - Only show when delivered */}
+              {order.status === 'delivered' && (
+                <Button
+                  onClick={() => setRatingOpen(true)}
+                  className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Évaluer le livreur
+                </Button>
               )}
             </div>
 
@@ -500,6 +542,33 @@ const OrderTrackingPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Integrated Components */}
+      <TripartiteChat
+        orderId={order?.id}
+        recipientType="driver"
+        recipientId={order?.driver_id}
+        recipientName={driverInfo?.name || 'Livreur'}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
+
+      <DeliveryScheduler
+        orderId={order?.id}
+        isOpen={schedulerOpen}
+        onClose={() => setSchedulerOpen(false)}
+        onScheduleSelect={(data) => console.log('Schedule selected:', data)}
+      />
+
+      <RatingSystem
+        orderId={order?.id}
+        recipientType="driver"
+        recipientId={order?.driver_id}
+        recipientName={driverInfo?.name || 'Livreur'}
+        recipientRole="driver"
+        isOpen={ratingOpen}
+        onClose={() => setRatingOpen(false)}
+      />
     </div>
   );
 };

@@ -5,7 +5,8 @@ import {
   Truck, Package, DollarSign, MapPin, Clock, CheckCircle, 
   XCircle, AlertCircle, Phone, LogOut, Navigation, 
   Loader2, Star, Play, Flag, PackageCheck, Bell,
-  Menu, Home, Map, List, History, ChevronRight, X, MessageCircle
+  Menu, Home, Map, List, History, ChevronRight, X, MessageCircle,
+  Trophy, Target, BarChart3, Layers, TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -13,6 +14,11 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import MapboxMap from '../components/MapboxMap';
 import MessagesSection from '../components/MessagesSection';
+import TripartiteChat from '../components/TripartiteChat';
+import DeliveryProof from '../components/DeliveryProof';
+import MultiDeliveryManager from '../components/MultiDeliveryManager';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import GamificationSystem from '../components/GamificationSystem';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 
@@ -32,9 +38,12 @@ const ORDER_STATUSES = {
 const NAV_ITEMS = [
   { id: 'map', label: 'Carte & Navigation', icon: Map },
   { id: 'orders', label: 'Commandes', icon: Package, badge: true },
+  { id: 'multi', label: 'Multi-livraisons', icon: Layers },
   { id: 'messages', label: 'Messages', icon: MessageCircle },
   { id: 'history', label: 'Historique', icon: History },
   { id: 'stats', label: 'Mes gains', icon: DollarSign },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'gamification', label: 'Récompenses', icon: Trophy },
 ];
 
 const DriverDashboard = () => {
@@ -52,6 +61,14 @@ const DriverDashboard = () => {
   const [currentStatus, setCurrentStatus] = useState('offline');
   const [currentLocation, setCurrentLocation] = useState(null);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
+  
+  // New component states
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatRecipient, setChatRecipient] = useState(null);
+  const [deliveryProofOpen, setDeliveryProofOpen] = useState(false);
+  const [multiDeliveryOpen, setMultiDeliveryOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [gamificationOpen, setGamificationOpen] = useState(false);
   
   const wsRef = React.useRef(null);
   const watchIdRef = React.useRef(null);
@@ -1067,8 +1084,114 @@ const DriverDashboard = () => {
               </div>
             </div>
           )}
+
+          {/* Multi-Delivery Section */}
+          {activeSection === 'multi' && (
+            <div className="space-y-6">
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-purple-400" />
+                    Gestion multi-livraisons
+                  </h3>
+                  <Button
+                    onClick={() => setMultiDeliveryOpen(true)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500"
+                  >
+                    <Target className="w-4 h-4 mr-2" />
+                    Ouvrir le gestionnaire
+                  </Button>
+                </div>
+                <p className="text-slate-400 text-sm">
+                  Optimisez vos routes et gérez plusieurs livraisons simultanément
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Analytics Section */}
+          {activeSection === 'analytics' && (
+            <div className="space-y-6">
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                    Analytics Dashboard
+                  </h3>
+                  <Button
+                    onClick={() => setAnalyticsOpen(true)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500"
+                  >
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Voir les analytics
+                  </Button>
+                </div>
+                <p className="text-slate-400 text-sm">
+                  Analyses détaillées de votre performance livreur
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Gamification Section */}
+          {activeSection === 'gamification' && (
+            <div className="space-y-6">
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-yellow-400" />
+                    Système de récompenses
+                  </h3>
+                  <Button
+                    onClick={() => setGamificationOpen(true)}
+                    className="bg-gradient-to-r from-yellow-500 to-orange-500"
+                  >
+                    <Trophy className="w-4 h-4 mr-2" />
+                    Voir mes récompenses
+                  </Button>
+                </div>
+                <p className="text-slate-400 text-sm">
+                  Gagnez des points, débloquez des niveaux et obtenez des avantages
+                </p>
+              </div>
+            </div>
+          )}
         </main>
       </div>
+
+      {/* Integrated Components */}
+      <TripartiteChat
+        orderId={selectedOrder?.id}
+        recipientType={chatRecipient?.type}
+        recipientId={chatRecipient?.id}
+        recipientName={chatRecipient?.name}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
+
+      <DeliveryProof
+        orderId={selectedOrder?.id}
+        isOpen={deliveryProofOpen}
+        onClose={() => setDeliveryProofOpen(false)}
+        onSubmit={(data) => console.log('Delivery proof submitted:', data)}
+      />
+
+      <MultiDeliveryManager
+        isOpen={multiDeliveryOpen}
+        onClose={() => setMultiDeliveryOpen(false)}
+      />
+
+      <AnalyticsDashboard
+        isOpen={analyticsOpen}
+        onClose={() => setAnalyticsOpen(false)}
+        userRole="driver"
+      />
+
+      <GamificationSystem
+        isOpen={gamificationOpen}
+        onClose={() => setGamificationOpen(false)}
+        userRole="driver"
+      />
     </div>
   );
 };
