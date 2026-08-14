@@ -21,13 +21,13 @@ const API = API_URL;
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
 const ORDER_STATUSES = {
-  pending: { label: 'En attente', color: 'amber', icon: Clock },
-  assigned: { label: 'Livreur assigné', color: 'blue', icon: User },
-  accepted: { label: 'Commande acceptée', color: 'green', icon: CheckCircle },
-  picked_up: { label: 'Colis récupéré', color: 'indigo', icon: Package },
-  in_transit: { label: 'En route', color: 'purple', icon: Truck },
-  delivered: { label: 'Livré', color: 'green', icon: CheckCircle },
-  cancelled: { label: 'Annulé', color: 'red', icon: XCircle }
+  pending: { label: 'En attente', color: 'amber', icon: Clock, progress: 10 },
+  assigned: { label: 'Livreur assigné', color: 'blue', icon: User, progress: 25 },
+  accepted: { label: 'Commande acceptée', color: 'green', icon: CheckCircle, progress: 40 },
+  picked_up: { label: 'Colis récupéré', color: 'indigo', icon: Package, progress: 60 },
+  in_transit: { label: 'En route', color: 'purple', icon: Truck, progress: 80 },
+  delivered: { label: 'Livré', color: 'green', icon: CheckCircle, progress: 100 },
+  cancelled: { label: 'Annulé', color: 'red', icon: XCircle, progress: 0 }
 };
 
 const OrderTrackingPage = () => {
@@ -39,6 +39,7 @@ const OrderTrackingPage = () => {
   const [driverLocation, setDriverLocation] = useState(null);
   const [driverInfo, setDriverInfo] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
+  const [lastStatus, setLastStatus] = useState(null);
   
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -46,6 +47,7 @@ const OrderTrackingPage = () => {
   const driverMarker = useRef(null);
   const customerMarker = useRef(null);
   const wsRef = useRef(null);
+  const previousStatusRef = useRef(null);
 
   // Fetch order details
   const fetchOrder = useCallback(async () => {
@@ -78,15 +80,33 @@ const OrderTrackingPage = () => {
     }
   }, [orderId]);
 
-  // Initialize WebSocket
+  // Initialize real-time updates with enhanced polling
   useEffect(() => {
     fetchOrder();
     
-    // Use faster polling for real-time updates (3 seconds)
-    const pollingInterval = setInterval(fetchOrder, 3000);
+    // Use faster polling for real-time updates (2 seconds for more responsiveness)
+    const pollingInterval = setInterval(fetchOrder, 2000);
+    
+    // Also add status change detection for immediate updates
+    const statusCheckInterval = setInterval(() => {
+      if (order && order.status !== previousStatusRef.current) {
+        const oldStatus = previousStatusRef.current;
+        previousStatusRef.current = order.status;
+        
+        // Show notification for important status changes
+        if (ORDER_STATUSES[order.status] && oldStatus !== order.status) {
+          const statusInfo = ORDER_STATUSES[order.status];
+          toast.success(`Statut mis à jour: ${statusInfo.label}`, {
+            description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
+            duration: 3000
+          });
+        }
+      }
+    }, 1000);
     
     return () => {
       clearInterval(pollingInterval);
+      clearInterval(statusCheckInterval);
     };
   }, [orderId, fetchOrder]);
 
@@ -275,19 +295,41 @@ const OrderTrackingPage = () => {
               {/* Progress Bar */}
               {order.status !== 'cancelled' && (
                 <div className="mb-6">
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Progression de livraison</span>
+                    <span className="text-sm font-bold text-primary">{Math.round(getStatusProgress())}%</span>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-primary transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-700 ease-out"
                       style={{ width: `${getStatusProgress()}%` }}
                     />
                   </div>
-                  <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                    <span>Commande</span>
-                    <span>Assigné</span>
-                    <span>Accepté</span>
-                    <span>Récupéré</span>
-                    <span>En route</span>
-                    <span>Livré</span>
+                  <div className="flex justify-between mt-3 text-xs text-muted-foreground">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'pending' ? 'bg-amber-500' : 'bg-gray-300'}`} />
+                      <span>Commande</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                      <span>Assigné</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-green-500' : 'bg-gray-300'}`} />
+                      <span>Accepté</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500' : 'bg-gray-300'}`} />
+                      <span>Récupéré</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500' : 'bg-gray-300'}`} />
+                      <span>En route</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600' : 'bg-gray-300'}`} />
+                      <span>Livré</span>
+                    </div>
                   </div>
                 </div>
               )}

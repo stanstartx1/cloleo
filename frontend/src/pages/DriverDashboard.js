@@ -871,7 +871,7 @@ const DriverDashboard = () => {
                 {availableOrders.length > 0 ? (
                   <div className="divide-y divide-slate-700">
                     {availableOrders.map(order => (
-                      <div key={order.id} className="p-4">
+                      <div key={order.id} className="p-4 space-y-3">
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <p className="font-medium text-white">{order.order_number || `#${order.id?.slice(-8)}`}</p>
@@ -881,6 +881,94 @@ const DriverDashboard = () => {
                             <p className="font-bold text-white">{formatPrice(order.total_fcfa)} FCFA</p>
                           </div>
                         </div>
+                        
+                        {/* Seller Information */}
+                        {order.seller_info && (
+                          <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center shrink-0">
+                                <span className="text-purple-400 font-bold text-sm">
+                                  {order.seller_info.name?.[0] || 'V'}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-purple-400 mb-1">Récupérer chez :</p>
+                                <p className="font-medium text-white text-sm truncate">{order.seller_info.name}</p>
+                                {order.seller_info.phone && (
+                                  <p className="text-sm text-slate-400">📞 {order.seller_info.phone}</p>
+                                )}
+                                {order.seller_info.address && (
+                                  <p className="text-sm text-slate-400 truncate">📍 {order.seller_info.address}</p>
+                                )}
+                                {order.seller_info.location && (
+                                  <p className="text-xs text-slate-500 mt-1">📍 GPS: {order.seller_info.location.latitude.toFixed(4)}, {order.seller_info.location.longitude.toFixed(4)}</p>
+                                )}
+                              </div>
+                              {order.seller_info.phone && (
+                                <a href={`tel:${order.seller_info.phone}`} className="p-2 bg-purple-500/20 rounded-full text-purple-400 shrink-0">
+                                  <Phone className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Dropshipper Information if applicable */}
+                        {order.dropshipper_info && (
+                          <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/20">
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center shrink-0">
+                                <span className="text-amber-400 font-bold text-sm">
+                                  {order.dropshipper_info.name?.[0] || 'R'}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-amber-400 mb-1">Revendeur :</p>
+                                <p className="font-medium text-white text-sm truncate">{order.dropshipper_info.name}</p>
+                                {order.dropshipper_info.phone && (
+                                  <p className="text-sm text-slate-400">📞 {order.dropshipper_info.phone}</p>
+                                )}
+                                {order.dropshipper_info.address && (
+                                  <p className="text-sm text-slate-400 truncate">📍 {order.dropshipper_info.address}</p>
+                                )}
+                              </div>
+                              {order.dropshipper_info.phone && (
+                                <a href={`tel:${order.dropshipper_info.phone}`} className="p-2 bg-amber-500/20 rounded-full text-amber-400 shrink-0">
+                                  <Phone className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Customer Information */}
+                        {order.customer_info && (
+                          <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+                            <div className="flex items-start gap-3">
+                              <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
+                                <span className="text-green-400 font-bold text-sm">
+                                  {order.customer_info.name?.[0] || 'C'}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-green-400 mb-1">Livrer à :</p>
+                                <p className="font-medium text-white text-sm truncate">{order.customer_info.name}</p>
+                                {order.customer_info.phone && (
+                                  <p className="text-sm text-slate-400">📞 {order.customer_info.phone}</p>
+                                )}
+                                {order.delivery_address && (
+                                  <p className="text-sm text-slate-400 truncate">📍 {order.delivery_address.street}, {order.delivery_address.city}</p>
+                                )}
+                              </div>
+                              {order.customer_info.phone && (
+                                <a href={`tel:${order.customer_info.phone}`} className="p-2 bg-green-500/20 rounded-full text-green-400 shrink-0">
+                                  <Phone className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         <Button
                           onClick={() => handleOrderAction(order, 'driver-accept')}
                           disabled={updatingStatus || isPendingVerification}
