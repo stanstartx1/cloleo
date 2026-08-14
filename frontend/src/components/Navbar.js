@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
   Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
-  Filter, Star, DollarSign, Building2, MessageSquare
+  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -286,6 +286,8 @@ const Navbar = () => {
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
   const [logoLoading, setLogoLoading] = useState(true);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [showBalance, setShowBalance] = useState(true);
   
   const searchContainerRef = useRef(null);
 
@@ -324,6 +326,29 @@ const Navbar = () => {
     };
     fetchLogo();
   }, []);
+
+  useEffect(() => {
+    // Fetch wallet balance when user is authenticated
+    const fetchWalletBalance = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        // This will be replaced with actual API call when backend is ready
+        // const response = await axios.get(`${API}/wallet/balance`, {
+        //   headers: { Authorization: `Bearer ${token}` }
+        // });
+        // setWalletBalance(response.data.available_balance || 0);
+        
+        // Mock balance for now
+        setWalletBalance(45000);
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        setWalletBalance(0);
+      }
+    };
+
+    fetchWalletBalance();
+  }, [isAuthenticated]);
 
   const handleSearch = (filters = null) => {
     if (filters && filters.q) {
@@ -504,6 +529,27 @@ const Navbar = () => {
                 )}
               </div>
 
+              {/* Wallet Balance */}
+              {isAuthenticated && (
+                <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-3 py-1.5 rounded-full border border-green-200">
+                  <Wallet className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-semibold text-green-700">
+                    {showBalance ? new Intl.NumberFormat('fr-FR').format(walletBalance) + ' FCFA' : '••••'}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 text-green-600 hover:bg-green-100"
+                    onClick={() => setShowBalance(!showBalance)}
+                  >
+                    {showBalance ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  </Button>
+                  <Link to="/wallet" className="text-green-600 hover:text-green-700">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
+
               {/* Favoris */}
               <Button variant="ghost" size="icon" asChild className="hidden sm:flex rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-red-50">
                 <Link to="/favoris" data-testid="favorites-btn">
@@ -598,6 +644,9 @@ const Navbar = () => {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> Mes commandes</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/wallet" className="font-semibold"><Wallet className="w-4 h-4 mr-2" /> Mon Portefeuille</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> Mes offres</Link>

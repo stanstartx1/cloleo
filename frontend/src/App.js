@@ -64,6 +64,7 @@ import OfferPage from "./pages/OfferPage";
 import BecomeVendorPage from "./pages/BecomeVendorPage";
 import MyOffersPage from "./pages/MyOffersPage";
 import NegotiatedOfferPage from "./pages/NegotiatedOfferPage";
+import WalletPage from "./pages/WalletPage";
 
 // Vendor Pages
 import VendorDashboard from "./pages/VendorDashboard";
@@ -271,6 +272,11 @@ const AppRoutes = () => {
       <Route path="/mes-offres" element={
         <ProtectedRoute>
           <PublicLayout><MyOffersPage /></PublicLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/wallet" element={
+        <ProtectedRoute>
+          <PublicLayout><WalletPage /></PublicLayout>
         </ProtectedRoute>
       } />
       <Route path="/offer-link/:token" element={<PublicLayout><NegotiatedOfferPage /></PublicLayout>} />
