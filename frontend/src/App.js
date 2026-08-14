@@ -1,9 +1,12 @@
 ﻿import { API_URL, API_BASE, WS_URL } from './config/api';
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import axios from "axios";
+
+// Import lucide-react icons for loading states
+import { RefreshCw } from "lucide-react";
 
 // Configure axios for mobile compatibility
 axios.defaults.timeout = 30000; // 30 second timeout for mobile
@@ -64,7 +67,9 @@ import OfferPage from "./pages/OfferPage";
 import BecomeVendorPage from "./pages/BecomeVendorPage";
 import MyOffersPage from "./pages/MyOffersPage";
 import NegotiatedOfferPage from "./pages/NegotiatedOfferPage";
-import WalletPage from "./pages/WalletPage";
+
+// Lazy load heavy components for code splitting
+const WalletPage = React.lazy(() => import("./pages/WalletPage"));
 
 // Vendor Pages
 import VendorDashboard from "./pages/VendorDashboard";
@@ -276,7 +281,16 @@ const AppRoutes = () => {
       } />
       <Route path="/wallet" element={
         <ProtectedRoute>
-          <PublicLayout><WalletPage /></PublicLayout>
+          <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white flex items-center justify-center">
+              <div className="text-center">
+                <RefreshCw className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
+                <p className="text-slate-600">Chargement du portefeuille...</p>
+              </div>
+            </div>
+          }>
+            <PublicLayout><WalletPage /></PublicLayout>
+          </Suspense>
         </ProtectedRoute>
       } />
       <Route path="/offer-link/:token" element={<PublicLayout><NegotiatedOfferPage /></PublicLayout>} />

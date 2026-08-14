@@ -339,8 +339,12 @@ const Navbar = () => {
         // });
         // setWalletBalance(response.data.available_balance || 0);
         
-        // Mock balance for now
-        setWalletBalance(45000);
+        // Use mock service for now
+        const { walletMockService } = await import('../services/walletMockService');
+        const response = await walletMockService.getBalance();
+        if (response.success) {
+          setWalletBalance(response.data.available_balance || 0);
+        }
       } catch (error) {
         console.error('Error fetching wallet balance:', error);
         setWalletBalance(0);
