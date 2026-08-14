@@ -23,6 +23,7 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber', icon: Clock },
   assigned: { label: 'Livreur assigné', color: 'blue', icon: User },
+  accepted: { label: 'Commande acceptée', color: 'green', icon: CheckCircle },
   picked_up: { label: 'Colis récupéré', color: 'indigo', icon: Package },
   in_transit: { label: 'En route', color: 'purple', icon: Truck },
   delivered: { label: 'Livré', color: 'green', icon: CheckCircle },
@@ -81,9 +82,8 @@ const OrderTrackingPage = () => {
   useEffect(() => {
     fetchOrder();
     
-    // Use polling instead of WebSocket for production stability
-    // WebSocket connection issues on production server
-    const pollingInterval = setInterval(fetchOrder, 10000);
+    // Use faster polling for real-time updates (3 seconds)
+    const pollingInterval = setInterval(fetchOrder, 3000);
     
     return () => {
       clearInterval(pollingInterval);
@@ -171,7 +171,7 @@ const OrderTrackingPage = () => {
   };
 
   const getStatusProgress = () => {
-    const statuses = ['pending', 'assigned', 'picked_up', 'in_transit', 'delivered'];
+    const statuses = ['pending', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'];
     const currentIndex = statuses.indexOf(order?.status);
     return ((currentIndex + 1) / statuses.length) * 100;
   };
@@ -283,6 +283,8 @@ const OrderTrackingPage = () => {
                   </div>
                   <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                     <span>Commande</span>
+                    <span>Assigné</span>
+                    <span>Accepté</span>
                     <span>Récupéré</span>
                     <span>En route</span>
                     <span>Livré</span>
@@ -291,7 +293,7 @@ const OrderTrackingPage = () => {
               )}
 
               {/* Driver Info */}
-              {driverInfo && (
+              {driverInfo ? (
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                   <div className="flex items-center gap-4 mb-3">
                     <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
@@ -299,7 +301,12 @@ const OrderTrackingPage = () => {
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-lg">{driverInfo.name}</p>
-                      <p className="text-sm text-blue-700">Livreur assigné</p>
+                      <p className="text-sm text-blue-700">
+                        {order.status === 'assigned' ? 'Livreur assigné' : 
+                         order.status === 'accepted' ? 'Commande acceptée' :
+                         order.status === 'picked_up' ? 'Colis récupéré' :
+                         order.status === 'in_transit' ? 'En route vers vous' : 'Livreur'}
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -326,10 +333,26 @@ const OrderTrackingPage = () => {
                       </span>
                     </div>
                   )}
+                  {!driverLocation && driverInfo && (
+                    <div className="mt-3 pt-3 border-t border-blue-200 flex items-center gap-2 text-sm text-blue-600">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Position GPS en cours de synchronisation...</span>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {!driverInfo && order.status === 'pending' && (
+              ) : order.driver_id ? (
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-lg">Livreur assigné</p>
+                      <p className="text-sm text-blue-700">Les informations du livreur apparaîtront bientôt</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div className="bg-amber-50 rounded-xl p-6 border border-amber-200">
                   <div className="flex items-center justify-center mb-3">
                     <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">

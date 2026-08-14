@@ -1400,11 +1400,21 @@ async def track_order(order_id: str):
     
     if order.get("driver_id"):
         driver_id = order.get("driver_id")
+        
+        # Try to get live location from WebSocket manager first
         driver_location = manager.get_driver_location(driver_id)
+        
+        # Always get driver info from database regardless of location
         driver_info = await db.users.find_one(
             {"id": driver_id},
-            {"_id": 0, "name": 1, "phone": 1, "vehicle_type": 1}
+            {"_id": 0, "name": 1, "phone": 1, "vehicle_type": 1, "profile_photo": 1}
         )
+        
+        # If no live location, try to get last known location from user document
+        if not driver_location and driver_info:
+            user_location = driver_info.get("location")
+            if user_location and user_location.get("latitude") and user_location.get("longitude"):
+                driver_location = user_location
         
         # Calculate ETA if driver location exists
         if driver_location and order.get("delivery_address"):
