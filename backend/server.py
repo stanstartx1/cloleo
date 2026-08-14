@@ -2811,6 +2811,81 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
     
     await manager.broadcast_to_room("admin_tracking", {"type": "driver_location", "location": manager.get_driver_location(user["id"])})
     
+    # Auto-assign pending orders if driver just came online with location
+    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
+    auto_assign = delivery_settings.get("auto_assign", True)
+    
+    if auto_assign:
+        # Find pending orders without drivers
+        pending_orders = await db.orders.find({
+            "status": "confirmed",
+            "driver_id": {"$exists": False},
+            "is_deleted": {"$ne": True}
+        }).to_list(10)
+        
+        for order in pending_orders:
+            # Calculate distance
+            delivery_address = order.get("delivery_address", {})
+            order_lat = delivery_address.get("latitude")
+            order_lon = delivery_address.get("longitude")
+            
+            if order_lat and order_lon:
+                distance = calculate_distance(
+                    location["latitude"], location["longitude"],
+                    order_lat, order_lon
+                )
+                
+                # Only assign if within reasonable distance (e.g., 20km)
+                if distance <= 20:
+                    # Check if this driver is the closest
+                    all_drivers = await db.users.find(
+                        {"role": "driver", "is_active": True, "is_verified": True, "is_online": True},
+                        {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
+                    ).to_list(100)
+                    
+                    closest_driver = None
+                    min_distance = float('inf')
+                    
+                    for driver in all_drivers:
+                        driver_location = driver.get("location", {})
+                        driver_lat = driver_location.get("latitude")
+                        driver_lon = driver_location.get("longitude")
+                        
+                        if driver_lat and driver_lon:
+                            driver_distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
+                            if driver_distance < min_distance:
+                                min_distance = driver_distance
+                                closest_driver = driver
+                    
+                    # Assign if this driver is the closest
+                    if closest_driver and closest_driver["id"] == user["id"]:
+                        await db.orders.update_one(
+                            {"id": order["id"]},
+                            {
+                                "$set": {
+                                    "status": "assigned",
+                                    "driver_id": user["id"],
+                                    "driver_name": user.get("name"),
+                                    "driver_phone": user.get("phone"),
+                                    "updated_at": _utc()
+                                },
+                                "$push": {
+                                    "status_history": {
+                                        "status": "assigned",
+                                        "note": f"Livreur assigné automatiquement: {user.get('name')} (distance: {min_distance:.2f} km)",
+                                        "timestamp": _utc()
+                                    }
+                                },
+                            },
+                        )
+                        
+                        # Notify driver
+                        await manager.broadcast_to_room(f"driver_{user['id']}", {
+                            "type": "new_order",
+                            "order_id": order["id"],
+                            "message": "Nouvelle commande assignée"
+                        })
+    
     return {"ok": True}
 
 
@@ -3775,7 +3850,7 @@ async def admin_delivery_settings(user: dict = Depends(require_admin)):
 
     settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0})
 
-    return settings or {"type": "delivery", "max_active_orders": 5, "auto_assign": False}
+    return settings or {"type": "delivery", "max_active_orders": 5, "auto_assign": True}
 
 
 

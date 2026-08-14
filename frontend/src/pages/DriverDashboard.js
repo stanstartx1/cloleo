@@ -212,10 +212,43 @@ const DriverDashboard = () => {
     const pollingInterval = setInterval(() => {
       fetchOrders();
       fetchDashboard();
-    }, 10000);
+    }, 5000); // Poll every 5 seconds for faster order detection
 
     return () => clearInterval(pollingInterval);
   }, [user?.id, fetchOrders, fetchDashboard]);
+
+  // Request GPS permission on mount for drivers
+  useEffect(() => {
+    if (isDriver && navigator.geolocation) {
+      // Request GPS permission immediately on dashboard load
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('GPS permission granted, initial position:', position.coords);
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          setCurrentLocation(location);
+          
+          // Update backend with initial location
+          axios.post(`${API}/driver/location/update`, location, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(error => console.error('Error updating initial location:', error));
+          
+          toast.success('GPS activé avec succès', {
+            description: 'Votre position est maintenant partagée pour recevoir des commandes'
+          });
+        },
+        (error) => {
+          console.error('GPS permission denied:', error);
+          toast.error('GPS non activé', {
+            description: 'Veuillez activer votre GPS pour recevoir des commandes'
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, [isDriver, token]);
 
   // Geolocation
   useEffect(() => {
@@ -241,9 +274,17 @@ const DriverDashboard = () => {
       }
     };
     
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(updateLocation, console.error, { enableHighAccuracy: true });
-      watchIdRef.current = navigator.geolocation.watchPosition(updateLocation, console.error, { 
+    if (navigator.geolocation && trackingEnabled) {
+      // Get initial position
+      navigator.geolocation.getCurrentPosition(updateLocation, (error) => {
+        console.error('Initial geolocation error:', error);
+        toast.error('Impossible d\'obtenir votre position GPS');
+      }, { enableHighAccuracy: true, timeout: 10000 });
+      
+      // Watch position changes
+      watchIdRef.current = navigator.geolocation.watchPosition(updateLocation, (error) => {
+        console.error('Geolocation watch error:', error);
+      }, { 
         enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 
       });
     }
@@ -263,7 +304,31 @@ const DriverDashboard = () => {
       
       if (newStatus === 'available') {
         setTrackingEnabled(true);
-        toast.success('Vous êtes disponible !');
+        toast.success('Vous êtes disponible !', {
+          description: 'Les commandes proches de votre position vous seront assignées'
+        });
+        
+        // Request GPS immediately when becoming available
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const location = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              };
+              setCurrentLocation(location);
+              axios.post(`${API}/driver/location/update`, location, {
+                headers: { Authorization: `Bearer ${token}` }
+              }).catch(console.error);
+            },
+            (error) => {
+              toast.error('GPS requis', {
+                description: 'Activez votre GPS pour recevoir des commandes'
+              });
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
       } else if (newStatus === 'busy') {
         setTrackingEnabled(true);
         toast.info('Vous êtes occupé');
