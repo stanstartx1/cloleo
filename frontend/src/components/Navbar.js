@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
   Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
-  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight
+  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight, Clock
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -436,12 +436,6 @@ const Navbar = () => {
               >
                 Tendances
               </Link>
-              <Link
-                to="/produits?discount=true"
-                className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
-              >
-                Promotions
-              </Link>
               
               {/* Dropdown pour Devenir partenaire */}
               <DropdownMenu>
@@ -533,25 +527,58 @@ const Navbar = () => {
                 )}
               </div>
 
-              {/* Wallet Balance */}
+              {/* Wallet Balance with Dropdown */}
               {isAuthenticated && (
-                <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-3 py-1.5 rounded-full border border-green-200">
-                  <Wallet className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-semibold text-green-700">
-                    {showBalance ? new Intl.NumberFormat('fr-FR').format(walletBalance) + ' FCFA' : '••••'}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 text-green-600 hover:bg-green-100"
-                    onClick={() => setShowBalance(!showBalance)}
-                  >
-                    {showBalance ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                  </Button>
-                  <Link to="/wallet" className="text-green-600 hover:text-green-700">
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Link>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-3 py-1.5 rounded-full border border-green-200 cursor-pointer hover:border-green-300 transition-colors">
+                      <Wallet className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-semibold text-green-700">
+                        {showBalance ? new Intl.NumberFormat('fr-FR').format(walletBalance) + ' FCFA' : '••••'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-green-600 hover:bg-green-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowBalance(!showBalance);
+                        }}
+                      >
+                        {showBalance ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      </Button>
+                      <ChevronDown className="w-4 h-4 text-green-600" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/wallet" className="flex items-center gap-2 cursor-pointer">
+                        <Wallet className="w-4 h-4" />
+                        <span>Voir mon wallet</span>
+                        <ArrowUpRight className="w-4 h-4 ml-auto" />
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/wallet?tab=deposit" className="flex items-center gap-2 cursor-pointer">
+                        <DollarSign className="w-4 h-4" />
+                        <span>Recharger</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/wallet?tab=transfer" className="flex items-center gap-2 cursor-pointer">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Transférer</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/wallet?tab=history" className="flex items-center gap-2 cursor-pointer">
+                        <Clock className="w-4 h-4" />
+                        <span>Historique</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
 
               {/* Favoris */}
