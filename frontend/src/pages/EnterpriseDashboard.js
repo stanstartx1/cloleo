@@ -1309,6 +1309,10 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
   const [categories, setCategories] = useState([]);
 
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  const [searchQuery, setSearchQuery] = useState('');
+
 
 
   useEffect(() => {
@@ -1334,6 +1338,16 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
     }
 
   };
+
+
+
+  const filteredProducts = products?.filter(product => {
+    const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
+    const matchesSearch = searchQuery === '' || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesStatus && matchesSearch;
+  }) || [];
 
 
 
@@ -1435,15 +1449,43 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
 
 
+  const getProductStatus = (status) => {
+
+    const statusMap = {
+
+      approved: { label: 'Approuvé', color: 'bg-green-500/20 text-green-400' },
+
+      pending: { label: 'En attente', color: 'bg-amber-500/20 text-amber-400' },
+
+      rejected: { label: 'Rejeté', color: 'bg-red-500/20 text-red-400' },
+
+      draft: { label: 'Brouillon', color: 'bg-slate-500/20 text-slate-400' }
+
+    };
+
+    return statusMap[status] || statusMap.draft;
+
+  };
+
+
+
   return (
 
     <div className="space-y-6">
+
+      {/* Header */}
 
       <div className="flex items-center justify-between">
 
         <div>
 
-          <h3 className="font-bold text-xl text-white">Mes produits</h3>
+          <h3 className="font-bold text-xl text-white flex items-center gap-2">
+
+            <Package className="w-6 h-6 text-amber-400" />
+
+            Mes produits
+
+          </h3>
 
           <p className="text-sm text-slate-400">Gérez votre catalogue de produits</p>
 
@@ -1461,119 +1503,277 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
 
 
-      {/* Products Grid */}
+      {/* Filters */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="flex flex-wrap gap-4 items-center">
 
-        {products?.length > 0 ? products.map((product) => (
+        <div className="flex gap-2">
 
-          <div key={product.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden group shadow-xl">
+          <button
 
-            {product.images?.length > 0 && (
+            onClick={() => setFilterStatus('all')}
 
-              <div className="relative h-48">
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
 
-                <img 
+              filterStatus === 'all' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
 
-                  src={toAbsoluteMediaUrl(product.images[0])} 
+            }`}
 
-                  alt={product.name}
+          >
 
-                  className="w-full h-full object-cover"
+            Tous
 
-                />
+          </button>
 
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
 
-                  <Button
+            onClick={() => setFilterStatus('approved')}
 
-                    size="sm"
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
 
-                    variant="outline"
+              filterStatus === 'approved' ? 'bg-green-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
 
-                    onClick={() => handleEditProduct(product)}
+            }`}
 
-                    className="bg-slate-900/80 border-slate-600 text-white hover:bg-slate-800"
+          >
 
-                  >
+            Approuvés
 
-                    <Edit2 className="w-4 h-4" />
+          </button>
 
-                  </Button>
+          <button
 
-                  <Button
+            onClick={() => setFilterStatus('pending')}
 
-                    size="sm"
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
 
-                    variant="destructive"
+              filterStatus === 'pending' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
 
-                    onClick={() => handleDeleteProduct(product.id)}
+            }`}
 
-                    className="bg-red-500 hover:bg-red-600"
+          >
 
-                  >
+            En attente
 
-                    <Trash2 className="w-4 h-4" />
+          </button>
 
-                  </Button>
+          <button
 
-                </div>
+            onClick={() => setFilterStatus('rejected')}
 
-              </div>
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
 
-            )}
+              filterStatus === 'rejected' ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
 
-            <div className="p-4">
+            }`}
 
-              <div className="flex items-start justify-between mb-2">
+          >
 
-                <div className="flex-1">
+            Rejetés
 
-                  <h4 className="font-bold text-white mb-1">{product.name}</h4>
+          </button>
 
-                  <p className="text-lg font-bold text-amber-400">{formatPrice(product.price_fcfa)} FCFA</p>
+        </div>
 
-                </div>
+        <div className="flex-1 max-w-md">
 
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          <Input
 
-                  product.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+            placeholder="Rechercher un produit..."
 
-                  product.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+            value={searchQuery}
 
-                  'bg-red-500/20 text-red-400 border border-red-500/30'
+            onChange={(e) => setSearchQuery(e.target.value)}
 
-                }`}>
+            className="bg-slate-800 border-slate-700 text-white"
 
-                  {product.status}
+          />
 
-                </span>
+        </div>
 
-              </div>
+      </div>
 
-              <p className="text-sm text-slate-400 line-clamp-2 mb-2">{product.description}</p>
 
-              <div className="flex items-center gap-2 text-xs text-slate-500">
 
-                <MapPin className="w-3 h-3" />
+      {/* Products List */}
 
-                <span>{product.location}</span>
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
 
-              </div>
+        {loading ? (
 
-            </div>
+          <div className="p-12 text-center">
+
+            <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-slate-400" />
+
+            <p className="text-slate-400">Chargement des produits...</p>
 
           </div>
 
-        )) : (
+        ) : filteredProducts.length > 0 ? (
 
-          <div className="col-span-full bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-12 text-center shadow-xl">
+          <div className="divide-y divide-slate-700">
 
-            <Package className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+            {filteredProducts.map((product, index) => {
 
-            <p className="text-slate-400">Aucun produit ajouté</p>
+              const status = getProductStatus(product.status);
 
-            <p className="text-sm text-slate-500">Commencez par ajouter vos premiers produits</p>
+              return (
+
+                <motion.div
+
+                  key={product.id}
+
+                  className="p-4 flex items-center gap-4 hover:bg-slate-700/30 transition-colors"
+
+                  initial={{ opacity: 0, x: -20 }}
+
+                  animate={{ opacity: 1, x: 0 }}
+
+                  transition={{ delay: index * 0.05 }}
+
+                  whileHover={{ x: 5 }}
+
+                >
+
+                  {/* Product Image */}
+
+                  <motion.img
+
+                    src={toAbsoluteMediaUrl(product.images?.[0]) || 'https://via.placeholder.com/60'}
+
+                    alt={product.name}
+
+                    className="w-16 h-16 rounded-lg object-cover shadow-md"
+
+                    whileHover={{ scale: 1.1 }}
+
+                  />
+
+                  {/* Product Info */}
+
+                  <div className="flex-1 min-w-0">
+
+                    <p className="font-medium text-white truncate">{product.name}</p>
+
+                    <p className="text-sm text-slate-400">{formatPrice(product.price_fcfa)} FCFA</p>
+
+                    {product.category_name && (
+
+                      <p className="text-xs text-slate-500">{product.category_name}</p>
+
+                    )}
+
+                  </div>
+
+                  {/* Stock */}
+
+                  <div className="text-right">
+
+                    <p className="text-sm text-slate-400">Stock</p>
+
+                    <p className="font-medium text-white">{product.stock || 0}</p>
+
+                  </div>
+
+                  {/* Status */}
+
+                  <motion.span
+
+                    className={`px-3 py-1 rounded-full text-xs ${status.color}`}
+
+                    initial={{ scale: 0 }}
+
+                    animate={{ scale: 1 }}
+
+                    transition={{ type: "spring", stiffness: 300 }}
+
+                  >
+
+                    {status.label}
+
+                  </motion.span>
+
+                  {/* Actions */}
+
+                  <div className="flex gap-2">
+
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+
+                      <Button
+
+                        size="sm"
+
+                        variant="outline"
+
+                        onClick={() => handleEditProduct(product)}
+
+                        className="border-slate-600 text-slate-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"
+
+                      >
+
+                        <Edit className="w-4 h-4 mr-1" />
+
+                        Modifier
+
+                      </Button>
+
+                    </motion.div>
+
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+
+                      <Button
+
+                        size="sm"
+
+                        variant="destructive"
+
+                        onClick={() => handleDeleteProduct(product.id)}
+
+                      >
+
+                        <Trash2 className="w-4 h-4 mr-1" />
+
+                        Supprimer
+
+                      </Button>
+
+                    </motion.div>
+
+                  </div>
+
+                </motion.div>
+
+              );
+
+            })}
+
+          </div>
+
+        ) : (
+
+          <div className="p-12 text-center">
+
+            <motion.div
+
+              animate={{ y: [0, -10, 0] }}
+
+              transition={{ duration: 2, repeat: Infinity }}
+
+            >
+
+              <Package className="w-16 h-16 text-slate-600 mx-auto mb-3" />
+
+            </motion.div>
+
+            <p className="text-slate-400">Aucun produit trouvé</p>
+
+            <Button className="mt-4" onClick={() => setShowAddModal(true)}>
+
+              <Plus className="w-4 h-4 mr-2" />
+
+              Ajouter votre premier produit
+
+            </Button>
 
           </div>
 
@@ -1583,43 +1783,62 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
 
 
-      {/* Product Modals */}
+      {/* Add Product Modal */}
 
-      <EnterpriseProductModal
+      {showAddModal && (
 
-        isOpen={showAddModal}
+        <EnterpriseProductModal
 
-        onClose={() => setShowAddModal(false)}
+          isOpen={showAddModal}
 
-        onSubmit={handleAddProduct}
+          onClose={() => setShowAddModal(false)}
 
-        categories={categories}
+          onSubmit={handleAddProduct}
 
-        token={token}
+          categories={categories}
 
-      />
+          token={token}
 
-      <EnterpriseProductModal
+        />
 
-        isOpen={showEditModal}
+      )}
 
-        onClose={() => setShowEditModal(false)}
 
-        onSubmit={handleUpdateProduct}
 
-        product={editingProduct}
+      {/* Edit Product Modal */}
 
-        categories={categories}
+      {showEditModal && editingProduct && (
 
-        token={token}
+        <EnterpriseProductModal
 
-      />
+          isOpen={showEditModal}
+
+          onClose={() => {
+
+            setShowEditModal(false);
+
+            setEditingProduct(null);
+
+          }}
+
+          onSubmit={handleUpdateProduct}
+
+          categories={categories}
+
+          token={token}
+
+          initialData={editingProduct}
+
+        />
+
+      )}
 
     </div>
 
   );
 
 };
+
 
 
 
