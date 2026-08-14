@@ -12,7 +12,7 @@ import uuid
 
 from core.database import db
 
-from core.auth import get_current_user, require_admin
+from core.auth import get_current_user, require_admin, create_token
 
 
 
@@ -287,8 +287,19 @@ async def register_enterprise(data: EnterpriseRegister):
         
 
         result = await db.users.insert_one(enterprise_data)
-
-        return {"message": "Enterprise registered successfully", "id": str(result.inserted_id)}
+        
+        # Generate token for auto-login
+        token = create_token(enterprise_data["id"], "enterprise")
+        
+        # Return user data without password
+        user_data = {k: v for k, v in enterprise_data.items() if k not in {"password", "_id"}}
+        
+        return {
+            "message": "Enterprise registered successfully", 
+            "id": str(result.inserted_id),
+            "token": token,
+            "user": user_data
+        }
 
     except Exception as e:
 
