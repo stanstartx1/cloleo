@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, MapPin, Users, Factory, Globe, Award, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { API_BASE, API_URL } from '../config/api';
+import { toast } from 'sonner';
 
 const API = API_URL;
 
@@ -261,6 +262,16 @@ const EnterpriseRegisterPage = () => {
       };
       
       const response = await axios.post(`${API}/enterprises/register`, dataToSend);
+      
+      // Login with the received token if available
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+        }
+      }
+      
+      toast.success('Compte entreprise créé avec succès !');
       navigate('/enterprise');
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de l\'inscription');

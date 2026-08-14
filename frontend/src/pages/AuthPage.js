@@ -212,7 +212,10 @@ const AuthPage = () => {
     if (result.success) {
       toast.success('Compte créé avec succès ! 🎉');
       if (result.user.role === 'vendor') navigate('/vendeur');
-      else navigate(from);
+      else if (result.user.role === 'driver') navigate('/livreur');
+      else if (result.user.role === 'dropshipper') navigate('/revendeur');
+      else if (result.user.role === 'enterprise') navigate('/enterprise');
+      else navigate('/');
     } else {
       toast.error(result.error || 'Une erreur est survenue');
     }

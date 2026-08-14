@@ -152,7 +152,7 @@ const DriverRegisterPage = () => {
       // Auto login after 2 seconds
       setTimeout(() => {
         login(tempToken, undefined, tempUser);
-        navigate('/');
+        navigate('/livreur');
       }, 2000);
       
     } catch (error) {
@@ -165,7 +165,7 @@ const DriverRegisterPage = () => {
 
   const handleSkipLicense = () => {
     login(tempToken, undefined, tempUser);
-    navigate('/');
+    navigate('/livreur');
   };
 
   if (registrationComplete) {
@@ -182,7 +182,7 @@ const DriverRegisterPage = () => {
             <AlertCircle className="w-5 h-5" />
             <span>Compte en attente de vérification</span>
           </div>
-          <p className="text-sm text-gray-500 mt-4">Redirection vers votre dashboard...</p>
+          <p className="text-sm text-gray-500 mt-4">Redirection vers votre dashboard livreur...</p>
         </div>
       </div>
     );
