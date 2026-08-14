@@ -48,6 +48,18 @@ import MapboxMap from '../components/MapboxMap';
 
 import MessagesSection from '../components/MessagesSection';
 
+import TripartiteChat from '../components/TripartiteChat';
+
+import DeliveryScheduler from '../components/DeliveryScheduler';
+
+import RatingSystem from '../components/RatingSystem';
+
+import DeliveryProof from '../components/DeliveryProof';
+
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+
+import GamificationSystem from '../components/GamificationSystem';
+
 import { 
 
   AnimatedNumber, 
@@ -152,6 +164,16 @@ const EnterpriseDashboard = () => {
 
   
 
+  // Advanced components states
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatRecipient, setChatRecipient] = useState(null);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [deliveryProofOpen, setDeliveryProofOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [gamificationOpen, setGamificationOpen] = useState(false);
+
+  
   // Edit product modal state
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1024,6 +1046,52 @@ const EnterpriseDashboard = () => {
         </div>
 
       </main>
+
+      {/* Integrated Advanced Components */}
+      <TripartiteChat
+        orderId={selectedOrder?.id}
+        recipientType={chatRecipient?.type}
+        recipientId={chatRecipient?.id}
+        recipientName={chatRecipient?.name}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
+
+      <DeliveryScheduler
+        orderId={selectedOrder?.id}
+        isOpen={schedulerOpen}
+        onClose={() => setSchedulerOpen(false)}
+        onScheduleSelect={(data) => console.log('Schedule selected:', data)}
+      />
+
+      <RatingSystem
+        orderId={selectedOrder?.id}
+        recipientType="driver"
+        recipientId={selectedOrder?.driver_id}
+        recipientName={selectedOrder?.driver_name || 'Livreur'}
+        recipientRole="driver"
+        isOpen={ratingOpen}
+        onClose={() => setRatingOpen(false)}
+      />
+
+      <DeliveryProof
+        orderId={selectedOrder?.id}
+        isOpen={deliveryProofOpen}
+        onClose={() => setDeliveryProofOpen(false)}
+        onSubmit={(data) => console.log('Delivery proof submitted:', data)}
+      />
+
+      <AnalyticsDashboard
+        isOpen={analyticsOpen}
+        onClose={() => setAnalyticsOpen(false)}
+        userRole="enterprise"
+      />
+
+      <GamificationSystem
+        isOpen={gamificationOpen}
+        onClose={() => setGamificationOpen(false)}
+        userRole="enterprise"
+      />
 
     </div>
 
@@ -2251,6 +2319,60 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
                 </Button>
 
+              )}
+
+              {/* Communication & Delivery Actions */}
+              {order.status === 'in_transit' && order.driver_id && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setChatRecipient({ type: 'driver', id: order.driver_id, name: order.driver_name || 'Livreur' });
+                      setChatOpen(true);
+                    }}
+                    className="border-blue-500 text-blue-400 hover:bg-blue-500/20"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Contacter livreur
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDeliveryProofOpen(true)}
+                    className="border-green-500 text-green-400 hover:bg-green-500/20"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Preuve livraison
+                  </Button>
+                </>
+              )}
+
+              {order.status === 'confirmed' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSchedulerOpen(true)}
+                  className="border-amber-500 text-amber-400 hover:bg-amber-500/20"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Planifier livraison
+                </Button>
+              )}
+
+              {order.status === 'delivered' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setChatRecipient({ type: 'driver', id: order.driver_id, name: order.driver_name || 'Livreur' });
+                    setRatingOpen(true);
+                  }}
+                  className="border-yellow-500 text-yellow-400 hover:bg-yellow-500/20"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Évaluer livreur
+                </Button>
               )}
 
             </div>
@@ -7571,7 +7693,6 @@ const SettingsSection = ({ user, token, onRefresh }) => {
         </div>
 
       )}
-
     </div>
 
   );
