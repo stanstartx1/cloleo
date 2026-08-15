@@ -1869,7 +1869,7 @@ async def create_achievement(achievement_data: dict, current_enterprise = Depend
 
     except Exception as e:
 
-        raise HTTPException(status_code=500, detail(str(e)))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 
@@ -1907,4 +1907,4 @@ async def update_achievement(achievement_id: str, achievement_data: dict, curren
 
     except Exception as e:
 
-        raise HTTPException(status_code=500, detail(str(e)))
+        raise HTTPException(status_code=500, detail=str(e))

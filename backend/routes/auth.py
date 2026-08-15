@@ -1,5 +1,5 @@
 # Authentication routes
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 
 from datetime import datetime, timezone, timedelta
 import hashlib
