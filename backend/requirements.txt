@@ -6,3 +6,5 @@ motor
 PyJWT
 python-multipart
 email-validator
+elasticsearch
+websockets
