@@ -5,7 +5,7 @@ import {
   MessageSquare, Plus, Search, Hash, Bell, Settings, 
   Users, Clock, Eye, Pin, Lock, ChevronRight, 
   Edit, Trash2, Reply, Smile, 
-  LayoutDashboard, Home, X, Filter, Image, FileText, Mic
+  LayoutDashboard, Home, X, Filter, Image, FileText, Mic, Store, Send, BadgeCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -23,6 +23,16 @@ import NotificationBell from '../components/NotificationBell';
 
 import { API_URL } from '../config/api';
 const API = API_URL;
+
+const AuthorAvatar = ({ author, size = 'md' }) => {
+  const dimensions = size === 'lg' ? 'w-12 h-12' : size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+  if (author?.author_avatar || author?.avatar) {
+    return <MediaImg src={author.author_avatar || author.avatar} alt={author.author_name || author.name || 'Membre'} className={`${dimensions} rounded-full object-cover flex-shrink-0`} />;
+  }
+  return <div className={`${dimensions} rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold flex-shrink-0`}>
+    {(author?.author_name || author?.name || 'U')[0]}
+  </div>;
+};
 
 const ForumPage = () => {
   const navigate = useNavigate();
@@ -594,6 +604,25 @@ const ForumPage = () => {
     return date.toLocaleDateString('fr-FR');
   }, []);
 
+  const handleDirectChat = useCallback(async (author) => {
+    const recipientId = author?.id || author?.author_id;
+    if (!recipientId || recipientId === user?.id) return;
+    try {
+      const response = await axios.post(`${API}/conversations/direct/${recipientId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      navigate(`/mes-messages?conversation=${response.data.id}`);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Impossible de démarrer la discussion');
+    }
+  }, [navigate, token, user?.id]);
+
+  const handleViewShop = useCallback((author) => {
+    const authorId = author?.id || author?.author_id;
+    if (!authorId) return;
+    navigate(author?.role === 'enterprise' ? `/enterprise/shop/${authorId}` : `/vendeur-boutique/${authorId}`);
+  }, [navigate]);
+
   // Memoize comment rendering for performance
   const CommentItem = React.memo(({ comment, user, formatDate, handleAddReaction, handleDeleteComment, setNewComment, setShowNewCommentModal }) => (
     <div className="border-b border-gray-100 pb-4 last:border-0">
@@ -888,19 +917,7 @@ const ForumPage = () => {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0">
-                        {topic.author_avatar ? (
-                          <MediaImg 
-                            src={topic.author_avatar} 
-                            alt={topic.author_name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold">
-                            {topic.author_name?.[0] || 'U'}
-                          </div>
-                        )}
-                      </div>
+                      <AuthorAvatar author={topic} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {topic.is_pinned && <Pin className="w-4 h-4 text-purple-600" />}
@@ -912,6 +929,7 @@ const ForumPage = () => {
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             {topic.author_name}
+                            {topic.author_profile?.is_verified && <BadgeCheck className="w-3 h-3 text-emerald-600" />}
                           </span>
                           <span className="flex items-center gap-1">
                             <MessageSquare className="w-3 h-3" />
@@ -933,6 +951,16 @@ const ForumPage = () => {
                                 #{tag}
                               </Badge>
                             ))}
+                          </div>
+                        )}
+                        {topic.author_id !== user?.id && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); handleViewShop(topic.author_profile || topic); }}>
+                              <Store className="w-3.5 h-3.5 mr-1.5" /> Boutique
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); handleDirectChat(topic.author_profile || topic); }}>
+                              <Send className="w-3.5 h-3.5 mr-1.5" /> Écrire
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -989,17 +1017,7 @@ const ForumPage = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-start gap-4">
-                  {currentTopic.author_avatar ? (
-                    <MediaImg 
-                      src={currentTopic.author_avatar} 
-                      alt={currentTopic.author_name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-lg">
-                      {currentTopic.author_name?.[0] || 'U'}
-                    </div>
-                  )}
+                  <AuthorAvatar author={currentTopic} size="lg" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       {currentTopic.is_pinned && <Pin className="w-4 h-4 text-purple-600" />}
@@ -1007,7 +1025,7 @@ const ForumPage = () => {
                       <CardTitle className="text-2xl">{currentTopic.title}</CardTitle>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span className="font-medium">{currentTopic.author_name}</span>
+                      <span className="font-medium flex items-center gap-1">{currentTopic.author_name} {currentTopic.author_profile?.is_verified && <BadgeCheck className="w-4 h-4 text-emerald-600" />}</span>
                       <span>•</span>
                       <span>{formatDate(currentTopic.created_at)}</span>
                       <span>•</span>
@@ -1016,6 +1034,16 @@ const ForumPage = () => {
                         {currentTopic.view_count} vues
                       </span>
                     </div>
+                    {currentTopic.author_id !== user?.id && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Button variant="outline" size="sm" onClick={() => handleViewShop(currentTopic.author_profile || currentTopic)}>
+                          <Store className="w-4 h-4 mr-2" /> Voir la boutique
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDirectChat(currentTopic.author_profile || currentTopic)}>
+                          <Send className="w-4 h-4 mr-2" /> Message direct
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -1088,6 +1116,8 @@ const ForumPage = () => {
                         isBestAnswer={currentTopic?.best_answer_id === comment.id}
                         isTopicAuthor={currentTopic?.author_id === user?.id}
                         currentUserId={user?.id}
+                        onContactAuthor={handleDirectChat}
+                        onViewShop={handleViewShop}
                         children={comments.filter(c => c.parent_id === comment.id)}
                       />
                     ))

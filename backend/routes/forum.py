@@ -43,6 +43,42 @@ def ensure_forum_upload_dirs():
 ensure_forum_upload_dirs()
 
 
+async def enrich_author_profiles(items: list):
+    """Attach a small, public author card to forum records in one database query.
+
+    Forum posts keep an author snapshot for historical consistency.  This helper
+    adds current public shop/profile information without ever exposing user
+    credentials or contact data.
+    """
+    author_ids = list({item.get("author_id") for item in items if item.get("author_id")})
+    if not author_ids:
+        return items
+
+    users = await db.users.find(
+        {"id": {"$in": author_ids}},
+        {"_id": 0, "id": 1, "name": 1, "profile_photo": 1, "role": 1,
+         "shop_name": 1, "shop_slug": 1, "is_verified": 1},
+    ).to_list(len(author_ids))
+    profiles = {profile["id"]: profile for profile in users}
+
+    for item in items:
+        profile = profiles.get(item.get("author_id"))
+        if not profile:
+            continue
+        item["author_avatar"] = profile.get("profile_photo") or item.get("author_avatar")
+        item["author_name"] = profile.get("shop_name") or profile.get("name") or item.get("author_name", "Membre")
+        item["author_profile"] = {
+            "id": profile["id"],
+            "name": profile.get("name") or item["author_name"],
+            "avatar": profile.get("profile_photo"),
+            "role": profile.get("role"),
+            "shop_name": profile.get("shop_name"),
+            "shop_slug": profile.get("shop_slug"),
+            "is_verified": bool(profile.get("is_verified")),
+        }
+    return items
+
+
 # ==================== CATEGORIES ====================
 
 @router.get("/categories")
@@ -90,7 +126,8 @@ async def get_category(category_id: str, user: dict = Depends(get_current_user))
     topics = await db.forum_topics.find(
         {"category_id": category_id},
         {"_id": 0}
-    ).limit(50).to_list(50)
+    ).sort("updated_at", -1).limit(50).to_list(50)
+    await enrich_author_profiles(topics)
     
     # Add basic comment counts
     for topic in topics:
@@ -204,11 +241,11 @@ async def get_topics(
     
     skip = (page - 1) * limit
     
-    # Use simple find without sorting for maximum MongoDB Atlas compatibility
     topics = await db.forum_topics.find(
         query,
         {"_id": 0}
-    ).skip(skip).limit(limit).to_list(limit)
+    ).sort(sort_field, -1).skip(skip).limit(limit).to_list(limit)
+    await enrich_author_profiles(topics)
     
     # Add comment counts manually - simplified without last comment
     for topic in topics:
@@ -252,6 +289,7 @@ async def get_topic(topic_id: str, user: dict = Depends(get_current_user)):
         {"topic_id": topic_id},
         {"_id": 0}
     ).sort("created_at", 1).to_list(200)
+    await enrich_author_profiles(comments)
     
     # Build comment tree (handle nested comments)
     comment_map = {c["id"]: c for c in comments}
@@ -268,6 +306,7 @@ async def get_topic(topic_id: str, user: dict = Depends(get_current_user)):
     
     topic["comments"] = root_comments
     topic["comment_count"] = len(comments)
+    await enrich_author_profiles([topic])
     
     return topic
 
@@ -642,6 +681,8 @@ async def search_forum(search: ForumSearchQuery, user: dict = Depends(get_curren
             page=1,
             limit=50
         )
+        if isinstance(results, dict) and isinstance(results.get("results"), list):
+            await enrich_author_profiles(results["results"])
         
         return results
     except Exception as e:
@@ -677,6 +718,7 @@ async def search_forum(search: ForumSearchQuery, user: dict = Depends(get_curren
         for topic in topics:
             comment_count = await db.forum_comments.count_documents({"topic_id": topic["id"]})
             topic["comment_count"] = comment_count
+        await enrich_author_profiles(topics)
         
         return {
             "results": topics,
@@ -1325,4 +1367,3 @@ async def websocket_stats(user: dict = Depends(get_current_user)):
             for topic_id in forum_ws_manager.topic_subscriptions.keys()
         }
     }
-

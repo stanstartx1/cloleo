@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, MessageSquare, ThumbsUp, ThumbsDown, Check, Reply } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageSquare, ThumbsUp, ThumbsDown, Check, Reply, Send, Store } from 'lucide-react';
 import { MentionRenderer } from './MentionParser';
 import MediaImg from './MediaImg';
 
@@ -17,6 +17,8 @@ const ThreadedComment = ({
   isBestAnswer = false,
   isTopicAuthor = false,
   currentUserId = null,
+  onContactAuthor,
+  onViewShop,
   children = []
 }) => {
   const [showReplies, setShowReplies] = useState(depth < 2); // Auto-expand first 2 levels
@@ -65,6 +67,9 @@ const ThreadedComment = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">{comment.author_name}</span>
+              {comment.author_profile?.is_verified && (
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">Vérifié</span>
+              )}
               <span className="text-xs text-slate-400">
                 {new Date(comment.created_at).toLocaleDateString('fr-FR', {
                   day: 'numeric',
@@ -141,6 +146,27 @@ const ThreadedComment = ({
                 Répondre
               </button>
 
+              {comment.author_id !== currentUserId && onContactAuthor && (
+                <button
+                  onClick={() => onContactAuthor(comment.author_profile || comment)}
+                  className="flex items-center gap-1 text-sm text-slate-500 hover:text-purple-600 transition-colors"
+                  title={`Écrire à ${comment.author_name}`}
+                >
+                  <Send className="w-4 h-4" />
+                  Écrire
+                </button>
+              )}
+
+              {comment.author_id !== currentUserId && comment.author_profile?.role !== 'admin' && onViewShop && (
+                <button
+                  onClick={() => onViewShop(comment.author_profile || comment)}
+                  className="flex items-center gap-1 text-sm text-slate-500 hover:text-purple-600 transition-colors"
+                >
+                  <Store className="w-4 h-4" />
+                  Boutique
+                </button>
+              )}
+
               {/* Mark as Best Answer (topic author only) */}
               {isTopicAuthor && !isBestAnswer && depth === 0 && (
                 <button
@@ -212,6 +238,8 @@ const ThreadedComment = ({
                   onVote={onVote}
                   isTopicAuthor={isTopicAuthor}
                   currentUserId={currentUserId}
+                  onContactAuthor={onContactAuthor}
+                  onViewShop={onViewShop}
                   children={child.replies || []}
                 />
               ))}

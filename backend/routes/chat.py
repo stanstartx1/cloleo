@@ -180,6 +180,61 @@ async def start_conversation(
     return conversation
 
 
+@router.post("/direct/{recipient_id}")
+async def start_direct_conversation(recipient_id: str, user: dict = Depends(get_current_user)):
+    """Start or reopen a private conversation between two forum members.
+
+    Direct forum discussions are deliberately separate from product questions.
+    The canonical participant key prevents duplicate conversations when either
+    member initiates the chat.
+    """
+    if recipient_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas vous écrire à vous-même")
+
+    recipient = await db.users.find_one(
+        {"id": recipient_id},
+        {"_id": 0, "id": 1, "name": 1, "shop_name": 1, "shop_slug": 1, "role": 1, "profile_photo": 1},
+    )
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Membre introuvable")
+
+    allowed_roles = {"vendor", "enterprise", "admin"}
+    if user.get("role") not in allowed_roles or recipient.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Le chat direct du forum est réservé aux membres professionnels")
+
+    participant_ids = sorted([user["id"], recipient_id])
+    direct_key = f"forum-direct:{participant_ids[0]}:{participant_ids[1]}"
+    existing = await db.conversations.find_one({"direct_key": direct_key}, {"_id": 0})
+    if existing:
+        return existing
+
+    now = datetime.now(timezone.utc).isoformat()
+    conversation = {
+        "id": str(uuid.uuid4()),
+        "kind": "forum_direct",
+        "direct_key": direct_key,
+        "product_id": direct_key,
+        "product_name": "Discussion privée du forum",
+        "product_image": None,
+        "customer_id": user["id"],
+        "customer_name": user.get("shop_name") or user.get("name") or "Membre",
+        "customer_email": user.get("email"),
+        "seller_id": recipient_id,
+        "seller_name": recipient.get("shop_name") or recipient.get("name") or "Membre",
+        "seller_avatar": recipient.get("profile_photo"),
+        "seller_shop_slug": recipient.get("shop_slug"),
+        "seller_type": recipient.get("role", "vendor"),
+        "last_message": None,
+        "last_message_at": None,
+        "unread_customer": 0,
+        "unread_seller": 0,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.conversations.insert_one(conversation)
+    return conversation
+
+
 @router.get("")
 async def get_my_conversations(user: dict = Depends(get_current_user)):
     """Get all conversations for current user"""
