@@ -32,9 +32,14 @@ def optimize_route_stops(stops: List[Dict[str, Any]], start_lat: float, start_lo
     ordered = []
     cur_lat, cur_lon = start_lat, start_lon
     while remaining:
+        # Urgent/in-transit orders are always served before ordinary assigned
+        # orders; within a priority tier use nearest-neighbour grouping.
         nearest_idx = min(
             range(len(remaining)),
-            key=lambda i: haversine_km(cur_lat, cur_lon, remaining[i]["latitude"], remaining[i]["longitude"]),
+            key=lambda i: (
+                remaining[i].get("priority", 99),
+                haversine_km(cur_lat, cur_lon, remaining[i]["latitude"], remaining[i]["longitude"]),
+            ),
         )
         stop = remaining.pop(nearest_idx)
         stop["distance_from_prev_km"] = round(

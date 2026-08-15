@@ -18,6 +18,11 @@ class PushSubscribe(BaseModel):
     user_agent: Optional[str] = None
 
 
+class ExpoPushSubscribe(BaseModel):
+    token: str
+    device_id: Optional[str] = None
+
+
 def _utc():
     return datetime.now(timezone.utc).isoformat()
 
@@ -38,8 +43,36 @@ async def subscribe_push(data: PushSubscribe, user: dict = Depends(get_current_u
 
 
 @router.post("/unsubscribe")
-async def unsubscribe_push(user: dict = Depends(get_current_user)):
-    await db.push_subscriptions.delete_many({"user_id": user["id"]})
+async def unsubscribe_push(payload: Optional[dict] = None, user: dict = Depends(get_current_user)):
+    """Remove one browser subscription, or all only when explicitly requested."""
+    endpoint = (payload or {}).get("endpoint")
+    query = {"user_id": user["id"]}
+    if endpoint:
+        query["subscription.endpoint"] = endpoint
+    await db.push_subscriptions.delete_many(query)
+    return {"ok": True}
+
+
+@router.post("/expo/subscribe")
+async def subscribe_expo_push(data: ExpoPushSubscribe, user: dict = Depends(get_current_user)):
+    """Register an Expo token for the native client or driver application."""
+    if not data.token.startswith("ExponentPushToken[") and not data.token.startswith("ExpoPushToken["):
+        raise HTTPException(status_code=400, detail="Token Expo invalide")
+    await db.expo_push_tokens.update_one(
+        {"user_id": user["id"], "token": data.token},
+        {"$set": {"device_id": data.device_id, "updated_at": _utc()},
+         "$setOnInsert": {"id": str(uuid.uuid4()), "user_id": user["id"], "token": data.token, "created_at": _utc()}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@router.post("/expo/unsubscribe")
+async def unsubscribe_expo_push(payload: dict, user: dict = Depends(get_current_user)):
+    token = payload.get("token")
+    if not token:
+        raise HTTPException(status_code=400, detail="token requis")
+    await db.expo_push_tokens.delete_one({"user_id": user["id"], "token": token})
     return {"ok": True}
 
 

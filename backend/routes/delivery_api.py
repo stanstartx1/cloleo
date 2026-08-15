@@ -25,7 +25,7 @@ def set_manager(mgr):
 
 class ScheduleRequest(BaseModel):
     order_id: str
-    delivery_type: str = "standard"
+    delivery_type: str = "immediate"
     scheduled_date: Optional[str] = None
     scheduled_slot: Optional[str] = None
     relay_point_id: Optional[str] = None
@@ -33,6 +33,16 @@ class ScheduleRequest(BaseModel):
 
 class SyncPositionsRequest(BaseModel):
     positions: List[dict]
+
+
+def _coordinates(latitude, longitude) -> tuple[float, float]:
+    try:
+        lat, lon = float(latitude), float(longitude)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Coordonnées GPS invalides")
+    if not -90 <= lat <= 90 or not -180 <= lon <= 180:
+        raise HTTPException(status_code=400, detail="Coordonnées GPS invalides")
+    return lat, lon
 
 
 DEFAULT_SLOTS = ["09:00-11:00", "11:00-13:00", "14:00-16:00", "16:00-18:00", "18:00-20:00"]
@@ -43,14 +53,25 @@ async def get_delivery_slots(order_id: str, date: str, user: dict = Depends(get_
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    if user.get("role") != "admin" and user["id"] != order.get("customer_id"):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
 
-    cache_key = f"slots:{date}:{order.get('delivery_address', {}).get('city', 'default')}"
+    try:
+        requested_date = datetime.fromisoformat(date).date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date invalide (format ISO attendu)")
+    if requested_date < datetime.now(timezone.utc).date():
+        raise HTTPException(status_code=400, detail="La date de livraison ne peut pas être passée")
+    city = order.get("delivery_address", {}).get("city", "default")
+    cache_key = f"slots:{date}:{city.lower()}"
     cached = await cache_get(cache_key)
     if cached:
         return cached
 
-    booked = await db.scheduled_deliveries.find({"scheduled_date": date}, {"_id": 0, "scheduled_slot": 1}).to_list(200)
-    booked_slots = {b["scheduled_slot"] for b in booked}
+    booked = await db.scheduled_deliveries.find(
+        {"scheduled_date": date, "city": city, "status": {"$in": ["confirmed", "assigned"]}},
+        {"_id": 0, "scheduled_slot": 1},
+    ).to_list(200)
     drivers_online = await db.users.count_documents({"role": "driver", "is_online": True, "is_active": True})
 
     slots = []
@@ -73,22 +94,37 @@ async def schedule_delivery(data: ScheduleRequest, user: dict = Depends(get_curr
     order = await db.orders.find_one({"id": data.order_id, "customer_id": user["id"]}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    # ``standard`` was the original web-client value; retain it as an alias.
+    delivery_type = "immediate" if data.delivery_type == "standard" else data.delivery_type
+    if delivery_type not in {"immediate", "scheduled", "pickup", "locker"}:
+        raise HTTPException(status_code=400, detail="Type de livraison invalide")
+    if delivery_type == "scheduled":
+        if not data.scheduled_date or data.scheduled_slot not in DEFAULT_SLOTS:
+            raise HTTPException(status_code=400, detail="Date et créneau de livraison valides requis")
+        try:
+            if datetime.fromisoformat(data.scheduled_date).date() < datetime.now(timezone.utc).date():
+                raise HTTPException(status_code=400, detail="La date de livraison ne peut pas être passée")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Date invalide (format ISO attendu)")
+    if delivery_type in {"pickup", "locker"} and not data.relay_point_id:
+        raise HTTPException(status_code=400, detail="Point relais requis")
 
     schedule_doc = {
         "id": str(uuid.uuid4()),
         "order_id": data.order_id,
         "customer_id": user["id"],
-        "delivery_type": data.delivery_type,
+        "delivery_type": delivery_type,
         "scheduled_date": data.scheduled_date,
         "scheduled_slot": data.scheduled_slot,
         "relay_point_id": data.relay_point_id,
         "status": "confirmed",
+        "city": order.get("delivery_address", {}).get("city", "default"),
         "created_at": utc_now(),
     }
     await db.scheduled_deliveries.insert_one(schedule_doc)
 
     update = {
-        "delivery_type": data.delivery_type,
+        "delivery_type": delivery_type,
         "scheduled_date": data.scheduled_date,
         "scheduled_slot": data.scheduled_slot,
         "updated_at": utc_now(),
@@ -98,13 +134,15 @@ async def schedule_delivery(data: ScheduleRequest, user: dict = Depends(get_curr
         if relay:
             update["relay_point"] = relay
             update["delivery_address"] = {**order.get("delivery_address", {}), **relay.get("address", {})}
+        else:
+            raise HTTPException(status_code=404, detail="Point relais non trouvé")
 
     await db.orders.update_one({"id": data.order_id}, {"$set": update})
 
     confirmation = "Livraison planifiée"
-    if data.delivery_type == "scheduled" and data.scheduled_slot:
+    if delivery_type == "scheduled" and data.scheduled_slot:
         confirmation = f"Livraison prévue le {data.scheduled_date} entre {data.scheduled_slot}"
-    elif data.delivery_type == "pickup":
+    elif delivery_type in {"pickup", "locker"}:
         confirmation = "Retrait en point relais confirmé"
 
     return {"ok": True, "confirmation_message": confirmation, "schedule": schedule_doc}
@@ -130,12 +168,19 @@ async def list_relay_points(city: Optional[str] = None):
 
 @router.post("/zones")
 async def create_delivery_zone(payload: dict, user: dict = Depends(require_admin)):
+    lat, lon = _coordinates(payload.get("center_lat"), payload.get("center_lon"))
+    try:
+        radius_km = float(payload.get("radius_km", 10))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Rayon de zone invalide")
+    if not 0 < radius_km <= 500:
+        raise HTTPException(status_code=400, detail="Le rayon doit être compris entre 0 et 500 km")
     zone = {
         "id": str(uuid.uuid4()),
         "name": payload.get("name"),
-        "center_lat": payload.get("center_lat"),
-        "center_lon": payload.get("center_lon"),
-        "radius_km": payload.get("radius_km", 10),
+        "center_lat": lat,
+        "center_lon": lon,
+        "radius_km": radius_km,
         "city": payload.get("city"),
         "is_active": True,
         "created_at": utc_now(),
@@ -147,7 +192,8 @@ async def create_delivery_zone(payload: dict, user: dict = Depends(require_admin
 @router.get("/zones")
 async def list_delivery_zones(lat: Optional[float] = None, lon: Optional[float] = None):
     zones = await db.delivery_zones.find({"is_active": True}, {"_id": 0}).to_list(50)
-    if lat and lon:
+    if lat is not None and lon is not None:
+        lat, lon = _coordinates(lat, lon)
         for z in zones:
             z["distance_km"] = round(haversine_km(lat, lon, z["center_lat"], z["center_lon"]), 2)
             z["in_zone"] = z["distance_km"] <= z.get("radius_km", 10)
@@ -158,11 +204,12 @@ async def list_delivery_zones(lat: Optional[float] = None, lon: Optional[float] 
 async def sync_offline_positions(data: SyncPositionsRequest, user: dict = Depends(require_driver)):
     saved = 0
     for pos in data.positions:
+        lat, lon = _coordinates(pos.get("latitude"), pos.get("longitude"))
         doc = {
             "id": str(uuid.uuid4()),
             "driver_id": user["id"],
-            "latitude": pos.get("latitude"),
-            "longitude": pos.get("longitude"),
+            "latitude": lat,
+            "longitude": lon,
             "accuracy": pos.get("accuracy"),
             "timestamp": pos.get("timestamp") or utc_now(),
             "source": "offline_sync",
@@ -171,7 +218,8 @@ async def sync_offline_positions(data: SyncPositionsRequest, user: dict = Depend
         saved += 1
     if data.positions:
         last = data.positions[-1]
-        loc = {"latitude": last.get("latitude"), "longitude": last.get("longitude"), "accuracy": last.get("accuracy")}
+        lat, lon = _coordinates(last.get("latitude"), last.get("longitude"))
+        loc = {"latitude": lat, "longitude": lon, "accuracy": last.get("accuracy")}
         await db.users.update_one({"id": user["id"]}, {"$set": {"location": loc, "updated_at": utc_now()}})
         if _manager:
             _manager.update_driver_location(user["id"], loc)
@@ -180,6 +228,7 @@ async def sync_offline_positions(data: SyncPositionsRequest, user: dict = Depend
 
 @router.get("/driver/position-history")
 async def get_position_history(user: dict = Depends(require_driver), limit: int = 100):
+    limit = max(1, min(limit, 500))
     history = await db.driver_position_history.find(
         {"driver_id": user["id"]}, {"_id": 0}
     ).sort("timestamp", -1).limit(limit).to_list(limit)
@@ -191,20 +240,25 @@ async def check_geofence(payload: dict, user: dict = Depends(require_driver)):
     lat = payload.get("latitude")
     lon = payload.get("longitude")
     order_id = payload.get("order_id")
-    if not all([lat, lon, order_id]):
+    if lat is None or lon is None or not order_id:
         raise HTTPException(status_code=400, detail="latitude, longitude, order_id requis")
+    lat, lon = _coordinates(lat, lon)
 
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
 
     dest = order.get("delivery_address", {})
     dest_lat, dest_lon = dest.get("latitude"), dest.get("longitude")
-    if not dest_lat or not dest_lon:
+    if dest_lat is None or dest_lon is None:
         return {"in_geofence": False, "distance_m": None}
+    dest_lat, dest_lon = _coordinates(dest_lat, dest_lon)
 
     distance_m = haversine_km(lat, lon, dest_lat, dest_lon) * 1000
-    radius = payload.get("radius_m", 200)
+    try:
+        radius = min(2_000, max(25, float(payload.get("radius_m", 200))))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Rayon de géofencing invalide")
     arrived = distance_m <= radius
 
     if arrived and not order.get("arrival_notified"):
@@ -244,16 +298,18 @@ async def optimize_driver_route(user: dict = Depends(require_driver)):
     loc = driver.get("location") or {}
     start_lat = loc.get("latitude", 5.36)
     start_lon = loc.get("longitude", -4.01)
+    start_lat, start_lon = _coordinates(start_lat, start_lon)
 
     stops = []
     for o in orders:
         addr = o.get("delivery_address") or {}
-        if addr.get("latitude") and addr.get("longitude"):
+        if addr.get("latitude") is not None and addr.get("longitude") is not None:
+            lat, lon = _coordinates(addr["latitude"], addr["longitude"])
             stops.append({
                 "order_id": o["id"],
                 "order_number": o.get("order_number"),
-                "latitude": addr["latitude"],
-                "longitude": addr["longitude"],
+                "latitude": lat,
+                "longitude": lon,
                 "priority": 1 if o.get("status") == "in_transit" else 2,
                 "status": o.get("status"),
             })
@@ -281,8 +337,14 @@ async def calculate_dynamic_eta(payload: dict, user: dict = Depends(require_driv
     dest_lat = payload.get("dest_latitude")
     dest_lon = payload.get("dest_longitude")
     traffic_factor = payload.get("traffic_factor", 1.0)
-    if not all([lat, lon, dest_lat, dest_lon]):
+    if any(v is None for v in (lat, lon, dest_lat, dest_lon)):
         raise HTTPException(status_code=400, detail="Coordonnées incomplètes")
+    lat, lon = _coordinates(lat, lon)
+    dest_lat, dest_lon = _coordinates(dest_lat, dest_lon)
+    try:
+        traffic_factor = min(3.0, max(0.5, float(traffic_factor)))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Facteur de trafic invalide")
     distance = haversine_km(lat, lon, dest_lat, dest_lon)
     eta = calculate_eta_minutes(distance, traffic_factor=traffic_factor)
     return {"distance_km": round(distance, 2), "eta_minutes": eta, "traffic_factor": traffic_factor}

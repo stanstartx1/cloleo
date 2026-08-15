@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user
 from core.database import db
-from core.gamification_delivery import get_gamification_data, REWARDS, add_delivery_points
+from core.gamification_delivery import get_gamification_data, REWARDS, apply_reward_effect
 
 router = APIRouter(prefix="/gamification", tags=["Gamification"])
 
@@ -38,6 +38,7 @@ async def redeem_reward(payload: dict, user: dict = Depends(get_current_user)):
         },
         upsert=True,
     )
+    await apply_reward_effect(user["id"], reward_id)
     return {"ok": True, "message": f"Récompense '{reward['name']}' obtenue !"}
 
 

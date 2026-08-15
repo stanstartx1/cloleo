@@ -1,6 +1,6 @@
 """Gamification for delivery ecosystem."""
-from datetime import datetime, timezone
-from typing import Dict, List
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional
 import uuid
 
 from core.database import db
@@ -26,6 +26,12 @@ REWARDS = [
     {"id": "badge_boost", "name": "Badge visible", "cost": 100, "description": "Badge sur profil 7 jours"},
 ]
 
+REWARD_EFFECTS = {
+    "priority_orders": {"priority_until_hours": 24},
+    "fee_discount": {"discount_percent": 10, "valid_hours": 48},
+    "badge_boost": {"boost_days": 7},
+}
+
 
 async def add_delivery_points(user_id: str, action: str, custom_points: int = None):
     points = custom_points or POINTS_MAP.get(action, 5)
@@ -33,7 +39,7 @@ async def add_delivery_points(user_id: str, action: str, custom_points: int = No
         {"user_id": user_id},
         {
             "$inc": {"points": points, f"stats.{action}": 1},
-            "$setOnInsert": {"user_id": user_id, "badges": [], "redeemed_rewards": []},
+            "$setOnInsert": {"user_id": user_id, "badges": [], "redeemed_rewards": [], "active_effects": []},
             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
         },
         upsert=True,
@@ -50,9 +56,89 @@ async def add_delivery_points(user_id: str, action: str, custom_points: int = No
             )
 
 
+async def update_delivery_streak(user_id: str):
+    now = datetime.now(timezone.utc)
+    today = now.date().isoformat()
+    profile = await db.gamification_profiles.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    last = profile.get("last_delivery_date")
+    streak = profile.get("daily_streak", 0)
+
+    if last == today:
+        return streak
+
+    yesterday = (now - timedelta(days=1)).date().isoformat()
+    if last == yesterday:
+        streak += 1
+    else:
+        streak = 1
+
+    update = {"daily_streak": streak, "last_delivery_date": today, "updated_at": now.isoformat()}
+    if streak >= 7 and streak % 7 == 0:
+        await add_delivery_points(user_id, "weekly_streak", POINTS_MAP["weekly_streak"])
+
+    await db.gamification_profiles.update_one(
+        {"user_id": user_id},
+        {"$set": update},
+        upsert=True,
+    )
+    return streak
+
+
+def _parse_ts(ts: str) -> Optional[datetime]:
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+async def check_on_time_delivery(order: dict) -> bool:
+    eta = order.get("eta_minutes")
+    in_transit_at = order.get("in_transit_at")
+    delivered_at = order.get("delivered_at") or datetime.now(timezone.utc).isoformat()
+    if not eta or not in_transit_at:
+        return False
+    start = _parse_ts(in_transit_at)
+    end = _parse_ts(delivered_at)
+    if not start or not end:
+        return False
+    actual_minutes = (end - start).total_seconds() / 60
+    return actual_minutes <= eta + 5
+
+
+async def apply_reward_effect(user_id: str, reward_id: str):
+    effect = REWARD_EFFECTS.get(reward_id)
+    if not effect:
+        return
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(hours=effect.get("valid_hours") or effect.get("priority_until_hours") or effect.get("boost_days", 0) * 24)
+    await db.gamification_profiles.update_one(
+        {"user_id": user_id},
+        {
+            "$push": {"active_effects": {
+                "reward_id": reward_id,
+                "effect": effect,
+                "expires_at": expires.isoformat(),
+                "applied_at": now.isoformat(),
+            }},
+        },
+        upsert=True,
+    )
+
+
+async def has_active_effect(user_id: str, reward_id: str) -> bool:
+    profile = await db.gamification_profiles.find_one({"user_id": user_id}, {"_id": 0, "active_effects": 1})
+    now = datetime.now(timezone.utc).isoformat()
+    for effect in profile.get("active_effects", []) if profile else []:
+        if effect.get("reward_id") == reward_id and effect.get("expires_at", "") > now:
+            return True
+    return False
+
+
 async def get_gamification_data(user_id: str, role: str) -> dict:
     profile = await db.gamification_profiles.find_one({"user_id": user_id}, {"_id": 0}) or {
-        "points": 0, "badges": [], "stats": {}, "redeemed_rewards": [],
+        "points": 0, "badges": [], "stats": {}, "redeemed_rewards": [], "active_effects": [],
     }
     points = profile.get("points", 0)
     levels = [
@@ -68,6 +154,12 @@ async def get_gamification_data(user_id: str, role: str) -> dict:
             next_threshold = threshold
             break
 
+    now = datetime.now(timezone.utc).isoformat()
+    active_effects = [
+        e for e in profile.get("active_effects", [])
+        if e.get("expires_at", "") > now
+    ]
+
     leaderboard = await db.gamification_profiles.find({}, {"_id": 0, "user_id": 1, "points": 1}).sort("points", -1).limit(10).to_list(10)
     for entry in leaderboard:
         u = await db.users.find_one({"id": entry["user_id"]}, {"_id": 0, "name": 1, "role": 1})
@@ -82,6 +174,7 @@ async def get_gamification_data(user_id: str, role: str) -> dict:
         "available_badges": BADGES,
         "available_rewards": REWARDS,
         "redeemed_rewards": profile.get("redeemed_rewards", []),
+        "active_effects": active_effects,
         "stats": profile.get("stats", {}),
         "daily_streak": profile.get("daily_streak", 0),
         "leaderboard": leaderboard,

@@ -34,6 +34,20 @@ async def submit_rating(data: RatingSubmit, user: dict = Depends(get_current_use
     if order.get("status") != "delivered":
         raise HTTPException(status_code=400, detail="La commande doit être livrée pour noter")
 
+    participant_roles = {
+        order.get("customer_id"): "customer",
+        order.get("seller_id"): "vendor",
+        order.get("driver_id"): "driver",
+        order.get("dropshipper_id"): "dropshipper",
+    }
+    if user["id"] not in participant_roles:
+        raise HTTPException(status_code=403, detail="Vous ne participez pas à cette commande")
+    expected_role = participant_roles.get(data.recipient_id)
+    if not expected_role or data.recipient_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Destinataire d'évaluation invalide")
+    if data.recipient_role != expected_role:
+        raise HTTPException(status_code=400, detail="Rôle du destinataire invalide")
+
     existing = await db.delivery_ratings.find_one({
         "order_id": data.order_id,
         "reviewer_id": user["id"],
@@ -92,13 +106,22 @@ async def get_user_ratings(user_id: str, role: Optional[str] = None, limit: int 
 
 @router.post("/report")
 async def report_issue(payload: dict, user: dict = Depends(get_current_user)):
+    order_id = payload.get("order_id")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="order_id requis")
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0, "customer_id": 1, "seller_id": 1, "driver_id": 1, "dropshipper_id": 1})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    participants = {order.get("customer_id"), order.get("seller_id"), order.get("driver_id"), order.get("dropshipper_id")}
+    if user.get("role") != "admin" and user["id"] not in participants:
+        raise HTTPException(status_code=403, detail="Vous ne participez pas à cette commande")
     report = {
         "id": str(uuid.uuid4()),
-        "order_id": payload.get("order_id"),
+        "order_id": order_id,
         "reporter_id": user["id"],
         "reported_id": payload.get("reported_id"),
         "issue_type": payload.get("issue_type", "general"),
-        "description": payload.get("description"),
+        "description": str(payload.get("description") or "")[:2_000],
         "status": "open",
         "created_at": _utc(),
     }

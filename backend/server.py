@@ -10,6 +10,10 @@ import os
 
 import uuid
 
+import hashlib
+
+import secrets
+
 from typing import Optional
 
 import re
@@ -41,6 +45,8 @@ from core.auth import (
     hash_password,
 
     verify_password,
+
+    decode_token,
 
     get_current_user,
 
@@ -96,9 +102,9 @@ from routes.conflicts_api import router as conflicts_router, set_manager as set_
 
 from routes.security_api import router as security_router
 
-from core.notification_channels import set_ws_manager
+from core.notification_channels import set_ws_manager, notify_order_parties, notify_user_all_channels
 
-from core.gamification_delivery import add_delivery_points
+from core.gamification_delivery import add_delivery_points, check_on_time_delivery, update_delivery_streak
 
 
 
@@ -183,8 +189,37 @@ async def notify_all_parties(order_id, notification_type, message, manager):
         "message": message
     })
 
+    # A WebSocket is only a live delivery channel. Persist the event and use
+    # configured push/SMS/email channels so no order update is lost offline.
+    await notify_order_parties(
+        order,
+        "Mise à jour de livraison",
+        message,
+        notification_type="order_update",
+    )
+
 
 app = FastAPI(title="Cloleo Marketplace API")
+
+
+async def websocket_authenticated_user(websocket: WebSocket) -> Optional[dict]:
+    """Authenticate browser WebSockets with their JWT query parameter."""
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=1008, reason="Authentification requise")
+        return None
+    try:
+        payload = decode_token(token)
+        user_id = payload["user_id"]
+        if user_id == "local-admin" and payload.get("role") == "admin":
+            return {"id": user_id, "role": "admin"}
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "role": 1, "is_active": 1})
+        if not user or not user.get("is_active", False):
+            raise ValueError("Compte inactif")
+        return user
+    except Exception:
+        await websocket.close(code=1008, reason="Token invalide")
+        return None
 
 
 
@@ -429,9 +464,15 @@ async def startup_event():
 # WebSocket endpoint for chat
 @app.websocket("/api/ws/chat/{conversation_id}")
 async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
-    await websocket.accept()
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0, "customer_id": 1, "seller_id": 1})
+    if not conversation or (user.get("role") != "admin" and user["id"] not in {conversation.get("customer_id"), conversation.get("seller_id")}):
+        await websocket.close(code=1008, reason="Accès non autorisé")
+        return
     room = f"chat_{conversation_id}"
-    await manager.connect(websocket, room)
+    await manager.connect(websocket, room, user_id=user["id"])
     try:
         while True:
             data = await websocket.receive_json()
@@ -444,10 +485,10 @@ async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
                 "sender": "client"
             })
     except WebSocketDisconnect:
-        manager.disconnect(websocket, room)
+        manager.disconnect(websocket, room, user_id=user["id"])
     except Exception as e:
         print(f"WebSocket error: {e}")
-        manager.disconnect(websocket, room)
+        manager.disconnect(websocket, room, user_id=user["id"])
 
 
 
@@ -1059,6 +1100,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     total = subtotal + delivery_fee
 
     order_id = str(uuid.uuid4())
+    delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
+    delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
 
     
 
@@ -1109,6 +1152,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "delivery_address": payload.delivery_address.model_dump(),
                 "payment_method": payload.payment_method,
                 "payment_status": "pending",
+                "delivery_pin_hash": delivery_pin_hash,
+                "delivery_pin_created_at": _utc(),
+                "delivery_proof_required": True,
                 "subtotal_fcfa": original_subtotal,
                 "delivery_fee_fcfa": delivery_fee,
                 "total_fcfa": original_subtotal + delivery_fee,
@@ -1181,6 +1227,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "notes": payload.notes,
                 "payment_method": payload.payment_method,
                 "payment_status": "pending",
+                "delivery_pin_hash": delivery_pin_hash,
+                "delivery_pin_created_at": _utc(),
+                "delivery_proof_required": True,
                 "subtotal_fcfa": subtotal,
                 "delivery_fee_fcfa": delivery_fee,
                 "total_fcfa": total,
@@ -1192,6 +1241,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
             await db.orders.insert_one(main_order)
             main_order.pop("_id", None)
+            # The PIN is returned once to the authenticated customer; only its
+            # hash is persisted in MongoDB.
+            main_order["delivery_pin"] = delivery_pin
 
             return main_order
             
@@ -1229,6 +1281,12 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
         "payment_status": "pending",
 
+        "delivery_pin_hash": delivery_pin_hash,
+
+        "delivery_pin_created_at": _utc(),
+
+        "delivery_proof_required": True,
+
         "subtotal_fcfa": subtotal,
 
         "delivery_fee_fcfa": delivery_fee,
@@ -1248,6 +1306,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     await db.orders.insert_one(order)
 
     order.pop("_id", None)
+
+    order["delivery_pin"] = delivery_pin
 
     return order
 
@@ -1476,8 +1536,21 @@ async def track_order(order_id: str):
                 distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
                 eta_minutes = calculate_eta(distance)
     
+    # This endpoint is intentionally public for tracking links: never expose
+    # customer contact details, PIN material or a signed proof from it.
+    public_order = {k: v for k, v in order.items() if k not in {
+        "customer_phone", "delivery_pin", "delivery_pin_hash", "delivery_pin_verified",
+        "delivery_pin_verified_at", "delivery_proof",
+    }}
+    if public_order.get("delivery_address"):
+        public_order["delivery_address"] = {
+            k: v for k, v in public_order["delivery_address"].items() if k not in {"name", "phone"}
+        }
+    if driver_info:
+        driver_info.pop("phone", None)
+
     return {
-        "order": order,
+        "order": public_order,
         "driver_live_location": driver_location,
         "driver_info": driver_info,
         "eta_minutes": eta_minutes,
@@ -1499,6 +1572,24 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
 
         raise HTTPException(status_code=404, detail="Commande non trouvée")
 
+    if order.get("driver_id") and order.get("driver_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Cette commande est déjà attribuée à un autre livreur")
+    if order.get("status") not in {"pending", "confirmed", "assigned"}:
+        raise HTTPException(status_code=400, detail="Cette commande ne peut plus être attribuée")
+
+    settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
+    try:
+        max_active = max(1, int(settings.get("max_active_orders", 5)))
+    except (TypeError, ValueError):
+        max_active = 5
+    active_count = await db.orders.count_documents({
+        "driver_id": user["id"],
+        "id": {"$ne": order_id},
+        "status": {"$in": ["assigned", "accepted", "picked_up", "in_transit"]},
+    })
+    if active_count >= max_active:
+        raise HTTPException(status_code=409, detail="Capacité maximale de livraisons actives atteinte")
+
     await db.orders.update_one(
 
         {"id": order_id},
@@ -1514,6 +1605,13 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     )
 
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "assigned", "message": "Livreur assigné"})
+
+    await notify_all_parties(
+        order_id,
+        "order_update",
+        f"Nouvelle commande assignée au livreur {user.get('name', '')}".strip(),
+        manager,
+    )
 
     return {"ok": True}
 
@@ -1663,6 +1761,13 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
                     "order_id": order_id,
                     "message": "Nouvelle commande assignée"
                 })
+                await notify_user_all_channels(
+                    closest_driver["id"],
+                    "Nouvelle commande assignée",
+                    "Une commande vous a été attribuée. Consultez votre itinéraire.",
+                    "order_assigned",
+                    {"order_id": order_id},
+                )
 
     # Broadcast update to all order-related rooms
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
@@ -1827,6 +1932,10 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     
     if order["status"] != "in_transit":
         raise HTTPException(status_code=400, detail="La livraison doit être en cours pour confirmer")
+    if order.get("delivery_proof_required") and not order.get("delivery_proof"):
+        raise HTTPException(status_code=400, detail="Une photo de preuve est requise avant confirmation")
+    if order.get("delivery_pin_hash") and not order.get("delivery_pin_verified"):
+        raise HTTPException(status_code=400, detail="Le code PIN client doit être vérifié avant confirmation")
     
     # Update order status to 'delivered'
     await db.orders.update_one(
@@ -1852,6 +1961,9 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     await notify_all_parties(order_id, "order_update", f"Commande livrée avec succès par {user.get('name')}", manager)
 
     await add_delivery_points(user["id"], "delivery_completed", 25)
+    await update_delivery_streak(user["id"])
+    if await check_on_time_delivery({**order, "delivered_at": _utc()}):
+        await add_delivery_points(user["id"], "on_time_delivery", 15)
     seller_id = order.get("seller_id")
     if seller_id:
         await add_delivery_points(seller_id, "fast_preparation", 10)
@@ -1866,6 +1978,8 @@ async def submit_delivery_proof(order_id: str, photo: UploadFile = File(...), si
     
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    if order.get("status") != "in_transit":
+        raise HTTPException(status_code=400, detail="La preuve est disponible lorsque la livraison est en cours")
     
     # Ensure delivery_proofs collection exists
     try:
@@ -1873,28 +1987,36 @@ async def submit_delivery_proof(order_id: str, photo: UploadFile = File(...), si
     except:
         pass  # Collection already exists
     
-    # Upload delivery photo
-    ext = Path(photo.filename or "").suffix or ".jpg"
-    filename = f"delivery_proof_{order_id}_{int(time.time())}{ext}"
-    upload_path = Path("uploads/delivery_proofs")
+    # Validate the image before writing it to the public uploads directory.
+    allowed_types = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+    if photo.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Seules les images JPEG, PNG et WebP sont acceptées")
+    content = await photo.read()
+    if not content or len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Photo vide ou supérieure à 8 Mo")
+    ext = allowed_types[photo.content_type]
+    filename = f"delivery_proof_{order_id}_{uuid.uuid4().hex[:12]}{ext}"
+    upload_path = Path(__file__).resolve().parent / "uploads" / "delivery_proofs"
     upload_path.mkdir(parents=True, exist_ok=True)
     
     file_path = upload_path / filename
-    with open(file_path, "wb") as f:
-        f.write(await photo.read())
+    file_path.write_bytes(content)
     
     photo_url = f"/uploads/delivery_proofs/{filename}"
     
     # Store delivery proof
     delivery_proof = {
+        "id": str(uuid.uuid4()),
         "order_id": order_id,
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "photo_url": photo_url,
-        "signature": signature,
-        "notes": notes,
+        "signature": (signature or "")[:10_000],
+        "notes": (notes or "")[:1_000],
         "submitted_at": _utc()
     }
+
+    await db.delivery_proofs.insert_one(delivery_proof)
     
     # Store in order document for simplicity
     await db.orders.update_one(
@@ -2026,6 +2148,13 @@ async def driver_cancel_order(order_id: str, payload: dict = {}, user: dict = De
                     "order_id": order_id,
                     "message": "Nouvelle commande assignée (réassignation)"
                 })
+                await notify_user_all_channels(
+                    closest_driver["id"],
+                    "Nouvelle commande assignée",
+                    "Une commande vous a été réassignée. Consultez votre itinéraire.",
+                    "order_assigned",
+                    {"order_id": order_id},
+                )
                 
                 return {
                     "ok": True, 
@@ -2976,6 +3105,13 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                             "order_id": order["id"],
                             "message": "Nouvelle commande assignée"
                         })
+                        await notify_user_all_channels(
+                            user["id"],
+                            "Nouvelle commande assignée",
+                            "Une commande vous a été attribuée. Consultez votre itinéraire.",
+                            "order_assigned",
+                            {"order_id": order["id"]},
+                        )
     
     return {"ok": True}
 
@@ -7201,6 +7337,17 @@ async def get_offer(offer_token: str, user: Optional[dict] = Depends(get_current
 
 @api.websocket("/ws/order-chat/{order_id}/{user_id}")
 async def ws_order_chat(websocket: WebSocket, order_id: str, user_id: str):
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    if user["id"] != user_id:
+        await websocket.close(code=1008, reason="Identité WebSocket invalide")
+        return
+    order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
+    participants = ({order.get("customer_id"), order.get("seller_id"), order.get("driver_id"), order.get("dropshipper_id")} if order else set())
+    if user.get("role") != "admin" and user_id not in participants:
+        await websocket.close(code=1008, reason="Accès non autorisé")
+        return
     room = f"order_chat_{order_id}"
     await manager.connect(websocket, room, user_id=user_id)
     try:
@@ -7251,7 +7398,14 @@ async def ws_chat(websocket: WebSocket, conversation_id: str):
 
 async def ws_orders(websocket: WebSocket, room_name: str):
 
-    await manager.connect(websocket, room_name)
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    if room_name == "admin_tracking" and user.get("role") != "admin":
+        await websocket.close(code=1008, reason="Accès administrateur requis")
+        return
+
+    await manager.connect(websocket, room_name, user_id=user["id"])
 
     try:
 
@@ -7265,7 +7419,7 @@ async def ws_orders(websocket: WebSocket, room_name: str):
 
     except WebSocketDisconnect:
 
-        manager.disconnect(websocket, room_name)
+        manager.disconnect(websocket, room_name, user_id=user["id"])
 
 
 
@@ -7275,9 +7429,16 @@ async def ws_orders(websocket: WebSocket, room_name: str):
 
 async def ws_driver(websocket: WebSocket, driver_id: str):
 
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    if user["id"] != driver_id or user.get("role") != "driver":
+        await websocket.close(code=1008, reason="Accès livreur requis")
+        return
+
     room = f"driver_{driver_id}"
 
-    await manager.connect(websocket, room)
+    await manager.connect(websocket, room, user_id=driver_id)
 
     try:
 
@@ -7299,7 +7460,7 @@ async def ws_driver(websocket: WebSocket, driver_id: str):
 
     except WebSocketDisconnect:
 
-        manager.disconnect(websocket, room)
+        manager.disconnect(websocket, room, user_id=driver_id)
 
 
 
@@ -7374,4 +7535,3 @@ async def startup_event():
 if __name__ == "__main__":
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-

@@ -52,6 +52,11 @@ class NotificationService {
       console.warn('Service Worker not supported');
       return;
     }
+    const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) {
+      console.warn('Web Push disabled: REACT_APP_VAPID_PUBLIC_KEY is not configured');
+      return null;
+    }
 
     try {
       // Register service worker
@@ -60,7 +65,7 @@ class NotificationService {
       // Subscribe to push
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY)
+        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
       });
 
       this.subscription = subscription;
@@ -192,6 +197,7 @@ class NotificationService {
   async unsubscribe() {
     if (this.subscription) {
       try {
+        const endpoint = this.subscription.endpoint;
         await this.subscription.unsubscribe();
         this.subscription = null;
         
@@ -201,7 +207,8 @@ class NotificationService {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          body: JSON.stringify({ endpoint })
         });
       } catch (error) {
         console.error('Error unsubscribing:', error);

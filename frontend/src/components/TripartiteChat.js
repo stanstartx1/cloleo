@@ -87,9 +87,9 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
 
   // Initialize WebSocket for real-time chat
   useEffect(() => {
-    if (!isOpen || !orderId || !user?.id) return;
+    if (!isOpen || !orderId || !user?.id || !token) return;
 
-    const wsUrl = `${WS_URL}/api/ws/order-chat/${orderId}/${user.id}`;
+    const wsUrl = `${WS_URL}/api/ws/order-chat/${orderId}/${user.id}?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
@@ -145,7 +145,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [isOpen, orderId, user?.id, API]);
+  }, [isOpen, orderId, user?.id, token]);
 
   // Initial fetch when chat opens
   useEffect(() => {

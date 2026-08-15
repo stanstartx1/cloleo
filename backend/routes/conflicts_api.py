@@ -25,12 +25,21 @@ def _utc():
 
 @router.post("/report")
 async def report_conflict(payload: dict, user: dict = Depends(get_current_user)):
+    order_id = payload.get("order_id")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="order_id requis")
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0, "customer_id": 1, "seller_id": 1, "driver_id": 1, "dropshipper_id": 1})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    participants = {order.get("customer_id"), order.get("seller_id"), order.get("driver_id"), order.get("dropshipper_id")}
+    if user.get("role") != "admin" and user["id"] not in participants:
+        raise HTTPException(status_code=403, detail="Vous ne participez pas à cette commande")
     conflict = {
         "id": str(uuid.uuid4()),
-        "order_id": payload.get("order_id"),
+        "order_id": order_id,
         "reporter_id": user["id"],
         "conflict_type": payload.get("conflict_type", "general"),
-        "description": payload.get("description"),
+        "description": str(payload.get("description") or "")[:2_000],
         "status": "open",
         "priority": payload.get("priority", "normal"),
         "created_at": _utc(),

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from core.auth import get_current_user
 from core.database import db
 from core.audit_log import log_audit
+from core.notification_channels import notify_user_all_channels
 
 router = APIRouter(prefix="/chat", tags=["Delivery Chat"])
 
@@ -50,6 +51,42 @@ def _can_access(user: dict, participants: dict, recipient_type: Optional[str] = 
     if participants.get("order", {}).get("dropshipper_id") == uid:
         return True
     return False
+
+
+def _recipient_ids(participants: dict, sender_id: str, requested_id: Optional[str]) -> list[str]:
+    """Return only valid recipients for an order conversation.
+
+    A client, seller or driver may address one of the other order participants.
+    When no recipient is specified, the message is delivered to the other
+    participants (the group-conversation behaviour used by the existing UI).
+    """
+    participant_ids = set(participants.get("order", {}).get("participants") or [])
+    participant_ids.update(
+        p for p in (participants.get("customer_id"), participants.get("seller_id"), participants.get("driver_id")) if p
+    )
+    participant_ids.discard(sender_id)
+    if requested_id:
+        if requested_id not in participant_ids:
+            raise HTTPException(status_code=400, detail="Destinataire invalide pour cette commande")
+        return [requested_id]
+    return list(participant_ids)
+
+
+def _validate_location(location: dict) -> dict:
+    try:
+        latitude = float(location.get("latitude"))
+        longitude = float(location.get("longitude"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Coordonnées GPS requises")
+    if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+        raise HTTPException(status_code=400, detail="Coordonnées GPS invalides")
+    result = {"latitude": latitude, "longitude": longitude}
+    if location.get("accuracy") is not None:
+        try:
+            result["accuracy"] = max(0, float(location["accuracy"]))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Précision GPS invalide")
+    return result
 
 
 async def _ensure_order_conversation(order_id: str, participants: dict) -> dict:
@@ -96,9 +133,18 @@ async def send_order_message(payload: dict, user: dict = Depends(get_current_use
         raise HTTPException(status_code=403, detail="Accès non autorisé")
 
     message_type = payload.get("message_type", "text")
-    content = payload.get("content", "")
+    if message_type not in {"text", "image", "location"}:
+        raise HTTPException(status_code=400, detail="Type de message non pris en charge")
+    content = str(payload.get("content", "")).strip()
+    if message_type == "text" and not content:
+        raise HTTPException(status_code=400, detail="Le message ne peut pas être vide")
+    if len(content) > 4000:
+        raise HTTPException(status_code=400, detail="Message trop long")
     attachment = payload.get("attachment")
     location = payload.get("location")
+    recipients = _recipient_ids(participants, user["id"], payload.get("recipient_id"))
+    if location is not None:
+        location = _validate_location(location)
 
     msg = {
         "id": str(uuid.uuid4()),
@@ -107,7 +153,7 @@ async def send_order_message(payload: dict, user: dict = Depends(get_current_use
         "sender_id": user["id"],
         "sender_name": user.get("name", "Utilisateur"),
         "sender_role": user.get("role"),
-        "recipient_id": payload.get("recipient_id"),
+        "recipient_id": recipients[0] if len(recipients) == 1 else None,
         "recipient_type": payload.get("recipient_type"),
         "message_type": message_type,
         "content": content,
@@ -128,9 +174,18 @@ async def send_order_message(payload: dict, user: dict = Depends(get_current_use
             "type": "new_message",
             "message": clean,
         })
-        for pid in participants.get("order", {}).get("customer_id"), participants.get("seller_id"), participants.get("driver_id"):
-            if pid and pid != user["id"]:
-                await _manager.send_to_user(pid, {"type": "chat_notification", "message": clean, "order_id": order_id})
+        for pid in recipients:
+            await _manager.send_to_user(pid, {"type": "chat_notification", "message": clean, "order_id": order_id})
+
+    # Persist a notification even if the recipient has no open WebSocket.
+    for pid in recipients:
+        await notify_user_all_channels(
+            pid,
+            "Nouveau message",
+            f"{user.get('name', 'Un utilisateur')}: {content[:120] or 'a partagé une pièce jointe'}",
+            "chat_message",
+            {"order_id": order_id, "message_id": msg["id"]},
+        )
 
     return {"ok": True, "message": clean}
 
@@ -146,12 +201,18 @@ async def upload_chat_media(
     if not _can_access(user, participants):
         raise HTTPException(status_code=403, detail="Accès non autorisé")
 
-    ext = Path(file.filename or "").suffix or ".jpg"
+    allowed_types = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Seules les images JPEG, PNG et WebP sont acceptées")
+    content = await file.read()
+    if not content or len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image vide ou supérieure à 8 Mo")
+    ext = allowed_types[file.content_type]
     filename = f"order_chat_{order_id}_{uuid.uuid4().hex[:8]}{ext}"
-    upload_dir = Path("uploads/chat/orders")
+    upload_dir = Path(__file__).resolve().parents[1] / "uploads" / "chat" / "orders"
     upload_dir.mkdir(parents=True, exist_ok=True)
     dest = upload_dir / filename
-    dest.write_bytes(await file.read())
+    dest.write_bytes(content)
     url = f"/uploads/chat/orders/{filename}"
 
     payload = {
@@ -173,8 +234,7 @@ async def share_location(order_id: str, payload: dict, user: dict = Depends(get_
         "longitude": payload.get("longitude"),
         "accuracy": payload.get("accuracy"),
     }
-    if not location.get("latitude") or not location.get("longitude"):
-        raise HTTPException(status_code=400, detail="Coordonnées GPS requises")
+    location = _validate_location(location)
     msg_payload = {
         "order_id": order_id,
         "message_type": "location",
