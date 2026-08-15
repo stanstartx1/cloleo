@@ -114,6 +114,9 @@ const CustomerChatPage = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [recordingUsers, setRecordingUsers] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -121,6 +124,7 @@ const CustomerChatPage = () => {
   const documentInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordingIntervalRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   // Fetch all conversations
   const fetchConversations = useCallback(async () => {
@@ -258,6 +262,9 @@ const CustomerChatPage = () => {
     const messageContent = newMessage.trim();
     setNewMessage('');
     setSending(true);
+    
+    // Stop typing indicator
+    await setTypingStatus(false);
 
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
@@ -296,6 +303,99 @@ const CustomerChatPage = () => {
       setSending(false);
     }
   };
+  
+  // Typing indicator functionality
+  const setTypingStatus = async (isTyping: boolean) => {
+    if (!selectedConversation || !token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${selectedConversation.id}/typing`,
+        { is_typing },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting typing status:', error);
+    }
+  };
+  
+  const handleTyping = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    if (value.trim() && !isTyping) {
+      setIsTyping(true);
+      setTypingStatus(true);
+      
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Stop typing after 3 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        setTypingStatus(false);
+      }, 3000);
+    } else if (!value.trim() && isTyping) {
+      setIsTyping(false);
+      setTypingStatus(false);
+    }
+  };
+  
+  // Voice recording indicator functionality
+  const setVoiceRecordingStatus = async (isRecording: boolean) => {
+    if (!selectedConversation || !token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${selectedConversation.id}/voice-recording`,
+        { is_recording: isRecording },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting voice recording status:', error);
+    }
+  };
+  
+  // Override recording functions to send status
+  const startRecordingWithStatus = async () => {
+    await setVoiceRecordingStatus(true);
+    await startRecording();
+  };
+  
+  const stopRecordingWithStatus = () => {
+    setVoiceRecordingStatus(false);
+    stopRecording();
+  };
+  
+  const cancelRecordingWithStatus = () => {
+    setVoiceRecordingStatus(false);
+    cancelRecording();
+  };
+  
+  // Poll for typing and recording status
+  useEffect(() => {
+    if (!selectedConversation || !token) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const [typingResponse, recordingResponse] = await Promise.all([
+          axios.get(`${API}/conversations/${selectedConversation.id}/typing-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API}/conversations/${selectedConversation.id}/voice-recording-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        setTypingUsers(typingResponse.data?.typing_users || []);
+        setRecordingUsers(recordingResponse.data?.recording_users || []);
+      } catch (error) {
+        console.error('Error polling status:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [selectedConversation, token]);
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
@@ -439,7 +539,6 @@ const CustomerChatPage = () => {
     }
   };
 
-  // Audio recording functionality
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -509,10 +608,16 @@ const CustomerChatPage = () => {
     }
   };
 
-  const formatRecordingTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+      toast.info('Enregistrement annulé');
+    }
   };
 
   // Filter conversations
@@ -743,6 +848,36 @@ const CustomerChatPage = () => {
                   
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    {/* Typing indicator */}
+                    {typingUsers.length > 0 && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                        <span className="text-xs text-slate-600">
+                          {typingUsers.length === 1 
+                            ? `${typingUsers[0]?.name || 'Quelqu\'un'} est en train d'écrire...`
+                            : `${typingUsers.length} personnes sont en train d'écrire...`
+                          }
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Voice recording indicator */}
+                    {recordingUsers.length > 0 && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-200">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        <span className="text-xs text-red-600">
+                          {recordingUsers.length === 1 
+                            ? `${recordingUsers[0]?.name || 'Quelqu\'un'} est en train d'enregistrer un message vocal...`
+                            : `${recordingUsers.length} personnes sont en train d'enregistrer...`
+                          }
+                        </span>
+                      </div>
+                    )}
+                    
                     {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                       <div key={date}>
                         <div className="flex items-center justify-center my-4">
@@ -917,7 +1052,7 @@ const CustomerChatPage = () => {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={stopRecording}
+                                  onClick={stopRecordingWithStatus}
                                   className="w-full justify-start text-red-600"
                                 >
                                   <X className="w-4 h-4 mr-2" />
@@ -928,7 +1063,7 @@ const CustomerChatPage = () => {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={startRecording}
+                                  onClick={startRecordingWithStatus}
                                   className="w-full justify-start"
                                 >
                                   <Mic className="w-4 h-4 mr-2" />
@@ -965,7 +1100,7 @@ const CustomerChatPage = () => {
                       
                       <Input
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={handleTyping}
                         placeholder="Écrivez votre message..."
                         className="flex-1 bg-gray-50 border-gray-200 focus:border-purple-400"
                         disabled={sending || uploadingFile}
