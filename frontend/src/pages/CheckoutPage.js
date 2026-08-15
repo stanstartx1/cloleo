@@ -15,12 +15,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from 'sonner';
 import { loadMapbox } from '../utils/mapboxLoader';
 import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, reverseGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
+import { useLanguage } from '../context/LanguageContext';
 
 const API = API_URL;
 
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
 const CheckoutPage = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { user, token } = useAuth();
   const { cart, clearCart, fetchCart } = useCart();
@@ -231,25 +233,25 @@ const CheckoutPage = () => {
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande confirmée !</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('checkout.confirmed')}</h1>
           <p className="text-gray-600 mb-6">
-            Votre commande a été passée avec succès. Un livreur va bientôt la prendre en charge.
+            {t('checkout.confirmationText')}
           </p>
           
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-gray-500">Numéro de commande</p>
+            <p className="text-sm text-gray-500">{t('checkout.orderNumber')}</p>
             <p className="font-mono font-bold text-lg">{orderId?.slice(0, 8).toUpperCase()}</p>
           </div>
           
           <div className="space-y-3">
             <Button asChild className="w-full">
               <Link to={`/commande/${orderId}`}>
-                <MapPin className="w-4 h-4 mr-2" /> Suivre ma commande
+                <MapPin className="w-4 h-4 mr-2" /> {t('checkout.trackOrder')}
               </Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link to="/">
-                Continuer mes achats
+                {t('checkout.continueShopping')}
               </Link>
             </Button>
           </div>
@@ -267,8 +269,8 @@ const CheckoutPage = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Finaliser la commande</h1>
-            <p className="text-muted-foreground">{cart.item_count} article(s) à {formatPrice(cart.total_fcfa)}</p>
+            <h1 className="text-2xl font-bold">{t('checkout.title')}</h1>
+            <p className="text-muted-foreground">{cart.item_count} {cart.item_count > 1 ? t('commerce.items') : t('commerce.item')} · {formatPrice(cart.total_fcfa)}</p>
           </div>
         </div>
 
@@ -280,22 +282,22 @@ const CheckoutPage = () => {
               <div className="bg-white rounded-xl border p-6">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <User className="w-5 h-5 text-primary" />
-                  Informations de contact
+                  {t('checkout.contact')}
                 </h2>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Nom complet *</label>
+                    <label className="block text-sm font-medium mb-1">{t('checkout.fullName')} *</label>
                     <Input
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Votre nom"
+                      placeholder={t('checkout.yourName')}
                       required
                       data-testid="checkout-name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Téléphone *</label>
+                    <label className="block text-sm font-medium mb-1">{t('checkout.phone')} *</label>
                     <Input
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -311,7 +313,7 @@ const CheckoutPage = () => {
               <div className="bg-white rounded-xl border p-6">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-primary" />
-                  Adresse de livraison
+                  {t('checkout.deliveryAddress')}
                 </h2>
                 
                 <div className="space-y-4">
@@ -322,7 +324,7 @@ const CheckoutPage = () => {
                         value={formData.street}
                         onChange={(e) => setFormData({ ...formData, street: e.target.value })}
                         onBlur={geocodeTypedAddress}
-                        placeholder="Rechercher votre adresse..."
+                        placeholder={t('checkout.searchAddress')}
                         data-testid="checkout-address"
                       />
                     </div>
@@ -337,7 +339,7 @@ const CheckoutPage = () => {
                       ) : (
                         <Navigation className="w-4 h-4" />
                       )}
-                      <span className="ml-2 hidden sm:inline">Ma position</span>
+                      <span className="ml-2 hidden sm:inline">{t('checkout.myLocation')}</span>
                     </Button>
                   </div>
                   
@@ -349,19 +351,19 @@ const CheckoutPage = () => {
                   />
                   
                   <p className="text-sm text-muted-foreground">
-                    Cliquez sur la carte ou glissez le marqueur pour ajuster votre position exacte
+                    {t('checkout.mapHelp')}
                   </p>
                   
                   {formData.latitude && formData.longitude && (
                     <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded-lg">
                       <CheckCircle className="w-4 h-4" />
-                      Position sélectionnée
+                      {t('checkout.positionSelected')}
                     </div>
                   )}
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Ville</label>
+                      <label className="block text-sm font-medium mb-1">{t('checkout.city')}</label>
                       <Input
                         value={formData.city}
                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -369,7 +371,7 @@ const CheckoutPage = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Pays</label>
+                      <label className="block text-sm font-medium mb-1">{t('checkout.country')}</label>
                       <Input value={formData.country} disabled />
                     </div>
                   </div>
@@ -380,7 +382,7 @@ const CheckoutPage = () => {
               <div className="bg-white rounded-xl border p-6">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-primary" />
-                  Mode de paiement
+                  {t('checkout.payment')}
                 </h2>
                 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -399,8 +401,8 @@ const CheckoutPage = () => {
                         ??
                       </div>
                       <div>
-                        <p className="font-medium">Paiement à la livraison</p>
-                        <p className="text-sm text-muted-foreground">Espèces ou Mobile Money</p>
+                        <p className="font-medium">{t('checkout.cashOnDelivery')}</p>
+                        <p className="text-sm text-muted-foreground">{t('checkout.cashDescription')}</p>
                       </div>
                     </div>
                   </button>
@@ -420,7 +422,7 @@ const CheckoutPage = () => {
                         ??
                       </div>
                       <div>
-                        <p className="font-medium">Carte bancaire</p>
+                        <p className="font-medium">{t('checkout.card')}</p>
                         <p className="text-sm text-muted-foreground">Visa, Mastercard</p>
                       </div>
                     </div>
@@ -432,12 +434,12 @@ const CheckoutPage = () => {
               <div className="bg-white rounded-xl border p-6">
                 <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <Package className="w-5 h-5 text-primary" />
-                  Instructions de livraison (optionnel)
+                  {t('checkout.instructions')}
                 </h2>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Indications pour le livreur (étage, code, repères...)"
+                  placeholder={t('checkout.instructionsPlaceholder')}
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                   data-testid="checkout-notes"
@@ -448,7 +450,7 @@ const CheckoutPage = () => {
             {/* Right: Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl border p-6 sticky top-24">
-                <h2 className="font-bold text-lg mb-4">Récapitulatif</h2>
+                <h2 className="font-bold text-lg mb-4">{t('checkout.summary')}</h2>
                 
                 {/* Items */}
                 <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
@@ -461,7 +463,7 @@ const CheckoutPage = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm line-clamp-1">{item.product.name}</p>
-                        <p className="text-sm text-muted-foreground">Qté: {item.quantity}</p>
+                        <p className="text-sm text-muted-foreground">{t('checkout.quantity')}: {item.quantity}</p>
                       </div>
                       <p className="font-medium text-sm">
                         {formatPrice(item.subtotal_fcfa)}
@@ -478,7 +480,7 @@ const CheckoutPage = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <Truck className="w-4 h-4" /> Livraison
+                      <Truck className="w-4 h-4" /> {t('commerce.delivery')}
                     </span>
                     <span>{formatPrice(1000)}</span>
                   </div>
@@ -499,17 +501,17 @@ const CheckoutPage = () => {
                   {loading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Traitement...
+                      {t('checkout.processing')}
                     </>
                   ) : (
                     <>
-                      Confirmer la commande
+                      {t('checkout.confirm')}
                     </>
                   )}
                 </Button>
                 
                 <p className="text-xs text-center text-muted-foreground mt-4">
-                  En confirmant, vous acceptez nos conditions générales de vente
+                  {t('checkout.terms')}
                 </p>
               </div>
             </div>
@@ -522,10 +524,10 @@ const CheckoutPage = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <LogIn className="w-5 h-5 text-orange-500" />
-                Connectez-vous pour continuer
+                {t('checkout.loginRequired')}
               </DialogTitle>
               <DialogDescription>
-                Pour finaliser votre commande, vous devez être connecté à votre compte.
+                {t('checkout.loginDescription')}
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-3 mt-4">
@@ -536,7 +538,7 @@ const CheckoutPage = () => {
               </Button>
               <Button asChild variant="outline" className="w-full">
                 <Link to="/connexion?tab=register">
-                  Créer un compte
+                  {t('checkout.createAccount')}
                 </Link>
               </Button>
               <Button 
@@ -544,7 +546,7 @@ const CheckoutPage = () => {
                 className="w-full"
                 onClick={() => setShowLoginDialog(false)}
               >
-                Annuler
+                {t('checkout.cancel')}
               </Button>
             </div>
           </DialogContent>

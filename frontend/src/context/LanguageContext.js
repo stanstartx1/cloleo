@@ -31,6 +31,9 @@ const translations = {
       addToCart: 'Ajouter au panier', buyNow: 'Acheter maintenant', contactSeller: 'Contacter le vendeur', productAdded: 'Ajouté au panier !', productRemoved: 'Article supprimé', cartCleared: 'Panier vidé',
       allProducts: 'Tous les produits', trendingProducts: 'Produits tendances', productsAvailable: 'produits disponibles', filters: 'Filtres', clearFilters: 'Effacer les filtres', sortBy: 'Trier par :', noProducts: 'Aucun produit trouvé',
     },
+    checkout: {
+      title: 'Finaliser la commande', contact: 'Informations de contact', fullName: 'Nom complet', yourName: 'Votre nom', phone: 'Téléphone', deliveryAddress: 'Adresse de livraison', searchAddress: 'Rechercher votre adresse...', myLocation: 'Ma position', mapHelp: 'Cliquez sur la carte ou glissez le marqueur pour ajuster votre position exacte', positionSelected: 'Position sélectionnée', city: 'Ville', country: 'Pays', payment: 'Mode de paiement', cashOnDelivery: 'Paiement à la livraison', cashDescription: 'Espèces ou Mobile Money', card: 'Carte bancaire', instructions: 'Instructions de livraison (optionnel)', instructionsPlaceholder: 'Indications pour le livreur (étage, code, repères...)', summary: 'Récapitulatif', quantity: 'Qté', processing: 'Traitement...', confirm: 'Confirmer la commande', terms: 'En confirmant, vous acceptez nos conditions générales de vente', confirmed: 'Commande confirmée !', confirmationText: 'Votre commande a été passée avec succès. Un livreur va bientôt la prendre en charge.', orderNumber: 'Numéro de commande', trackOrder: 'Suivre ma commande', continueShopping: 'Continuer mes achats', loginRequired: 'Connectez-vous pour continuer', loginDescription: 'Pour finaliser votre commande, vous devez être connecté à votre compte.', createAccount: 'Créer un compte', cancel: 'Annuler',
+    },
   },
   en: {
     nav: {
@@ -59,6 +62,9 @@ const translations = {
       orderSummary: 'Order summary', subtotal: 'Subtotal', delivery: 'Delivery', deliveryAtCheckout: 'Calculated at checkout', total: 'Total', checkout: 'Checkout', wholesalePrice: 'Wholesale price',
       addToCart: 'Add to cart', buyNow: 'Buy now', contactSeller: 'Contact seller', productAdded: 'Added to cart!', productRemoved: 'Item removed', cartCleared: 'Cart cleared',
       allProducts: 'All products', trendingProducts: 'Trending products', productsAvailable: 'products available', filters: 'Filters', clearFilters: 'Clear filters', sortBy: 'Sort by:', noProducts: 'No products found',
+    },
+    checkout: {
+      title: 'Complete your order', contact: 'Contact information', fullName: 'Full name', yourName: 'Your name', phone: 'Phone', deliveryAddress: 'Delivery address', searchAddress: 'Search your address...', myLocation: 'My location', mapHelp: 'Click the map or drag the marker to set your exact location', positionSelected: 'Location selected', city: 'City', country: 'Country', payment: 'Payment method', cashOnDelivery: 'Pay on delivery', cashDescription: 'Cash or Mobile Money', card: 'Bank card', instructions: 'Delivery instructions (optional)', instructionsPlaceholder: 'Instructions for the courier (floor, code, landmarks...)', summary: 'Summary', quantity: 'Qty', processing: 'Processing...', confirm: 'Confirm order', terms: 'By confirming, you accept our terms and conditions', confirmed: 'Order confirmed!', confirmationText: 'Your order has been placed successfully. A courier will take charge of it shortly.', orderNumber: 'Order number', trackOrder: 'Track my order', continueShopping: 'Continue shopping', loginRequired: 'Sign in to continue', loginDescription: 'You need to sign in to complete your order.', createAccount: 'Create an account', cancel: 'Cancel',
     },
   },
 };
