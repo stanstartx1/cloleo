@@ -7,15 +7,8 @@ from datetime import datetime, timezone
 import logging
 
 from core.database import db
-
-# Optional Elasticsearch import
-try:
-    from elasticsearch import Elasticsearch
-    from elasticsearch.helpers import bulk
-    ELASTICSEARCH_AVAILABLE = True
-except ImportError:
-    ELASTICSEARCH_AVAILABLE = False
-    logging.warning("Elasticsearch not available, search will use MongoDB fallback")
+from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
 
 logger = logging.getLogger(__name__)
 
@@ -28,20 +21,17 @@ class ForumSearchEngine:
         self.es = None
         self.elasticsearch_enabled = False
         
-        if ELASTICSEARCH_AVAILABLE:
-            try:
-                self.es = Elasticsearch(hosts or ["http://localhost:9200"])
-                # Test connection
-                if self.es.ping():
-                    self.elasticsearch_enabled = True
-                    self._create_index_if_not_exists()
-                    logger.info("Elasticsearch connected successfully")
-                else:
-                    logger.warning("Elasticsearch ping failed, using MongoDB fallback")
-            except Exception as e:
-                logger.warning(f"Elasticsearch connection failed: {e}, using MongoDB fallback")
-        else:
-            logger.warning("Elasticsearch not installed, using MongoDB fallback")
+        try:
+            self.es = Elasticsearch(hosts or ["http://localhost:9200"])
+            # Test connection
+            if self.es.ping():
+                self.elasticsearch_enabled = True
+                self._create_index_if_not_exists()
+                logger.info("Elasticsearch connected successfully")
+            else:
+                logger.warning("Elasticsearch ping failed, using MongoDB fallback")
+        except Exception as e:
+            logger.warning(f"Elasticsearch connection failed: {e}, using MongoDB fallback")
     
     def _create_index_if_not_exists(self):
         """Create Elasticsearch index if it doesn't exist"""
@@ -126,6 +116,7 @@ class ForumSearchEngine:
     async def index_topics_bulk(self, topics: List[Dict]):
         """Bulk index multiple topics"""
         if not self.elasticsearch_enabled or not self.es:
+            logger.warning("Elasticsearch not available, skipping bulk index")
             return
         actions = []
         for topic in topics:
@@ -270,6 +261,7 @@ class ForumSearchEngine:
     async def delete_topic(self, topic_id: str):
         """Delete a topic from index"""
         if not self.elasticsearch_enabled or not self.es:
+            logger.warning("Elasticsearch not available, skipping delete")
             return
         self.es.delete(index=self.index_name, id=topic_id)
         logger.info(f"Deleted topic from index: {topic_id}")
