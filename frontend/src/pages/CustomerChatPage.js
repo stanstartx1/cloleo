@@ -356,6 +356,88 @@ const CustomerChatPage = () => {
     }
   };
   
+  // Audio recording functionality
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      const chunks = [];
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+      
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+        
+        setUploadingFile(true);
+        const formData = new FormData();
+        formData.append('file', audioFile);
+        formData.append('duration', recordingTime);
+        
+        try {
+          console.log('Uploading recorded audio for conversation:', selectedConversation.id);
+          const response = await axios.post(
+            `${API}/conversations/${selectedConversation.id}/upload-audio`,
+            formData,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+          );
+          
+          console.log('Recorded audio upload response:', response.data);
+          
+          if (response.data.message) {
+            setMessages(prev => [...prev, response.data.message]);
+            scrollToBottom();
+          }
+        } catch (error) {
+          console.error('Error uploading recording:', error);
+          toast.error('Erreur lors de l\'envoi du message vocal');
+        } finally {
+          setUploadingFile(false);
+        }
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Impossible d\'accéder au microphone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+      toast.info('Enregistrement annulé');
+    }
+  };
+  
   // Override recording functions to send status
   const startRecordingWithStatus = async () => {
     await setVoiceRecordingStatus(true);
