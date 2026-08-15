@@ -7,7 +7,7 @@ import {
   Monitor, Phone, User, Crown, Eye, Droplet, 
   Scissors, Dumbbell, Bike, Trophy, Users, Mountain, 
   Book, Shield, ShoppingCart, Leaf, Zap, Armchair, 
-  Building2, Utensils, ArrowRight, MessageSquare, Search, X, Menu,
+  Building2, Utensils, ArrowRight, MessageSquare, X, Menu,
   Flame, Star, TrendingUp, Moon, Sun, Filter, Zap as Lightning
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -22,13 +22,19 @@ const MegaMenu = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [slideIndex, setSlideIndex] = useState(0);
   const [recommendedCategories, setRecommendedCategories] = useState([]);
   const [categoryStats, setCategoryStats] = useState({});
   const [loadingStats, setLoadingStats] = useState(true);
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const menuRef = useRef(null);
   const mobileMenuRef = useRef(null);
+
+  const menuSlides = [
+    { text: 'Livraison rapide à Abidjan', accent: 'from-orange-500 to-amber-500' },
+    { text: 'Paiement sécurisé et suivi en temps réel', accent: 'from-blue-500 to-indigo-500' },
+    { text: 'Nouveautés et offres chaque semaine', accent: 'from-violet-500 to-fuchsia-500' },
+  ];
 
   // Load dark mode preference
   useEffect(() => {
@@ -37,6 +43,13 @@ const MegaMenu = () => {
       setDarkMode(true);
     }
   }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSlideIndex((index) => (index + 1) % menuSlides.length);
+    }, 4500);
+    return () => window.clearInterval(interval);
+  }, [menuSlides.length]);
 
   // Load recommended categories
   useEffect(() => {
@@ -384,27 +397,14 @@ const MegaMenu = () => {
               ))}
             </div>
 
-            {/* Search & Actions */}
+            {/* Contextual action & controls */}
             <div className="flex items-center gap-4">
-              {/* Quick Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher..."
-                  className={`pl-9 pr-4 py-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-800 placeholder-gray-500'}`}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              {(isVendor || isEnterprise) ? (
+                <Link to="/forum" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors">
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="font-semibold text-sm">Forum</span>
+                </Link>
+              ) : <div className="w-0" aria-hidden="true" />}
 
               {/* Dark Mode Toggle */}
               <button
@@ -428,6 +428,25 @@ const MegaMenu = () => {
               </Link>
             </div>
           </div>
+          <div className={`relative h-9 overflow-hidden border-t ${darkMode ? 'border-slate-700' : 'border-gray-100'}`} aria-label="Informations Cloléo">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slideIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${menuSlides[slideIndex].accent} text-white`}
+              >
+                <span className="text-xs font-semibold tracking-wide">{menuSlides[slideIndex].text}</span>
+              </motion.div>
+            </AnimatePresence>
+            <div className="absolute right-4 top-1/2 z-10 flex -translate-y-1/2 gap-1">
+              {menuSlides.map((slide, index) => (
+                <button key={slide.text} type="button" aria-label={`Afficher l'information ${index + 1}`} onClick={() => setSlideIndex(index)} className={`h-1.5 rounded-full transition-all ${index === slideIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/60 hover:bg-white'}`} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -443,19 +462,11 @@ const MegaMenu = () => {
               <Menu className={`w-6 h-6 ${textColor}`} />
             </button>
 
-            {/* Quick Search Mobile */}
-            <div className="flex-1 mx-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher..."
-                  className={`w-full pl-9 pr-4 py-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-800 placeholder-gray-500'}`}
-                />
-              </div>
-            </div>
+            {(isVendor || isEnterprise) ? (
+              <Link to="/forum" className="mx-4 flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white">
+                <MessageSquare className="w-4 h-4" /> Forum
+              </Link>
+            ) : <div className="flex-1" aria-hidden="true" />}
 
             {/* Dark Mode Toggle Mobile */}
             <button
@@ -467,6 +478,13 @@ const MegaMenu = () => {
             >
               {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-600" />}
             </button>
+          </div>
+          <div className="relative h-8 overflow-hidden border-t border-gray-100">
+            <AnimatePresence mode="wait">
+              <motion.div key={slideIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${menuSlides[slideIndex].accent} px-8 text-center text-[11px] font-semibold text-white`}>
+                {menuSlides[slideIndex].text}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

@@ -9,7 +9,6 @@ import CategorySidebar from '../components/CategorySidebar';
 import CategoriesGrid from '../components/CategoriesGrid';
 import SubCategorySpotlight, { loadSpotlightBlock } from '../components/SubCategorySpotlight';
 import { Skeleton } from '../components/ui/skeleton';
-import { ScrollProgress } from '../components/InfiniteScroll';
 import { PromoBanner, FloatingBadges } from '../components/ScrollingBanners';
 import AdHorizontalStrip from '../components/AdHorizontalStrip';
 import HomeTopRatedProducts from '../components/HomeTopRatedProducts';
@@ -177,7 +176,6 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen overflow-hidden bg-transparent" data-testid="home-page">
-      <ScrollProgress />
       <FloatingBadges />
       <PromoBanner />
 
