@@ -46,8 +46,6 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, 
 
 import MapboxMap from '../components/MapboxMap';
 
-import MessagesSection from '../components/MessagesSection';
-
 import TripartiteChat from '../components/TripartiteChat';
 
 import DeliveryScheduler from '../components/DeliveryScheduler';
@@ -59,6 +57,32 @@ import DeliveryProof from '../components/DeliveryProof';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 
 import GamificationSystem from '../components/GamificationSystem';
+
+import CertificatesSection from '../components/CertificatesSection';
+
+import AchievementsSection from '../components/AchievementsSection';
+
+import GamificationTrophiesSection from '../components/GamificationTrophiesSection';
+
+import GamificationPointsSection from '../components/GamificationPointsSection';
+
+import LeaderboardSection from '../components/LeaderboardSection';
+
+import AdvancedAnalyticsSection from '../components/AdvancedAnalyticsSection';
+
+import CustomKPIsSection from '../components/CustomKPIsSection';
+
+import EnhancedOffersSection from '../components/EnhancedOffersSection';
+
+import EnhancedMessagesSection from '../components/EnhancedMessagesSection';
+
+import EnhancedForumSection from '../components/EnhancedForumSection';
+
+import EnhancedTrackingSection from '../components/EnhancedTrackingSection';
+
+import AdvancedSettingsSection from '../components/AdvancedSettingsSection';
+
+import AuditTrailSection from '../components/AuditTrailSection';
 
 import { 
 
@@ -202,9 +226,16 @@ const EnterpriseDashboard = () => {
 
   
 
-  // Calculate badge counts
-  const pendingOrdersCount = orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length;
-  const pendingOffersCount = offers.filter(o => !['accepted', 'rejected', 'withdrawn'].includes(o.status)).length;
+  // Calculate badge counts with useMemo for performance
+  const pendingOrdersCount = useMemo(() => 
+    orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length, 
+    [orders]
+  );
+  
+  const pendingOffersCount = useMemo(() => 
+    offers.filter(o => !['accepted', 'rejected', 'withdrawn'].includes(o.status)).length, 
+    [offers]
+  );
 
   
 
@@ -571,7 +602,18 @@ const EnterpriseDashboard = () => {
 
       {/* Sidebar */}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <motion.aside
+
+        initial={false}
+
+        animate={{ x: mobileMenuOpen ? 0 : -320 }}
+
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl lg:translate-x-0 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
 
         <div className="flex flex-col h-full">
 
@@ -729,23 +771,33 @@ const EnterpriseDashboard = () => {
 
         </div>
 
-      </aside>
+      </motion.aside>
 
 
 
       {/* Mobile Overlay */}
 
-      {mobileMenuOpen && (
+      <AnimatePresence>
 
-        <div
+        {mobileMenuOpen && (
 
-          className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm"
+          <motion.div
 
-          onClick={() => setMobileMenuOpen(false)}
+            initial={{ opacity: 0 }}
 
-        />
+            animate={{ opacity: 1 }}
 
-      )}
+            exit={{ opacity: 0 }}
+
+            className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm"
+
+            onClick={() => setMobileMenuOpen(false)}
+
+          />
+
+        )}
+
+      </AnimatePresence>
 
 
 
@@ -803,7 +855,7 @@ const EnterpriseDashboard = () => {
 
                 size="sm"
 
-                className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-600"
+                className="hidden sm:flex bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-600"
 
                 onClick={() => navigate('/')}
 
@@ -812,6 +864,22 @@ const EnterpriseDashboard = () => {
                 <Store className="w-4 h-4 mr-2" />
 
                 Voir le site
+
+              </Button>
+
+              <Button
+
+                variant="outline"
+
+                size="icon"
+
+                className="sm:hidden bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-600"
+
+                onClick={() => navigate('/')}
+
+              >
+
+                <Store className="w-4 h-4" />
 
               </Button>
 
@@ -827,117 +895,199 @@ const EnterpriseDashboard = () => {
 
         <div className="p-4 lg:p-8 bg-slate-900/50 min-h-screen">
 
-          {activeSection === 'dashboard' && (
+          <AnimatePresence mode="wait">
 
-            <DashboardSection 
+            {activeSection === 'dashboard' && (
 
-              dashboard={dashboard} 
+              <motion.div
 
-              orders={orders} 
+                key="dashboard"
 
-              products={products}
+                initial={{ opacity: 0, x: -20 }}
 
-              offers={offers}
+                animate={{ opacity: 1, x: 0 }}
 
-              followerCount={followerCount}
+                exit={{ opacity: 0, x: 20 }}
 
-              onAcceptOffer={handleAcceptOffer}
+                transition={{ duration: 0.3 }}
 
-              onRejectOffer={handleRejectOffer}
+              >
 
-              onCounterOffer={handleCounterOffer}
+                <DashboardSection 
 
-              onWithdrawOffer={handleWithdrawOffer}
+                  dashboard={dashboard} 
 
-              onCopyLink={copyNegotiatedLink}
+                  orders={orders} 
 
-              formatPrice={formatPrice}
+                  products={products}
 
-            />
+                  offers={offers}
 
-          )}
+                  followerCount={followerCount}
 
-          
+                  onAcceptOffer={handleAcceptOffer}
 
-          {activeSection === 'products' && (
+                  onRejectOffer={handleRejectOffer}
 
-            <ProductsSection 
+                  onCounterOffer={handleCounterOffer}
 
-              products={products}
+                  onWithdrawOffer={handleWithdrawOffer}
 
-              loading={loading}
+                  onCopyLink={copyNegotiatedLink}
 
-              onRefresh={fetchProducts}
+                  formatPrice={formatPrice}
 
-              token={token}
+                />
 
-              formatPrice={formatPrice}
+              </motion.div>
 
-            />
-
-          )}
+            )}
 
           
 
-          {activeSection === 'orders' && (
+            {activeSection === 'products' && (
 
-            <OrdersSection 
+              <motion.div
 
-              orders={orders}
+                key="products"
 
-              loading={loading}
+                initial={{ opacity: 0, x: -20 }}
 
-              onRefresh={fetchOrders}
+                animate={{ opacity: 1, x: 0 }}
 
-              token={token}
+                exit={{ opacity: 0, x: 20 }}
 
-              formatPrice={formatPrice}
+                transition={{ duration: 0.3 }}
 
-            />
+              >
 
-          )}
+                <ProductsSection 
+
+                  products={products}
+
+                  loading={loading}
+
+                  onRefresh={fetchProducts}
+
+                  token={token}
+
+                  formatPrice={formatPrice}
+
+                />
+
+              </motion.div>
+
+            )}
 
           
 
-          {activeSection === 'offers' && (
+            {activeSection === 'orders' && (
 
-            <OffersSection 
+              <motion.div
 
-              offers={offers}
+                key="orders"
 
-              loading={loading}
+                initial={{ opacity: 0, x: -20 }}
 
-              onRefresh={fetchOffers}
+                animate={{ opacity: 1, x: 0 }}
 
-              onAccept={handleAcceptOffer}
+                exit={{ opacity: 0, x: 20 }}
 
-              onReject={handleRejectOffer}
+                transition={{ duration: 0.3 }}
 
-              onCounter={handleCounterOffer}
+              >
 
-              onWithdraw={handleWithdrawOffer}
+                <OrdersSection 
 
-              onCopyLink={copyNegotiatedLink}
+                  orders={orders}
 
-              token={token}
+                  loading={loading}
 
-              formatPrice={formatPrice}
+                  onRefresh={fetchOrders}
 
-            />
+                  token={token}
 
-          )}
+                  formatPrice={formatPrice}
+
+                />
+
+              </motion.div>
+
+            )}
+
+          
+
+            {activeSection === 'offers' && (
+
+              <motion.div
+
+                key="offers"
+
+                initial={{ opacity: 0, x: -20 }}
+
+                animate={{ opacity: 1, x: 0 }}
+
+                exit={{ opacity: 0, x: 20 }}
+
+                transition={{ duration: 0.3 }}
+
+              >
+
+                <EnhancedOffersSection 
+
+                  offers={offers}
+
+                  loading={loading}
+
+                  onRefresh={fetchOffers}
+
+                  onAccept={handleAcceptOffer}
+
+                  onReject={handleRejectOffer}
+
+                  onCounter={handleCounterOffer}
+
+                  onWithdraw={handleWithdrawOffer}
+
+                  onCopyLink={copyNegotiatedLink}
+
+                  token={token}
+
+                  formatPrice={formatPrice}
+
+                />
+
+              </motion.div>
+
+            )}
 
           
 
           {activeSection === 'messages' && (
 
-            <MessagesSection 
+            <motion.div
 
-              token={token}
+              key="messages"
 
-              userType="enterprise"
+              initial={{ opacity: 0, x: -20 }}
 
-            />
+              animate={{ opacity: 1, x: 0 }}
+
+              exit={{ opacity: 0, x: 20 }}
+
+              transition={{ duration: 0.3 }}
+
+            >
+
+              <EnhancedMessagesSection 
+
+                token={token}
+
+                userType="enterprise"
+
+              />
+
+            </motion.div>
 
           )}
 
@@ -945,21 +1095,37 @@ const EnterpriseDashboard = () => {
 
           {activeSection === 'tracking' && (
 
-            <TrackingSection 
+            <motion.div
 
-              orders={orders}
+              key="tracking"
 
-              selectedOrder={selectedOrder}
+              initial={{ opacity: 0, x: -20 }}
 
-              onSelectOrder={setSelectedOrder}
+              animate={{ opacity: 1, x: 0 }}
 
-              driverLocation={driverLocation}
+              exit={{ opacity: 0, x: 20 }}
 
-              onSetDriverLocation={setDriverLocation}
+              transition={{ duration: 0.3 }}
 
-              token={token}
+            >
 
-            />
+              <EnhancedTrackingSection 
+
+                orders={orders}
+
+                selectedOrder={selectedOrder}
+
+                onSelectOrder={setSelectedOrder}
+
+                driverLocation={driverLocation}
+
+                onSetDriverLocation={setDriverLocation}
+
+                token={token}
+
+              />
+
+            </motion.div>
 
           )}
 
@@ -967,17 +1133,37 @@ const EnterpriseDashboard = () => {
 
           {activeSection === 'stats' && (
 
-            <StatsSection 
+            <motion.div
 
-              dashboard={dashboard}
+              key="stats"
 
-              orders={orders}
+              initial={{ opacity: 0, x: -20 }}
 
-              products={products}
+              animate={{ opacity: 1, x: 0 }}
 
-              formatPrice={formatPrice}
+              exit={{ opacity: 0, x: 20 }}
 
-            />
+              transition={{ duration: 0.3 }}
+
+            >
+
+              <StatsSection 
+
+                dashboard={dashboard}
+
+                orders={orders}
+
+                products={products}
+
+                formatPrice={formatPrice}
+
+                user={user}
+
+                token={token}
+
+              />
+
+            </motion.div>
 
           )}
 
@@ -985,63 +1171,89 @@ const EnterpriseDashboard = () => {
 
           {activeSection === 'subscription' && (
 
-            <SubscriptionSection 
+            <motion.div
 
-              user={user}
+              key="subscription"
 
-              token={token}
+              initial={{ opacity: 0, x: -20 }}
 
-              onRefresh={refreshUser}
+              animate={{ opacity: 1, x: 0 }}
 
-            />
+              exit={{ opacity: 0, x: 20 }}
+
+              transition={{ duration: 0.3 }}
+
+            >
+
+              <SubscriptionSection 
+
+                user={user}
+
+                token={token}
+
+                onRefresh={refreshUser}
+
+              />
+
+            </motion.div>
 
           )}
 
           
 
           {activeSection === 'forum' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <MessageSquare className="w-6 h-6 text-slate-400" />
-                Forum Entreprises
-              </h2>
 
-              <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-white">Forum Entreprises</h3>
-                  <Link to="/forum" className="text-sm text-purple-400 hover:text-purple-300">
-                    Voir tout le forum →
-                  </Link>
-                </div>
-                <p className="text-slate-400 text-sm mb-4">
-                  Discutez avec d'autres entreprises, trouvez des partenariats B2B et partagez vos expériences.
-                </p>
-                <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-lg p-4 border border-indigo-500/30">
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="w-8 h-8 text-indigo-400" />
-                    <div>
-                      <p className="text-white font-medium">Réseau B2B</p>
-                      <p className="text-slate-400 text-sm">Connectez-vous avec d'autres entreprises</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <motion.div
+
+              key="forum"
+
+              initial={{ opacity: 0, x: -20 }}
+
+              animate={{ opacity: 1, x: 0 }}
+
+              exit={{ opacity: 0, x: 20 }}
+
+              transition={{ duration: 0.3 }}
+
+            >
+
+              <EnhancedForumSection token={token} userType="enterprise" />
+
+            </motion.div>
+
           )}
 
           {activeSection === 'settings' && (
 
-            <SettingsSection 
+            <motion.div
 
-              user={user}
+              key="settings"
 
-              token={token}
+              initial={{ opacity: 0, x: -20 }}
 
-              onRefresh={refreshUser}
+              animate={{ opacity: 1, x: 0 }}
 
-            />
+              exit={{ opacity: 0, x: 20 }}
+
+              transition={{ duration: 0.3 }}
+
+            >
+
+              <AdvancedSettingsSection 
+
+                user={user}
+
+                token={token}
+
+                onRefresh={refreshUser}
+
+              />
+
+            </motion.div>
 
           )}
+
+          </AnimatePresence>
 
         </div>
 
@@ -1111,7 +1323,7 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
       {/* Stats Cards */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
 
         <StatCard icon={Package} color="text-amber-400" value={dashboard?.total_products || 0} label="Produits" />
 
@@ -1131,7 +1343,7 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
         <h3 className="font-bold text-lg mb-4 text-white">Actions rapides</h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
 
           <QuickAction icon={Plus} label="Ajouter produit" color="bg-gradient-to-r from-amber-500 to-yellow-500" />
 
@@ -1409,17 +1621,20 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
 
 
-  const filteredProducts = products?.filter(product => {
-    const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
-    const matchesSearch = searchQuery === '' || 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  }) || [];
+  const filteredProducts = useMemo(() => 
+    products?.filter(product => {
+      const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
+      const matchesSearch = searchQuery === '' || 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesSearch;
+    }) || [],
+    [products, filterStatus, searchQuery]
+  );
 
 
 
-  const handleAddProduct = async (data) => {
+  const handleAddProduct = useCallback(async (data) => {
 
     try {
 
@@ -1443,11 +1658,11 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
     }
 
-  };
+  }, [token, onRefresh]);
 
 
 
-  const handleDeleteProduct = async (productId) => {
+  const handleDeleteProduct = useCallback(async (productId) => {
 
     if (!window.confirm('Supprimer ce produit ?')) return;
 
@@ -1473,21 +1688,21 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
     }
 
-  };
+  }, [token, onRefresh]);
 
 
 
-  const handleEditProduct = (product) => {
+  const handleEditProduct = useCallback((product) => {
 
     setEditingProduct(product);
 
     setShowEditModal(true);
 
-  };
+  }, []);
 
 
 
-  const handleUpdateProduct = async (data) => {
+  const handleUpdateProduct = useCallback(async (data) => {
 
     try {
 
@@ -1513,11 +1728,11 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
     }
 
-  };
+  }, [token, editingProduct, onRefresh]);
 
 
 
-  const getProductStatus = (status) => {
+  const getProductStatus = useMemo(() => (status) => {
 
     const statusMap = {
 
@@ -1533,7 +1748,7 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
     return statusMap[status] || statusMap.draft;
 
-  };
+  }, []);
 
 
 
@@ -1920,13 +2135,16 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
 
 
-  const filteredOrders = orders?.filter(order => 
+  const filteredOrders = useMemo(() => 
+    orders?.filter(order => 
 
-    filterStatus === 'all' || order.status === filterStatus
+      filterStatus === 'all' || order.status === filterStatus
 
-  ) || [];
+    ) || [],
+    [orders, filterStatus]
+  );
 
-  const handleAcceptOrder = async (orderId) => {
+  const handleAcceptOrder = useCallback(async (orderId) => {
     try {
       await axios.put(`${API}/orders/${orderId}/vendor-accept`,
         {},
@@ -1938,9 +2156,9 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
       console.error('Error accepting order:', error);
       toast.error('Erreur lors de l\'acceptation de la commande');
     }
-  };
+  }, [token, onRefresh]);
 
-  const handleRejectOrder = async (orderId) => {
+  const handleRejectOrder = useCallback(async (orderId) => {
     try {
       await axios.put(`${API}/orders/${orderId}/reject`,
         { reason: 'Produit non disponible' },
@@ -1952,11 +2170,11 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
       console.error('Error rejecting order:', error);
       toast.error('Erreur lors du refus de la commande');
     }
-  };
+  }, [token, onRefresh]);
 
 
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
+  const handleUpdateStatus = useCallback(async (orderId, newStatus) => {
 
     try {
 
@@ -1993,11 +2211,11 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
     }
 
-  };
+  }, [token, onRefresh]);
 
 
 
-  const statusColors = {
+  const statusColors = useMemo(() => ({
 
     pending: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
 
@@ -2011,11 +2229,11 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
     cancelled: 'bg-red-500/20 text-red-400 border border-red-500/30'
 
-  };
+  }), []);
 
 
 
-  const statusLabels = {
+  const statusLabels = useMemo(() => ({
 
     pending: 'En attente',
 
@@ -2029,7 +2247,7 @@ const OrdersSection = ({ orders, loading, onRefresh, token, formatPrice }) => {
 
     cancelled: 'Annulée'
 
-  };
+  }), []);
 
 
 
@@ -3021,11 +3239,14 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
 
 
 
-  const shippedOrders = orders?.filter(order => order.status === 'shipped' || order.status === 'processing') || [];
+  const shippedOrders = useMemo(() => 
+    orders?.filter(order => order.status === 'shipped' || order.status === 'processing') || [],
+    [orders]
+  );
 
 
 
-  const handleTrackOrder = async (order) => {
+  const handleTrackOrder = useCallback(async (order) => {
 
     onSelectOrder(order);
 
@@ -3049,7 +3270,7 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
 
     }
 
-  };
+  }, [token, onSelectOrder]);
 
 
 
@@ -3415,7 +3636,7 @@ const TrackingSection = ({ orders, selectedOrder, onSelectOrder, driverLocation,
 
 
 
-const StatsSection = ({ dashboard, orders, products, formatPrice }) => {
+const StatsSection = ({ dashboard, orders, products, formatPrice, user, token }) => {
 
   const [timeRange, setTimeRange] = useState('30d');
 
@@ -3499,7 +3720,7 @@ const StatsSection = ({ dashboard, orders, products, formatPrice }) => {
 
       {/* Key Metrics */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
 
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
 
@@ -3615,61 +3836,17 @@ const StatsSection = ({ dashboard, orders, products, formatPrice }) => {
 
 
 
+
+
+
+
       {/* Charts Section */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
 
-        {/* Revenue Chart Placeholder */}
+        <AdvancedAnalyticsSection user={user} token={token} />
 
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-
-          <h4 className="font-semibold text-white mb-4">Évolution des revenus</h4>
-
-          <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-xl border border-slate-700/50">
-
-            <div className="text-center">
-
-              <BarChart className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-
-              <p className="text-slate-400">Graphique des revenus</p>
-
-              <p className="text-sm text-slate-500">Intégration Chart.js prévue</p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-
-        {/* Orders Chart Placeholder */}
-
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-
-          <h4 className="font-semibold text-white mb-4">Répartition des commandes</h4>
-
-          <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-xl border border-slate-700/50">
-
-            <div className="text-center">
-
-              <PieChart className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-
-              <p className="text-slate-400">Répartition par statut</p>
-
-              <p className="text-sm text-slate-500">Intégration Chart.js prévue</p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-
-      {/* Recent Activity */}
+      </div>      {/* Recent Activity */}
 
       <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
 
@@ -4271,7 +4448,7 @@ const TrophiesSection = ({ trophies, loading, onRefresh, token }) => {
 
       {/* Trophies Grid */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {trophies?.length > 0 ? trophies.map((trophy) => (
 
@@ -5217,7 +5394,7 @@ const PortfolioSection = ({ portfolio, loading, onRefresh, token }) => {
 
       {/* Portfolio Grid */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {portfolio?.length > 0 ? portfolio.map((item) => (
 
@@ -5725,7 +5902,7 @@ const TeamSection = ({ team, loading, onRefresh, token }) => {
 
       {/* Team Grid */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {team?.length > 0 ? team.map((member) => (
 
@@ -7341,6 +7518,146 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
         </button>
 
+        <button
+
+          onClick={() => setActiveTab('trophies')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'trophies'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          Trophées
+
+        </button>
+
+        <button
+
+          onClick={() => setActiveTab('certificates')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'certificates'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          Certificats
+
+        </button>
+
+        <button
+
+          onClick={() => setActiveTab('achievements')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'achievements'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          Réalisations
+
+        </button>
+
+        <button
+
+          onClick={() => setActiveTab('points')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'points'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          Points & Niveau
+
+        </button>
+
+        <button
+
+          onClick={() => setActiveTab('leaderboard')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'leaderboard'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          Classement
+
+        </button>
+
+        <button
+
+          onClick={() => setActiveTab('kpis')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'kpis'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          KPIs
+
+        </button>
+
+        <button
+
+          onClick={() => setActiveTab('audit')}
+
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+
+            activeTab === 'audit'
+
+              ? 'text-amber-400 border-b-2 border-amber-400'
+
+              : 'text-slate-400 hover:text-white'
+
+          }`}
+
+        >
+
+          Audit
+
+        </button>
+
       </div>
 
 
@@ -7682,22 +7999,214 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
 
 
-      {activeTab === 'notifications' && (
+      <AnimatePresence mode="wait">
 
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+        {activeTab === 'notifications' && (
 
-          <h4 className="font-semibold text-white mb-4">Notifications</h4>
+          <motion.div
 
-          <p className="text-slate-400">Section notifications - À implémenter</p>
+            key="notifications"
 
-        </div>
+            initial={{ opacity: 0, y: 20 }}
 
-      )}
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+            className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl"
+
+          >
+
+            <h4 className="font-semibold text-white mb-4">Notifications</h4>
+
+            <p className="text-slate-400">Section notifications - À implémenter</p>
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'trophies' && (
+
+          <motion.div
+
+            key="trophies"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <GamificationTrophiesSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'certificates' && (
+
+          <motion.div
+
+            key="certificates"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <CertificatesSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'achievements' && (
+
+          <motion.div
+
+            key="achievements"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <AchievementsSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'points' && (
+
+          <motion.div
+
+            key="points"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <GamificationPointsSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'leaderboard' && (
+
+          <motion.div
+
+            key="leaderboard"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <LeaderboardSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'kpis' && (
+
+          <motion.div
+
+            key="kpis"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <CustomKPIsSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+
+
+        {activeTab === 'audit' && (
+
+          <motion.div
+
+            key="audit"
+
+            initial={{ opacity: 0, y: 20 }}
+
+            animate={{ opacity: 1, y: 0 }}
+
+            exit={{ opacity: 0, y: -20 }}
+
+            transition={{ duration: 0.3 }}
+
+          >
+
+            <AuditTrailSection user={user} token={token} />
+
+          </motion.div>
+
+        )}
+
+      </AnimatePresence>
     </div>
 
   );
 
 };
+
+
+
+
+
+
 
 
 

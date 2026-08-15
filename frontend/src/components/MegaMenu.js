@@ -7,14 +7,110 @@ import {
   Monitor, Phone, User, Crown, Eye, Droplet, 
   Scissors, Dumbbell, Bike, Trophy, Users, Mountain, 
   Book, Shield, ShoppingCart, Leaf, Zap, Armchair, 
-  Building2, Utensils, ArrowRight, MessageSquare
+  Building2, Utensils, ArrowRight, MessageSquare, Search, X, Menu,
+  Flame, Star, TrendingUp, Moon, Sun, Filter, Zap as Lightning
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { API_URL } from '../config/api';
+
+const API = API_URL;
 
 const MegaMenu = () => {
   const { isVendor, isEnterprise } = useAuth();
   const [activeCategory, setActiveCategory] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [recommendedCategories, setRecommendedCategories] = useState([]);
+  const [categoryStats, setCategoryStats] = useState({});
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [hoverTimeout, setHoverTimeout] = useState(null);
   const menuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+
+  // Load dark mode preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setDarkMode(true);
+    }
+  }, []);
+
+  // Load recommended categories
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const response = await axios.get(`${API}/user/recommended-categories`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setRecommendedCategories(response.data || []);
+      } catch (error) {
+        console.error('Error loading recommendations:', error);
+      }
+    };
+    fetchRecommendations();
+  }, []);
+
+  // Load category stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(`${API}/categories/stats`);
+        setCategoryStats(response.data || {});
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveCategory(null);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Keyboard navigation
+  const handleKeyDown = (e, categoryId) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setActiveCategory(categoryId);
+    }
+    if (e.key === 'Escape') {
+      setActiveCategory(null);
+      setMobileMenuOpen(false);
+    }
+  };
+
+  // Debounced hover
+  const handleMouseEnter = (categoryId) => {
+    clearTimeout(hoverTimeout);
+    const timeout = setTimeout(() => {
+      setActiveCategory(categoryId);
+    }, 150);
+    setHoverTimeout(timeout);
+  };
+
+  const handleMouseLeave = () => {
+    clearTimeout(hoverTimeout);
+    const timeout = setTimeout(() => {
+      setActiveCategory(null);
+    }, 300);
+    setHoverTimeout(timeout);
+  };
 
   const categories = [
     {
@@ -23,6 +119,8 @@ const MegaMenu = () => {
       icon: <Smartphone className="w-6 h-6" />,
       color: 'from-blue-500 to-cyan-500',
       image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=800&q=80',
+      badge: categoryStats['electronique']?.product_count > 0 ? `${categoryStats['electronique'].product_count}+` : null,
+      trending: categoryStats['electronique']?.trending || false,
       subcategories: [
         { name: 'Smartphones', slug: 'smartphones', icon: <Phone className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&q=80' },
         { name: 'Ordinateurs', slug: 'ordinateurs', icon: <Monitor className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&q=80' },
@@ -38,6 +136,8 @@ const MegaMenu = () => {
       icon: <Shirt className="w-6 h-6" />,
       color: 'from-pink-500 to-rose-500',
       image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=800&q=80',
+      badge: categoryStats['mode']?.product_count > 0 ? `${categoryStats['mode'].product_count}+` : null,
+      trending: categoryStats['mode']?.trending || false,
       subcategories: [
         { name: 'Vêtements Homme', slug: 'vetements-homme', icon: <User className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&q=80' },
         { name: 'Vêtements Femme', slug: 'vetements-femme', icon: <User className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&q=80' },
@@ -53,6 +153,8 @@ const MegaMenu = () => {
       icon: <Home className="w-6 h-6" />,
       color: 'from-amber-500 to-orange-500',
       image: 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&q=80',
+      badge: categoryStats['maison']?.product_count > 0 ? `${categoryStats['maison'].product_count}+` : null,
+      trending: categoryStats['maison']?.trending || false,
       subcategories: [
         { name: 'Meubles', slug: 'meubles', icon: <Armchair className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80' },
         { name: 'Décoration', slug: 'decoration', icon: <Palette className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=400&q=80' },
@@ -68,6 +170,8 @@ const MegaMenu = () => {
       icon: <Sparkles className="w-6 h-6" />,
       color: 'from-purple-500 to-fuchsia-500',
       image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&q=80',
+      badge: categoryStats['beaute']?.product_count > 0 ? `${categoryStats['beaute'].product_count}+` : null,
+      trending: categoryStats['beaute']?.trending || false,
       subcategories: [
         { name: 'Maquillage', slug: 'maquillage', icon: <Eye className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=400&q=80' },
         { name: 'Soins de la Peau', slug: 'soins-peau', icon: <Droplet className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&q=80' },
@@ -83,6 +187,8 @@ const MegaMenu = () => {
       icon: <Activity className="w-6 h-6" />,
       color: 'from-green-500 to-emerald-500',
       image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
+      badge: categoryStats['sport']?.product_count > 0 ? `${categoryStats['sport'].product_count}+` : null,
+      trending: categoryStats['sport']?.trending || false,
       subcategories: [
         { name: 'Fitness', slug: 'fitness', icon: <Dumbbell className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80' },
         { name: 'Vélos', slug: 'velos', icon: <Bike className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400&q=80' },
@@ -98,10 +204,12 @@ const MegaMenu = () => {
       icon: <Baby className="w-6 h-6" />,
       color: 'from-yellow-400 to-amber-500',
       image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80',
+      badge: categoryStats['bebes-enfants']?.product_count > 0 ? `${categoryStats['bebes-enfants'].product_count}+` : null,
+      trending: categoryStats['bebes-enfants']?.trending || false,
       subcategories: [
         { name: 'Vêtements Bébé', slug: 'vetements-bebe', icon: <Baby className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=400&q=80' },
         { name: 'Jouets', slug: 'jouets', icon: <Gamepad2 className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400&q=80' },
-        { name: 'Puériculture', slug: 'puericulture', icon: <Package className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1596701552554-994cd2f54013?w=400&q=80' },
+        { name: 'Puériculture', slug: 'puericulture', icon: <Package className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1599599516354-58f1948565ee?w=400&q=80' },
         { name: 'Chambre Enfant', slug: 'chambre-enfant', icon: <Home className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1505693416388-ae281c503eb7?w=400&q=80' },
         { name: 'Livres & Éducation', slug: 'livres-education', icon: <Book className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80' },
         { name: 'Sécurité', slug: 'securite-enfant', icon: <Shield className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1599599516354-58f1948565ee?w=400&q=80' },
@@ -113,6 +221,8 @@ const MegaMenu = () => {
       icon: <Coffee className="w-6 h-6" />,
       color: 'from-red-500 to-pink-500',
       image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80',
+      badge: categoryStats['alimentation']?.product_count > 0 ? `${categoryStats['alimentation'].product_count}+` : null,
+      trending: categoryStats['alimentation']?.trending || false,
       subcategories: [
         { name: 'Produits Frais', slug: 'produits-frais', icon: <Apple className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80' },
         { name: 'Épicerie', slug: 'epicerie', icon: <ShoppingCart className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80' },
@@ -128,6 +238,8 @@ const MegaMenu = () => {
       icon: <Car className="w-6 h-6" />,
       color: 'from-slate-600 to-slate-800',
       image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&q=80',
+      badge: categoryStats['auto-moto']?.product_count > 0 ? `${categoryStats['auto-moto'].product_count}+` : null,
+      trending: categoryStats['auto-moto']?.trending || false,
       subcategories: [
         { name: 'Pièces Auto', slug: 'pieces-auto', icon: <Wrench className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80' },
         { name: 'Accessoires Auto', slug: 'accessoires-auto', icon: <Car className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&q=80' },
@@ -136,128 +248,343 @@ const MegaMenu = () => {
         { name: 'Outils', slug: 'outils', icon: <Wrench className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&q=80' },
         { name: 'Entretien', slug: 'entretien', icon: <Droplet className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1619642751034-760dfbf21cf1?w=400&q=80' },
       ]
+    },
+    {
+      id: 'forum',
+      name: 'Forum',
+      icon: <MessageSquare className="w-6 h-6" />,
+      color: 'from-purple-600 to-indigo-600',
+      image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80',
+      badge: null,
+      trending: false,
+      isForum: true,
+      subcategories: [
+        { name: 'Vendeurs', slug: 'forum-vendors', icon: <Briefcase className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&q=80' },
+        { name: 'Entreprises', slug: 'forum-enterprises', icon: <Building2 className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
+        { name: 'Discussions', slug: 'forum-general', icon: <Users className="w-4 h-4" />, image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=80' },
+      ]
     }
   ];
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setActiveCategory(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const menuBg = darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200';
+  const textColor = darkMode ? 'text-white' : 'text-gray-800';
+  const subTextColor = darkMode ? 'text-gray-300' : 'text-gray-600';
+  const hoverBg = darkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-100';
+  const dropdownBg = darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100';
 
   return (
-    <div className="border-b border-gray-200 bg-white shadow-sm" ref={menuRef}>
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between py-3">
-          {/* Categories */}
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="relative group"
-                onMouseEnter={() => setActiveCategory(category.id)}
-                onMouseLeave={() => setActiveCategory(null)}
-              >
-                <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-all duration-200 group-hover:scale-105"
-                style={{ minWidth: '140px' }}
-                onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
-                aria-expanded={activeCategory === category.id}
-                  aria-haspopup="true"
+    <>
+      {/* Desktop Menu */}
+      <div className={`border-b shadow-sm hidden md:block ${menuBg}`} ref={menuRef}>
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between py-3">
+            {/* Categories */}
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  className="relative group"
+                  onMouseEnter={() => handleMouseEnter(category.id)}
+                  onMouseLeave={handleMouseLeave}
                 >
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color} text-white`}>
-                    {category.icon}
-                  </div>
-                  <span className="font-semibold text-gray-800 text-sm whitespace-nowrap">{category.name}</span>
-                  <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${activeCategory === category.id ? 'rotate-90' : ''}`} />
-                </button>
-
-                {/* Mega Menu Dropdown */}
-                {activeCategory === category.id && (
-                  <div className="absolute left-0 top-full mt-2 w-[800px] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                    <div className="flex h-[400px]">
-                      {/* Left Panel - Subcategories */}
-                      <div className="w-1/2 p-6 border-r border-gray-100 overflow-y-auto">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          {category.icon}
-                          {category.name}
-                        </h3>
-                        <div className="space-y-2">
-                          {category.subcategories.map((sub) => (
-                            <Link
-                              key={sub.slug}
-                              to={`/category/${sub.slug}`}
-                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 transition-all duration-200 group/sub"
-                              onClick={() => setActiveCategory(null)}
-                            >
-                              <div className="p-2 rounded-lg bg-gray-100 group-hover/sub:bg-gradient-to-br group-hover/sub:from-purple-500 group-hover/sub:to-pink-500 text-gray-600 group-hover/sub:text-white transition-all duration-200">
-                                {sub.icon}
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-medium text-gray-800 group-hover/sub:text-purple-700 transition-colors">{sub.name}</span>
-                              </div>
-                              <ChevronRight className="w-4 h-4 text-gray-400 group-hover/sub:text-purple-500 group-hover/sub:translate-x-1 transition-all duration-200" />
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Right Panel - Featured Image */}
-                      <div className="w-1/2 relative overflow-hidden">
-                        <img
-                          src={category.image}
-                          alt={category.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-6">
-                          <h4 className="text-white text-xl font-bold mb-2">Découvrez {category.name}</h4>
-                          <p className="text-white/80 text-sm mb-4">Explorez notre sélection de produits {category.name.toLowerCase()}</p>
-                          <Link
-                            to={`/category/${category.subcategories[0]?.slug || category.id}`}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-full font-semibold hover:bg-purple-600 hover:text-white transition-all duration-200"
-                            onClick={() => setActiveCategory(null)}
-                          >
-                            Voir tout
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
-                        </div>
-                      </div>
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg ${hoverBg} transition-all duration-200 group-hover:scale-105`}
+                    style={{ minWidth: '140px' }}
+                    onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
+                    onKeyDown={(e) => handleKeyDown(e, category.id)}
+                    aria-expanded={activeCategory === category.id}
+                    aria-haspopup="true"
+                    aria-controls={`submenu-${category.id}`}
+                  >
+                    <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color} text-white`}>
+                      {category.icon}
                     </div>
-                  </div>
+                    <span className={`font-semibold ${textColor} text-sm whitespace-nowrap`}>{category.name}</span>
+                    {category.trending && (
+                      <Flame className="w-4 h-4 text-orange-500" />
+                    )}
+                    {category.badge && (
+                      <span className="px-2 py-0.5 bg-purple-500 text-white text-xs rounded-full">
+                        {category.badge}
+                      </span>
+                    )}
+                    <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${activeCategory === category.id ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {/* Mega Menu Dropdown */}
+                  <AnimatePresence>
+                    {activeCategory === category.id && (
+                      <motion.div
+                        id={`submenu-${category.id}`}
+                        role="menu"
+                        aria-label={`Menu ${category.name}`}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className={`absolute left-0 top-full mt-2 w-[800px] rounded-2xl shadow-2xl z-50 overflow-hidden ${dropdownBg}`}
+                      >
+                        <div className="flex h-[400px]">
+                          {/* Left Panel - Subcategories */}
+                          <div className={`w-1/2 p-6 border-r ${darkMode ? 'border-slate-700' : 'border-gray-100'} overflow-y-auto`}>
+                            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${textColor}`}>
+                              {category.icon}
+                              {category.name}
+                            </h3>
+                            <div className="space-y-2">
+                              {category.subcategories.map((sub) => (
+                                <Link
+                                  key={sub.slug}
+                                  to={category.isForum ? `/forum?category=${sub.slug}` : `/category/${sub.slug}`}
+                                  className={`flex items-center gap-3 p-3 rounded-xl ${hoverBg} transition-all duration-200 group/sub`}
+                                  onClick={() => setActiveCategory(null)}
+                                >
+                                  <div className={`p-2 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-gray-100'} group-hover/sub:bg-gradient-to-br group-hover/sub:from-purple-500 group-hover/sub:to-pink-500 ${darkMode ? 'text-gray-300' : 'text-gray-600'} group-hover/sub:text-white transition-all duration-200`}>
+                                    {sub.icon}
+                                  </div>
+                                  <div className="flex-1">
+                                    <span className={`font-medium ${textColor} group-hover/sub:text-purple-700 transition-colors`}>{sub.name}</span>
+                                  </div>
+                                  <ChevronRight className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-400'} group-hover/sub:text-purple-500 group-hover/sub:translate-x-1 transition-all duration-200`} />
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Right Panel - Featured Image */}
+                          <div className="w-1/2 relative overflow-hidden">
+                            <img
+                              src={category.image}
+                              alt={category.name}
+                              loading="lazy"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = 'https://via.placeholder.com/800x400?text=Image+non+disponible';
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-6">
+                              <h4 className="text-white text-xl font-bold mb-2">Découvrez {category.name}</h4>
+                              <p className="text-white/80 text-sm mb-4">Explorez notre sélection de produits {category.name.toLowerCase()}</p>
+                              <Link
+                                to={category.isForum ? '/forum' : `/category/${category.subcategories[0]?.slug || category.id}`}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-full font-semibold hover:bg-purple-600 hover:text-white transition-all duration-200"
+                                onClick={() => setActiveCategory(null)}
+                              >
+                                Voir tout
+                                <ChevronRight className="w-4 h-4" />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+
+            {/* Search & Actions */}
+            <div className="flex items-center gap-4">
+              {/* Quick Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher..."
+                  className={`pl-9 pr-4 py-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-800 placeholder-gray-500'}`}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 )}
               </div>
-            ))}
-          </div>
 
-          {/* Special Offers */}
-          <div className="flex items-center gap-4">
-            {(isVendor || isEnterprise) && (
-              <Link
-                to="/forum"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 hover:scale-105"
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => {
+                  setDarkMode(!darkMode);
+                  localStorage.setItem('theme', darkMode ? 'light' : 'dark');
+                }}
+                className={`p-2 rounded-lg ${hoverBg} transition-colors`}
+                aria-label={darkMode ? 'Activer le mode clair' : 'Activer le mode sombre'}
               >
-                <MessageSquare className="w-4 h-4" />
-                <span className="font-semibold text-sm">Forum</span>
+                {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-600" />}
+              </button>
+
+              {/* Special Offers */}
+              <Link
+                to="/produits?discount=true"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200 hover:scale-105"
+              >
+                <Gift className="w-4 h-4" />
+                <span className="font-semibold text-sm">Promotions</span>
               </Link>
-            )}
-            <Link
-              to="/produits?discount=true"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 transition-all duration-200 hover:scale-105"
-            >
-              <Gift className="w-4 h-4" />
-              <span className="font-semibold text-sm">Promotions</span>
-            </Link>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Mobile Menu Button */}
+      <div className={`md:hidden border-b ${menuBg}`}>
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className={`p-2 rounded-lg ${hoverBg}`}
+              aria-label="Ouvrir le menu"
+            >
+              <Menu className={`w-6 h-6 ${textColor}`} />
+            </button>
+
+            {/* Quick Search Mobile */}
+            <div className="flex-1 mx-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher..."
+                  className={`w-full pl-9 pr-4 py-2 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-800 placeholder-gray-500'}`}
+                />
+              </div>
+            </div>
+
+            {/* Dark Mode Toggle Mobile */}
+            <button
+              onClick={() => {
+                setDarkMode(!darkMode);
+                localStorage.setItem('theme', darkMode ? 'light' : 'dark');
+              }}
+              className={`p-2 rounded-lg ${hoverBg}`}
+            >
+              {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-600" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Sidebar */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              ref={mobileMenuRef}
+              className={`fixed left-0 top-0 bottom-0 w-80 z-50 overflow-y-auto ${darkMode ? 'bg-slate-800' : 'bg-white'} md:hidden`}
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            >
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className={`text-xl font-bold ${textColor}`}>Catégories</h2>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`p-2 rounded-lg ${hoverBg}`}
+                  >
+                    <X className={`w-5 h-5 ${textColor}`} />
+                  </button>
+                </div>
+
+                {/* Recommended Categories */}
+                {recommendedCategories.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className={`text-sm font-semibold ${subTextColor} mb-3 flex items-center gap-2`}>
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      Recommandé pour vous
+                    </h3>
+                    <div className="space-y-2">
+                      {recommendedCategories.map((catId) => {
+                        const cat = categories.find(c => c.id === catId);
+                        if (!cat) return null;
+                        return (
+                          <Link
+                            key={cat.id}
+                            to={cat.isForum ? '/forum' : `/category/${cat.subcategories[0]?.slug || cat.id}`}
+                            className={`flex items-center gap-3 p-3 rounded-lg ${hoverBg}`}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <div className={`p-2 rounded-lg bg-gradient-to-br ${cat.color} text-white`}>
+                              {cat.icon}
+                            </div>
+                            <span className={`font-medium ${textColor}`}>{cat.name}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* All Categories */}
+                <div className="space-y-2">
+                  {categories.map((category) => (
+                    <div key={category.id}>
+                      <button
+                        onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg ${hoverBg} transition-colors`}
+                      >
+                        <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color} text-white`}>
+                          {category.icon}
+                        </div>
+                        <span className={`font-medium ${textColor}`}>{category.name}</span>
+                        {category.trending && <Flame className="w-4 h-4 text-orange-500" />}
+                        <ChevronRight className={`w-4 h-4 ml-auto transition-transform ${activeCategory === category.id ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {activeCategory === category.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="ml-4 mt-2 space-y-1"
+                        >
+                          {category.subcategories.map((sub) => (
+                            <Link
+                              key={sub.slug}
+                              to={category.isForum ? `/forum?category=${sub.slug}` : `/category/${sub.slug}`}
+                              className={`block px-4 py-2 rounded-lg ${subTextColor} ${hoverBg} text-sm`}
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              {sub.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick Links */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <Link
+                    to="/produits?discount=true"
+                    className={`flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white ${hoverBg}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Gift className="w-5 h-5" />
+                    <span className="font-semibold">Promotions</span>
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

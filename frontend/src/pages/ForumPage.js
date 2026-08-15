@@ -14,6 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import MediaImg from '../components/MediaImg';
+import { forumWebSocket } from '../services/forumWebSocket';
+import { MentionParser, MentionRenderer } from '../components/MentionParser';
+import ThreadedComment from '../components/ThreadedComment';
+import MarkdownEditor from '../components/MarkdownEditor';
+import AdvancedSearch from '../components/AdvancedSearch';
+import NotificationBell from '../components/NotificationBell';
 
 import { API_URL } from '../config/api';
 const API = API_URL;
@@ -42,6 +48,8 @@ const ForumPage = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [showNewTopicModal, setShowNewTopicModal] = useState(false);
   const [showNewCommentModal, setShowNewCommentModal] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchTotalPages, setSearchTotalPages] = useState(1);
   
   // New topic form
   const [newTopic, setNewTopic] = useState({
@@ -69,6 +77,132 @@ const ForumPage = () => {
   const imageInputRef = useRef(null);
   const documentInputRef = useRef(null);
   const audioInputRef = useRef(null);
+
+  // WebSocket state
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [mentionedUsers, setMentionedUsers] = useState([]);
+
+  // Connect to WebSocket when viewing a topic
+  useEffect(() => {
+    if (!currentTopic?.id || !token || !user?.id) return;
+
+    // Disconnect from previous connection
+    forumWebSocket.disconnect();
+
+    // Connect to new topic
+    forumWebSocket.connect(currentTopic.id, token, user.id);
+
+    // Set up event listeners
+    forumWebSocket.on('connected', () => {
+      setIsWebSocketConnected(true);
+      toast.success('Connecté en temps réel');
+    });
+
+    forumWebSocket.on('disconnected', () => {
+      setIsWebSocketConnected(false);
+    });
+
+    forumWebSocket.on('newComment', (data) => {
+      // Reload comments when new comment is received
+      loadTopic(currentTopic.id);
+    });
+
+    forumWebSocket.on('typing', (data) => {
+      setTypingUsers(prev => [...new Set([...prev, data.user_id])]);
+    });
+
+    forumWebSocket.on('typingStopped', (data) => {
+      setTypingUsers(prev => prev.filter(id => id !== data.user_id));
+    });
+
+    forumWebSocket.on('userJoined', (data) => {
+      toast.success(`${data.user_id} a rejoint le topic`);
+    });
+
+    forumWebSocket.on('userLeft', (data) => {
+      setOnlineUsers(prev => prev.filter(id => id !== data.user_id));
+    });
+
+    forumWebSocket.on('presenceUpdate', (data) => {
+      setOnlineUsers(data.online_users || []);
+    });
+
+    forumWebSocket.on('notification', (data) => {
+      toast(data.notification.message || 'Nouvelle notification');
+    });
+
+    return () => {
+      forumWebSocket.disconnect();
+      setIsWebSocketConnected(false);
+    };
+  }, [currentTopic?.id, token, user?.id]);
+
+  // Send typing indicator when user is typing a comment
+  const handleTyping = useCallback(() => {
+    if (currentTopic?.id && isWebSocketConnected) {
+      forumWebSocket.sendTyping();
+    }
+  }, [currentTopic?.id, isWebSocketConnected]);
+
+  // Handle voting on comments
+  const handleVoteComment = async (commentId, voteType) => {
+    try {
+      const response = await axios.post(
+        `${API}/forum/comments/${commentId}/vote`,
+        { vote_type: voteType },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Reload comments to show updated vote counts
+      loadTopic(currentTopic.id);
+      toast.success('Vote enregistré');
+    } catch (error) {
+      console.error('Error voting on comment:', error);
+      toast.error('Erreur lors du vote');
+    }
+  };
+
+  // Handle marking best answer
+  const handleMarkBestAnswer = async (commentId) => {
+    try {
+      await axios.post(
+        `${API}/forum/topics/${currentTopic.id}/best-answer`,
+        { comment_id: commentId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      loadTopic(currentTopic.id);
+      toast.success('Meilleure réponse marquée');
+    } catch (error) {
+      console.error('Error marking best answer:', error);
+      toast.error('Erreur lors du marquage');
+    }
+  };
+
+  // Handle nested reply
+  const handleReplyComment = async (parentId, content) => {
+    try {
+      const commentData = {
+        content,
+        parent_id: parentId,
+        topic_id: currentTopic.id
+      };
+
+      const response = await axios.post(
+        `${API}/forum/topics/${currentTopic.id}/comments`,
+        commentData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Réponse ajoutée');
+      loadTopic(currentTopic.id);
+    } catch (error) {
+      console.error('Error creating reply:', error);
+      toast.error('Erreur lors de l\'ajout de la réponse');
+    }
+  };
 
   // Real-time updates with polling (WebSocket can be added later)
   useEffect(() => {
@@ -201,6 +335,30 @@ const ForumPage = () => {
       toast.error('Erreur lors du chargement de la catégorie');
     }
   };
+
+  const loadMentionableUsers = async () => {
+    try {
+      // TODO: Replace with actual API call to get users who can be mentioned
+      // const response = await axios.get(`${API}/users`, {
+      //   headers: { Authorization: `Bearer ${token}` }
+      // });
+      // setMentionedUsers(response.data);
+
+      // Mock data for now
+      const mockUsers = [
+        { id: 1, name: 'Jean Dupont', username: 'jeandupont', avatar: null },
+        { id: 2, name: 'Marie Curie', username: 'mariecurie', avatar: null },
+        { id: 3, name: 'Admin', username: 'admin', avatar: null },
+      ];
+      setMentionedUsers(mockUsers);
+    } catch (error) {
+      console.error('Error loading mentionable users:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadMentionableUsers();
+  }, [token]);
 
   const loadTopic = async (id) => {
     try {
@@ -456,7 +614,15 @@ const ForumPage = () => {
             <span className="font-medium text-sm">{comment.author_name}</span>
             <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
           </div>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            <MentionRenderer
+              content={comment.content}
+              onMentionClick={(username) => {
+                console.log('Clicked mention:', username);
+                // TODO: Navigate to user profile
+              }}
+            />
+          </p>
           
           {/* Reactions */}
           {comment.reactions && comment.reactions.length > 0 && (
@@ -587,6 +753,7 @@ const ForumPage = () => {
             </div>
             
             <div className="flex items-center gap-3">
+              <NotificationBell token={token} user={user} />
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -880,6 +1047,28 @@ const ForumPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Typing indicator */}
+                {typingUsers.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-purple-400 bg-purple-500/10 px-3 py-2 rounded-lg">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    </div>
+                    <span>
+                      {typingUsers.length === 1 ? 'Quelqu\'un écrit...' : `${typingUsers.length} personnes écrivent...`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Online users indicator */}
+                {onlineUsers.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-green-400">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span>{onlineUsers.length} en ligne</span>
+                  </div>
+                )}
+
                 {comments.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -887,169 +1076,21 @@ const ForumPage = () => {
                     <p className="text-sm">Soyez le premier à réagir !</p>
                   </div>
                 ) : (
-                  comments.map((comment) => (
-                    <div key={comment.id} className="border-b border-gray-100 pb-4 last:border-0">
-                      <div className="flex items-start gap-3">
-                        {comment.author_avatar ? (
-                          <MediaImg 
-                            src={comment.author_avatar} 
-                            alt={comment.author_name}
-                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {comment.author_name?.[0] || 'U'}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm">{comment.author_name}</span>
-                            <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
-                          </div>
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
-                          
-                          {/* Media display */}
-                          {comment.media_url && (
-                            <div className="mt-2">
-                              <MediaImg 
-                                src={comment.media_url} 
-                                alt="Media"
-                                className="max-w-[70%] h-auto rounded-lg"
-                              />
-                            </div>
-                          )}
-                          
-                          {/* Audio display */}
-                          {comment.audio_url && (
-                            <div className="mt-2">
-                              <audio controls className="w-full">
-                                <source src={comment.audio_url} type="audio/webm" />
-                                Votre navigateur ne supporte pas l'audio.
-                              </audio>
-                            </div>
-                          )}
-                          
-                          {/* Reactions */}
-                          {comment.reactions && comment.reactions.length > 0 && (
-                            <div className="flex gap-1 mt-2">
-                              {comment.reactions.map((reaction, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {reaction.emoji} {reaction.user_name}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Actions */}
-                          <div className="flex items-center gap-2 mt-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setNewComment({ ...newComment, parent_id: comment.id });
-                                setShowNewCommentModal(true);
-                              }}
-                            >
-                              <Reply className="w-4 h-4 mr-1" />
-                              Répondre
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleAddReaction(comment.id, '👍')}
-                            >
-                              👍
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleAddReaction(comment.id, '❤️')}
-                            >
-                              ❤️
-                            </Button>
-                            {(comment.author_id === user?.id || user?.role === 'admin') && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteComment(comment.id)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          
-                          {/* Nested Comments */}
-                          {comment.replies && comment.replies.length > 0 && (
-                            <div className="ml-8 mt-4 space-y-4 border-l-2 border-purple-200 pl-4">
-                              {comment.replies.map((reply) => (
-                                <div key={reply.id} className="flex items-start gap-3">
-                                  {reply.author_avatar ? (
-                                    <MediaImg 
-                                      src={reply.author_avatar} 
-                                      alt={reply.author_name}
-                                      className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                                      {reply.author_name?.[0] || 'U'}
-                                    </div>
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-medium text-xs">{reply.author_name}</span>
-                                      <span className="text-xs text-gray-400">{formatDate(reply.created_at)}</span>
-                                    </div>
-                                    <p className="text-xs text-gray-700 whitespace-pre-wrap">{reply.content}</p>
-                                    
-                                    {/* Reply media display */}
-                                    {reply.media_url && (
-                                      <div className="mt-2">
-                                        <MediaImg 
-                                          src={reply.media_url} 
-                                          alt="Media"
-                                          className="max-w-[50%] h-auto rounded-lg"
-                                        />
-                                      </div>
-                                    )}
-                                    
-                                    {/* Reply audio display */}
-                                    {reply.audio_url && (
-                                      <div className="mt-2">
-                                        <audio controls className="w-full">
-                                          <source src={reply.audio_url} type="audio/webm" />
-                                        </audio>
-                                      </div>
-                                    )}
-                                    
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleAddReaction(reply.id, '👍')}
-                                      >
-                                        👍
-                                      </Button>
-                                      {(reply.author_id === user?.id || user?.role === 'admin') && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleDeleteComment(reply.id)}
-                                          className="text-red-500 hover:text-red-700"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  comments
+                    .filter(comment => !comment.parent_id) // Only show top-level comments
+                    .map((comment) => (
+                      <ThreadedComment
+                        key={comment.id}
+                        comment={comment}
+                        onReply={handleReplyComment}
+                        onVote={handleVoteComment}
+                        onMarkBestAnswer={handleMarkBestAnswer}
+                        isBestAnswer={currentTopic?.best_answer_id === comment.id}
+                        isTopicAuthor={currentTopic?.author_id === user?.id}
+                        currentUserId={user?.id}
+                        children={comments.filter(c => c.parent_id === comment.id)}
+                      />
+                    ))
                 )}
               </CardContent>
             </Card>
@@ -1059,24 +1100,35 @@ const ForumPage = () => {
         {/* Search Results */}
         {activeView === 'search' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
-                Résultats pour "{searchQuery}"
-              </h2>
-              <Button variant="outline" onClick={() => { 
-                setActiveView('categories');
-                axios.get(`${API}/forum/categories`, {
-                  headers: { Authorization: `Bearer ${token}` }
-                }).then(response => {
-                  setCategories(response.data);
-                }).catch(error => {
-                  console.error('Error loading categories:', error);
-                });
-              }}>
-                <X className="w-4 h-4 mr-2" />
-                Effacer
-              </Button>
-            </div>
+            <AdvancedSearch 
+              token={token}
+              onSearchResults={(results) => {
+                setSearchResults(results.results || []);
+                setSearchTotalPages(results.total_pages || 1);
+                setSearchPage(results.page || 1);
+              }}
+            />
+            
+            {searchResults.length > 0 && (
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Résultats pour "{searchQuery}"
+                </h2>
+                <Button variant="outline" onClick={() => { 
+                  setActiveView('categories');
+                  axios.get(`${API}/forum/categories`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  }).then(response => {
+                    setCategories(response.data);
+                  }).catch(error => {
+                    console.error('Error loading categories:', error);
+                  });
+                }}>
+                  <X className="w-4 h-4 mr-2" />
+                  Effacer
+                </Button>
+              </div>
+            )}
             
             {searchResults.length === 0 ? (
               <Card>
@@ -1111,8 +1163,22 @@ const ForumPage = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 mb-1">{topic.title}</h3>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">{topic.content}</p>
+                        <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                          {topic.title}
+                          {topic.score && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                              {Math.round(topic.score * 100)}% pertinence
+                            </span>
+                          )}
+                        </h3>
+                        {topic.highlights && topic.highlights.content ? (
+                          <p 
+                            className="text-sm text-gray-600 line-clamp-2 mb-2"
+                            dangerouslySetInnerHTML={{ __html: topic.highlights.content[0] }}
+                          />
+                        ) : (
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">{topic.content}</p>
+                        )}
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
@@ -1132,6 +1198,33 @@ const ForumPage = () => {
                   </CardContent>
                 </Card>
               ))
+            )}
+            
+            {/* Pagination */}
+            {searchTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  disabled={searchPage === 1}
+                  onClick={() => {
+                    // TODO: Implement pagination with AdvancedSearch
+                  }}
+                >
+                  Précédent
+                </Button>
+                <span className="text-sm text-slate-600">
+                  Page {searchPage} sur {searchTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={searchPage === searchTotalPages}
+                  onClick={() => {
+                    // TODO: Implement pagination with AdvancedSearch
+                  }}
+                >
+                  Suivant
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -1161,12 +1254,12 @@ const ForumPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-300">Contenu *</label>
-                <textarea
+                <MarkdownEditor
                   value={newTopic.content}
-                  onChange={(e) => setNewTopic({ ...newTopic, content: e.target.value })}
-                  placeholder="Écrivez votre message..."
+                  onChange={(value) => setNewTopic({ ...newTopic, content: value })}
+                  placeholder="Écrivez votre message en Markdown..."
                   rows={6}
-                  className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  showPreview={false}
                 />
               </div>
               <Button onClick={handleCreateTopic} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
@@ -1194,12 +1287,20 @@ const ForumPage = () => {
             <CardContent className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2 text-slate-300">Commentaire</label>
-                <textarea
+                <MarkdownEditor
                   value={newComment.content}
-                  onChange={(e) => setNewComment({ ...newComment, content: e.target.value })}
-                  placeholder="Écrivez votre commentaire..."
+                  onChange={(value) => {
+                    setNewComment({ ...newComment, content: value });
+                    handleTyping();
+                  }}
+                  placeholder="Écrivez votre commentaire en Markdown... Utilisez @ pour mentionner quelqu'un"
                   rows={4}
-                  className="w-full p-3 border border-slate-600 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  enableMentions={true}
+                  mentionedUsers={mentionedUsers}
+                  onMention={(user) => {
+                    console.log('Mentioned user:', user);
+                    // TODO: Send notification to mentioned user
+                  }}
                 />
               </div>
               

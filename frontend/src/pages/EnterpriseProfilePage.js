@@ -332,21 +332,21 @@ const EnterpriseProfilePage = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-yellow-600" />
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Award className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-semibold">Top vendeur</p>
-                    <p className="text-sm text-gray-500">Mois dernier</p>
+                    <p className="font-semibold">Certifié Premium</p>
+                    <p className="text-sm text-gray-500">Vendeur vérifié</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-blue-600" />
+                    <Award className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-semibold">Certifié</p>
-                    <p className="text-sm text-gray-500">Vendeur premium</p>
+                    <p className="font-semibold">Service Client Excellence</p>
+                    <p className="text-sm text-gray-500">Certifié Cloleo</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -354,8 +354,8 @@ const EnterpriseProfilePage = () => {
                     <Target className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="font-semibold">Objectif atteint</p>
-                    <p className="text-sm text-gray-500">+20% de ventes</p>
+                    <p className="font-semibold">Livraison parfaite</p>
+                    <p className="text-sm text-gray-500">95% de complétion</p>
                   </div>
                 </div>
               </div>
@@ -480,14 +480,14 @@ const EnterpriseProfilePage = () => {
                     <p className="text-xs text-gray-600">500+ ventes</p>
                   </div>
                   <div className="flex flex-col items-center p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg">
-                    <Award className="w-8 h-8 text-amber-600 mb-2" />
+                    <Trophy className="w-8 h-8 text-amber-600 mb-2" />
                     <p className="font-semibold text-amber-800">Étoile du mois</p>
-                    <p className="text-xs text-amber-600">Mai 2026</p>
+                    <p className="text-xs text-amber-600">Meilleur vendeur Mai 2026</p>
                   </div>
                   <div className="flex flex-col items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                    <Shield className="w-8 h-8 text-blue-600 mb-2" />
-                    <p className="font-semibold text-blue-800">Certifié Pro</p>
-                    <p className="text-xs text-blue-600">Depuis 2024</p>
+                    <Trophy className="w-8 h-8 text-blue-600 mb-2" />
+                    <p className="font-semibold text-blue-800">Livreur Express</p>
+                    <p className="text-xs text-blue-600">Livraison en moins de 24h</p>
                   </div>
                 </div>
               </CardContent>

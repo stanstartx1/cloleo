@@ -1275,7 +1275,7 @@ async def create_trophy(trophy_data: dict, current_enterprise = Depends(get_curr
 
             "id": str(uuid.uuid4()),
 
-            "enterprise_id": current_user["id"],
+            "enterprise_id": current_enterprise["id"],
 
             "title": trophy_data.get("title"),
 
@@ -1367,7 +1367,7 @@ async def create_certification(cert_data: dict, current_enterprise = Depends(get
 
             "id": str(uuid.uuid4()),
 
-            "enterprise_id": current_user["id"],
+            "enterprise_id": current_enterprise["id"],
 
             "name": cert_data.get("name"),
 
@@ -1811,3 +1811,100 @@ async def delete_testimonial(testimonial_id: str, current_enterprise = Depends(g
 
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+# Achievement endpoints
+
+@router.get("/achievements")
+
+async def get_achievements(current_enterprise = Depends(get_current_enterprise)):
+
+    """Get achievements for the current enterprise"""
+
+    try:
+
+        achievements = await db.enterprise_achievements.find({"enterprise_id": current_enterprise["id"]}).to_list(length=None)
+
+        return achievements or []
+
+    except Exception as e:
+
+        return []
+
+
+
+@router.post("/achievements")
+
+async def create_achievement(achievement_data: dict, current_enterprise = Depends(get_current_enterprise)):
+
+    """Create a new achievement for the enterprise"""
+
+    try:
+
+        import uuid
+
+        achievement = {
+
+            "id": str(uuid.uuid4()),
+
+            "enterprise_id": current_enterprise["id"],
+
+            "title": achievement_data.get("title"),
+
+            "description": achievement_data.get("description"),
+
+            "progress": achievement_data.get("progress", 0),
+
+            "icon": achievement_data.get("icon", "🎯"),
+
+            "target_value": achievement_data.get("target_value"),
+
+            "created_at": datetime.utcnow()
+
+        }
+
+        await db.enterprise_achievements.insert_one(achievement)
+
+        return achievement
+
+    except Exception as e:
+
+        raise HTTPException(status_code=500, detail(str(e)))
+
+
+
+@router.put("/achievements/{achievement_id}")
+
+async def update_achievement(achievement_id: str, achievement_data: dict, current_enterprise = Depends(get_current_enterprise)):
+
+    """Update an achievement progress"""
+
+    try:
+
+        result = await db.enterprise_achievements.update_one(
+
+            {"id": achievement_id, "enterprise_id": current_enterprise["id"]},
+
+            {"$set": {
+
+                "progress": achievement_data.get("progress"),
+
+                "updated_at": datetime.utcnow()
+
+            }}
+
+        )
+
+        if result.modified_count == 0:
+
+            raise HTTPException(status_code=404, detail="Achievement not found")
+
+        return {"message": "Achievement updated successfully"}
+
+    except HTTPException:
+
+        raise
+
+    except Exception as e:
+
+        raise HTTPException(status_code=500, detail(str(e)))

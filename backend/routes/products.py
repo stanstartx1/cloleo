@@ -1,12 +1,56 @@
 ﻿# Products routes - Public API for browsing products
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from core.database import db
 from models.schemas import UserRole
 
 router = APIRouter(prefix="/products", tags=["Products"])
+
+
+@router.get("/categories/stats")
+async def get_category_stats():
+    """Get statistics for each category (product count, trending status)"""
+    try:
+        # Define category mappings
+        category_mappings = {
+            'electronique': ['smartphones', 'ordinateurs', 'tablettes', 'accessoires-tech', 'appareils-photo', 'montres-connectees'],
+            'mode': ['vetements-homme', 'vetements-femme', 'chaussures', 'sacs-maroquinerie', 'accessoires-mode', 'luxe'],
+            'maison': ['meubles', 'decoration', 'cuisine', 'electromenager', 'jardin', 'bricolage'],
+            'beaute': ['maquillage', 'soins-peau', 'parfums', 'capillaires', 'bien-etre', 'sante'],
+            'sport': ['fitness', 'velos', 'equipements-sport', 'running', 'sports-equipe', 'outdoor'],
+            'bebes-enfants': ['vetements-bebe', 'jouets', 'puericulture', 'chambre-enfant', 'livres-education', 'securite-enfant'],
+            'alimentation': ['produits-frais', 'epicerie', 'boissons', 'produits-locaux', 'bio-naturel', 'patisserie'],
+            'auto-moto': ['pieces-auto', 'accessoires-auto', 'moto', 'equipement-moto', 'outils', 'entretien']
+        }
+
+        stats = {}
+        
+        for category_id, subcategories in category_mappings.items():
+            # Count products in this category
+            product_count = await db.products.count_documents({
+                "status": "approved",
+                "category_slug": {"$in": subcategories}
+            })
+            
+            # Check if trending (more than 10 products added in last 7 days)
+            seven_days_ago = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
+            recent_count = await db.products.count_documents({
+                "status": "approved",
+                "category_slug": {"$in": subcategories},
+                "created_at": {"$gte": seven_days_ago.isoformat()}
+            })
+            
+            stats[category_id] = {
+                "product_count": product_count,
+                "trending": recent_count > 10
+            }
+        
+        return stats
+    except Exception as e:
+        print(f"Error getting category stats: {e}")
+        return {}
 
 
 async def _inject_seller_profile_photo(products):

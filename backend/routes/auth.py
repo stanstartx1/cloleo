@@ -1,5 +1,5 @@
 # Authentication routes
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from datetime import datetime, timezone, timedelta
 import hashlib
@@ -10,6 +10,7 @@ import os
 from pymongo.errors import PyMongoError
 
 from core.database import db
+from core.auth import get_current_user
 from models.schemas import (
     UserRegister,
     UserLogin,
@@ -247,3 +248,25 @@ async def register_driver(data: DriverRegister):
 
 # Export auth utilities for other modules
 __all__ = ["router", "hash_password", "verify_password", "create_token", "JWT_SECRET", "JWT_ALGORITHM"]
+
+
+@router.get("/user/recommended-categories")
+async def get_recommended_categories(user: dict = Depends(get_current_user)):
+    """Get recommended categories based on user's browsing history"""
+    try:
+        # For now, return random categories as recommendations
+        # In production, this would be based on actual user behavior
+        from random import sample
+        
+        all_categories = [
+            'electronique', 'mode', 'maison', 'beaute', 'sport', 
+            'bebes-enfants', 'alimentation', 'auto-moto'
+        ]
+        
+        # Return 3 random categories
+        recommended = sample(all_categories, min(3, len(all_categories)))
+        
+        return recommended
+    except Exception as e:
+        print(f"Error getting recommended categories: {e}")
+        return []
