@@ -14,7 +14,8 @@ import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import ChatMessageDeleteButton from '../components/ChatMessageDeleteButton';
 
-import { API_BASE, API_URL, WS_URL } from '../config/api';
+import { API_BASE, API_URL } from '../config/api';
+import { createChatRealtime } from '../services/chatRealtime';
 const API = API_URL;
 
 // Custom Audio Player Component (WhatsApp-style)
@@ -117,6 +118,7 @@ const CustomerChatPage = () => {
   const [typingUsers, setTypingUsers] = useState([]);
   const [recordingUsers, setRecordingUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -125,6 +127,7 @@ const CustomerChatPage = () => {
   const mediaRecorderRef = useRef(null);
   const recordingIntervalRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const discardRecordingRef = useRef(false);
 
   // Fetch all conversations
   const fetchConversations = useCallback(async () => {
@@ -305,7 +308,7 @@ const CustomerChatPage = () => {
   };
   
   // Typing indicator functionality
-  const setTypingStatus = async (isTyping: boolean) => {
+  const setTypingStatus = async (isTyping) => {
     if (!selectedConversation || !token) return;
     try {
       await axios.post(
@@ -343,7 +346,7 @@ const CustomerChatPage = () => {
   };
   
   // Voice recording indicator functionality
-  const setVoiceRecordingStatus = async (isRecording: boolean) => {
+  const setVoiceRecordingStatus = async (isRecording) => {
     if (!selectedConversation || !token) return;
     try {
       await axios.post(
@@ -368,6 +371,11 @@ const CustomerChatPage = () => {
       };
       
       mediaRecorderRef.current.onstop = async () => {
+        if (discardRecordingRef.current) {
+          discardRecordingRef.current = false;
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
         const audioBlob = new Blob(chunks, { type: 'audio/webm' });
         const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
         
@@ -402,6 +410,7 @@ const CustomerChatPage = () => {
       };
       
       mediaRecorderRef.current.start();
+      discardRecordingRef.current = false;
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -412,6 +421,7 @@ const CustomerChatPage = () => {
     } catch (error) {
       console.error('Error starting recording:', error);
       toast.error('Impossible d\'accéder au microphone');
+      throw error;
     }
   };
 
@@ -428,6 +438,7 @@ const CustomerChatPage = () => {
 
   const cancelRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      discardRecordingRef.current = true;
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (recordingIntervalRef.current) {
@@ -440,8 +451,12 @@ const CustomerChatPage = () => {
   
   // Override recording functions to send status
   const startRecordingWithStatus = async () => {
-    await setVoiceRecordingStatus(true);
-    await startRecording();
+    try {
+      await startRecording();
+      await setVoiceRecordingStatus(true);
+    } catch (_) {
+      await setVoiceRecordingStatus(false);
+    }
   };
   
   const stopRecordingWithStatus = () => {
@@ -454,9 +469,42 @@ const CustomerChatPage = () => {
     cancelRecording();
   };
   
-  // Poll for typing and recording status
+  // Authenticated WebSocket: messages, typing and voice-recording are immediate.
   useEffect(() => {
-    if (!selectedConversation || !token) return;
+    if (!selectedConversation?.id || !token) return undefined;
+    return createChatRealtime({
+      conversationId: selectedConversation.id,
+      token,
+      onStatusChange: setIsRealtimeConnected,
+      onEvent: (event) => {
+        if (event.type === 'new_message' && event.message) {
+          setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+          if (event.message.sender_id !== user?.id) {
+            setTypingUsers([]);
+            setRecordingUsers([]);
+          }
+          fetchConversations();
+          return;
+        }
+        if (event.type === 'message_deleted' && event.message_id) {
+          setMessages(prev => prev.filter(message => message.id !== event.message_id));
+          return;
+        }
+        if (event.user_id === user?.id) return;
+        const participant = { id: event.user_id, name: selectedConversation.other_party_name || selectedConversation.seller_name || 'Votre interlocuteur' };
+        if (event.type === 'typing_status') {
+          setTypingUsers(event.is_typing ? [participant] : []);
+        }
+        if (event.type === 'voice_recording_status') {
+          setRecordingUsers(event.is_recording ? [participant] : []);
+        }
+      },
+    });
+  }, [selectedConversation?.id, selectedConversation?.other_party_name, selectedConversation?.seller_name, token, user?.id, fetchConversations]);
+
+  // Fallback for proxies or networks that block WebSocket connections.
+  useEffect(() => {
+    if (!selectedConversation || !token || isRealtimeConnected) return;
     
     const pollInterval = setInterval(async () => {
       try {
@@ -474,10 +522,10 @@ const CustomerChatPage = () => {
       } catch (error) {
         console.error('Error polling status:', error);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 3000);
     
     return () => clearInterval(pollInterval);
-  }, [selectedConversation, token]);
+  }, [selectedConversation, token, isRealtimeConnected]);
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);

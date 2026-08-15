@@ -11,7 +11,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const ChatContext = createContext(null);
-import { API_URL, WS_URL } from '../config/api';
+import { API_URL } from '../config/api';
+import { createChatRealtime } from '../services/chatRealtime';
 const API = API_URL;
 
 // Custom Audio Player Component (WhatsApp-style)
@@ -209,6 +210,7 @@ const FloatingChat = () => {
   const [typingUsers, setTypingUsers] = useState([]);
   const [recordingUsers, setRecordingUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const listEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -217,6 +219,7 @@ const FloatingChat = () => {
   const recordingIntervalRef = useRef(null);
   const audioChunksRef = useRef([]);
   const typingTimeoutRef = useRef(null);
+  const discardRecordingRef = useRef(false);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
   const canOpenProduct =
@@ -413,6 +416,12 @@ const FloatingChat = () => {
       };
       
       mediaRecorderRef.current.onstop = async () => {
+        if (discardRecordingRef.current) {
+          discardRecordingRef.current = false;
+          stream.getTracks().forEach(track => track.stop());
+          audioChunksRef.current = [];
+          return;
+        }
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
         
@@ -443,6 +452,7 @@ const FloatingChat = () => {
       };
       
       mediaRecorderRef.current.start();
+      discardRecordingRef.current = false;
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -453,6 +463,7 @@ const FloatingChat = () => {
     } catch (error) {
       console.error('Error starting recording:', error);
       toast.error('Impossible d\'accéder au microphone');
+      throw error;
     }
   };
 
@@ -469,6 +480,7 @@ const FloatingChat = () => {
 
   const cancelRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      discardRecordingRef.current = true;
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (recordingIntervalRef.current) {
@@ -575,8 +587,12 @@ const FloatingChat = () => {
   
   // Override recording functions to send status
   const startRecordingWithStatus = async () => {
-    await setVoiceRecordingStatus(true);
-    await startRecording();
+    try {
+      await startRecording();
+      await setVoiceRecordingStatus(true);
+    } catch (_) {
+      await setVoiceRecordingStatus(false);
+    }
   };
   
   const stopRecordingWithStatus = () => {
@@ -589,9 +605,38 @@ const FloatingChat = () => {
     cancelRecording();
   };
   
-  // Poll for typing and recording status
+  // Authenticated WebSocket provides immediate message, typing and recording events.
   useEffect(() => {
-    if (!isOpen || !activeConversationId || !token) return;
+    if (!isOpen || !activeConversationId || !token) return undefined;
+    return createChatRealtime({
+      conversationId: activeConversationId,
+      token,
+      onStatusChange: setIsRealtimeConnected,
+      onEvent: (event) => {
+        if (event.type === 'new_message' && event.message) {
+          setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+          if (event.message.sender_id !== user?.id) {
+            setTypingUsers([]);
+            setRecordingUsers([]);
+          }
+          refreshConversations();
+          return;
+        }
+        if (event.type === 'message_deleted' && event.message_id) {
+          setMessages(prev => prev.filter(message => message.id !== event.message_id));
+          return;
+        }
+        if (event.user_id === user?.id) return;
+        const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+        if (event.type === 'typing_status') setTypingUsers(event.is_typing ? [participant] : []);
+        if (event.type === 'voice_recording_status') setRecordingUsers(event.is_recording ? [participant] : []);
+      },
+    });
+  }, [isOpen, activeConversationId, token, user?.id, activeConversation?.other_party_name, activeConversation?.seller_name, refreshConversations]);
+
+  // Fallback for networks that block WebSocket connections.
+  useEffect(() => {
+    if (!isOpen || !activeConversationId || !token || isRealtimeConnected) return;
     
     const pollInterval = setInterval(async () => {
       try {
@@ -609,10 +654,10 @@ const FloatingChat = () => {
       } catch (error) {
         console.error('Error polling status:', error);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 3000);
     
     return () => clearInterval(pollInterval);
-  }, [isOpen, activeConversationId, token]);
+  }, [isOpen, activeConversationId, token, isRealtimeConnected]);
 
   // Hide floating chat button on chat pages
   const isChatPage = location.pathname === '/messages' || location.pathname.startsWith('/message');

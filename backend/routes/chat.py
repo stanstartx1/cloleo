@@ -1,5 +1,5 @@
 # Chat/Messaging routes
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Body
 from fastapi.security import HTTPAuthorizationCredentials
 from datetime import datetime, timezone
 import uuid
@@ -677,10 +677,14 @@ async def upload_chat_audio(
 @router.post("/{conversation_id}/typing")
 async def set_typing_status(
     conversation_id: str,
-    is_typing: bool = True,
+    payload: dict = Body(...),
     user: dict = Depends(get_current_user)
 ):
     """Set typing status for the current user in a conversation"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0, "customer_id": 1, "seller_id": 1})
+    if not conversation or (user.get("role") != "admin" and user["id"] not in {conversation.get("customer_id"), conversation.get("seller_id")}):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    is_typing = bool(payload.get("is_typing", True))
     if manager:
         try:
             manager.set_typing(conversation_id, user["id"], is_typing)
@@ -698,6 +702,9 @@ async def get_typing_users(
     user: dict = Depends(get_current_user)
 ):
     """Get list of users currently typing in a conversation"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0, "customer_id": 1, "seller_id": 1})
+    if not conversation or (user.get("role") != "admin" and user["id"] not in {conversation.get("customer_id"), conversation.get("seller_id")}):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
     if manager:
         try:
             typing_users = manager.get_typing_users(conversation_id)
@@ -721,10 +728,14 @@ async def get_typing_users(
 @router.post("/{conversation_id}/voice-recording")
 async def set_voice_recording_status(
     conversation_id: str,
-    is_recording: bool = True,
+    payload: dict = Body(...),
     user: dict = Depends(get_current_user)
 ):
     """Set voice recording status for the current user in a conversation"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0, "customer_id": 1, "seller_id": 1})
+    if not conversation or (user.get("role") != "admin" and user["id"] not in {conversation.get("customer_id"), conversation.get("seller_id")}):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    is_recording = bool(payload.get("is_recording", True))
     if manager:
         try:
             manager.set_voice_recording(conversation_id, user["id"], is_recording)
@@ -742,6 +753,9 @@ async def get_voice_recording_users(
     user: dict = Depends(get_current_user)
 ):
     """Get list of users currently recording voice in a conversation"""
+    conversation = await db.conversations.find_one({"id": conversation_id}, {"_id": 0, "customer_id": 1, "seller_id": 1})
+    if not conversation or (user.get("role") != "admin" and user["id"] not in {conversation.get("customer_id"), conversation.get("seller_id")}):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
     if manager:
         try:
             recording_users = manager.get_voice_recording_users(conversation_id)
