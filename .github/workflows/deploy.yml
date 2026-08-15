@@ -98,16 +98,36 @@ jobs:
             
             # Clear cache and install
             echo "Clearing npm cache and installing..."
-            rm -rf node_modules package-lock.json || {
-              echo "⚠️ Could not remove node_modules, trying with force..."
-              find node_modules -type f -delete 2>/dev/null || true
-              find node_modules -type d -delete 2>/dev/null || true
-              rm -rf node_modules package-lock.json
-            }
+            # More robust node_modules removal
+            if [ -d "node_modules" ]; then
+              echo "Removing node_modules..."
+              chmod -R u+w node_modules 2>/dev/null || true
+              rm -rf node_modules || {
+                echo "Using alternative removal method..."
+                # Try with sudo if available
+                if command -v sudo &> /dev/null; then
+                  sudo rm -rf node_modules || true
+                fi
+                # Final fallback - try to move instead of delete
+                if [ -d "node_modules" ]; then
+                  echo "Moving node_modules to backup..."
+                  mv node_modules node_modules_backup_$(date +%s) || {
+                    echo "⚠️ Could not remove node_modules, proceeding with existing modules"
+                  }
+                fi
+              }
+            fi
+            rm -f package-lock.json || true
             npm cache clean --force
             npm install --legacy-peer-deps --no-optional || {
               echo "⚠️ npm install failed, trying with --force..."
-              npm install --legacy-peer-deps --force --no-optional
+              npm install --legacy-peer-deps --force --no-optional || {
+                echo "⚠️ npm install still failed, trying without legacy-peer-deps..."
+                npm install --no-optional || {
+                  echo "❌ npm install failed completely"
+                  exit 1
+                }
+              }
             }
             npm run build
             
