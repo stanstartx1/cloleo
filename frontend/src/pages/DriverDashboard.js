@@ -19,6 +19,8 @@ import DeliveryProof from '../components/DeliveryProof';
 import MultiDeliveryManager from '../components/MultiDeliveryManager';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import GamificationSystem from '../components/GamificationSystem';
+import { geolocationService } from '../services/geolocationService';
+import { notificationService } from '../services/notificationService';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 
@@ -133,7 +135,36 @@ const DriverDashboard = () => {
     };
     
     init();
+    notificationService.requestPermission().catch(() => {});
   }, [isDriver, navigate, fetchDashboard, fetchOrders]);
+
+  // Advanced GPS tracking with offline sync
+  useEffect(() => {
+    if (!user?.id || !token) return;
+
+    geolocationService.startTracking('high', async (pos) => {
+      try {
+        await axios.post(`${API}/driver/location/update`, {
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          accuracy: pos.accuracy,
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+        if (selectedOrder?.id) {
+          await axios.post(`${API}/delivery/driver/check-geofence`, {
+            order_id: selectedOrder.id,
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            radius_m: 200,
+          }, { headers: { Authorization: `Bearer ${token}` } });
+        }
+      } catch (err) {
+        console.error('Location update error:', err);
+      }
+    });
+
+    return () => geolocationService.stopTracking();
+  }, [user?.id, token, selectedOrder?.id]);
 
   // WebSocket - disabled for production stability
   /* DISABLED: WebSocket causes "Unexpected response code: 200" errors

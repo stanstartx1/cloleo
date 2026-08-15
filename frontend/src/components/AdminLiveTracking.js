@@ -141,8 +141,8 @@ const AdminLiveTracking = ({ token }) => {
   // WebSocket for real-time updates - URL CORRIGÉE
   useEffect(() => {
     const connectWebSocket = () => {
-      // 🔧 CORRECTION: Suppression du /api en double
-      const wsUrl = `${WS_URL}/ws/orders/admin_tracking`;
+      if (!token) return;
+      const wsUrl = `${WS_URL}/api/ws/orders/admin_tracking?token=${encodeURIComponent(token)}`;
       console.log('WebSocket connecting to:', wsUrl);
       
       const ws = new WebSocket(wsUrl);
@@ -209,7 +209,7 @@ const AdminLiveTracking = ({ token }) => {
       clearInterval(pingInterval);
       wsRef.current?.close();
     };
-  }, [fetchData]);
+  }, [fetchData, token]);
 
   // Focus on driver
   const focusOnDriver = (driver) => {

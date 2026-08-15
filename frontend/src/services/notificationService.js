@@ -1,5 +1,5 @@
 // Web Push Notification Service
-// Handles browser notifications for real-time updates
+import { API_URL } from '../config/api';
 
 class NotificationService {
   constructor() {
@@ -52,6 +52,11 @@ class NotificationService {
       console.warn('Service Worker not supported');
       return;
     }
+    const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) {
+      console.warn('Web Push disabled: REACT_APP_VAPID_PUBLIC_KEY is not configured');
+      return null;
+    }
 
     try {
       // Register service worker
@@ -60,7 +65,7 @@ class NotificationService {
       // Subscribe to push
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(process.env.REACT_APP_VAPID_PUBLIC_KEY)
+        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
       });
 
       this.subscription = subscription;
@@ -78,7 +83,7 @@ class NotificationService {
   // Send subscription to backend
   async sendSubscriptionToServer(subscription) {
     try {
-      const response = await fetch('/api/notifications/subscribe', {
+      const response = await fetch(`${API_URL}/notifications/subscribe`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,16 +197,18 @@ class NotificationService {
   async unsubscribe() {
     if (this.subscription) {
       try {
+        const endpoint = this.subscription.endpoint;
         await this.subscription.unsubscribe();
         this.subscription = null;
         
         // Notify server
-        await fetch('/api/notifications/unsubscribe', {
+        await fetch(`${API_URL}/notifications/unsubscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          body: JSON.stringify({ endpoint })
         });
       } catch (error) {
         console.error('Error unsubscribing:', error);
@@ -219,6 +226,8 @@ class NotificationService {
 export const notificationService = new NotificationService();
 
 // Export hook for React components
+import { useState, useEffect } from 'react';
+
 export const useNotifications = () => {
   const [permission, setPermission] = useState('default');
 

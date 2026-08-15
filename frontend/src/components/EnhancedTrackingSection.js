@@ -23,57 +23,27 @@ const EnhancedTrackingSection = ({ orders, selectedOrder, onSelectOrder, driverL
 
   const fetchTrackingData = async (orderId) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get(`${API}/enterprises/orders/${orderId}/tracking`, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      // setTrackingData(response.data);
-
-      // Mock data for now
-      const mockTrackingData = {
-        order: selectedOrder,
-        driver: {
-          id: 1,
-          name: 'Jean Dupont',
-          phone: '+237 6XX XXX XXX',
-          avatar: 'JD',
-          rating: 4.8,
-          vehicle: 'Moto Yamaha MT-07',
-          plate: 'CE-123-AB'
-        },
-        currentLocation: {
-          lat: 3.8488,
-          lng: 11.5028,
-          address: 'Bastos, Yaoundé'
-        },
-        destination: {
-          lat: 3.8766,
-          lng: 11.5360,
-          address: 'Mvan, Yaoundé'
-        },
-        pickup: {
-          lat: 3.8667,
-          lng: 11.5167,
-          address: 'Centre Ville, Yaoundé'
-        },
-        route: [
-          { lat: 3.8667, lng: 11.5167, type: 'pickup' },
-          { lat: 3.8588, lng: 11.5098, type: 'waypoint' },
-          { lat: 3.8488, lng: 11.5028, type: 'current' },
-          { lat: 3.8600, lng: 11.5200, type: 'waypoint' },
-          { lat: 3.8766, lng: 11.5360, type: 'destination' }
-        ],
-        eta: '15 min',
-        distance: '8.5 km',
-        status: 'in_transit',
-        timeline: [
-          { time: '10:00', status: 'picked_up', description: 'Commande récupérée' },
-          { time: '10:15', status: 'in_transit', description: 'En route vers destination' },
-          { time: '10:30', status: 'arriving', description: 'Arrivée imminente' },
-          { time: '10:35', status: 'delivered', description: 'Livraison prévue' }
-        ]
-      };
-      setTrackingData(mockTrackingData);
+      setLoading(true);
+      const response = await axios.get(`${API}/orders/track/${orderId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const data = response.data;
+      setTrackingData({
+        order: data.order,
+        driver: data.driver_info,
+        currentLocation: data.driver_live_location,
+        destination: data.order?.delivery_address,
+        eta: data.eta_minutes ? `${data.eta_minutes} min` : 'Calcul...',
+        status: data.order?.status,
+        timeline: (data.order?.status_history || []).map(h => ({
+          time: h.timestamp?.slice(11, 16) || '',
+          status: h.status,
+          description: h.note,
+        })),
+      });
+      if (data.driver_live_location && onSetDriverLocation) {
+        onSetDriverLocation(data.driver_live_location);
+      }
     } catch (error) {
       console.error('Error fetching tracking data:', error);
     } finally {
