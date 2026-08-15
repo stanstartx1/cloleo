@@ -43,7 +43,7 @@ const LanguageSwitcher = ({ mobile = false }) => {
         <p className="px-2.5 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">{t('nav.language')}</p>
         <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
           {languages.map((item) => (
-            <DropdownMenuRadioItem key={item.code} value={item.code} className="cursor-pointer rounded-lg py-2.5 pl-2.5 text-sm font-semibold focus:bg-orange-50 focus:text-orange-700">
+            <DropdownMenuRadioItem key={item.code} value={item.code} onSelect={() => setLanguage(item.code)} className="cursor-pointer rounded-lg py-2.5 pl-2.5 text-sm font-semibold focus:bg-orange-50 focus:text-orange-700">
               <span className="mr-2 text-lg leading-none" aria-hidden="true">{item.flag}</span>
               <span>{item.label}</span>
             </DropdownMenuRadioItem>
