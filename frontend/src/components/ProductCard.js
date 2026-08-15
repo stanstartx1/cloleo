@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import { copyToClipboard, shareOrCopy } from '../utils/share';
 import { getCountryByCode, getCountryFlagUrl } from '../utils/countries';
 import UserAvatar from './UserAvatar';
+import { useLanguage } from '../context/LanguageContext';
 
 const formatPrice = (price, currency = 'FCFA') => {
   if (currency === 'FCFA') {
@@ -25,6 +26,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
   const { isFavorite, toggleFavorite } = useFavorites();
   const { startConversation } = useChat();
   const { addToCart } = useCart();
+  const { t } = useLanguage();
   const favorite = isFavorite(product.id);
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -120,7 +122,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
     e.stopPropagation();
     const success = await addToCart(product.id);
     if (success) {
-      toast.success('Ajouté au panier !');
+      toast.success(t('commerce.productAdded'));
     } else {
       toast.error('Erreur lors de l\'ajout au panier');
     }
@@ -333,7 +335,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               data-testid={`contact-vendor-btn-${product.id}`}
             >
               <MessageCircle className="w-5 h-5 mr-2" />
-              Contacter le vendeur
+              {t('commerce.contactSeller')}
             </Button>
           </div>
         )}
@@ -480,7 +482,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               data-testid={`buy-now-btn-${product.id}`}
             >
               <Zap className="w-4 h-4 mr-1" />
-              Acheter
+              {t('commerce.buyNow')}
             </Button>
             <Button
               onClick={handleAddToCart}
@@ -495,7 +497,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               data-testid={`add-to-cart-btn-${product.id}`}
             >
               <ShoppingCart className="w-4 h-4 mr-1" />
-              Panier
+              {t('commerce.cart')}
             </Button>
           </div>
 
@@ -513,7 +515,7 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
               data-testid={`contact-vendor-btn-persistent-${product.id}`}
             >
               <MessageCircle className="w-4 h-4 mr-2" />
-              Contacter le vendeur
+              {t('commerce.contactSeller')}
             </Button>
           )}
           </div>
@@ -524,7 +526,6 @@ const ProductCard = ({ product, className, showContactButton = true, showSellerI
 };
 
 export default ProductCard;
-
 
 
 

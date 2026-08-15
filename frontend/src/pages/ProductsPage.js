@@ -11,6 +11,7 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Slider } from '../components/ui/slider';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
 import { COUNTRIES, getCountryFlagUrl } from '../utils/countries';
+import { useLanguage } from '../context/LanguageContext';
 
 const API = API_URL;
 
@@ -30,6 +31,7 @@ const SORT_OPTIONS = [
 ];
 
 const ProductsPage = () => {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -253,11 +255,11 @@ const ProductsPage = () => {
     <div className="min-h-screen py-8" data-testid="products-page">
       <div className="container mx-auto px-4">
         <nav className="flex items-center text-sm text-muted-foreground mb-6 flex-wrap">
-          <Link to="/" className="hover:text-primary">Accueil</Link>
+          <Link to="/" className="hover:text-primary">{t('commerce.home')}</Link>
           {featured && (
             <>
               <span className="mx-2">/</span>
-              <span className="text-foreground">Tendances</span>
+              <span className="text-foreground">{t('nav.trends')}</span>
             </>
           )}
           {selectedCategory && (
@@ -284,7 +286,7 @@ const ProductsPage = () => {
           {!featured && !selectedCategory && (
             <>
               <span className="mx-2">/</span>
-              <span className="text-foreground">Tous les produits</span>
+              <span className="text-foreground">{t('commerce.allProducts')}</span>
             </>
           )}
         </nav>
@@ -295,23 +297,23 @@ const ProductsPage = () => {
             {(() => {
               if (featured && selectedCategory) {
                 const selectedCat = categories.find(c => c.slug === selectedCategory);
-                return selectedCat?.name || 'Produits tendances';
+                return selectedCat?.name || t('commerce.trendingProducts');
               }
-              if (featured) return 'Produits tendances';
+              if (featured) return t('commerce.trendingProducts');
               if (selectedCategory) {
                 const selectedCat = categories.find(c => c.slug === selectedCategory);
                 return selectedCat?.name || selectedCategory;
               }
-              return 'Tous les produits';
+              return t('commerce.allProducts');
             })()}
           </h1>
-          <p className="text-muted-foreground">{totalProducts} produits disponibles</p>
+          <p className="text-muted-foreground">{totalProducts} {t('commerce.productsAvailable')}</p>
         </div>
 
         <div className="flex gap-8">
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <div className="sticky top-24 bg-card rounded-xl border border-border p-6">
-              <h3 className="font-bold mb-6 flex items-center gap-2"><SlidersHorizontal className="w-4 h-4" /> Filtres</h3>
+              <h3 className="font-bold mb-6 flex items-center gap-2"><SlidersHorizontal className="w-4 h-4" /> {t('commerce.filters')}</h3>
               <FilterContent />
             </div>
           </aside>
@@ -320,16 +322,16 @@ const ProductsPage = () => {
             <div className="flex items-center justify-between gap-4 mb-6 p-4 bg-card rounded-xl border border-border">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden"><Filter className="w-4 h-4 mr-2" /> Filtres</Button>
+                  <Button variant="outline" className="lg:hidden"><Filter className="w-4 h-4 mr-2" /> {t('commerce.filters')}</Button>
                 </SheetTrigger>
                 <SheetContent side="left">
-                  <SheetHeader><SheetTitle>Filtres</SheetTitle></SheetHeader>
+                  <SheetHeader><SheetTitle>{t('commerce.filters')}</SheetTitle></SheetHeader>
                   <div className="mt-6"><FilterContent /></div>
                 </SheetContent>
               </Sheet>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground hidden sm:inline">Trier par:</span>
+                <span className="text-sm text-muted-foreground hidden sm:inline">{t('commerce.sortBy')}</span>
                 <Select value={sortBy} onValueChange={(value) => { setSortBy(value); setPage(1); }}>
                   <SelectTrigger className="w-40 sm:w-48"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -360,15 +362,15 @@ const ProductsPage = () => {
               </div>
             ) : (
               <div className="text-center py-16">
-                <p className="text-muted-foreground mb-4">Aucun produit trouvé</p>
-                <Button variant="outline" onClick={clearFilters}>Effacer les filtres</Button>
+                <p className="text-muted-foreground mb-4">{t('commerce.noProducts')}</p>
+                <Button variant="outline" onClick={clearFilters}>{t('commerce.clearFilters')}</Button>
               </div>
             )}
 
             {totalPages > 0 && (
               <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  Précédent
+                  {t('commerce.previous')}
                 </Button>
                 {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
                   let pageNum;
@@ -394,7 +396,7 @@ const ProductsPage = () => {
                   );
                 })}
                 <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                  Suivant
+                  {t('commerce.next')}
                 </Button>
               </div>
             )}

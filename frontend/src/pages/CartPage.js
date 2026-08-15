@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
+import { useLanguage } from '../context/LanguageContext';
 
 const formatPrice = (price, currency = 'FCFA') => {
   if (currency === 'FCFA') {
@@ -16,6 +17,7 @@ const formatPrice = (price, currency = 'FCFA') => {
 const CartPage = () => {
   const navigate = useNavigate();
   const { cart, loading, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { t } = useLanguage();
 
   const handleUpdateQuantity = async (itemId, newQuantity) => {
     await updateQuantity(itemId, newQuantity);
@@ -23,14 +25,14 @@ const CartPage = () => {
 
   const handleRemoveItem = async (itemId, productName) => {
     await removeFromCart(itemId);
-    toast.success('Article supprimé', {
+    toast.success(t('commerce.productRemoved'), {
       description: productName,
     });
   };
 
   const handleClearCart = async () => {
     await clearCart();
-    toast.success('Panier vidé');
+    toast.success(t('commerce.cartCleared'));
   };
 
   const handleCheckout = () => {
@@ -55,17 +57,17 @@ const CartPage = () => {
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <nav className="flex items-center text-sm text-muted-foreground mb-6">
-          <Link to="/" className="hover:text-primary">Accueil</Link>
+          <Link to="/" className="hover:text-primary">{t('commerce.home')}</Link>
           <span className="mx-2">/</span>
-          <span className="text-foreground">Panier</span>
+          <span className="text-foreground">{t('commerce.cart')}</span>
         </nav>
 
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <ShoppingCart className="w-8 h-8" />
-          Mon panier
+          {t('commerce.yourCart')}
           {cart.item_count > 0 && (
             <span className="text-lg font-normal text-muted-foreground">
-              ({cart.item_count} article{cart.item_count > 1 ? 's' : ''})
+              ({cart.item_count} {cart.item_count > 1 ? t('commerce.items') : t('commerce.item')})
             </span>
           )}
         </h1>
@@ -75,13 +77,13 @@ const CartPage = () => {
             <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingBag className="w-12 h-12 text-muted-foreground" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Votre panier est vide</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('commerce.cartEmpty')}</h2>
             <p className="text-muted-foreground mb-8">
-              Découvrez nos produits et commencez vos achats !
+              {t('commerce.cartEmptyDescription')}
             </p>
             <Button asChild size="lg">
               <Link to="/categories" data-testid="continue-shopping-btn">
-                Explorer les produits <ArrowRight className="ml-2 w-5 h-5" />
+                {t('commerce.continueShopping')} <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
             </Button>
           </div>
@@ -126,7 +128,7 @@ const CartPage = () => {
                       {item.unit_price_fcfa ? (
                         <div>
                           <span className="font-bold text-primary">{formatPrice(item.unit_price_fcfa)}</span>
-                          {item.product.wholesale_enabled && item.unit_price_fcfa === item.product.wholesale_unit_price_fcfa && <span className="ml-2 text-xs font-semibold text-amber-700">Prix de gros</span>}
+                          {item.product.wholesale_enabled && item.unit_price_fcfa === item.product.wholesale_unit_price_fcfa && <span className="ml-2 text-xs font-semibold text-amber-700">{t('commerce.wholesalePrice')}</span>}
                         </div>
                       ) : item.product.promo_price_fcfa ? (
                         <div className="flex items-center gap-2">
@@ -177,14 +179,14 @@ const CartPage = () => {
                         onClick={() => handleRemoveItem(item.id, item.product.name)}
                         data-testid={`remove-item-${item.product.id}`}
                       >
-                        <Trash2 className="w-4 h-4 mr-1" /> Supprimer
+                        <Trash2 className="w-4 h-4 mr-1" /> {t('commerce.remove')}
                       </Button>
                     </div>
                   </div>
 
                   {/* Subtotal */}
                   <div className="hidden md:block text-right">
-                    <p className="text-sm text-muted-foreground">Sous-total</p>
+                    <p className="text-sm text-muted-foreground">{t('commerce.subtotal')}</p>
                     <p className="font-bold text-lg">{formatPrice(item.subtotal_fcfa)}</p>
                     <p className="text-xs text-muted-foreground">≈ ${item.subtotal_usd}</p>
                   </div>
@@ -194,7 +196,7 @@ const CartPage = () => {
               {/* Clear cart button */}
               <div className="flex justify-end">
                 <Button variant="outline" onClick={handleClearCart} disabled={loading}>
-                  <Trash2 className="w-4 h-4 mr-2" /> Vider le panier
+                  <Trash2 className="w-4 h-4 mr-2" /> {t('commerce.clearCart')}
                 </Button>
               </div>
             </div>
@@ -202,20 +204,20 @@ const CartPage = () => {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 bg-card rounded-xl border border-border p-6" data-testid="cart-summary">
-                <h2 className="text-xl font-bold mb-6">Résumé de la commande</h2>
+                <h2 className="text-xl font-bold mb-6">{t('commerce.orderSummary')}</h2>
 
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sous-total</span>
+                    <span className="text-muted-foreground">{t('commerce.subtotal')}</span>
                     <span>{formatPrice(cart.total_fcfa)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Livraison</span>
-                    <span className="text-green-600">Calculée à la caisse</span>
+                    <span className="text-muted-foreground">{t('commerce.delivery')}</span>
+                    <span className="text-green-600">{t('commerce.deliveryAtCheckout')}</span>
                   </div>
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-end">
-                      <span className="font-bold text-lg">Total</span>
+                      <span className="font-bold text-lg">{t('commerce.total')}</span>
                       <div className="text-right">
                         <p className="font-bold text-2xl text-primary" data-testid="cart-total">
                           {formatPrice(cart.total_fcfa)}
@@ -233,7 +235,7 @@ const CartPage = () => {
                   disabled={loading}
                   data-testid="checkout-btn"
                 >
-                  Passer à la caisse <ArrowRight className="ml-2 w-5 h-5" />
+                  {t('commerce.checkout')} <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center mt-4">

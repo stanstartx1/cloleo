@@ -18,6 +18,7 @@ import HomeRandomLayoutProducts from '../components/HomeRandomLayoutProducts';
 import AdminFeaturedProducts from '../components/AdminFeaturedProducts';
 
 import { API_URL, API_BASE } from '../config/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const API = API_URL;
 
@@ -29,6 +30,7 @@ const DEFAULT_HOME_AD_STRIPS = [
 ];
 
 const HomePage = () => {
+  const { t } = useLanguage();
   const [categories,       setCategories]       = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [allProducts,      setAllProducts]      = useState([]);
@@ -241,7 +243,7 @@ const HomePage = () => {
           ) : !newProducts?.length ? (
             <div className="py-14 text-center text-slate-400">
               <Sparkles className="mx-auto mb-3 h-12 w-12 opacity-20" />
-              <p className="font-semibold">Aucun nouveau produit disponible</p>
+              <p className="font-semibold">{t('commerce.noResults')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">

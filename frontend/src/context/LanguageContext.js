@@ -23,6 +23,14 @@ const translations = {
       slides: ['Livraison rapide à Abidjan', 'Paiement sécurisé et suivi en temps réel', 'Nouveautés et offres chaque semaine'],
       forum: 'Forum professionnel', allCategories: 'Toutes les catégories', recommendations: 'Recommandé pour vous', popular: 'Populaire', new: 'Nouveau',
     },
+    commerce: {
+      home: 'Accueil', search: 'Recherche', searchProducts: 'Rechercher des produits...', searchProductsTitle: 'Rechercher des produits', searchResults: 'Résultats pour', productsFound: 'produit trouvé', productsFoundPlural: 'produits trouvés',
+      noResults: 'Aucun résultat', noResultsDescription: 'Aucun produit ne correspond à votre recherche', exploreCategories: 'Explorer les catégories', page: 'Page', previous: 'Précédent', next: 'Suivant',
+      cart: 'Panier', yourCart: 'Votre panier', cartEmpty: 'Votre panier est vide', cartEmptyDescription: 'Vous n’avez aucun article dans votre panier.', continueShopping: 'Explorer les produits', item: 'article', items: 'articles', remove: 'Supprimer', clearCart: 'Vider le panier',
+      orderSummary: 'Résumé de la commande', subtotal: 'Sous-total', delivery: 'Livraison', deliveryAtCheckout: 'Calculée à la caisse', total: 'Total', checkout: 'Passer la commande', wholesalePrice: 'Prix de gros',
+      addToCart: 'Ajouter au panier', buyNow: 'Acheter maintenant', contactSeller: 'Contacter le vendeur', productAdded: 'Ajouté au panier !', productRemoved: 'Article supprimé', cartCleared: 'Panier vidé',
+      allProducts: 'Tous les produits', trendingProducts: 'Produits tendances', productsAvailable: 'produits disponibles', filters: 'Filtres', clearFilters: 'Effacer les filtres', sortBy: 'Trier par :', noProducts: 'Aucun produit trouvé',
+    },
   },
   en: {
     nav: {
@@ -43,6 +51,14 @@ const translations = {
     mega: {
       slides: ['Fast delivery in Abidjan', 'Secure payment and real-time tracking', 'New arrivals and weekly offers'],
       forum: 'Professional forum', allCategories: 'All categories', recommendations: 'Recommended for you', popular: 'Popular', new: 'New',
+    },
+    commerce: {
+      home: 'Home', search: 'Search', searchProducts: 'Search for products...', searchProductsTitle: 'Search for products', searchResults: 'Results for', productsFound: 'product found', productsFoundPlural: 'products found',
+      noResults: 'No results', noResultsDescription: 'No product matches your search', exploreCategories: 'Browse categories', page: 'Page', previous: 'Previous', next: 'Next',
+      cart: 'Cart', yourCart: 'Your cart', cartEmpty: 'Your cart is empty', cartEmptyDescription: 'You have no items in your cart.', continueShopping: 'Browse products', item: 'item', items: 'items', remove: 'Remove', clearCart: 'Clear cart',
+      orderSummary: 'Order summary', subtotal: 'Subtotal', delivery: 'Delivery', deliveryAtCheckout: 'Calculated at checkout', total: 'Total', checkout: 'Checkout', wholesalePrice: 'Wholesale price',
+      addToCart: 'Add to cart', buyNow: 'Buy now', contactSeller: 'Contact seller', productAdded: 'Added to cart!', productRemoved: 'Item removed', cartCleared: 'Cart cleared',
+      allProducts: 'All products', trendingProducts: 'Trending products', productsAvailable: 'products available', filters: 'Filters', clearFilters: 'Clear filters', sortBy: 'Sort by:', noProducts: 'No products found',
     },
   },
 };

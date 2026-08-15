@@ -7,10 +7,12 @@ import ProductCard from '../components/ProductCard';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
+import { useLanguage } from '../context/LanguageContext';
 
 const API = API_URL;
 
 const SearchPage = () => {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   
@@ -60,9 +62,9 @@ const SearchPage = () => {
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <nav className="flex items-center text-sm text-muted-foreground mb-6">
-          <Link to="/" className="hover:text-primary">Accueil</Link>
+          <Link to="/" className="hover:text-primary">{t('commerce.home')}</Link>
           <span className="mx-2">/</span>
-          <span className="text-foreground">Recherche</span>
+          <span className="text-foreground">{t('commerce.search')}</span>
         </nav>
 
         {/* Search Form */}
@@ -71,7 +73,7 @@ const SearchPage = () => {
             <div className="relative flex-1">
               <Input
                 type="text"
-                placeholder="Rechercher des produits..."
+                placeholder={t('commerce.searchProducts')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="pr-10"
@@ -88,7 +90,7 @@ const SearchPage = () => {
               )}
             </div>
             <Button type="submit">
-              <Search className="w-4 h-4 mr-2" /> Rechercher
+              <Search className="w-4 h-4 mr-2" /> {t('nav.search')}
             </Button>
           </form>
         </div>
@@ -97,10 +99,10 @@ const SearchPage = () => {
         {query && (
           <div className="mb-6">
             <h1 className="text-2xl font-bold">
-              Résultats pour "{query}"
+              {t('commerce.searchResults')} "{query}"
             </h1>
             <p className="text-muted-foreground">
-              {total} produit{total > 1 ? 's' : ''} trouvé{total > 1 ? 's' : ''}
+              {total} {total > 1 ? t('commerce.productsFoundPlural') : t('commerce.productsFound')}
             </p>
           </div>
         )}
@@ -119,7 +121,7 @@ const SearchPage = () => {
         ) : !query ? (
           <div className="text-center py-16">
             <Search className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-bold mb-2">Rechercher des produits</h2>
+            <h2 className="text-xl font-bold mb-2">{t('commerce.searchProductsTitle')}</h2>
             <p className="text-muted-foreground">
               Entrez un terme de recherche pour trouver des produits
             </p>
@@ -158,12 +160,12 @@ const SearchPage = () => {
         ) : (
           <div className="text-center py-16">
             <Search className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-bold mb-2">Aucun résultat</h2>
+            <h2 className="text-xl font-bold mb-2">{t('commerce.noResults')}</h2>
             <p className="text-muted-foreground mb-6">
-              Aucun produit ne correspond à votre recherche "{query}"
+              {t('commerce.noResultsDescription')} "{query}"
             </p>
             <Button asChild variant="outline">
-              <Link to="/categories">Explorer les catégories</Link>
+              <Link to="/categories">{t('commerce.exploreCategories')}</Link>
             </Button>
           </div>
         )}
