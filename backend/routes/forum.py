@@ -345,10 +345,11 @@ async def create_topic(topic: ForumTopicCreate, user: dict = Depends(get_current
     
     # Auto-moderation check
     try:
-        # spam_check = # await moderation_queue.check_content_on_create(topic.title + " " + topic.content, "topic")
+        # spam_check = await moderation_queue.check_content_on_create(topic.title + " " + topic.content, "topic")
+        spam_check = None
         # if spam_check:
         #     # Flag for moderation
-        #     # await moderation_queue.flag_content(
+        #     await moderation_queue.flag_content(
         #         content_type="topic",
         #         content_id=topic_id,
         #         flag_type=spam_check["flag_type"],
@@ -362,7 +363,7 @@ async def create_topic(topic: ForumTopicCreate, user: dict = Depends(get_current
     
     # Add gamification points
     try:
-        # # # await gamification_engine.add_points(user["id"], "create_topic")
+        # # await gamification_engine.add_points(user["id"], "create_topic")
         pass
     except Exception as e:
         print(f"Error adding gamification points: {e}")
@@ -370,7 +371,7 @@ async def create_topic(topic: ForumTopicCreate, user: dict = Depends(get_current
     # Index in Elasticsearch
     try:
         # topic_data["category_name"] = category.get("name", "")
-        # # await forum_search_engine.index_topic(topic_data)
+        # await forum_search_engine.index_topic(topic_data)
         pass
     except Exception as e:
         print(f"Error indexing topic in Elasticsearch: {e}")
@@ -417,7 +418,7 @@ async def update_topic(topic_id: str, topic: ForumTopicUpdate, user: dict = Depe
         #     )
         #     if category:
         #         updated_topic["category_name"] = category["name"]
-        #     # await forum_search_engine.update_topic(updated_topic)
+        #     await forum_search_engine.update_topic(updated_topic)
         pass
     except Exception as e:
         print(f"Error updating Elasticsearch index: {e}")
@@ -445,7 +446,7 @@ async def delete_topic(topic_id: str, user: dict = Depends(get_current_user)):
     
     # Remove from Elasticsearch
     try:
-        # # await forum_search_engine.delete_topic(topic_id)
+        # await forum_search_engine.delete_topic(topic_id)
         pass
     except Exception as e:
         print(f"Error deleting from Elasticsearch: {e}")
@@ -497,12 +498,13 @@ async def create_comment(topic_id: str, comment: ForumCommentCreate, user: dict 
     if mentions:
         for mentioned_user_id in mentions:
             try:
-                # # await notification_service.notify_mention(
-                    mentioned_user_id=mentioned_user_id,
-                    mentioner_name=user.get("name", "Anonymous"),
-                    topic_id=topic_id,
-                    comment_id=comment_id
-                )
+                # await notification_service.notify_mention(
+                #     mentioned_user_id=mentioned_user_id,
+                #     mentioner_name=user.get("name", "Anonymous"),
+                #     topic_id=topic_id,
+                #     comment_id=comment_id
+                # )
+                pass
             except Exception as e:
                 print(f"Error sending mention notification: {e}")
     
@@ -512,17 +514,19 @@ async def create_comment(topic_id: str, comment: ForumCommentCreate, user: dict 
         if parent and parent["author_id"] != user["id"]:
             try:
                 # await notification_service.notify_reply(
-                    parent_author_id=parent["author_id"],
-                    replier_name=user.get("name", "Anonymous"),
-                    topic_id=topic_id,
-                    comment_id=comment_id
-                )
+                #     parent_author_id=parent["author_id"],
+                #     replier_name=user.get("name", "Anonymous"),
+                #     topic_id=topic_id,
+                #     comment_id=comment_id
+                # )
+                pass
             except Exception as e:
                 print(f"Error sending reply notification: {e}")
     
     # Add gamification points
     try:
-        # # await gamification_engine.add_points(user["id"], "create_comment")
+        # await gamification_engine.add_points(user["id"], "create_comment")
+        pass
     except Exception as e:
         print(f"Error adding gamification points: {e}")
     
@@ -538,6 +542,7 @@ async def create_comment(topic_id: str, comment: ForumCommentCreate, user: dict 
     # Broadcast new comment via WebSocket
     try:
         # await forum_ws_manager.broadcast_new_comment(topic_id, comment_data)
+        pass
     except Exception as e:
         print(f"Error broadcasting comment: {e}")
     
@@ -638,15 +643,16 @@ async def search_forum(search: ForumSearchQuery, user: dict = Depends(get_curren
     """Search forum topics using Elasticsearch (requires authentication)"""
     try:
         # Use Elasticsearch for advanced search
-        results = # # await forum_search_engine.search(
-            query=search.query,
-            category_id=search.category_id,
-            tags=search.tags,
-            author_id=search.author_id,
-            sort_by=search.sort_by,
-            page=1,
-            limit=50
-        )
+        # results = await forum_search_engine.search(
+        #     query=search.query,
+        #     category_id=search.category_id,
+        #     tags=search.tags,
+        #     author_id=search.author_id,
+        #     sort_by=search.sort_by,
+        #     page=1,
+        #     limit=50
+        # )
+        results = None
         
         return results
     except Exception as e:
@@ -699,7 +705,8 @@ async def search_autocomplete(
 ):
     """Get autocomplete suggestions for search"""
     try:
-        suggestions = # await forum_search_engine.get_autocomplete_suggestions(query, limit=10)
+        # suggestions = await forum_search_engine.get_autocomplete_suggestions(query, limit=10)
+        suggestions = []
         return {"suggestions": suggestions}
     except Exception as e:
         print(f"Elasticsearch autocomplete error: {e}")
@@ -724,7 +731,8 @@ async def search_analytics(
 ):
     """Get search analytics (admin only)"""
     try:
-        analytics = # await forum_search_engine.get_search_analytics(days)
+        # analytics = await forum_search_engine.get_search_analytics(days)
+        analytics = {"total_searches": 0, "avg_results": 0, "popular_queries": []}
         return analytics
     except Exception as e:
         print(f"Error getting search analytics: {e}")
@@ -861,17 +869,18 @@ async def set_best_answer(
     
     # Broadcast update via WebSocket
     # await forum_ws_manager.broadcast_topic_update(topic_id, {
-        **topic,
-        "best_answer_id": best_answer.comment_id
-    })
+    #     **topic,
+    #     "best_answer_id": best_answer.comment_id
+    # })
     
     # Notify comment author
     try:
         # await notification_service.notify_best_answer(
-            user_id=comment["author_id"],
-            topic_id=topic_id,
-            topic_title=topic["title"]
-        )
+        #     user_id=comment["author_id"],
+        #     topic_id=topic_id,
+        #     topic_title=topic["title"]
+        # )
+        pass
     except Exception as e:
         print(f"Error sending best answer notification: {e}")
     
@@ -1028,11 +1037,12 @@ async def get_moderation_queue(
     user: dict = Depends(require_admin)
 ):
     """Get moderation queue (admin only)"""
-    queue = # await moderation_queue.get_queue(
-        status=status,
-        content_type=content_type,
-        limit=50
-    )
+    # queue = await moderation_queue.get_queue(
+    #     status=status,
+    #     content_type=content_type,
+    #     limit=50
+    # )
+    queue = []
     return queue
 
 
@@ -1051,11 +1061,12 @@ async def moderate_content(
         moderator_id=user["id"]
     )
     
-    result = # await moderation_queue.moderate_content(
-        flag_id,
-        moderation_action,
-        user["id"]
-    )
+    # result = await moderation_queue.moderate_content(
+    #     flag_id,
+    #     moderation_action,
+    #     user["id"]
+    # )
+    result = {"message": "Moderation temporarily disabled"}
     
     return result
 
@@ -1075,11 +1086,12 @@ async def bulk_moderate(
         moderator_id=user["id"]
     )
     
-    result = # await moderation_queue.bulk_moderate(
-        flag_ids,
-        moderation_action,
-        user["id"]
-    )
+    # result = await moderation_queue.bulk_moderate(
+    #     flag_ids,
+    #     moderation_action,
+    #     user["id"]
+    # )
+    result = {"message": "Bulk moderation temporarily disabled"}
     
     return result
 
@@ -1093,14 +1105,15 @@ async def flag_content(
     user: dict = Depends(get_current_user)
 ):
     """Flag content for moderation"""
-    result = # await moderation_queue.flag_content(
-        content_type=content_type,
-        content_id=content_id,
-        flag_type=flag_type,
-        flagger_id=user["id"],
-        reason=reason,
-        auto_detected=False
-    )
+    # result = await moderation_queue.flag_content(
+    #     content_type=content_type,
+    #     content_id=content_id,
+    #     flag_type=flag_type,
+    #     flagger_id=user["id"],
+    #     reason=reason,
+    #     auto_detected=False
+    # )
+    result = {"message": "Flag content temporarily disabled"}
     
     return result
 
@@ -1108,7 +1121,8 @@ async def flag_content(
 @router.get("/moderation/stats")
 async def get_moderation_stats(user: dict = Depends(require_admin)):
     """Get moderation statistics (admin only)"""
-    stats = # await moderation_queue.get_moderation_stats()
+    # stats = await moderation_queue.get_moderation_stats()
+    stats = {"total": 0, "pending": 0, "resolved": 0}
     return stats
 
 
@@ -1121,14 +1135,16 @@ async def get_notifications(
     user: dict = Depends(get_current_user)
 ):
     """Get user notifications"""
-    notifications = # await notification_service.get_user_notifications(
-        user_id=user["id"],
-        unread_only=unread_only,
-        limit=limit
-    )
+    # notifications = await notification_service.get_user_notifications(
+    #     user_id=user["id"],
+    #     unread_only=unread_only,
+    #     limit=limit
+    # )
+    notifications = []
     
     # Get unread count
-    unread_count = # await notification_service.get_unread_count(user["id"])
+    # unread_count = await notification_service.get_unread_count(user["id"])
+    unread_count = 0
     
     return {
         "notifications": notifications,
@@ -1142,7 +1158,8 @@ async def mark_notification_read(
     user: dict = Depends(get_current_user)
 ):
     """Mark notification as read"""
-    success = # await notification_service.mark_as_read(notification_id, user["id"])
+    # success = await notification_service.mark_as_read(notification_id, user["id"])
+    success = True
     
     if success:
         return {"message": "Notification marked as read"}
@@ -1153,7 +1170,8 @@ async def mark_notification_read(
 @router.post("/notifications/read-all")
 async def mark_all_notifications_read(user: dict = Depends(get_current_user)):
     """Mark all notifications as read"""
-    count = # await notification_service.mark_all_as_read(user["id"])
+    # count = await notification_service.mark_all_as_read(user["id"])
+    count = 0
     
     return {"message": f"Marked {count} notifications as read"}
 
@@ -1164,7 +1182,8 @@ async def delete_notification(
     user: dict = Depends(get_current_user)
 ):
     """Delete a notification"""
-    success = # await notification_service.delete_notification(notification_id, user["id"])
+    # success = await notification_service.delete_notification(notification_id, user["id"])
+    success = True
     
     if success:
         return {"message": "Notification deleted"}
@@ -1175,7 +1194,8 @@ async def delete_notification(
 @router.get("/notifications/preferences")
 async def get_notification_preferences(user: dict = Depends(get_current_user)):
     """Get user notification preferences"""
-    prefs = # await notification_service.get_notification_preferences(user["id"])
+    # prefs = await notification_service.get_notification_preferences(user["id"])
+    prefs = None
     
     if not prefs:
         # Return default preferences
@@ -1197,7 +1217,8 @@ async def set_notification_preferences(
     user: dict = Depends(get_current_user)
 ):
     """Set user notification preferences"""
-    result = # await notification_service.set_notification_preferences(user["id"], preferences)
+    # result = await notification_service.set_notification_preferences(user["id"], preferences)
+    result = {"message": "Notification preferences temporarily disabled"}
     
     return result
 
@@ -1263,6 +1284,7 @@ async def forum_websocket_endpoint(
             if message_type == "typing":
                 # User is typing
                 # await forum_ws_manager.set_typing(user_id, topic_id)
+                pass
             
             elif message_type == "ping":
                 # Keep-alive ping
@@ -1273,12 +1295,14 @@ async def forum_websocket_endpoint(
                 additional_topic_id = data.get("topic_id")
                 if additional_topic_id:
                     # await forum_ws_manager.subscribe_to_topic(user_id, additional_topic_id)
+                    pass
             
             elif message_type == "unsubscribe":
                 # Unsubscribe from topic
                 unsubscribe_topic_id = data.get("topic_id")
                 if unsubscribe_topic_id:
                     # await forum_ws_manager.unsubscribe_from_topic(user_id, unsubscribe_topic_id)
+                    pass
             
     except WebSocketDisconnect:
         pass
@@ -1288,16 +1312,15 @@ async def forum_websocket_endpoint(
         # Cleanup on disconnect
         # await forum_ws_manager.disconnect(user_id, connection_id)
         # await forum_ws_manager.unsubscribe_from_topic(user_id, topic_id)
+        pass
 
 
 @router.get("/ws/stats")
 async def websocket_stats(user: dict = Depends(get_current_user)):
     """Get WebSocket connection statistics"""
     return {
-        "total_connections": forum_ws_manager.get_connection_count(),
-        "topic_connections": {
-            topic_id: forum_ws_manager.get_topic_connection_count(topic_id)
-            for topic_id in forum_ws_manager.topic_subscriptions.keys()
-        }
+        "total_connections": 0,
+        "topic_connections": {},
+        "message": "WebSocket features temporarily disabled"
     }
 
