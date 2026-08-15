@@ -32,7 +32,7 @@ const MultiDeliveryManager = ({ isOpen, onClose }) => {
       if (!token) return;
       
       try {
-        const response = await axios.get(`${API}/driver/multi-delivery/orders`, {
+        const response = await axios.get(`${API}/delivery/driver/multi-orders`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -56,19 +56,18 @@ const MultiDeliveryManager = ({ isOpen, onClose }) => {
     setOptimizing(true);
     
     try {
-      const response = await axios.post(`${API}/driver/optimize-route`, {
-        orders: activeOrders.map(order => order.id)
-      }, {
+      const response = await axios.post(`${API}/delivery/driver/optimize-route`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.data) {
         toast.success('Route optimisée avec succès !', {
-          description: `${response.data.time_saved} min économisées`
+          description: `ETA total: ${response.data.total_eta_minutes || 0} min`
         });
-        
-        // Update orders with optimized sequence
-        setActiveOrders(response.data.optimized_orders);
+        if (response.data.stops) {
+          const orderedIds = response.data.stops.map(s => s.order_id);
+          setActiveOrders(prev => [...prev].sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id)));
+        }
       }
     } catch (error) {
       console.error('Error optimizing route:', error);

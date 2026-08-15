@@ -1,5 +1,5 @@
 // Web Push Notification Service
-// Handles browser notifications for real-time updates
+import { API_URL } from '../config/api';
 
 class NotificationService {
   constructor() {
@@ -78,7 +78,7 @@ class NotificationService {
   // Send subscription to backend
   async sendSubscriptionToServer(subscription) {
     try {
-      const response = await fetch('/api/notifications/subscribe', {
+      const response = await fetch(`${API_URL}/notifications/subscribe`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ class NotificationService {
         this.subscription = null;
         
         // Notify server
-        await fetch('/api/notifications/unsubscribe', {
+        await fetch(`${API_URL}/notifications/unsubscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,6 +219,8 @@ class NotificationService {
 export const notificationService = new NotificationService();
 
 // Export hook for React components
+import { useState, useEffect } from 'react';
+
 export const useNotifications = () => {
   const [permission, setPermission] = useState('default');
 

@@ -80,6 +80,26 @@ from routes.reviews import router as reviews_router
 
 from routes.forum import router as forum_router
 
+from routes.delivery_chat import router as delivery_chat_router, set_manager as set_delivery_chat_manager
+
+from routes.notifications_api import router as notifications_router
+
+from routes.delivery_api import router as delivery_router, set_manager as set_delivery_manager
+
+from routes.ratings_api import router as ratings_router
+
+from routes.gamification_api import router as gamification_router
+
+from routes.analytics_api import router as analytics_router
+
+from routes.conflicts_api import router as conflicts_router, set_manager as set_conflicts_manager
+
+from routes.security_api import router as security_router
+
+from core.notification_channels import set_ws_manager
+
+from core.gamification_delivery import add_delivery_points
+
 
 
 
@@ -258,6 +278,32 @@ api.include_router(forum_router)
 api.include_router(enterprises_router)
 
 api.include_router(offers_router)
+
+api.include_router(delivery_chat_router)
+
+api.include_router(notifications_router)
+
+api.include_router(delivery_router)
+
+api.include_router(ratings_router)
+
+api.include_router(gamification_router)
+
+api.include_router(analytics_router)
+
+api.include_router(conflicts_router)
+
+api.include_router(security_router)
+
+
+
+set_delivery_chat_manager(manager)
+
+set_delivery_manager(manager)
+
+set_conflicts_manager(manager)
+
+set_ws_manager(manager)
 
 
 
@@ -1804,6 +1850,11 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Commande livrée avec succès par {user.get('name')}", manager)
+
+    await add_delivery_points(user["id"], "delivery_completed", 25)
+    seller_id = order.get("seller_id")
+    if seller_id:
+        await add_delivery_points(seller_id, "fast_preparation", 10)
     
     return {"ok": True, "message": "Livraison confirmée avec succès"}
 
@@ -2288,6 +2339,9 @@ async def cancel_order_by_customer(order_id: str, payload: OrderCancel, user: di
     if cancellation_settings.get("require_cancellation_reason", False) and not reason:
         raise HTTPException(status_code=400, detail="Une raison d'annulation est requise")
 
+    fee_percentage = cancellation_settings.get("cancellation_fee_percentage", 0)
+    cancellation_fee_fcfa = int((order.get("total_fcfa") or 0) * fee_percentage / 100) if fee_percentage > 0 else 0
+
     # Récupérer les informations pour la synchronisation
     seller_id = order.get("seller_id")
     driver_id = order.get("driver_id")
@@ -2302,6 +2356,7 @@ async def cancel_order_by_customer(order_id: str, payload: OrderCancel, user: di
                 "status": "cancelled",
                 "cancelled_by": "customer",
                 "cancellation_reason": reason,
+                "cancellation_fee_fcfa": cancellation_fee_fcfa,
                 "cancelled_at": _utc(),
                 "updated_at": _utc()
             },
@@ -2825,7 +2880,7 @@ async def driver_orders(user: dict = Depends(require_driver)):
 
 @api.post("/driver/location/update")
 async def driver_location_update(payload: dict, user: dict = Depends(require_driver)):
-    location = {"latitude": payload.get("latitude"), "longitude": payload.get("longitude")}
+    location = {"latitude": payload.get("latitude"), "longitude": payload.get("longitude"), "accuracy": payload.get("accuracy")}
     
     # Update both websocket manager and user document for distance calculations
     manager.update_driver_location(user["id"], location)
@@ -2833,6 +2888,17 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
         {"id": user["id"]}, 
         {"$set": {"location": location, "updated_at": _utc()}}
     )
+
+    # Persist position history
+    await db.driver_position_history.insert_one({
+        "id": str(uuid.uuid4()),
+        "driver_id": user["id"],
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "accuracy": location.get("accuracy"),
+        "timestamp": _utc(),
+        "source": "live",
+    })
     
     await manager.broadcast_to_room("admin_tracking", {"type": "driver_location", "location": manager.get_driver_location(user["id"])})
     
@@ -7133,6 +7199,34 @@ async def get_offer(offer_token: str, user: Optional[dict] = Depends(get_current
 
 
 
+@api.websocket("/ws/order-chat/{order_id}/{user_id}")
+async def ws_order_chat(websocket: WebSocket, order_id: str, user_id: str):
+    room = f"order_chat_{order_id}"
+    await manager.connect(websocket, room, user_id=user_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type")
+            if msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+            elif msg_type == "typing":
+                await manager.broadcast_to_room(room, {
+                    "type": "typing",
+                    "user_id": user_id,
+                    "order_id": order_id,
+                })
+            elif msg_type == "new_message":
+                await manager.broadcast_to_room(room, data)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room, user_id=user_id)
+    except Exception as e:
+        print(f"Order chat WS error: {e}")
+        manager.disconnect(websocket, room, user_id=user_id)
+
+
+
+
+
 @api.websocket("/ws/chat/{conversation_id}")
 async def ws_chat(websocket: WebSocket, conversation_id: str):
     await websocket.accept()
@@ -7252,6 +7346,20 @@ async def startup_event():
         await db.products.create_index("name")
 
         await db.products.create_index("tags")
+
+        delivery_index_specs = [
+            (db.delivery_messages, [("order_id", 1), ("created_at", 1)]),
+            (db.delivery_conversations, [("order_id", 1)]),
+            (db.notifications, [("user_id", 1), ("read", 1)]),
+            (db.driver_position_history, [("driver_id", 1), ("timestamp", -1)]),
+            (db.delivery_ratings, [("recipient_id", 1)]),
+            (db.gamification_profiles, [("user_id", 1)]),
+        ]
+        for collection, keys in delivery_index_specs:
+            try:
+                await collection.create_index(keys)
+            except Exception:
+                pass
 
         print("✅ Index de recherche créés avec succès")
 

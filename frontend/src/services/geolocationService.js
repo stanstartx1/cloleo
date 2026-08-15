@@ -1,5 +1,5 @@
 // Advanced Geolocation Service
-// Handles high-precision GPS, battery optimization, and offline mode
+import { API_URL } from '../config/api';
 
 class AdvancedGeolocationService {
   constructor() {
@@ -227,7 +227,7 @@ class AdvancedGeolocationService {
   // Sync offline positions to server
   async syncOfflinePositions() {
     try {
-      const response = await fetch('/api/driver/sync-positions', {
+      const response = await fetch(`${API_URL}/delivery/driver/sync-positions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

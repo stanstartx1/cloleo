@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Cloléo Client",
+    "slug": "cloleo-client",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f97316"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cloleo.client"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f97316"
+      },
+      "package": "com.cloleo.client"
+    },
+    "plugins": ["expo-notifications"],
+    "extra": {
+      "apiUrl": "https://cloleo.com/api"
+    }
+  }
+}

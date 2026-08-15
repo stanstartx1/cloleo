@@ -6,7 +6,7 @@ import {
   Clock, AlertCircle, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { API_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -89,7 +89,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
   useEffect(() => {
     if (!isOpen || !orderId || !user?.id) return;
 
-    const wsUrl = `${API.replace('http', 'ws')}/ws/chat/${orderId}/${user.id}`;
+    const wsUrl = `${WS_URL}/api/ws/order-chat/${orderId}/${user.id}`;
     const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {

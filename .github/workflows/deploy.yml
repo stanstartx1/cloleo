@@ -134,7 +134,7 @@ jobs:
             echo "✅ Frontend built successfully"
             
             echo "== Creating upload directories =="
-            mkdir -p ../backend/uploads/chat/images ../backend/uploads/chat/documents ../backend/uploads/chat/audio
+            mkdir -p ../backend/uploads/chat/images ../backend/uploads/chat/documents ../backend/uploads/chat/audio ../backend/uploads/chat/orders ../backend/uploads/delivery_proofs
             chmod -R 755 ../backend/uploads
             
             echo "== Restarting services =="
