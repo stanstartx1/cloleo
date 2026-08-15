@@ -206,6 +206,9 @@ const FloatingChat = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [recordingUsers, setRecordingUsers] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
   const listEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -213,6 +216,7 @@ const FloatingChat = () => {
   const mediaRecorderRef = useRef(null);
   const recordingIntervalRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const typingTimeoutRef = useRef(null);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) || null;
   const canOpenProduct =
@@ -488,6 +492,9 @@ const FloatingChat = () => {
     const content = newMessage.trim();
     setNewMessage("");
     
+    // Stop typing indicator
+    await setTypingStatus(false);
+    
     // Optimistic update
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
@@ -513,6 +520,99 @@ const FloatingChat = () => {
       toast.error("Erreur lors de l'envoi");
     }
   };
+  
+  // Typing indicator functionality
+  const setTypingStatus = async (isTyping: boolean) => {
+    if (!activeConversationId || !token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${activeConversationId}/typing`,
+        { is_typing },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting typing status:', error);
+    }
+  };
+  
+  const handleTyping = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    if (value.trim() && !isTyping) {
+      setIsTyping(true);
+      setTypingStatus(true);
+      
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Stop typing after 3 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        setTypingStatus(false);
+      }, 3000);
+    } else if (!value.trim() && isTyping) {
+      setIsTyping(false);
+      setTypingStatus(false);
+    }
+  };
+  
+  // Voice recording indicator functionality
+  const setVoiceRecordingStatus = async (isRecording: boolean) => {
+    if (!activeConversationId || !token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${activeConversationId}/voice-recording`,
+        { is_recording: isRecording },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting voice recording status:', error);
+    }
+  };
+  
+  // Override recording functions to send status
+  const startRecordingWithStatus = async () => {
+    await setVoiceRecordingStatus(true);
+    await startRecording();
+  };
+  
+  const stopRecordingWithStatus = () => {
+    setVoiceRecordingStatus(false);
+    stopRecording();
+  };
+  
+  const cancelRecordingWithStatus = () => {
+    setVoiceRecordingStatus(false);
+    cancelRecording();
+  };
+  
+  // Poll for typing and recording status
+  useEffect(() => {
+    if (!isOpen || !activeConversationId || !token) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const [typingResponse, recordingResponse] = await Promise.all([
+          axios.get(`${API}/conversations/${activeConversationId}/typing-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API}/conversations/${activeConversationId}/voice-recording-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        setTypingUsers(typingResponse.data?.typing_users || []);
+        setRecordingUsers(recordingResponse.data?.recording_users || []);
+      } catch (error) {
+        console.error('Error polling status:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [isOpen, activeConversationId, token]);
 
   // Hide floating chat button on chat pages
   const isChatPage = location.pathname === '/messages' || location.pathname.startsWith('/message');
@@ -707,76 +807,108 @@ const FloatingChat = () => {
             ) : messages.length === 0 ? (
               <p className="text-xs text-slate-500">Aucun message</p>
             ) : (
-              messages.map((m) => {
-                const isOwn = m.sender_id === user?.id;
-                const isCustomerBubble = m.sender_type === "customer";
-                return (
-                  <div
-                    key={m.id}
-                    className={`flex items-end gap-1 max-w-[85%] ${
-                      isCustomerBubble ? "ml-0" : "ml-auto flex-row-reverse"
-                    }`}
-                  >
+              <>
+                {/* Typing indicator */}
+                {typingUsers.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-xs text-slate-600">
+                      {typingUsers.length === 1 
+                        ? `${typingUsers[0]?.name || 'Quelqu\'un'} est en train d'écrire...`
+                        : `${typingUsers.length} personnes sont en train d'écrire...`
+                      }
+                    </span>
+                  </div>
+                )}
+                
+                {/* Voice recording indicator */}
+                {recordingUsers.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg border border-red-200">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-xs text-red-600">
+                      {recordingUsers.length === 1 
+                        ? `${recordingUsers[0]?.name || 'Quelqu\'un'} est en train d'enregistrer un message vocal...`
+                        : `${recordingUsers.length} personnes sont en train d'enregistrer...`
+                      }
+                    </span>
+                  </div>
+                )}
+                
+                {messages.map((m) => {
+                  const isOwn = m.sender_id === user?.id;
+                  const isCustomerBubble = m.sender_type === "customer";
+                  return (
                     <div
-                      className={`px-3 py-2 rounded-xl text-xs ${
-                        isCustomerBubble ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
+                      key={m.id}
+                      className={`flex items-end gap-1 max-w-[85%] ${
+                        isCustomerBubble ? "ml-0" : "ml-auto flex-row-reverse"
                       }`}
                     >
-                      {m.media_type === 'image' && (
-                        <div>
-                          <MediaImg 
-                            src={m.file_url} 
-                            alt="Image partagée" 
-                            className="max-w-[200px] max-h-[200px] rounded-lg object-contain"
-                          />
-                        </div>
-                      )}
-                      {m.media_type === 'document' && (
-                        <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileText className="w-4 h-4 text-blue-600" />
+                      <div
+                        className={`px-3 py-2 rounded-xl text-xs ${
+                          isCustomerBubble ? "bg-slate-100 text-slate-800" : "bg-fuchsia-600 text-white"
+                        }`}
+                      >
+                        {m.media_type === 'image' && (
+                          <div>
+                            <MediaImg 
+                              src={m.file_url} 
+                              alt="Image partagée" 
+                              className="max-w-[200px] max-h-[200px] rounded-lg object-contain"
+                            />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-blue-900 truncate">{m.file_name}</p>
-                            <p className="text-[10px] text-blue-600">
-                              {m.file_size ? `${(m.file_size / 1024).toFixed(1)} KB` : 'Document'}
-                            </p>
+                        )}
+                        {m.media_type === 'document' && (
+                          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <FileText className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-blue-900 truncate">{m.file_name}</p>
+                              <p className="text-[10px] text-blue-600">
+                                {m.file_size ? `${(m.file_size / 1024).toFixed(1)} KB` : 'Document'}
+                              </p>
+                            </div>
+                            <a 
+                              href={m.file_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Télécharger
+                            </a>
                           </div>
-                          <a 
-                            href={m.file_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                          >
-                            <FileText className="w-3 h-3" />
-                            Télécharger
-                          </a>
-                        </div>
+                        )}
+                        {m.media_type === 'audio' && (
+                          <div className="space-y-1">
+                            <CustomAudioPlayer audioUrl={m.file_url} duration={m.duration} />
+                          </div>
+                        )}
+                        {m.content || m.text}
+                      </div>
+                      {isOwn && activeConversationId && (
+                        <ChatMessageDeleteButton
+                          token={token}
+                          conversationId={activeConversationId}
+                          messageId={m.id}
+                          onDeleted={handleMessageDeleted}
+                          className={
+                            isCustomerBubble
+                              ? "text-slate-400 hover:text-red-500"
+                              : "text-fuchsia-200 hover:text-white"
+                          }
+                          disabled={String(m.id).startsWith("temp-")}
+                        />
                       )}
-                      {m.media_type === 'audio' && (
-                        <div className="space-y-1">
-                          <CustomAudioPlayer audioUrl={m.file_url} duration={m.duration} />
-                        </div>
-                      )}
-                      {m.content || m.text}
                     </div>
-                    {isOwn && activeConversationId && (
-                      <ChatMessageDeleteButton
-                        token={token}
-                        conversationId={activeConversationId}
-                        messageId={m.id}
-                        onDeleted={handleMessageDeleted}
-                        className={
-                          isCustomerBubble
-                            ? "text-slate-400 hover:text-red-500"
-                            : "text-fuchsia-200 hover:text-white"
-                        }
-                        disabled={String(m.id).startsWith("temp-")}
-                      />
-                    )}
-                  </div>
-                );
-              })
+                  );
+                })}
+              </>
             )}
             <div ref={listEndRef} />
           </div>
@@ -846,7 +978,7 @@ const FloatingChat = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={cancelRecording}
+                              onClick={cancelRecordingWithStatus}
                               className="flex-1 justify-start text-xs text-red-600"
                             >
                               Annuler
@@ -855,7 +987,7 @@ const FloatingChat = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={stopRecording}
+                              onClick={stopRecordingWithStatus}
                               className="flex-1 justify-start text-xs text-green-600"
                             >
                               Envoyer
@@ -867,7 +999,7 @@ const FloatingChat = () => {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={startRecording}
+                          onClick={startRecordingWithStatus}
                           className="w-full justify-start"
                         >
                           <Mic className="w-4 h-4 mr-2" />
@@ -879,12 +1011,12 @@ const FloatingChat = () => {
                 )}
               </div>
               
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Écrire un message..."
-                className="h-9 text-sm flex-1"
-              />
+                      <Input
+                        value={newMessage}
+                        onChange={handleTyping}
+                        placeholder="Écrire un message..."
+                        className="h-9 text-sm flex-1"
+                      />
               <Button type="submit" size="icon" className="h-9 w-9 bg-fuchsia-600 hover:bg-fuchsia-700" disabled={uploadingFile}>
                 {uploadingFile ? (
                   <div className="w-4 h-4 border-2 border-fuchsia-200 border-t-fuchsia-600 rounded-full animate-spin" />

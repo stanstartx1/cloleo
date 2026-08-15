@@ -617,6 +617,96 @@ async def upload_chat_audio(
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
 
 
+# ==================== TYPING & VOICE RECORDING INDICATORS ====================
+
+@router.post("/{conversation_id}/typing")
+async def set_typing_status(
+    conversation_id: str,
+    is_typing: bool = True,
+    user: dict = Depends(get_current_user)
+):
+    """Set typing status for the current user in a conversation"""
+    if manager:
+        try:
+            manager.set_typing(conversation_id, user["id"], is_typing)
+            await manager.broadcast_typing_status(conversation_id, user["id"], is_typing)
+            return {"ok": True, "is_typing": is_typing}
+        except Exception as e:
+            print(f"Error setting typing status: {e}")
+            raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+    return {"ok": True, "is_typing": is_typing}
+
+
+@router.get("/{conversation_id}/typing-users")
+async def get_typing_users(
+    conversation_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Get list of users currently typing in a conversation"""
+    if manager:
+        try:
+            typing_users = manager.get_typing_users(conversation_id)
+            # Filter out the current user
+            typing_users = [uid for uid in typing_users if uid != user["id"]]
+            
+            # Get user details for typing users
+            typing_users_details = []
+            for uid in typing_users:
+                user_detail = await db.users.find_one({"id": uid}, {"_id": 0, "name": 1, "profile_photo": 1})
+                if user_detail:
+                    typing_users_details.append(user_detail)
+            
+            return {"ok": True, "typing_users": typing_users_details}
+        except Exception as e:
+            print(f"Error getting typing users: {e}")
+            raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+    return {"ok": True, "typing_users": []}
+
+
+@router.post("/{conversation_id}/voice-recording")
+async def set_voice_recording_status(
+    conversation_id: str,
+    is_recording: bool = True,
+    user: dict = Depends(get_current_user)
+):
+    """Set voice recording status for the current user in a conversation"""
+    if manager:
+        try:
+            manager.set_voice_recording(conversation_id, user["id"], is_recording)
+            await manager.broadcast_voice_recording_status(conversation_id, user["id"], is_recording)
+            return {"ok": True, "is_recording": is_recording}
+        except Exception as e:
+            print(f"Error setting voice recording status: {e}")
+            raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+    return {"ok": True, "is_recording": is_recording}
+
+
+@router.get("/{conversation_id}/voice-recording-users")
+async def get_voice_recording_users(
+    conversation_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Get list of users currently recording voice in a conversation"""
+    if manager:
+        try:
+            recording_users = manager.get_voice_recording_users(conversation_id)
+            # Filter out the current user
+            recording_users = [uid for uid in recording_users if uid != user["id"]]
+            
+            # Get user details for recording users
+            recording_users_details = []
+            for uid in recording_users:
+                user_detail = await db.users.find_one({"id": uid}, {"_id": 0, "name": 1, "profile_photo": 1})
+                if user_detail:
+                    recording_users_details.append(user_detail)
+            
+            return {"ok": True, "recording_users": recording_users_details}
+        except Exception as e:
+            print(f"Error getting voice recording users: {e}")
+            raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+    return {"ok": True, "recording_users": []}
+
+
 # Vendor-specific routes
 vendor_chat_router = APIRouter(prefix="/vendor/conversations", tags=["Vendor Chat"])
 

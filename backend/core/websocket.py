@@ -13,6 +13,12 @@ class ConnectionManager:
         self.driver_locations: Dict[str, dict] = {}
         self.user_connections: Dict[str, Set[str]] = {}  # user_id -> set of rooms
         self.driver_connections: Dict[str, str] = {}  # websocket_id -> driver_id
+        
+        # Typing indicators: {conversation_id: {user_id: timestamp}}
+        self.typing_indicators: Dict[str, Dict[str, float]] = {}
+        
+        # Voice recording indicators: {conversation_id: {user_id: timestamp}}
+        self.voice_recording_indicators: Dict[str, Dict[str, float]] = {}
     
     async def connect(self, websocket: WebSocket, room: str, user_id: str = None):
         await websocket.accept()
@@ -111,5 +117,101 @@ class ConnectionManager:
     def get_active_connections_count(self) -> int:
         """Get total number of active WebSocket connections"""
         return sum(len(conns) for conns in self.active_connections.values())
+    
+    # ==================== TYPING INDICATORS ====================
+    
+    def set_typing(self, conversation_id: str, user_id: str, is_typing: bool = True):
+        """Set typing indicator for a user in a conversation"""
+        if conversation_id not in self.typing_indicators:
+            self.typing_indicators[conversation_id] = {}
+        
+        if is_typing:
+            self.typing_indicators[conversation_id][user_id] = datetime.now(timezone.utc).timestamp()
+        elif user_id in self.typing_indicators[conversation_id]:
+            del self.typing_indicators[conversation_id][user_id]
+        
+        logger.info(f"User {user_id} typing in conversation {conversation_id}: {is_typing}")
+    
+    def get_typing_users(self, conversation_id: str, timeout: int = 10) -> List[str]:
+        """Get list of users currently typing in a conversation (with timeout)"""
+        if conversation_id not in self.typing_indicators:
+            return []
+        
+        current_time = datetime.now(timezone.utc).timestamp()
+        typing_users = []
+        
+        # Clean up expired typing indicators
+        expired_users = []
+        for user_id, timestamp in self.typing_indicators[conversation_id].items():
+            if current_time - timestamp > timeout:
+                expired_users.append(user_id)
+            else:
+                typing_users.append(user_id)
+        
+        for user_id in expired_users:
+            del self.typing_indicators[conversation_id][user_id]
+        
+        if not self.typing_indicators[conversation_id]:
+            del self.typing_indicators[conversation_id]
+        
+        return typing_users
+    
+    # ==================== VOICE RECORDING INDICATORS ====================
+    
+    def set_voice_recording(self, conversation_id: str, user_id: str, is_recording: bool = True):
+        """Set voice recording indicator for a user in a conversation"""
+        if conversation_id not in self.voice_recording_indicators:
+            self.voice_recording_indicators[conversation_id] = {}
+        
+        if is_recording:
+            self.voice_recording_indicators[conversation_id][user_id] = datetime.now(timezone.utc).timestamp()
+        elif user_id in self.voice_recording_indicators[conversation_id]:
+            del self.voice_recording_indicators[conversation_id][user_id]
+        
+        logger.info(f"User {user_id} recording voice in conversation {conversation_id}: {is_recording}")
+    
+    def get_voice_recording_users(self, conversation_id: str, timeout: int = 30) -> List[str]:
+        """Get list of users currently recording voice in a conversation (with timeout)"""
+        if conversation_id not in self.voice_recording_indicators:
+            return []
+        
+        current_time = datetime.now(timezone.utc).timestamp()
+        recording_users = []
+        
+        # Clean up expired recording indicators
+        expired_users = []
+        for user_id, timestamp in self.voice_recording_indicators[conversation_id].items():
+            if current_time - timestamp > timeout:
+                expired_users.append(user_id)
+            else:
+                recording_users.append(user_id)
+        
+        for user_id in expired_users:
+            del self.voice_recording_indicators[conversation_id][user_id]
+        
+        if not self.voice_recording_indicators[conversation_id]:
+            del self.voice_recording_indicators[conversation_id]
+        
+        return recording_users
+    
+    async def broadcast_typing_status(self, conversation_id: str, user_id: str, is_typing: bool):
+        """Broadcast typing status to all users in a conversation"""
+        await self.broadcast_to_room(f"chat_{conversation_id}", {
+            "type": "typing_status",
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+            "is_typing": is_typing,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+    
+    async def broadcast_voice_recording_status(self, conversation_id: str, user_id: str, is_recording: bool):
+        """Broadcast voice recording status to all users in a conversation"""
+        await self.broadcast_to_room(f"chat_{conversation_id}", {
+            "type": "voice_recording_status",
+            "conversation_id": conversation_id,
+            "user_id": user_id,
+            "is_recording": is_recording,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
 
 manager = ConnectionManager()
