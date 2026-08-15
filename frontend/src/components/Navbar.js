@@ -282,7 +282,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
   const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, isEnterprise, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, categoryName } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -799,7 +799,7 @@ const Navbar = () => {
                   className="block py-2.5 px-2 text-sm font-semibold text-slate-600 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {cat.name}
+                  {categoryName(cat.slug, cat.name)}
                 </Link>
               ))}
             </div>

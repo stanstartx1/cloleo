@@ -31,7 +31,7 @@ const SORT_OPTIONS = [
 ];
 
 const ProductsPage = () => {
-  const { t } = useLanguage();
+  const { t, categoryName } = useLanguage();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -171,10 +171,10 @@ const ProductsPage = () => {
                 <div className="flex items-center justify-between gap-2">
                   <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
                     <Checkbox checked={selectedCategory === cat.slug} onCheckedChange={() => { setSelectedCategory(cat.slug); setPage(1); }} />
-                    <span className="text-sm truncate">{cat.name}</span>
+                    <span className="text-sm truncate">{categoryName(cat)}</span>
                   </label>
                   {subCategories.length > 0 && (
-                    <button type="button" onClick={() => toggleCategoryExpand(cat.slug)} className="p-1 rounded hover:bg-muted transition-colors" aria-label={`Déplier ${cat.name}`}>
+                    <button type="button" onClick={() => toggleCategoryExpand(cat.slug)} className="p-1 rounded hover:bg-muted transition-colors" aria-label={`${t('commerce.filters')} ${categoryName(cat)}`}>
                       <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
                   )}
@@ -184,7 +184,7 @@ const ProductsPage = () => {
                     {subCategories.map((subCat) => (
                       <label key={subCat.slug} className="flex items-center gap-3 cursor-pointer">
                         <Checkbox checked={selectedCategory === subCat.slug} onCheckedChange={() => { setSelectedCategory(subCat.slug); setPage(1); }} />
-                        <span className="text-sm text-muted-foreground">{subCat.name}</span>
+                        <span className="text-sm text-muted-foreground">{categoryName(subCat)}</span>
                       </label>
                     ))}
                   </div>
@@ -275,7 +275,7 @@ const ProductsPage = () => {
                         {parentCat?.name || selectedCat.parent_slug}
                       </Link>
                       <span className="mx-2">/</span>
-                      <span className="text-foreground">{selectedCat.name}</span>
+                      <span className="text-foreground">{categoryName(selectedCat)}</span>
                     </>
                   );
                 }
@@ -297,12 +297,12 @@ const ProductsPage = () => {
             {(() => {
               if (featured && selectedCategory) {
                 const selectedCat = categories.find(c => c.slug === selectedCategory);
-                return selectedCat?.name || t('commerce.trendingProducts');
+                return categoryName(selectedCat) || t('commerce.trendingProducts');
               }
               if (featured) return t('commerce.trendingProducts');
               if (selectedCategory) {
                 const selectedCat = categories.find(c => c.slug === selectedCategory);
-                return selectedCat?.name || selectedCategory;
+                return categoryName(selectedCat) || selectedCategory;
               }
               return t('commerce.allProducts');
             })()}

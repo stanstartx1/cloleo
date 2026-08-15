@@ -69,6 +69,22 @@ const translations = {
   },
 };
 
+// Categories are stored in French in the catalogue. Keep their slugs stable and
+// localise only their presentation layer.
+const categoryTranslations = {
+  electronique: { en: 'Electronics' }, mode: { en: 'Fashion' }, maison: { en: 'Home & living' }, beaute: { en: 'Beauty' }, sport: { en: 'Sports & leisure' },
+  'bebes-enfants': { en: 'Baby & kids' }, alimentation: { en: 'Food & groceries' }, 'mode-textile': { en: 'Fashion & textiles' },
+  'artisanat-decoration': { en: 'Crafts & décor' }, 'bijoux-accessoires': { en: 'Jewellery & accessories' }, 'beaute-cosmetiques': { en: 'Beauty & cosmetics' },
+  'electronique-gadgets': { en: 'Electronics & gadgets' }, 'maison-cuisine': { en: 'Home & kitchen' }, 'produits-locaux-agroalimentaire': { en: 'Local food products' },
+  smartphones: { en: 'Smartphones' }, ordinateurs: { en: 'Computers' }, tablettes: { en: 'Tablets' }, 'accessoires-tech': { en: 'Tech accessories' }, 'appareils-photo': { en: 'Cameras' }, 'montres-connectees': { en: 'Smart watches' },
+  'vetements-homme': { en: "Men's clothing" }, 'vetements-femme': { en: "Women's clothing" }, chaussures: { en: 'Shoes' }, 'sacs-maroquinerie': { en: 'Bags & leather goods' }, 'accessoires-mode': { en: 'Fashion accessories' }, luxe: { en: 'Luxury' },
+  meubles: { en: 'Furniture' }, decoration: { en: 'Décor' }, cuisine: { en: 'Kitchen' }, electromenager: { en: 'Home appliances' }, jardin: { en: 'Garden' }, bricolage: { en: 'DIY & tools' },
+  maquillage: { en: 'Make-up' }, 'soins-peau': { en: 'Skincare' }, parfums: { en: 'Fragrances' }, capillaires: { en: 'Hair care' }, 'bien-etre': { en: 'Wellness' }, sante: { en: 'Health' },
+  fitness: { en: 'Fitness' }, velos: { en: 'Bikes' }, 'equipements-sport': { en: 'Sports equipment' }, running: { en: 'Running' }, 'sports-equipe': { en: 'Team sports' }, outdoor: { en: 'Outdoor' },
+  'vetements-bebe': { en: 'Baby clothing' }, jouets: { en: 'Toys' }, puericulture: { en: 'Baby care' }, 'chambre-enfant': { en: "Children's room" }, 'livres-education': { en: 'Books & education' }, 'securite-enfant': { en: 'Child safety' },
+  'produits-frais': { en: 'Fresh products' }, 'produits-locaux': { en: 'Local products' }, boissons: { en: 'Drinks' }, epicerie: { en: 'Groceries' },
+};
+
 const LanguageContext = createContext(null);
 
 const lookup = (dictionary, key) => key.split('.').reduce((value, segment) => value?.[segment], dictionary);
@@ -93,10 +109,16 @@ export const LanguageProvider = ({ children }) => {
     return Object.entries(replacements).reduce((text, [name, replacement]) => text.replaceAll(`{{${name}}}`, String(replacement)), value);
   }, [language]);
 
-  const value = useMemo(() => ({ language, setLanguage, t, languages: [
+  const categoryName = useCallback((categoryOrSlug, fallbackName) => {
+    const slug = typeof categoryOrSlug === 'object' ? categoryOrSlug?.slug : categoryOrSlug;
+    const fallback = fallbackName || (typeof categoryOrSlug === 'object' ? categoryOrSlug?.name : slug);
+    return categoryTranslations[slug]?.[language] || fallback;
+  }, [language]);
+
+  const value = useMemo(() => ({ language, setLanguage, t, categoryName, languages: [
     { code: 'fr', label: 'Français', shortLabel: 'FR', flag: '🇫🇷' },
     { code: 'en', label: 'English', shortLabel: 'EN', flag: '🇬🇧' },
-  ] }), [language, setLanguage, t]);
+  ] }), [language, setLanguage, t, categoryName]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 };

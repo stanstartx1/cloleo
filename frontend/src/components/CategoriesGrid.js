@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Skeleton } from './ui/skeleton';
 import { API_URL, API_BASE } from '../config/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const API = API_URL;
 
 const CategoriesGrid = () => {
+  const { categoryName, t } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,6 +72,7 @@ const CategoriesGrid = () => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5">
       {categories.map((category) => {
+        const displayName = categoryName(category);
         const imageUrl = getCategoryImage(category);
         const subCount = category.subcategories_count || 0;
         
@@ -89,13 +92,13 @@ const CategoriesGrid = () => {
               {imageUrl ? (
                 <img
                   src={imageUrl}
-                  alt={category.name}
+                  alt={displayName}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-amber-100">
                   <span className="text-4xl font-bold text-orange-300">
-                    {category.name?.charAt(0).toUpperCase() || 'C'}
+                    {displayName?.charAt(0).toUpperCase() || 'C'}
                   </span>
                 </div>
               )}
@@ -106,13 +109,13 @@ const CategoriesGrid = () => {
             
             {/* Nom de la catégorie */}
             <h3 className="mt-3 text-sm md:text-base font-semibold text-slate-700 group-hover:text-orange-600 transition-colors line-clamp-1">
-              {category.name}
+              {displayName}
             </h3>
             
             {/* Nombre de produits (optionnel) */}
             {subCount > 0 && (
               <p className="text-xs text-slate-400 mt-0.5">
-                {subCount} produit{subCount > 1 ? 's' : ''}
+                {subCount} {subCount > 1 ? t('commerce.productsFoundPlural') : t('commerce.productsFound')}
               </p>
             )}
           </Link>

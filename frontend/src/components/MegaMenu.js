@@ -20,7 +20,7 @@ const API = API_URL;
 
 const MegaMenu = () => {
   const { isVendor, isEnterprise } = useAuth();
-  const { t } = useLanguage();
+  const { t, categoryName } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -314,7 +314,7 @@ const MegaMenu = () => {
                     <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color} text-white`}>
                       {category.icon}
                     </div>
-                    <span className={`font-semibold ${textColor} text-sm whitespace-nowrap`}>{category.name}</span>
+                    <span className={`font-semibold ${textColor} text-sm whitespace-nowrap`}>{categoryName(category.id, category.name)}</span>
                     {category.trending && (
                       <Flame className="w-4 h-4 text-orange-500" />
                     )}
@@ -332,7 +332,7 @@ const MegaMenu = () => {
                       <motion.div
                         id={`submenu-${category.id}`}
                         role="menu"
-                        aria-label={`Menu ${category.name}`}
+                        aria-label={`Menu ${categoryName(category.id, category.name)}`}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
@@ -344,7 +344,7 @@ const MegaMenu = () => {
                           <div className={`w-1/2 p-6 border-r ${darkMode ? 'border-slate-700' : 'border-gray-100'} overflow-y-auto`}>
                             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${textColor}`}>
                               {category.icon}
-                              {category.name}
+                              {categoryName(category.id, category.name)}
                             </h3>
                             <div className="space-y-2">
                               {category.subcategories.map((sub) => (
@@ -358,7 +358,7 @@ const MegaMenu = () => {
                                     {sub.icon}
                                   </div>
                                   <div className="flex-1">
-                                    <span className={`font-medium ${textColor} group-hover/sub:text-purple-700 transition-colors`}>{sub.name}</span>
+                                    <span className={`font-medium ${textColor} group-hover/sub:text-purple-700 transition-colors`}>{categoryName(sub.slug, sub.name)}</span>
                                   </div>
                                   <ChevronRight className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-400'} group-hover/sub:text-purple-500 group-hover/sub:translate-x-1 transition-all duration-200`} />
                                 </Link>
@@ -370,7 +370,7 @@ const MegaMenu = () => {
                           <div className="w-1/2 relative overflow-hidden">
                             <img
                               src={category.image}
-                              alt={category.name}
+                              alt={categoryName(category.id, category.name)}
                               loading="lazy"
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -379,8 +379,8 @@ const MegaMenu = () => {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                             <div className="absolute bottom-0 left-0 right-0 p-6">
-                              <h4 className="text-white text-xl font-bold mb-2">Découvrez {category.name}</h4>
-                              <p className="text-white/80 text-sm mb-4">Explorez notre sélection de produits {category.name.toLowerCase()}</p>
+                              <h4 className="text-white text-xl font-bold mb-2">{categoryName(category.id, category.name)}</h4>
+                              <p className="text-white/80 text-sm mb-4">{t('commerce.exploreCategories')}</p>
                               <Link
                                 to={category.isForum ? '/forum' : `/category/${category.subcategories[0]?.slug || category.id}`}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-full font-semibold hover:bg-purple-600 hover:text-white transition-all duration-200"
@@ -542,7 +542,7 @@ const MegaMenu = () => {
                             <div className={`p-2 rounded-lg bg-gradient-to-br ${cat.color} text-white`}>
                               {cat.icon}
                             </div>
-                            <span className={`font-medium ${textColor}`}>{cat.name}</span>
+                            <span className={`font-medium ${textColor}`}>{categoryName(cat.id, cat.name)}</span>
                           </Link>
                         );
                       })}
@@ -561,7 +561,7 @@ const MegaMenu = () => {
                         <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color} text-white`}>
                           {category.icon}
                         </div>
-                        <span className={`font-medium ${textColor}`}>{category.name}</span>
+                        <span className={`font-medium ${textColor}`}>{categoryName(category.id, category.name)}</span>
                         {category.trending && <Flame className="w-4 h-4 text-orange-500" />}
                         <ChevronRight className={`w-4 h-4 ml-auto transition-transform ${activeCategory === category.id ? 'rotate-90' : ''}`} />
                       </button>
@@ -579,7 +579,7 @@ const MegaMenu = () => {
                               className={`block px-4 py-2 rounded-lg ${subTextColor} ${hoverBg} text-sm`}
                               onClick={() => setMobileMenuOpen(false)}
                             >
-                              {sub.name}
+                              {categoryName(sub.slug, sub.name)}
                             </Link>
                           ))}
                         </motion.div>
