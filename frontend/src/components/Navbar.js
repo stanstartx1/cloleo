@@ -19,6 +19,8 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import axios from 'axios';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
 
 const API = API_URL;
 
@@ -280,6 +282,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
   const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, isEnterprise, logout } = useAuth();
+  const { t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -434,14 +437,14 @@ const Navbar = () => {
                 to="/produits?featured=true"
                 className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide"
               >
-                Tendances
+                {t('nav.trends')}
               </Link>
               
               {/* Dropdown pour Devenir partenaire */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="font-bold text-slate-700 hover:text-orange-500 transition-all duration-300 text-sm tracking-wide flex items-center gap-1">
-                    Devenir partenaire
+                    {t('nav.partner')}
                     <ChevronDown className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
@@ -449,25 +452,25 @@ const Navbar = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/devenir-vendeur" className="flex items-center gap-2">
                       <Store className="w-4 h-4" />
-                      <span>Vendeur</span>
+                      <span>{t('nav.seller')}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/inscription-livreur" className="flex items-center gap-2">
                       <Truck className="w-4 h-4" />
-                      <span>Livreur</span>
+                      <span>{t('nav.driver')}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/inscription-revendeur" className="flex items-center gap-2">
                       <Building2 className="w-4 h-4" />
-                      <span>Revendeur</span>
+                      <span>{t('nav.reseller')}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/inscription-entreprise" className="flex items-center gap-2">
                       <Crown className="w-4 h-4" />
-                      <span>Entreprise</span>
+                      <span>{t('nav.enterprise')}</span>
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -483,7 +486,7 @@ const Navbar = () => {
                 >
                   <Search className="w-5 h-5 text-orange-400 group-hover:text-orange-600 transition-colors shrink-0" />
                   <span className="ml-3 text-sm font-semibold text-slate-500 group-hover:text-slate-700 flex-1 transition-colors">
-                    Rechercher un produit...
+                    {t('nav.searchPlaceholder')}
                   </span>
                   <span className="hidden lg:flex items-center gap-1 text-[10px] font-bold text-orange-400 bg-white border border-orange-200 rounded-full px-2 py-0.5">
                     ⌘K
@@ -501,6 +504,7 @@ const Navbar = () => {
 
             {/* ── Actions ── */}
             <div className="ml-auto flex items-center gap-3 shrink-0" style={{ overflow: 'visible' }}>
+              <LanguageSwitcher />
               
               {/* Bouton recherche mobile */}
               <Button
@@ -597,7 +601,7 @@ const Navbar = () => {
                   className="hidden md:inline-flex rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2 text-xs font-bold h-9 shadow-sm hover:shadow-md hover:from-orange-600 hover:to-amber-600 transition-all"
                   data-testid="login-btn"
                 >
-                  <Link to="/connexion"><User className="w-3.5 h-3.5 mr-1.5" /> Connexion</Link>
+                  <Link to="/connexion"><User className="w-3.5 h-3.5 mr-1.5" /> {t('nav.login')}</Link>
                 </Button>
               )}
 
@@ -629,14 +633,14 @@ const Navbar = () => {
                     {isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link to="/admin" className="font-bold text-amber-600">
-                          <Crown className="w-4 h-4 mr-2" /> Administration
+                          <Crown className="w-4 h-4 mr-2" /> {t('nav.administration')}
                         </Link>
                       </DropdownMenuItem>
                     )}
                     {isDriver && (
                       <DropdownMenuItem asChild>
                         <Link to="/livreur" className="font-semibold">
-                          <Truck className="w-4 h-4 mr-2" /> Espace livreur
+                          <Truck className="w-4 h-4 mr-2" /> {t('nav.driverSpace')}
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -644,12 +648,12 @@ const Navbar = () => {
                       <>
                         <DropdownMenuItem asChild>
                           <Link to="/revendeur" className="font-semibold">
-                            <Store className="w-4 h-4 mr-2" /> Espace revendeur
+                            <Store className="w-4 h-4 mr-2" /> {t('nav.resellerSpace')}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link to={`/boutique/${user?.shop_slug || ''}`} className="font-semibold">
-                            <Eye className="w-4 h-4 mr-2" /> Voir ma boutique
+                            <Eye className="w-4 h-4 mr-2" /> {t('nav.seeShop')}
                           </Link>
                         </DropdownMenuItem>
                       </>
@@ -657,7 +661,7 @@ const Navbar = () => {
                     {isVendor && !isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link to="/vendeur" className="font-semibold">
-                          <Store className="w-4 h-4 mr-2" /> Espace vendeur
+                          <Store className="w-4 h-4 mr-2" /> {t('nav.vendorSpace')}
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -667,38 +671,38 @@ const Navbar = () => {
                         console.log('DEBUG: Clicked Espace entreprise menu item');
                         navigate('/enterprise');
                       }} className="font-semibold cursor-pointer">
-                        <Building2 className="w-4 h-4 mr-2" /> Espace entreprise
+                        <Building2 className="w-4 h-4 mr-2" /> {t('nav.enterpriseSpace')}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
-                      <Link to="/favoris" className="font-semibold"><Heart className="w-4 h-4 mr-2" /> Mes favoris</Link>
+                      <Link to="/favoris" className="font-semibold"><Heart className="w-4 h-4 mr-2" /> {t('nav.favorites')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> Mes commandes</Link>
+                      <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> {t('nav.orders')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/wallet" className="font-semibold"><Wallet className="w-4 h-4 mr-2" /> Mon Portefeuille</Link>
+                      <Link to="/wallet" className="font-semibold"><Wallet className="w-4 h-4 mr-2" /> {t('nav.wallet')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> Mes offres</Link>
+                      <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> {t('nav.offers')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> Mes abonnements</Link>
+                      <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> {t('nav.subscriptions')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/mes-messages" className="font-semibold"><MessageCircle className="w-4 h-4 mr-2" /> Mes messages</Link>
+                      <Link to="/mes-messages" className="font-semibold"><MessageCircle className="w-4 h-4 mr-2" /> {t('nav.messages')}</Link>
                     </DropdownMenuItem>
                     {(isVendor || isEnterprise) && (
                       <DropdownMenuItem asChild>
-                        <Link to="/forum" className="font-semibold"><MessageSquare className="w-4 h-4 mr-2" /> Forum</Link>
+                        <Link to="/forum" className="font-semibold"><MessageSquare className="w-4 h-4 mr-2" /> {t('nav.forum')}</Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
-                      <Link to="/parametres" className="font-semibold"><Settings className="w-4 h-4 mr-2" /> Paramètres</Link>
+                      <Link to="/parametres" className="font-semibold"><Settings className="w-4 h-4 mr-2" /> {t('nav.settings')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-red-600 font-bold">
-                      <LogOut className="w-4 h-4 mr-2" /> Déconnexion
+                      <LogOut className="w-4 h-4 mr-2" /> {t('nav.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -757,18 +761,20 @@ const Navbar = () => {
                 className="flex items-center gap-2 p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-bold text-sm shadow-sm"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <User className="w-4 h-4" /> Connexion / Inscription
+                <User className="w-4 h-4" /> {t('nav.login')}
               </Link>
             )}
 
+            <LanguageSwitcher mobile />
+
             {isAdmin && (
               <Link to="/admin" className="flex items-center gap-2 py-3 border-b font-bold text-amber-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                <Crown className="w-4 h-4" /> Administration
+                <Crown className="w-4 h-4" /> {t('nav.administration')}
               </Link>
             )}
             {isVendor && !isAdmin && (
               <Link to="/vendeur" className="flex items-center gap-2 py-3 border-b font-bold text-orange-600 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                <Store className="w-4 h-4" /> Espace vendeur
+                <Store className="w-4 h-4" /> {t('nav.vendorSpace')}
               </Link>
             )}
             {isEnterprise && (
@@ -777,12 +783,12 @@ const Navbar = () => {
                 navigate('/enterprise');
                 setMobileMenuOpen(false);
               }} className="flex items-center gap-2 py-3 border-b font-bold text-green-600 text-sm w-full text-left">
-                <Building2 className="w-4 h-4" /> Espace entreprise
+                <Building2 className="w-4 h-4" /> {t('nav.enterpriseSpace')}
               </button>
             )}
 
             <Link to="/categories" className="block py-3 border-b font-bold text-slate-800 text-sm" onClick={() => setMobileMenuOpen(false)}>
-              Toutes les catégories
+              {t('nav.allCategories')}
             </Link>
 
             <div className="space-y-0.5">
@@ -800,25 +806,25 @@ const Navbar = () => {
 
             <div className="pt-3 border-t space-y-1">
               <Link to="/favoris" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                <Heart className="w-4 h-4" /> Mes favoris
+                <Heart className="w-4 h-4" /> {t('nav.favorites')}
               </Link>
               {isAuthenticated && (
                 <>
                   <Link to="/commandes" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                    <ShoppingCart className="w-4 h-4" /> Mes commandes
+                    <ShoppingCart className="w-4 h-4" /> {t('nav.orders')}
                   </Link>
                   {(isVendor || isEnterprise) && (
                     <Link to="/forum" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                      <MessageSquare className="w-4 h-4" /> Forum
+                      <MessageSquare className="w-4 h-4" /> {t('nav.forum')}
                     </Link>
                   )}
                   <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                    <Bell className="w-4 h-4" /> Mes abonnements
+                    <Bell className="w-4 h-4" /> {t('nav.subscriptions')}
                   </Link>
                 </>
               )}
               <Link to="/panier" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                <ShoppingCart className="w-4 h-4" /> Mon panier
+                <ShoppingCart className="w-4 h-4" /> {t('nav.cart')}
                 {cart.item_count > 0 && (
                   <span className="ml-auto bg-orange-500 text-white text-[10px] font-black rounded-full px-2 py-0.5">{cart.item_count}</span>
                 )}
@@ -831,7 +837,7 @@ const Navbar = () => {
                   onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
                   className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-bold text-red-600 w-full rounded-lg hover:bg-red-50 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" /> Déconnexion
+                  <LogOut className="w-4 h-4" /> {t('nav.logout')}
                 </button>
               </div>
             )}
@@ -851,7 +857,7 @@ const Navbar = () => {
                 <Search className="w-4 h-4 text-orange-400 shrink-0" />
                 <Input
                   type="text"
-                  placeholder="Rechercher un produit..."
+                  placeholder={t('nav.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm font-semibold text-slate-700 placeholder-slate-400 h-auto py-0 px-2"

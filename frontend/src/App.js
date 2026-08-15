@@ -38,6 +38,7 @@ axios.interceptors.response.use(
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { ChatProvider } from "./components/FloatingChat";
 
 // Layout
@@ -395,30 +396,31 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <FavoritesProvider>
-          <BrowserRouter>
-            <ChatProvider>
-              <AppRoutes />
-              <MobileBottomNav />
-              <FloatingChat />
-              <Toaster 
-                position="bottom-right" 
-                richColors 
-                closeButton
-                toastOptions={{
-                  style: {
-                    fontFamily: 'Work Sans, sans-serif',
-                  },
-                }}
-              />
-            </ChatProvider>
-          </BrowserRouter>
-        </FavoritesProvider>
-      </CartProvider>
+      <LanguageProvider>
+        <CartProvider>
+          <FavoritesProvider>
+            <BrowserRouter>
+              <ChatProvider>
+                <AppRoutes />
+                <MobileBottomNav />
+                <FloatingChat />
+                <Toaster
+                  position="bottom-right"
+                  richColors
+                  closeButton
+                  toastOptions={{
+                    style: {
+                      fontFamily: 'Work Sans, sans-serif',
+                    },
+                  }}
+                />
+              </ChatProvider>
+            </BrowserRouter>
+          </FavoritesProvider>
+        </CartProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }
 
 export default App;
-

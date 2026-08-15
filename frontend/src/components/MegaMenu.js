@@ -11,6 +11,7 @@ import {
   Flame, Star, TrendingUp, Moon, Sun, Filter, Zap as Lightning
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { API_URL } from '../config/api';
@@ -19,6 +20,7 @@ const API = API_URL;
 
 const MegaMenu = () => {
   const { isVendor, isEnterprise } = useAuth();
+  const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -31,9 +33,9 @@ const MegaMenu = () => {
   const mobileMenuRef = useRef(null);
 
   const menuSlides = [
-    { text: 'Livraison rapide à Abidjan', accent: 'from-orange-500 to-amber-500' },
-    { text: 'Paiement sécurisé et suivi en temps réel', accent: 'from-blue-500 to-indigo-500' },
-    { text: 'Nouveautés et offres chaque semaine', accent: 'from-violet-500 to-fuchsia-500' },
+    { text: t('mega.slides')[0], accent: 'from-orange-500 to-amber-500' },
+    { text: t('mega.slides')[1], accent: 'from-blue-500 to-indigo-500' },
+    { text: t('mega.slides')[2], accent: 'from-violet-500 to-fuchsia-500' },
   ];
 
   // Load dark mode preference
@@ -402,7 +404,7 @@ const MegaMenu = () => {
               {(isVendor || isEnterprise) ? (
                 <Link to="/forum" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors">
                   <MessageSquare className="w-4 h-4" />
-                  <span className="font-semibold text-sm">Forum</span>
+                  <span className="font-semibold text-sm">{t('mega.forum')}</span>
                 </Link>
               ) : <div className="w-0" aria-hidden="true" />}
 
@@ -464,7 +466,7 @@ const MegaMenu = () => {
 
             {(isVendor || isEnterprise) ? (
               <Link to="/forum" className="mx-4 flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white">
-                <MessageSquare className="w-4 h-4" /> Forum
+                <MessageSquare className="w-4 h-4" /> {t('mega.forum')}
               </Link>
             ) : <div className="flex-1" aria-hidden="true" />}
 
@@ -524,7 +526,7 @@ const MegaMenu = () => {
                   <div className="mb-6">
                     <h3 className={`text-sm font-semibold ${subTextColor} mb-3 flex items-center gap-2`}>
                       <Star className="w-4 h-4 text-yellow-500" />
-                      Recommandé pour vous
+                      {t('mega.recommendations')}
                     </h3>
                     <div className="space-y-2">
                       {recommendedCategories.map((catId) => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, Heart, ArrowRight, Store, Shield, Truck } from 'lucide-react';
 import SiteLogo from './SiteLogo';
+import { useLanguage } from '../context/LanguageContext';
 
 const CATEGORIES = [
   { name: 'Mode & Textile', slug: 'mode-textile' },
@@ -11,6 +12,7 @@ const CATEGORIES = [
 ];
 
 const Footer = () => {
+  const { t } = useLanguage();
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white mt-16 relative overflow-hidden" data-testid="footer">
       {/* Decorative background elements */}
@@ -28,7 +30,7 @@ const Footer = () => {
               <SiteLogo imageClassName="h-16" className="transition-transform duration-300 hover:scale-105" />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              La première marketplace africaine pour découvrir et acheter des produits authentiques de qualité. Connectez-vous avec des vendeurs locaux et soutenez l'économie africaine.
+              {t('footer.tagline')}
             </p>
             <div className="flex items-center gap-4">
               <a href="#" className="group relative w-10 h-10 bg-white/5 hover:bg-orange-500 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-orange-500/30">
@@ -47,7 +49,7 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-lg mb-6 flex items-center gap-2">
               <span className="w-8 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></span>
-              Catégories
+              {t('footer.categories')}
             </h4>
             <ul className="space-y-3">
               {CATEGORIES.map((cat, index) => (
@@ -66,7 +68,7 @@ const Footer = () => {
                   to="/categories"
                   className="text-orange-400 hover:text-orange-300 transition-all duration-300 text-sm font-medium hover:translate-x-2 inline-flex items-center gap-2 group"
                 >
-                  Voir toutes 
+                  {t('footer.allCategories')}
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </li>
@@ -77,35 +79,35 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-lg mb-6 flex items-center gap-2">
               <span className="w-8 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></span>
-              Liens utiles
+              {t('footer.usefulLinks')}
             </h4>
             <ul className="space-y-3 text-sm text-gray-400">
               <li>
                 <Link to="/devenir-vendeur" className="hover:text-orange-400 transition-colors inline-flex items-center gap-2 group">
                   <Store className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  Devenir vendeur
+                  {t('footer.becomeSeller')}
                 </Link>
               </li>
               <li>
                 <Link to="/aide" className="hover:text-orange-400 transition-colors inline-flex items-center gap-2 group">
                   <Shield className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  Centre d'aide
+                  {t('footer.help')}
                 </Link>
               </li>
               <li>
                 <Link to="/livraison" className="hover:text-orange-400 transition-colors inline-flex items-center gap-2 group">
                   <Truck className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  Livraison
+                  {t('footer.delivery')}
                 </Link>
               </li>
               <li>
                 <Link to="/retours" className="hover:text-orange-400 transition-colors">
-                  Retours & Remboursements
+                  {t('footer.returns')}
                 </Link>
               </li>
               <li>
                 <Link to="/contact" className="hover:text-orange-400 transition-colors">
-                  Nous contacter
+                  {t('footer.contactUs')}
                 </Link>
               </li>
             </ul>
@@ -115,7 +117,7 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-lg mb-6 flex items-center gap-2">
               <span className="w-8 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"></span>
-              Contact
+              {t('footer.contact')}
             </h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3 group">
@@ -123,7 +125,7 @@ const Footer = () => {
                   <MapPin className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-300 font-medium">Adresse</p>
+                  <p className="text-sm text-gray-300 font-medium">{t('footer.address')}</p>
                   <p className="text-sm text-gray-400">Abidjan, Côte d'Ivoire</p>
                 </div>
               </li>
@@ -132,7 +134,7 @@ const Footer = () => {
                   <Phone className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-300 font-medium">Téléphone</p>
+                  <p className="text-sm text-gray-300 font-medium">{t('footer.phone')}</p>
                   <p className="text-sm text-gray-400">+225 07 87 41 30 01</p>
                 </div>
               </li>
@@ -141,7 +143,7 @@ const Footer = () => {
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-300 font-medium">Email</p>
+                  <p className="text-sm text-gray-300 font-medium">{t('footer.email')}</p>
                   <p className="text-sm text-gray-400">contact@cloleo.com</p>
                 </div>
               </li>
@@ -153,10 +155,10 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <p className="text-sm text-gray-500 flex items-center gap-2">
-              © 2025 Cloléo. Tous droits réservés.
+              © 2025 Cloléo. {t('footer.rights')}
               <span className="hidden md:inline">•</span>
               <span className="hidden md:inline-flex items-center gap-1">
-                Fait avec <Heart className="w-4 h-4 text-orange-500 fill-orange-500" /> en Côte d'Ivoire
+                {t('footer.madeWith')} <Heart className="w-4 h-4 text-orange-500 fill-orange-500" /> {t('footer.in')}
               </span>
             </p>
             <div className="flex items-center gap-6 text-sm text-gray-500">
