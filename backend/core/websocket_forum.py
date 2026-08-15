@@ -9,6 +9,15 @@ from typing import Dict, Set, Optional, Any
 from datetime import datetime
 import logging
 
+# Optional WebSocket import
+try:
+    from fastapi import WebSocket
+    WEBSOCKET_AVAILABLE = True
+except ImportError:
+    WEBSOCKET_AVAILABLE = False
+    WebSocket = Any  # Fallback type
+    logging.warning("WebSocket not available, real-time features disabled")
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +42,10 @@ class ForumWebSocketManager:
     
     async def connect(self, user_id: str, connection_id: str, websocket: Any):
         """Register a new WebSocket connection"""
+        if not WEBSOCKET_AVAILABLE:
+            logger.warning("WebSocket not available, connection ignored")
+            return
+            
         if user_id not in self.active_connections:
             self.active_connections[user_id] = {}
         
@@ -54,6 +67,8 @@ class ForumWebSocketManager:
     
     async def disconnect(self, user_id: str, connection_id: str):
         """Remove a WebSocket connection"""
+        if not WEBSOCKET_AVAILABLE:
+            return
         if user_id in self.active_connections and connection_id in self.active_connections[user_id]:
             del self.active_connections[user_id][connection_id]
             
@@ -141,6 +156,8 @@ class ForumWebSocketManager:
     
     async def broadcast_to_topic(self, topic_id: str, message: Dict[str, Any], exclude_user_id: Optional[str] = None):
         """Broadcast a message to all users subscribed to a topic"""
+        if not WEBSOCKET_AVAILABLE:
+            return
         if topic_id not in self.topic_subscriptions:
             return
         
@@ -161,6 +178,8 @@ class ForumWebSocketManager:
     
     async def send_to_user(self, user_id: str, message: Dict[str, Any]):
         """Send a message to a specific user"""
+        if not WEBSOCKET_AVAILABLE:
+            return
         if user_id not in self.active_connections:
             return
         
@@ -216,6 +235,8 @@ class ForumWebSocketManager:
     
     async def broadcast_new_comment(self, topic_id: str, comment: Dict[str, Any]):
         """Broadcast a new comment to topic subscribers"""
+        if not WEBSOCKET_AVAILABLE:
+            return
         await self.broadcast_to_topic(topic_id, {
             'type': 'new_comment',
             'topic_id': topic_id,
@@ -225,6 +246,8 @@ class ForumWebSocketManager:
     
     async def broadcast_topic_update(self, topic_id: str, topic: Dict[str, Any]):
         """Broadcast topic update to subscribers"""
+        if not WEBSOCKET_AVAILABLE:
+            return
         await self.broadcast_to_topic(topic_id, {
             'type': 'topic_updated',
             'topic_id': topic_id,
@@ -234,6 +257,8 @@ class ForumWebSocketManager:
     
     async def broadcast_notification(self, user_id: str, notification: Dict[str, Any]):
         """Send a notification to a specific user"""
+        if not WEBSOCKET_AVAILABLE:
+            return
         await self.send_to_user(user_id, {
             'type': 'notification',
             'notification': notification,
