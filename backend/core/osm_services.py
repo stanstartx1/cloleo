@@ -8,6 +8,46 @@ from core.database import db
 
 logger = logging.getLogger(__name__)
 
+# ==================== RATE LIMITING ====================
+
+class RateLimiter:
+    """Simple rate limiter to respect OSM API policies"""
+    
+    def __init__(self, max_calls: int, time_window: float):
+        self.max_calls = max_calls
+        self.time_window = time_window
+        self.calls = []
+        self._lock = asyncio.Lock()
+    
+    async def acquire(self):
+        """Wait if rate limit would be exceeded"""
+        async with self._lock:
+            now = datetime.now(timezone.utc)
+            # Remove calls outside the time window
+            self.calls = [call_time for call_time in self.calls 
+                         if now - call_time < timedelta(seconds=self.time_window)]
+            
+            if len(self.calls) >= self.max_calls:
+                # Wait until oldest call is outside window
+                wait_time = (self.calls[0] + timedelta(seconds=self.time_window) - now).total_seconds()
+                if wait_time > 0:
+                    logger.warning(f"Rate limit reached, waiting {wait_time:.2f}s")
+                    await asyncio.sleep(wait_time)
+                    # Clean up after waiting
+                    now = datetime.now(timezone.utc)
+                    self.calls = [call_time for call_time in self.calls 
+                                 if now - call_time < timedelta(seconds=self.time_window)]
+            
+            self.calls.append(now)
+
+# Rate limiters for different OSM services
+# Nominatim: 1 request per second (official policy)
+nominatim_limiter = RateLimiter(max_calls=1, time_window=1.0)
+# OSRM: 2 requests per second (conservative limit)
+osrm_limiter = RateLimiter(max_calls=2, time_window=1.0)
+# Tile server: 5 requests per second
+tile_limiter = RateLimiter(max_calls=5, time_window=1.0)
+
 # ==================== OSM API CONFIGURATION ====================
 
 OSM_CONFIG = {
@@ -16,6 +56,9 @@ OSM_CONFIG = {
     "reverse_geocode_url": "https://nominatim.openstreetmap.org/reverse",
     "tile_server_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     "user_agent": "CloleoDelivery/1.0",  # Required by OSM terms of service
+    "default_country": "ci",  # Côte d'Ivoire for better precision
+    "cache_ttl_hours": 24,  # Cache TTL for geocoding results
+    "route_precision": "high",  # Route calculation precision
 }
 
 # ==================== DIRECTIONS SERVICE (OSRM) ====================
@@ -32,6 +75,9 @@ async def get_osrm_directions(
     Alternative to Mapbox Directions API
     """
     try:
+        # Apply rate limiting
+        await osrm_limiter.acquire()
+        
         coords = f"{origin_lon},{origin_lat};{dest_lon},{dest_lat}"
         url = f"{OSM_CONFIG['osrm_base_url']}/{coords}"
         
@@ -39,7 +85,8 @@ async def get_osrm_directions(
             "overview": "full",
             "geometries": "geojson",
             "alternatives": str(alternatives).lower(),
-            "steps": "true"
+            "steps": "true",
+            "continue_straight": "false"  # Allow route recalculation for better precision
         }
         
         async with aiohttp.ClientSession() as session:
@@ -122,16 +169,29 @@ async def forward_geocode_osm(
     Alternative to Mapbox Geocoding API
     """
     try:
+        # Check cache first for better performance
+        cached = await get_cached_geocode(query, country_codes)
+        if cached:
+            return cached[:limit]  # Return cached results with limit
+        
+        # Apply rate limiting for Nominatim (1 request per second)
+        await nominatim_limiter.acquire()
+        
         params = {
             "q": query,
             "format": "json",
             "limit": limit,
             "addressdetails": 1,
-            "namedetails": 1
+            "namedetails": 1,
+            "polygon_geojson": 0,  # Don't return polygons for faster response
+            "extratags": 0  # Don't return extra tags for faster response
         }
         
+        # Use provided country codes or default to CI for better precision
         if country_codes:
             params["countrycodes"] = ",".join(country_codes)
+        else:
+            params["countrycodes"] = OSM_CONFIG["default_country"]
         
         url = OSM_CONFIG["nominatim_base_url"]
         
@@ -150,6 +210,11 @@ async def forward_geocode_osm(
                             "address": feature.get("address", {}),
                             "boundingbox": feature.get("boundingbox")
                         })
+                    
+                    # Cache the results for future requests
+                    if results:
+                        await cache_geocode_result(query, results, country_codes)
+                    
                     return results
         
         logger.warning(f"Nominatim request failed: {response.status}")
@@ -170,6 +235,14 @@ async def reverse_geocode_osm(
     Convert coordinates to address
     """
     try:
+        # Check cache first for better performance
+        cached = await get_cached_reverse_geocode(lat, lon)
+        if cached:
+            return cached
+        
+        # Apply rate limiting for Nominatim (1 request per second)
+        await nominatim_limiter.acquire()
+        
         params = {
             "lat": lat,
             "lon": lon,
@@ -186,12 +259,15 @@ async def reverse_geocode_osm(
             }, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return {
+                    result = {
                         "display_name": data.get("display_name"),
                         "address": data.get("address", {}),
                         "latitude": lat,
                         "longitude": lon
                     }
+                    # Cache the result for future requests
+                    await cache_reverse_geocode_result(lat, lon, result)
+                    return result
         
         logger.warning(f"Nominatim reverse geocode failed: {response.status}")
         return None
@@ -199,6 +275,91 @@ async def reverse_geocode_osm(
     except Exception as e:
         logger.error(f"Nominatim reverse geocode error: {e}")
         return None
+
+
+# ==================== GEOCODING CACHING SYSTEM ====================
+
+async def get_cached_geocode(query: str, country_codes: Optional[List[str]] = None) -> Optional[List[Dict]]:
+    """Get cached geocoding result from MongoDB"""
+    cache_key = f"{query.lower()}_{country_codes[0] if country_codes else OSM_CONFIG['default_country']}"
+    cached = await db.geocoding_cache.find_one(
+        {"cache_key": cache_key}, 
+        {"_id": 0, "results": 1, "expires_at": 1}
+    )
+    
+    if cached:
+        # Check if cache is not expired
+        if cached.get("expires_at", 0) > datetime.now(timezone.utc).timestamp():
+            logger.info(f"Geocoding cache hit for: {query}")
+            return cached.get("results")
+        else:
+            # Remove expired cache entry
+            await db.geocoding_cache.delete_one({"cache_key": cache_key})
+    
+    return None
+
+
+async def cache_geocode_result(query: str, results: List[Dict], country_codes: Optional[List[str]] = None):
+    """Cache geocoding result in MongoDB with TTL"""
+    cache_key = f"{query.lower()}_{country_codes[0] if country_codes else OSM_CONFIG['default_country']}"
+    ttl_hours = OSM_CONFIG.get("cache_ttl_hours", 24)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).timestamp()
+    
+    await db.geocoding_cache.update_one(
+        {"cache_key": cache_key},
+        {
+            "$set": {
+                "results": results,
+                "expires_at": expires_at,
+                "cached_at": datetime.now(timezone.utc).isoformat(),
+                "query": query,
+                "country": country_codes[0] if country_codes else OSM_CONFIG["default_country"]
+            }
+        },
+        upsert=True
+    )
+    logger.info(f"Cached geocoding result for: {query}")
+
+
+async def get_cached_reverse_geocode(lat: float, lon: float) -> Optional[Dict]:
+    """Get cached reverse geocoding result from MongoDB"""
+    cache_key = f"{lat:.6f}_{lon:.6f}"
+    cached = await db.geocoding_cache.find_one(
+        {"cache_key": cache_key},
+        {"_id": 0, "result": 1, "expires_at": 1}
+    )
+    
+    if cached:
+        # Check if cache is not expired
+        if cached.get("expires_at", 0) > datetime.now(timezone.utc).timestamp():
+            logger.info(f"Reverse geocoding cache hit for: {lat}, {lon}")
+            return cached.get("result")
+        else:
+            # Remove expired cache entry
+            await db.geocoding_cache.delete_one({"cache_key": cache_key})
+    
+    return None
+
+
+async def cache_reverse_geocode_result(lat: float, lon: float, result: Dict):
+    """Cache reverse geocoding result in MongoDB with TTL"""
+    cache_key = f"{lat:.6f}_{lon:.6f}"
+    ttl_hours = OSM_CONFIG.get("cache_ttl_hours", 24)
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).timestamp()
+    
+    await db.geocoding_cache.update_one(
+        {"cache_key": cache_key},
+        {
+            "$set": {
+                "result": result,
+                "expires_at": expires_at,
+                "cached_at": datetime.now(timezone.utc).isoformat(),
+                "coordinates": {"lat": lat, "lon": lon}
+            }
+        },
+        upsert=True
+    )
+    logger.info(f"Cached reverse geocoding result for: {lat}, {lon}")
 
 
 # ==================== TILE CACHING SYSTEM ====================
@@ -240,6 +401,9 @@ async def cache_tile(z: int, x: int, y: str, tile_data: bytes, ttl_hours: int = 
 async def fetch_tile_from_osm(z: int, x: int, y: str) -> Optional[bytes]:
     """Fetch tile from OSM tile server"""
     try:
+        # Apply rate limiting for tile server
+        await tile_limiter.acquire()
+        
         url = OSM_CONFIG["tile_server_url"].format(z=z, x=x, y=y)
         
         async with aiohttp.ClientSession() as session:
