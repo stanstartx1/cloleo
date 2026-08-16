@@ -80,7 +80,7 @@ jobs:
             }
             
             echo "== Creating OSM MongoDB indexes =="
-            python scripts/create_osm_indexes.py || {
+            PYTHONPATH=/var/www/cloleo/backend python scripts/create_osm_indexes.py || {
               echo "⚠️ OSM index creation failed, continuing deployment..."
             }
             
