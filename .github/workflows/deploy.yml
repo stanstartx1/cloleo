@@ -173,13 +173,26 @@ jobs:
               sleep 5
             done
             
-            # Reload Apache
+            # Handle SSL certificate issue
+            if [ ! -f "/etc/letsencrypt/live/cloleo.com/fullchain.pem" ]; then
+              echo "⚠️ SSL certificates not found, disabling SSL configuration temporarily"
+              mv /etc/apache2/sites-enabled/cloleo-le-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf.disabled 2>/dev/null || true
+            fi
+            
+            # Start or reload Apache
             if systemctl is-active --quiet apache2; then
               echo "Reloading Apache..."
-              systemctl reload apache2
+              systemctl reload apache2 || echo "⚠️ Apache reload failed, trying restart"
+              systemctl restart apache2 || echo "⚠️ Apache restart failed"
               echo "✅ Apache reloaded"
             else
-              echo "⚠️ Apache is not active, skipping reload"
+              echo "Apache is not active, starting it..."
+              systemctl start apache2 || echo "⚠️ Apache start failed (SSL certificates may be missing)"
+              if systemctl is-active --quiet apache2; then
+                echo "✅ Apache started"
+              else
+                echo "⚠️ Apache failed to start - check SSL certificates"
+              fi
             fi
             
             echo "✅ Deployment finished successfully at $(date)"
