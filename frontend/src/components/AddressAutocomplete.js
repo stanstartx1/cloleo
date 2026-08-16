@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapPin, Loader2, X, Home, Building, Map } from 'lucide-react';
+import { MapPin, Loader2, X } from 'lucide-react';
 import { addressAutocomplete } from '../utils/osmServices';
 
 const AddressAutocomplete = ({
@@ -165,18 +165,7 @@ const AddressAutocomplete = ({
 
   // Get icon based on location type
   const getLocationIcon = (type) => {
-    switch (type) {
-      case 'address':
-        return <Home className="w-4 h-4" />;
-      case 'street':
-        return <MapPin className="w-4 h-4" />;
-      case 'neighborhood':
-        return <Building className="w-4 h-4" />;
-      case 'city':
-        return <Map className="w-4 h-4" />;
-      default:
-        return <MapPin className="w-4 h-4" />;
-    }
+    return <MapPin className="w-4 h-4" />;
   };
 
   return (
@@ -237,14 +226,6 @@ const AddressAutocomplete = ({
                   </div>
                   <div className="text-sm text-gray-500 truncate">
                     {suggestion.display_name}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">
-                      {suggestion.type}
-                    </span>
-                    {suggestion.confidence > 0.7 && (
-                      <span className="text-xs text-green-600">✓ Haute correspondance</span>
-                    )}
                   </div>
                 </div>
               </div>
