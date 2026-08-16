@@ -37,6 +37,7 @@ const CheckoutPage = () => {
   const [orderId, setOrderId] = useState(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [mapboxLoaded, setMapboxLoaded] = useState(false);
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -50,15 +51,25 @@ const CheckoutPage = () => {
     notes: ''
   });
 
-  // Load Mapbox and fetch cart
+  // Load Mapbox (only once)
   useEffect(() => {
     loadMapbox()
       .then((mapboxgl) => {
         mapboxRef.current = mapboxgl;
-        initMap(mapboxgl);
+        setMapboxLoaded(true);
       })
       .catch(() => toast.error('Erreur chargement Mapbox'));
-    
+  }, []);
+
+  // Initialize map when loaded
+  useEffect(() => {
+    if (mapboxLoaded && !mapInstance.current) {
+      initMap(mapboxRef.current);
+    }
+  }, [mapboxLoaded]);
+
+  // Fetch cart
+  useEffect(() => {
     fetchCart();
   }, []);
 

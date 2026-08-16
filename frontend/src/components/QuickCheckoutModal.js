@@ -33,6 +33,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
   const [orderId, setOrderId] = useState(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [step, setStep] = useState(1); // 1: Confirm product, 2: Address, 3: Success
+  const [mapboxLoaded, setMapboxLoaded] = useState(false);
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -51,19 +52,24 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
   const deliveryFee = 1500; // Fixed delivery fee
   const grandTotal = totalPrice + deliveryFee;
 
-  // Load Mapbox
+  // Load Mapbox (only once)
   useEffect(() => {
-    if (step === 2) {
+    loadMapbox()
+      .then((mapboxgl) => {
+        mapboxRef.current = mapboxgl;
+        setMapboxLoaded(true);
+      })
+      .catch(() => toast.error('Erreur chargement Mapbox'));
+  }, []);
+
+  // Initialize map when loaded and step 2 is reached
+  useEffect(() => {
+    if (mapboxLoaded && step === 2 && !mapInstance.current) {
       setTimeout(() => {
-        loadMapbox()
-          .then((mapboxgl) => {
-            mapboxRef.current = mapboxgl;
-            initMap(mapboxgl);
-          })
-          .catch(() => toast.error('Erreur chargement Mapbox'));
+        initMap(mapboxRef.current);
       }, 100);
     }
-  }, [step]);
+  }, [mapboxLoaded, step]);
 
   const initMap = (mapboxgl) => {
     if (!mapRef.current || mapInstance.current) return;

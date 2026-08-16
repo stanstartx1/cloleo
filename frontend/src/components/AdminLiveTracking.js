@@ -71,10 +71,10 @@ const AdminLiveTracking = ({ token }) => {
       .catch(() => toast.error('Erreur chargement Mapbox'));
   }, [fetchData]);
 
-  // Initialize map
+  // Initialize map (only once)
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || mapInstance.current) return;
-    
+
     const center = { latitude: 5.3599, longitude: -4.0083 };
 
     mapInstance.current = new mapboxRef.current.Map({
@@ -84,12 +84,9 @@ const AdminLiveTracking = ({ token }) => {
       zoom: 12,
     });
     mapInstance.current.addControl(new mapboxRef.current.NavigationControl(), 'top-right');
-    
-    // Add markers for drivers
-    updateDriverMarkers();
   }, [mapLoaded]);
 
-  // Update markers when drivers change
+  // Update markers when drivers change (without reinitializing map)
   useEffect(() => {
     if (mapInstance.current) {
       updateDriverMarkers();
@@ -98,25 +95,36 @@ const AdminLiveTracking = ({ token }) => {
 
   const updateDriverMarkers = () => {
     if (!mapInstance.current || !mapboxRef.current) return;
-    
-    // Clear old markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
-    
-    // Add new markers
+
+    const currentDriverIds = new Set(drivers.map(d => d.driver_id));
+
+    // Remove markers for drivers that are no longer in the list
+    Object.keys(markersRef.current).forEach(driverId => {
+      if (!currentDriverIds.has(driverId)) {
+        markersRef.current[driverId].remove();
+        delete markersRef.current[driverId];
+      }
+    });
+
+    // Update or add markers for current drivers
     drivers.forEach(driver => {
       if (!driver.location?.latitude) return;
-      
+
       const pos = { latitude: driver.location.latitude, longitude: driver.location.longitude };
-      const markerRef = { current: null };
       const color = driver.status === 'available' ? '#22c55e' : driver.status === 'busy' ? '#eab308' : '#2563eb';
 
-      const marker = upsertMarker(mapboxRef.current, mapInstance.current, markerRef, pos, {
-        color,
-        title: driver.driver_name
-      });
+      if (markersRef.current[driver.driver_id]) {
+        // Update existing marker position
+        markersRef.current[driver.driver_id].setLngLat(toLngLat(pos));
+      } else {
+        // Create new marker
+        const markerRef = { current: null };
+        const marker = upsertMarker(mapboxRef.current, mapInstance.current, markerRef, pos, {
+          color,
+          title: driver.driver_name
+        });
 
-      const popup = new mapboxRef.current.Popup({ offset: 24 }).setHTML(`
+        const popup = new mapboxRef.current.Popup({ offset: 24 }).setHTML(`
           <div style="padding: 8px; min-width: 150px;">
             <strong>${driver.driver_name}</strong><br/>
             <span style="color: #666;">${driver.vehicle_type}</span><br/>
@@ -126,16 +134,19 @@ const AdminLiveTracking = ({ token }) => {
           </div>
         `);
 
-      marker.getElement().addEventListener('click', () => {
-        marker.setPopup(popup).togglePopup();
-        setSelectedDriver(driver);
-      });
-      
-      markersRef.current[driver.driver_id] = marker;
+        marker.getElement().addEventListener('click', () => {
+          marker.setPopup(popup).togglePopup();
+          setSelectedDriver(driver);
+        });
+
+        markersRef.current[driver.driver_id] = marker;
+      }
     });
-    
-    // Fit bounds if we have markers
-    fitToLocations(mapboxRef.current, mapInstance.current, drivers.map(d => d.location).filter(Boolean), 50);
+
+    // Only fit bounds if this is the first time we have markers
+    if (Object.keys(markersRef.current).length === drivers.length && drivers.length > 0) {
+      fitToLocations(mapboxRef.current, mapInstance.current, drivers.map(d => d.location).filter(Boolean), 50);
+    }
   };
 
   // WebSocket for real-time updates - URL CORRIGÉE
@@ -157,15 +168,29 @@ const AdminLiveTracking = ({ token }) => {
           
           if (data.type === 'driver_location') {
             // Update driver location
-            setDrivers(prev => prev.map(d => 
-              d.driver_id === data.driver_id 
+            setDrivers(prev => prev.map(d =>
+              d.driver_id === data.driver_id
                 ? { ...d, location: data.location }
                 : d
             ));
-            
-            // Update marker on map
-            if (markersRef.current[data.driver_id]) {
-              markersRef.current[data.driver_id].setLngLat(toLngLat(data.location));
+
+            // Update marker on map smoothly
+            if (markersRef.current[data.driver_id] && mapInstance.current) {
+              const currentLngLat = markersRef.current[data.driver_id].getLngLat();
+              const newLngLat = toLngLat(data.location);
+
+              // Smooth animation for marker movement
+              markersRef.current[data.driver_id].setLngLat(newLngLat);
+
+              // Optionally pan to driver if selected
+              if (selectedDriver?.driver_id === data.driver_id) {
+                mapInstance.current.easeTo({
+                  center: newLngLat,
+                  zoom: 16,
+                  duration: 1000,
+                  easing: (t) => t * (2 - t),
+                });
+              }
             }
           }
           

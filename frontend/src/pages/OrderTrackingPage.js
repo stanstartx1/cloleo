@@ -119,9 +119,9 @@ const OrderTrackingPage = () => {
     };
   }, [orderId, fetchOrder]);
 
-  // Initialize map
+  // Initialize map (only once)
   useEffect(() => {
-    if (!order || !mapRef.current) return;
+    if (!mapRef.current || mapInstance.current) return;
 
     loadMapbox()
       .then((mapboxgl) => {
@@ -129,6 +129,12 @@ const OrderTrackingPage = () => {
         initMap(mapboxgl);
       })
       .catch(() => toast.error('Erreur chargement Mapbox'));
+  }, []);
+
+  // Re-initialize map when order changes (if not already initialized)
+  useEffect(() => {
+    if (!order || !mapboxRef.current || mapInstance.current) return;
+    initMap(mapboxRef.current);
   }, [order]);
 
   // Update map when driver location changes
@@ -142,6 +148,16 @@ const OrderTrackingPage = () => {
 
     if (order?.delivery_address?.latitude) {
       updateRoute(driverLocation);
+
+      // Smoothly follow driver if in transit
+      if (order.status === 'in_transit' || order.status === 'picked_up') {
+        mapInstance.current.easeTo({
+          center: toLngLat(driverLocation),
+          zoom: 15,
+          duration: 1000,
+          easing: (t) => t * (2 - t),
+        });
+      }
     }
   }, [driverLocation, order]);
 

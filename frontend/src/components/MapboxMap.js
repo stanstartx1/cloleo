@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { loadMapbox } from '../utils/mapboxLoader';
 import { DEFAULT_MAP_CENTER, fitToLocations, setRouteLine, toLngLat, upsertMarker } from '../utils/mapboxMap';
@@ -16,14 +16,17 @@ const MapboxMap = ({
   height = '300px',
   className = '',
   mapType = 'roadmap',
+  followDriver = false,
 }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const mapboxRef = useRef(null);
   const driverMarkerRef = useRef(null);
   const customerMarkerRef = useRef(null);
+  const routeSourceRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState(null);
+  const previousDriverLocation = useRef(null);
 
   useEffect(() => {
     loadMapbox()
@@ -34,7 +37,7 @@ const MapboxMap = ({
       .catch(() => setError('Erreur de chargement Mapbox'));
   }, []);
 
-  useEffect(() => {
+  const initializeMap = useCallback(() => {
     if (!mapReady || !mapRef.current || mapInstance.current) return;
 
     try {
@@ -49,6 +52,8 @@ const MapboxMap = ({
         style: getMapStyle(mapType),
         center,
         zoom: 14,
+        pitch: 0,
+        bearing: 0,
       });
 
       mapInstance.current.addControl(new mapboxRef.current.NavigationControl(), 'top-right');
@@ -57,7 +62,11 @@ const MapboxMap = ({
       console.error('Mapbox init error:', err);
       setError('Erreur initialisation carte');
     }
-  }, [mapReady, driverLocation, customerLocation, mapType]);
+  }, [mapReady, mapType]);
+
+  useEffect(() => {
+    initializeMap();
+  }, [initializeMap]);
 
   useEffect(() => {
     if (!mapInstance.current || !driverLocation?.latitude) return;
@@ -67,10 +76,23 @@ const MapboxMap = ({
       title: 'Livreur',
     });
 
-    if (!customerLocation?.latitude) {
-      mapInstance.current.easeTo({ center: toLngLat(driverLocation), zoom: 15 });
+    if (followDriver && !customerLocation?.latitude) {
+      const hasMoved = previousDriverLocation.current &&
+        (Math.abs(driverLocation.latitude - previousDriverLocation.current.latitude) > 0.0001 ||
+         Math.abs(driverLocation.longitude - previousDriverLocation.current.longitude) > 0.0001);
+
+      if (hasMoved) {
+        mapInstance.current.easeTo({
+          center: toLngLat(driverLocation),
+          zoom: 15,
+          duration: 1000,
+          easing: (t) => t * (2 - t),
+        });
+      }
     }
-  }, [driverLocation, customerLocation]);
+
+    previousDriverLocation.current = driverLocation;
+  }, [driverLocation, customerLocation, followDriver]);
 
   useEffect(() => {
     if (!mapInstance.current || !customerLocation?.latitude) return;
@@ -85,8 +107,18 @@ const MapboxMap = ({
     if (!mapInstance.current || !showRoute || !driverLocation?.latitude || !customerLocation?.latitude) return;
 
     const drawRoute = () => {
+      if (routeSourceRef.current) {
+        mapInstance.current.removeLayer('delivery-route');
+        mapInstance.current.removeSource('delivery-route');
+        routeSourceRef.current = null;
+      }
+
       setRouteLine(mapInstance.current, 'delivery-route', driverLocation, customerLocation);
-      fitToLocations(mapboxRef.current, mapInstance.current, [driverLocation, customerLocation]);
+      routeSourceRef.current = true;
+      fitToLocations(mapboxRef.current, mapInstance.current, [driverLocation, customerLocation], {
+        padding: { top: 50, bottom: 50, left: 50, right: 50 },
+        maxZoom: 16,
+      });
     };
 
     if (mapInstance.current.isStyleLoaded()) {
@@ -96,7 +128,14 @@ const MapboxMap = ({
     }
   }, [driverLocation, customerLocation, showRoute]);
 
-  useEffect(() => () => mapInstance.current?.remove(), []);
+  useEffect(() => {
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, []);
 
   if (error) {
     return (

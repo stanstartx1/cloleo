@@ -877,6 +877,7 @@ const DriverDashboard = () => {
                   showRoute={activeOrders.length > 0}
                   height="320px"
                   mapType="satellite"
+                  followDriver={true}
                 />
                 
                 <div className="p-3 bg-slate-700/50 flex items-center gap-6 text-xs">
