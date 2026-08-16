@@ -184,9 +184,9 @@ jobs:
             
             echo "== Deployment verification =="
             echo "Backend status:"
-            systemctl status cloleo-backend --no-pager | head -5 || echo "⚠️ Could not get backend status"
+            systemctl status cloleo-backend --no-pager | head -5 || true
             echo "Apache status:"
-            systemctl status apache2 --no-pager | head -3 || echo "⚠️ Could not get Apache status"
+            systemctl status apache2 --no-pager | head -3 || true
             
             echo "✅ Deployment finished successfully at $(date)"
             echo "Deployment completed successfully!"
