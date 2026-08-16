@@ -38,8 +38,8 @@ async def get_osrm_directions(
         params = {
             "overview": "full",
             "geometries": "geojson",
-            "alternatives": alternatives,
-            "steps": True
+            "alternatives": str(alternatives).lower(),
+            "steps": "true"
         }
         
         async with aiohttp.ClientSession() as session:
