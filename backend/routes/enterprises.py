@@ -73,6 +73,10 @@ class EnterpriseRegister(BaseModel):
 
     address: Optional[str] = None
 
+    latitude: Optional[float] = None
+
+    longitude: Optional[float] = None
+
     website: Optional[str] = None
 
     documents: Optional[dict] = {}
@@ -100,6 +104,12 @@ class EnterpriseUpdate(BaseModel):
     city: Optional[str] = None
 
     country: Optional[str] = None
+
+    address: Optional[str] = None
+
+    latitude: Optional[float] = None
+
+    longitude: Optional[float] = None
 
     certifications: Optional[List[str]] = None
 
@@ -303,6 +313,10 @@ async def register_enterprise(data: EnterpriseRegister):
             "capital": data.capital,
 
             "address": data.address,
+
+            "latitude": data.latitude,
+
+            "longitude": data.longitude,
 
             "website": data.website,
 
