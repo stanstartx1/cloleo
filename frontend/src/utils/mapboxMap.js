@@ -1,6 +1,15 @@
 import { MAPBOX_ACCESS_TOKEN } from './mapboxLoader';
+import { getOSRMDirections, createOSMStyle, shouldUseOSM, forwardGeocodeOSM, reverseGeocodeOSM } from './osmServices';
 
 export const DEFAULT_MAP_CENTER = { latitude: 5.3599, longitude: -4.0083 };
+
+// Configuration for map provider selection
+export const MAP_CONFIG = {
+  preferOSM: true, // Set to true to prefer OSM over Mapbox APIs
+  useOSMForDirections: true, // Use OSRM instead of Mapbox Directions
+  useOSMForGeocoding: true, // Use Nominatim instead of Mapbox Geocoding
+  fallbackToMapbox: true, // Fallback to Mapbox if OSM fails
+};
 
 export const toLngLat = (location, fallback = DEFAULT_MAP_CENTER) => {
   const latitude = Number(location?.latitude ?? location?.lat ?? fallback.latitude);
@@ -100,14 +109,39 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
   };
 
   try {
-    const coords = `${fromLngLat[0]},${fromLngLat[1]};${toLngLatValue[0]},${toLngLatValue[1]}`;
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data?.routes?.[0]?.geometry) {
-      geometry = data.routes[0].geometry;
+    // Try OSRM first if configured
+    if (MAP_CONFIG.useOSMForDirections) {
+      const osrmResult = await getOSRMDirections(
+        from.latitude, from.longitude,
+        to.latitude, to.longitude
+      );
+      
+      if (osrmResult.geometry && !osrmResult.error) {
+        geometry = osrmResult.geometry;
+        console.log('Using OSRM route:', { distance: osrmResult.distance_m, duration: osrmResult.duration_s });
+      } else if (MAP_CONFIG.fallbackToMapbox && MAPBOX_ACCESS_TOKEN) {
+        // Fallback to Mapbox Directions
+        console.log('OSRM failed, falling back to Mapbox Directions');
+        const coords = `${fromLngLat[0]},${fromLngLat[1]};${toLngLatValue[0]},${toLngLatValue[1]}`;
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data?.routes?.[0]?.geometry) {
+          geometry = data.routes[0].geometry;
+        }
+      }
+    } else if (MAPBOX_ACCESS_TOKEN) {
+      // Use Mapbox Directions directly
+      const coords = `${fromLngLat[0]},${fromLngLat[1]};${toLngLatValue[0]},${toLngLatValue[1]}`;
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data?.routes?.[0]?.geometry) {
+        geometry = data.routes[0].geometry;
+      }
     }
-  } catch {
+  } catch (error) {
+    console.error('Route calculation error:', error);
     // Keep the straight fallback line if route lookup fails.
   }
 
@@ -137,26 +171,67 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
 };
 
 export const reverseGeocodeMapbox = async (latitude, longitude) => {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?language=fr&limit=1&access_token=${MAPBOX_ACCESS_TOKEN}`;
-  const response = await fetch(url);
-  const data = await response.json();
-  return data?.features?.[0]?.place_name || '';
+  try {
+    // Try OSM first if configured
+    if (MAP_CONFIG.useOSMForGeocoding) {
+      const osmResult = await reverseGeocodeOSM(latitude, longitude);
+      if (osmResult && osmResult.display_name) {
+        return osmResult.display_name;
+      }
+    }
+    
+    // Fallback to Mapbox if configured
+    if (MAP_CONFIG.fallbackToMapbox && MAPBOX_ACCESS_TOKEN) {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?language=fr&limit=1&access_token=${MAPBOX_ACCESS_TOKEN}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data?.features?.[0]?.place_name || '';
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return '';
+  }
 };
 
 export const forwardGeocodeMapbox = async (query) => {
   const safeQuery = String(query || '').trim();
   if (!safeQuery) return null;
 
-  const encoded = encodeURIComponent(safeQuery);
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?language=fr&limit=1&country=ci,sn,ng,cm,gh&access_token=${MAPBOX_ACCESS_TOKEN}`;
-  const response = await fetch(url);
-  const data = await response.json();
-  const feature = data?.features?.[0];
-  if (!feature?.center) return null;
+  try {
+    // Try OSM first if configured
+    if (MAP_CONFIG.useOSMForGeocoding) {
+      const osmResults = await forwardGeocodeOSM(safeQuery, ['ci', 'sn', 'ng', 'cm', 'gh'], 1);
+      if (osmResults.length > 0) {
+        const result = osmResults[0];
+        return {
+          latitude: result.latitude,
+          longitude: result.longitude,
+          address: result.display_name,
+        };
+      }
+    }
+    
+    // Fallback to Mapbox if configured
+    if (MAP_CONFIG.fallbackToMapbox && MAPBOX_ACCESS_TOKEN) {
+      const encoded = encodeURIComponent(safeQuery);
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?language=fr&limit=1&country=ci,sn,ng,cm,gh&access_token=${MAPBOX_ACCESS_TOKEN}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      const feature = data?.features?.[0];
+      if (!feature?.center) return null;
 
-  return {
-    latitude: feature.center[1],
-    longitude: feature.center[0],
-    address: feature.place_name,
-  };
+      return {
+        latitude: feature.center[1],
+        longitude: feature.center[0],
+        address: feature.place_name,
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Forward geocoding error:', error);
+    return null;
+  }
 };

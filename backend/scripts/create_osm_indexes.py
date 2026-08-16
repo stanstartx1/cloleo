@@ -1,0 +1,36 @@
+"""Create MongoDB indexes for OSM services"""
+from core.database import db
+import asyncio
+
+async def create_osm_indexes():
+    """Create indexes for OSM-related collections"""
+    
+    # Map tiles cache indexes
+    await db.map_tiles.create_index([("tile_key", 1)], unique=True)
+    await db.map_tiles.create_index([("expires_at", 1)])
+    await db.map_tiles.create_index([("cached_at", -1)])
+    
+    # Locations data indexes
+    await db.locations.create_index([("location_id", 1)], unique=True)
+    await db.locations.create_index([("latitude", 1), ("longitude", 1)])
+    await db.locations.create_index([("address", "text")])
+    
+    # Create collection if not exists
+    try:
+        await db.map_tiles.insert_one({"_test": True})
+        await db.map_tiles.delete_one({"_test": True})
+    except:
+        pass
+    
+    try:
+        await db.locations.insert_one({"_test": True})
+        await db.locations.delete_one({"_test": True})
+    except:
+        pass
+    
+    print("✅ OSM indexes created successfully")
+    print("   - map_tiles: tile_key (unique), expires_at, cached_at")
+    print("   - locations: location_id (unique), location, address")
+
+if __name__ == "__main__":
+    asyncio.run(create_osm_indexes())
