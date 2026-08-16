@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 import { Button } from '../components/ui/button';
 
@@ -7348,6 +7349,10 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     address: user?.address || '',
 
+    latitude: user?.latitude || null,
+
+    longitude: user?.longitude || null,
+
     website: user?.website || '',
 
     description: user?.company_description || '',
@@ -7410,7 +7415,14 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
     try {
 
-      await axios.put(`${API}/enterprises/profile`, formData, {
+      const dataToSend = {
+        ...formData,
+        address: formData.address,
+        latitude: formData.latitude,
+        longitude: formData.longitude
+      };
+
+      await axios.put(`${API}/enterprises/profile`, dataToSend, {
 
         headers: { Authorization: `Bearer ${token}` }
 
@@ -7883,11 +7895,24 @@ const SettingsSection = ({ user, token, onRefresh }) => {
 
                 <label className="text-sm font-medium text-slate-300 mb-1 block">Adresse</label>
 
-                <Input
+                <AddressAutocomplete
 
                   value={formData.address}
 
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, address: value })}
+
+                  onSelect={(suggestion) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      address: suggestion.formatted_address,
+                      latitude: suggestion.latitude,
+                      longitude: suggestion.longitude
+                    }));
+                  }}
+
+                  placeholder="Rechercher une adresse..."
+
+                  countryCodes={['ci']}
 
                   className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-amber-500"
 

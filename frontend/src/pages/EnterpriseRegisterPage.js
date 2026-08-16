@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Building2, MapPin, Users, Factory, Globe, Award, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { API_BASE, API_URL } from '../config/api';
 import { toast } from 'sonner';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 const API = API_URL;
 
@@ -209,8 +210,11 @@ const EnterpriseRegisterPage = () => {
     number_of_employees: '',
     business_sector: '',
     company_description: '',
+    address: '',
     city: '',
     country: '',
+    latitude: null,
+    longitude: null,
     certifications: [],
     dfe_number: '',
     trade_register_number: '',
@@ -258,7 +262,10 @@ const EnterpriseRegisterPage = () => {
       // Include uploaded documents in the form data
       const dataToSend = {
         ...formData,
-        documents: uploadedDocuments
+        documents: uploadedDocuments,
+        address: formData.address,
+        latitude: formData.latitude,
+        longitude: formData.longitude
       };
       
       const response = await axios.post(`${API}/enterprises/register`, dataToSend);
@@ -523,10 +530,20 @@ const EnterpriseRegisterPage = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="address">Adresse complète</Label>
-                <Input
+                <AddressAutocomplete
                   id="address"
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  onChange={(value) => setFormData({...formData, address: value})}
+                  onSelect={(suggestion) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      address: suggestion.formatted_address,
+                      latitude: suggestion.latitude,
+                      longitude: suggestion.longitude
+                    }));
+                  }}
+                  placeholder="Rechercher une adresse..."
+                  countryCodes={['ci']}
                 />
               </div>
 
