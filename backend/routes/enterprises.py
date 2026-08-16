@@ -4,7 +4,8 @@ from pydantic import BaseModel
 
 from typing import Optional, List
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import uuid
 
 from pathlib import Path
 
@@ -110,6 +111,41 @@ class EnterpriseUpdate(BaseModel):
 
     dfe_number: Optional[str] = None
 
+
+
+
+# ==================== CACHE SYSTEM ====================
+
+# Simple in-memory cache with TTL
+cache_store = {}
+cache_ttl = 300  # 5 minutes default TTL
+
+def get_cache_key(prefix: str, identifier: str) -> str:
+    """Generate a cache key"""
+    return f"{prefix}:{identifier}"
+
+def get_from_cache(key: str):
+    """Get value from cache if not expired"""
+    if key in cache_store:
+        data, timestamp = cache_store[key]
+        if datetime.utcnow().timestamp() - timestamp < cache_ttl:
+            return data
+        else:
+            del cache_store[key]
+    return None
+
+def set_cache(key: str, value: str, ttl: int = cache_ttl):
+    """Set value in cache with TTL"""
+    cache_store[key] = (value, datetime.utcnow().timestamp())
+
+def invalidate_cache(prefix: str = None):
+    """Invalidate cache entries, optionally by prefix"""
+    if prefix:
+        keys_to_delete = [k for k in cache_store.keys() if k.startswith(prefix)]
+        for key in keys_to_delete:
+            del cache_store[key]
+    else:
+        cache_store.clear()
 
 
 @router.get("/dashboard")
@@ -1907,4 +1943,158 @@ async def update_achievement(achievement_id: str, achievement_data: dict, curren
 
     except Exception as e:
 
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== SUBSCRIPTION PLANS SYSTEM ====================
+
+@router.get("/subscription-plans")
+async def get_subscription_plans():
+    """Get all available subscription plans"""
+    try:
+        # Try to get plans from database first
+        plans = await db.subscription_plans.find({"is_active": True}).sort("price", 1).to_list(length=None)
+        
+        if plans:
+            # Format for frontend
+            formatted_plans = []
+            for plan in plans:
+                formatted_plans.append({
+                    "id": plan.get("id"),
+                    "name": plan.get("name"),
+                    "price": plan.get("price"),
+                    "features": plan.get("features", []),
+                    "popular": plan.get("popular", False),
+                    "duration_days": plan.get("duration_days", 30),
+                    "description": plan.get("description", "")
+                })
+            return {"plans": formatted_plans}
+        else:
+            # Return default plans if none in database
+            return {
+                "plans": [
+                    {
+                        "id": "free",
+                        "name": "Gratuit",
+                        "price": 0,
+                        "features": [
+                            "Jusqu'à 10 produits",
+                            "Commandes illimitées",
+                            "Support par email",
+                            "Statistiques basiques"
+                        ],
+                        "popular": False,
+                        "duration_days": 30,
+                        "description": "Plan de base pour démarrer"
+                    },
+                    {
+                        "id": "pro",
+                        "name": "Pro",
+                        "price": 25000,
+                        "features": [
+                            "Produits illimités",
+                            "Commandes illimitées",
+                            "Support prioritaire",
+                            "Statistiques avancées",
+                            "Badge Pro",
+                            "Mise en avant des produits"
+                        ],
+                        "popular": True,
+                        "duration_days": 30,
+                        "description": "Pour les entreprises en croissance"
+                    },
+                    {
+                        "id": "enterprise",
+                        "name": "Enterprise",
+                        "price": 75000,
+                        "features": [
+                            "Tout le plan Pro",
+                            "API dédiée",
+                            "Account manager",
+                            "Personnalisation",
+                            "Formation incluse",
+                            "SLA garanti"
+                        ],
+                        "popular": False,
+                        "duration_days": 30,
+                        "description": "Solution complète pour grandes entreprises"
+                    }
+                ]
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/subscription-plans")
+async def create_subscription_plan(
+    plan_data: dict,
+    current_user = Depends(get_current_user)
+):
+    """Create a new subscription plan (admin only)"""
+    try:
+        if current_user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        plan = {
+            "id": str(uuid.uuid4()),
+            "name": plan_data.get("name"),
+            "price": plan_data.get("price", 0),
+            "features": plan_data.get("features", []),
+            "popular": plan_data.get("popular", False),
+            "duration_days": plan_data.get("duration_days", 30),
+            "description": plan_data.get("description", ""),
+            "is_active": True,
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.subscription_plans.insert_one(plan)
+        return {"message": "Plan created successfully", "plan": plan}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/subscription-plans/{plan_id}")
+async def update_subscription_plan(
+    plan_id: str,
+    plan_data: dict,
+    current_user = Depends(get_current_user)
+):
+    """Update a subscription plan (admin only)"""
+    try:
+        if current_user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        update_data = {k: v for k, v in plan_data.items() if v is not None}
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = await db.subscription_plans.update_one(
+            {"id": plan_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        
+        return {"message": "Plan updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/subscription-plans/{plan_id}")
+async def delete_subscription_plan(
+    plan_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a subscription plan (admin only)"""
+    try:
+        if current_user.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        result = await db.subscription_plans.delete_one({"id": plan_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        
+        return {"message": "Plan deleted successfully"}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
