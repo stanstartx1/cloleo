@@ -37,31 +37,6 @@ const AddressAutocomplete = ({
     setQuery(value);
   }, [value]);
 
-  // Handle input change with debounce
-  const handleInputChange = useCallback((e) => {
-    const newValue = e.target.value;
-    setQuery(newValue);
-    onChange?.(newValue);
-    
-    // Clear previous debounce
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    // Don't search for very short queries
-    if (newValue.length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    
-    // Debounce search (250ms for better responsiveness)
-    debounceRef.current = setTimeout(() => {
-      searchAddresses(newValue);
-    }, 250);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onChange, searchAddresses]);
-
   // Search addresses using OSM autocomplete with cache
   const searchAddresses = useCallback(async (searchQuery) => {
     if (searchQuery.length < 2) return;
@@ -98,6 +73,31 @@ const AddressAutocomplete = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handle input change with debounce
+  const handleInputChange = useCallback((e) => {
+    const newValue = e.target.value;
+    setQuery(newValue);
+    onChange?.(newValue);
+    
+    // Clear previous debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Don't search for very short queries
+    if (newValue.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    // Debounce search (250ms for better responsiveness)
+    debounceRef.current = setTimeout(() => {
+      searchAddresses(newValue);
+    }, 250);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onChange, searchAddresses]);
 
   // Handle suggestion selection
   const handleSelectSuggestion = (suggestion) => {
