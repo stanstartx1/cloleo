@@ -11,8 +11,12 @@ from core.osm_services import (
     get_tile,
     clear_expired_tiles,
     get_tile_cache_stats,
-    batch_geocode
+    batch_geocode,
+    nominatim_limiter,
+    osrm_limiter,
+    tile_limiter
 )
+from core.database import db
 
 router = APIRouter(prefix="/osm", tags=["OpenStreetMap Services"])
 
@@ -192,6 +196,85 @@ async def get_cache_stats():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== MONITORING ENDPOINTS ====================
+
+@router.get("/monitoring/rate-limits")
+async def get_rate_limit_stats():
+    """Get rate limiting statistics for monitoring"""
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    
+    def get_active_calls(limiter):
+        """Count calls within the current time window"""
+        return len([call_time for call_time in limiter.calls 
+                    if (now - call_time) < timedelta(seconds=limiter.time_window)])
+    
+    return {
+        "nominatim": {
+            "max_calls_per_second": nominatim_limiter.max_calls,
+            "active_calls": get_active_calls(nominatim_limiter),
+            "total_calls_buffered": len(nominatim_limiter.calls),
+            "time_window_seconds": nominatim_limiter.time_window,
+            "utilization_percent": round(get_active_calls(nominatim_limiter) / nominatim_limiter.max_calls * 100, 1) if nominatim_limiter.max_calls > 0 else 0
+        },
+        "osrm": {
+            "max_calls_per_second": osrm_limiter.max_calls,
+            "active_calls": get_active_calls(osrm_limiter),
+            "total_calls_buffered": len(osrm_limiter.calls),
+            "time_window_seconds": osrm_limiter.time_window,
+            "utilization_percent": round(get_active_calls(osrm_limiter) / osrm_limiter.max_calls * 100, 1) if osrm_limiter.max_calls > 0 else 0
+        },
+        "tile_server": {
+            "max_calls_per_second": tile_limiter.max_calls,
+            "active_calls": get_active_calls(tile_limiter),
+            "total_calls_buffered": len(tile_limiter.calls),
+            "time_window_seconds": tile_limiter.time_window,
+            "utilization_percent": round(get_active_calls(tile_limiter) / tile_limiter.max_calls * 100, 1) if tile_limiter.max_calls > 0 else 0
+        }
+    }
+
+
+@router.get("/monitoring/cache-stats")
+async def get_cache_statistics():
+    """Get comprehensive cache statistics for monitoring"""
+    from datetime import datetime, timezone
+    
+    try:
+        # Geocoding cache stats
+        geocoding_total = await db.geocoding_cache.count_documents({})
+        geocoding_expired = await db.geocoding_cache.count_documents({
+            "expires_at": {"$lt": datetime.now(timezone.utc).timestamp()}
+        })
+        geocoding_active = geocoding_total - geocoding_expired
+        
+        # Tile cache stats
+        tile_total = await db.map_tiles.count_documents({})
+        tile_expired = await db.map_tiles.count_documents({
+            "expires_at": {"$lt": datetime.now(timezone.utc).timestamp()}
+        })
+        tile_active = tile_total - tile_expired
+        
+        return {
+            "geocoding_cache": {
+                "total_entries": geocoding_total,
+                "active_entries": geocoding_active,
+                "expired_entries": geocoding_expired,
+                "hit_rate": "cache_hit_rate_not_implemented"  # Could be enhanced with hit counter
+            },
+            "tile_cache": {
+                "total_entries": tile_total,
+                "active_entries": tile_active,
+                "expired_entries": tile_expired
+            },
+            "collections": {
+                "geocoding_cache_exists": await db.geocoding_cache.count_documents({}) >= 0,
+                "map_tiles_exists": await db.map_tiles.count_documents({}) >= 0
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get cache stats: {str(e)}")
 
 
 # ==================== HEALTH CHECK ====================
