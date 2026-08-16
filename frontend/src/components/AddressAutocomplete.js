@@ -22,6 +22,15 @@ const AddressAutocomplete = ({
   const suggestionsRef = useRef(null);
   const debounceRef = useRef(null);
   const cacheRef = useRef(new Map()); // Simple cache for recent searches
+  const countryCodesRef = useRef(countryCodes); // Stable ref for country codes
+  
+  // Update country codes ref when prop changes and clear cache
+  useEffect(() => {
+    countryCodesRef.current = countryCodes;
+    // Clear cache when country codes change to avoid stale results
+    cacheRef.current.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countryCodes]);
 
   // Update local state when prop value changes
   useEffect(() => {
@@ -50,14 +59,17 @@ const AddressAutocomplete = ({
     debounceRef.current = setTimeout(() => {
       searchAddresses(newValue);
     }, 250);
-  }, [onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onChange, searchAddresses]);
 
   // Search addresses using OSM autocomplete with cache
-  const searchAddresses = async (searchQuery) => {
+  const searchAddresses = useCallback(async (searchQuery) => {
     if (searchQuery.length < 2) return;
     
+    const currentCountryCodes = countryCodesRef.current;
+    
     // Check cache first
-    const cacheKey = `${searchQuery.toLowerCase()}_${countryCodes.join(',')}`;
+    const cacheKey = `${searchQuery.toLowerCase()}_${currentCountryCodes.join(',')}`;
     if (cacheRef.current.has(cacheKey)) {
       setSuggestions(cacheRef.current.get(cacheKey));
       setShowSuggestions(true);
@@ -67,7 +79,7 @@ const AddressAutocomplete = ({
     
     setLoading(true);
     try {
-      const results = await addressAutocomplete(searchQuery, countryCodes, 8);
+      const results = await addressAutocomplete(searchQuery, currentCountryCodes, 8);
       setSuggestions(results);
       setShowSuggestions(true);
       setSelectedIndex(-1);
@@ -84,7 +96,8 @@ const AddressAutocomplete = ({
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle suggestion selection
   const handleSelectSuggestion = (suggestion) => {
@@ -147,6 +160,7 @@ const AddressAutocomplete = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Get icon based on location type
