@@ -13,7 +13,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,39 +101,25 @@ jobs:
               echo "⚠️ WARNING: No Mapbox token provided"
             fi
             
-            # Clear cache and install
-            echo "Clearing npm cache and installing..."
-            # More robust node_modules removal
-            if [ -d "node_modules" ]; then
-              echo "Removing node_modules..."
-              chmod -R u+w node_modules 2>/dev/null || true
-              rm -rf node_modules || {
-                echo "Using alternative removal method..."
-                # Try with sudo if available
-                if command -v sudo &> /dev/null; then
-                  sudo rm -rf node_modules || true
-                fi
-                # Final fallback - try to move instead of delete
-                if [ -d "node_modules" ]; then
-                  echo "Moving node_modules to backup..."
-                  mv node_modules node_modules_backup_$(date +%s) || {
-                    echo "⚠️ Could not remove node_modules, proceeding with existing modules"
-                  }
-                fi
-              }
-            fi
-            rm -f package-lock.json || true
+            # Clean and install dependencies
+            echo "Cleaning and installing dependencies..."
+            rm -rf node_modules package-lock.json
             npm cache clean --force
-            npm install --legacy-peer-deps --no-optional || {
-              echo "⚠️ npm install failed, trying with --force..."
-              npm install --legacy-peer-deps --force --no-optional || {
-                echo "⚠️ npm install still failed, trying without legacy-peer-deps..."
-                npm install --no-optional || {
-                  echo "❌ npm install failed completely"
-                  exit 1
-                }
+            
+            # Use npm ci for more reliable installation in CI/CD
+            # If package-lock.json doesn't exist, fall back to npm install
+            if [ -f "package-lock.json" ]; then
+              echo "Using npm ci for reliable installation..."
+              npm ci --legacy-peer-deps --no-optional || {
+                echo "⚠️ npm ci failed, falling back to npm install..."
+                npm install --legacy-peer-deps --no-optional
               }
-            }
+            else
+              echo "No package-lock.json found, using npm install..."
+              npm install --legacy-peer-deps --no-optional
+            fi
+            
+            echo "Building frontend..."
             npm run build
             
             echo "✅ Frontend built successfully"
