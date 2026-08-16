@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # ==================== OSM API CONFIGURATION ====================
 
 OSM_CONFIG = {
-    "osrm_base_url": "http://router.project-osrm.org/route/v1/driving",
+    "osrm_base_url": "https://router.project-osrm.org/route/v1/driving",
     "nominatim_base_url": "https://nominatim.openstreetmap.org/search",
     "reverse_geocode_url": "https://nominatim.openstreetmap.org/reverse",
     "tile_server_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -45,7 +45,7 @@ async def get_osrm_directions(
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, headers={
                 "User-Agent": OSM_CONFIG["user_agent"]
-            }) as response:
+            }, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     data = await response.json()
                     if data.get("routes"):
@@ -88,7 +88,7 @@ async def optimize_multi_destinations(
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers={
                 "User-Agent": OSM_CONFIG["user_agent"]
-            }) as response:
+            }, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     data = await response.json()
                     if data.get("routes"):
@@ -138,7 +138,7 @@ async def forward_geocode_osm(
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, headers={
                 "User-Agent": OSM_CONFIG["user_agent"]
-            }) as response:
+            }, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     data = await response.json()
                     results = []
@@ -183,7 +183,7 @@ async def reverse_geocode_osm(
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, headers={
                 "User-Agent": OSM_CONFIG["user_agent"]
-            }) as response:
+            }, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     data = await response.json()
                     return {
@@ -245,7 +245,7 @@ async def fetch_tile_from_osm(z: int, x: int, y: str) -> Optional[bytes]:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers={
                 "User-Agent": OSM_CONFIG["user_agent"]
-            }) as response:
+            }, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     tile_data = await response.read()
                     # Cache the tile
