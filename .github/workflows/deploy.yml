@@ -79,6 +79,11 @@ jobs:
               pip install -r requirements.txt
             }
             
+            echo "== Creating OSM MongoDB indexes =="
+            python scripts/create_osm_indexes.py || {
+              echo "⚠️ OSM index creation failed, continuing deployment..."
+            }
+            
             deactivate
             
             echo "== Frontend build =="
