@@ -7,6 +7,28 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
 // ==================== GEOCODING ====================
 
+export const addressAutocomplete = async (query, countryCodes = ['ci'], limit = 8) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/osm/autocomplete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        country_codes: countryCodes,
+        limit
+      })
+    });
+
+    if (!response.ok) throw new Error('Autocomplete failed');
+    
+    const data = await response.json();
+    return data.suggestions || [];
+  } catch (error) {
+    console.error('OSM autocomplete error:', error);
+    return [];
+  }
+};
+
 export const forwardGeocodeOSM = async (query, countryCodes = [], limit = 5) => {
   try {
     const params = new URLSearchParams({

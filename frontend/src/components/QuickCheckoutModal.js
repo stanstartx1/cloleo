@@ -13,6 +13,7 @@ import { Input } from './ui/input';
 import { toast } from 'sonner';
 import { loadMapbox } from '../utils/mapboxLoader';
 import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, reverseGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
+import AddressAutocomplete from './AddressAutocomplete';
 
 const API = API_URL;
 
@@ -338,11 +339,28 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
           <label className="text-sm font-medium text-gray-700 mb-1 block">
             <MapPin className="w-4 h-4 inline mr-1" /> Adresse de livraison *
           </label>
-          <Input
+          <AddressAutocomplete
             value={formData.street}
-            onChange={(e) => setFormData(prev => ({ ...prev, street: e.target.value }))}
-            onBlur={geocodeTypedAddress}
+            onChange={(value) => setFormData(prev => ({ ...prev, street: value }))}
+            onSelect={(suggestion) => {
+              setFormData(prev => ({
+                ...prev,
+                street: suggestion.formatted_address,
+                latitude: suggestion.latitude,
+                longitude: suggestion.longitude
+              }));
+              // Update map with selected location
+              if (mapInstance.current && mapboxRef.current) {
+                const location = {
+                  latitude: suggestion.latitude,
+                  longitude: suggestion.longitude
+                };
+                upsertMarker(mapboxRef.current, mapInstance.current, markerRef, location, { color: '#f97316' });
+                mapInstance.current.easeTo({ center: toLngLat(location), zoom: 17 });
+              }
+            }}
             placeholder="Cliquez sur la carte ou entrez l'adresse"
+            countryCodes={['ci']}
             className="h-12"
           />
         </div>

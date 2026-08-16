@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { loadMapbox } from '../utils/mapboxLoader';
 import { DEFAULT_MAP_CENTER, forwardGeocodeMapbox, reverseGeocodeMapbox, toLngLat, upsertMarker } from '../utils/mapboxMap';
 import { useLanguage } from '../context/LanguageContext';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 const API = API_URL;
 
@@ -319,12 +320,29 @@ const CheckoutPage = () => {
                 <div className="space-y-4">
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <Input
+                      <AddressAutocomplete
                         id="address-input"
                         value={formData.street}
-                        onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                        onBlur={geocodeTypedAddress}
+                        onChange={(value) => setFormData({ ...formData, street: value })}
+                        onSelect={(suggestion) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            street: suggestion.formatted_address,
+                            latitude: suggestion.latitude,
+                            longitude: suggestion.longitude
+                          }));
+                          // Update map with selected location
+                          if (mapInstance.current && mapboxRef.current) {
+                            const location = {
+                              latitude: suggestion.latitude,
+                              longitude: suggestion.longitude
+                            };
+                            upsertMarker(mapboxRef.current, mapInstance.current, markerRef, location, { color: '#ef4444' });
+                            mapInstance.current.easeTo({ center: toLngLat(location), zoom: 17 });
+                          }
+                        }}
                         placeholder={t('checkout.searchAddress')}
+                        countryCodes={['ci']}
                         data-testid="checkout-address"
                       />
                     </div>

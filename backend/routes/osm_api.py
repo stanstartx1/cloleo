@@ -29,6 +29,12 @@ class GeocodeRequest(BaseModel):
     limit: int = Field(5, ge=1, le=10)
 
 
+class AutocompleteRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=200)
+    country_codes: Optional[List[str]] = Field(None, max_items=5)
+    limit: int = Field(8, ge=1, le=15)
+
+
 class ReverseGeocodeRequest(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
@@ -71,6 +77,104 @@ async def forward_geocode(request: GeocodeRequest):
         return {"results": results, "count": len(results)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/autocomplete")
+async def address_autocomplete(request: AutocompleteRequest):
+    """
+    Address autocomplete optimized for form input
+    Returns formatted suggestions for address completion
+    """
+    try:
+        # Use existing geocoding with autocomplete-specific parameters
+        results = await forward_geocode_osm(
+            request.query,
+            request.country_codes,
+            request.limit
+        )
+        
+        # Format results for autocomplete UI
+        formatted_results = []
+        for result in results:
+            formatted_results.append({
+                "display_name": result.get("display_name", ""),
+                "formatted_address": _format_address_for_autocomplete(result),
+                "latitude": result.get("latitude"),
+                "longitude": result.get("longitude"),
+                "address_components": result.get("address", {}),
+                "type": _get_location_type(result),
+                "confidence": _calculate_confidence(result, request.query)
+            })
+        
+        # Sort by confidence and relevance
+        formatted_results.sort(key=lambda x: x["confidence"], reverse=True)
+        
+        return {"suggestions": formatted_results, "count": len(formatted_results)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _format_address_for_autocomplete(result: dict) -> str:
+    """Format address for autocomplete display"""
+    address = result.get("address", {})
+    parts = []
+    
+    # Priority: street number, street name, suburb, city
+    if address.get("house_number"):
+        parts.append(address["house_number"])
+    if address.get("road"):
+        parts.append(address["road"])
+    if address.get("suburb"):
+        parts.append(address["suburb"])
+    if address.get("city") or address.get("town"):
+        parts.append(address.get("city") or address.get("town"))
+    
+    return ", ".join(parts) if parts else result.get("display_name", "")
+
+
+def _get_location_type(result: dict) -> str:
+    """Determine location type for icon/filtering"""
+    address = result.get("address", {})
+    
+    if address.get("house_number") and address.get("road"):
+        return "address"
+    elif address.get("road"):
+        return "street"
+    elif address.get("suburb") or address.get("neighbourhood"):
+        return "neighborhood"
+    elif address.get("city") or address.get("town"):
+        return "city"
+    else:
+        return "place"
+
+
+def _calculate_confidence(result: dict, query: str) -> float:
+    """Calculate confidence score for result ranking"""
+    address = result.get("address", {})
+    display_name = result.get("display_name", "").lower()
+    query_lower = query.lower()
+    
+    score = 0.0
+    
+    # Exact match bonus
+    if query_lower in display_name:
+        score += 0.5
+        # Higher bonus if it starts with query
+        if display_name.startswith(query_lower):
+            score += 0.3
+    
+    # Address components bonus
+    if address.get("house_number"):
+        score += 0.2  # Specific addresses are better
+    if address.get("road"):
+        score += 0.1
+    if address.get("city"):
+        score += 0.05
+    
+    # Length penalty (shorter, more specific is better)
+    score -= min(len(display_name) / 500, 0.1)
+    
+    return max(0.0, min(1.0, score))
 
 
 @router.post("/reverse-geocode")
