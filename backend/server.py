@@ -494,6 +494,30 @@ async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
         manager.disconnect(websocket, room, user_id=user["id"])
 
 
+# Global WebSocket endpoint for user-specific events
+@app.websocket("/api/ws/user")
+async def websocket_user_endpoint(websocket: WebSocket):
+    """Global WebSocket for receiving all user events (messages, notifications, etc.)"""
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    
+    # Connect to a user-specific room
+    user_room = f"user_{user['id']}"
+    await manager.connect(websocket, user_room, user_id=user["id"])
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_room, user_id=user["id"])
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(websocket, user_room, user_id=user["id"])
+
+
 
 
 

@@ -356,6 +356,13 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
             "message": {k: v for k, v in message.items() if k != "_id"},
             "conversation_id": conversation_id
         })
+        
+        # Also broadcast to user-specific room for global connection
+        await manager.broadcast_to_room(f"user_{other_participant_id}", {
+            "type": "new_message",
+            "message": {k: v for k, v in message.items() if k != "_id"},
+            "conversation_id": conversation_id
+        })
     
     return {k: v for k, v in message.items() if k != "_id"}
 
@@ -506,6 +513,13 @@ async def upload_chat_image(
                     "message": message,
                     "conversation_id": conversation_id
                 })
+                
+                # Broadcast to user-specific room
+                await manager.broadcast_to_room(f"user_{other_participant_id}", {
+                    "type": "new_message",
+                    "message": message,
+                    "conversation_id": conversation_id
+                })
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
         
@@ -592,6 +606,13 @@ async def upload_chat_document(
             # Send directly to other participant
             other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
             await manager.send_to_user(other_participant_id, {
+                "type": "new_message",
+                "message": message,
+                "conversation_id": conversation_id
+            })
+            
+            # Broadcast to user-specific room
+            await manager.broadcast_to_room(f"user_{other_participant_id}", {
                 "type": "new_message",
                 "message": message,
                 "conversation_id": conversation_id
@@ -690,6 +711,13 @@ async def upload_chat_audio(
                     "message": message,
                     "conversation_id": conversation_id
                 })
+                
+                # Broadcast to user-specific room
+                await manager.broadcast_to_room(f"user_{other_participant_id}", {
+                    "type": "new_message",
+                    "message": message,
+                    "conversation_id": conversation_id
+                })
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
         
@@ -732,6 +760,15 @@ async def set_typing_status(
             # Send directly to the other participant
             other_participant_id = conversation["customer_id"] if conversation["seller_id"] == user["id"] else conversation["seller_id"]
             await manager.send_to_user(other_participant_id, {
+                "type": "typing_status",
+                "conversation_id": conversation_id,
+                "user_id": user["id"],
+                "is_typing": is_typing,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            # Broadcast to user-specific room
+            await manager.broadcast_to_room(f"user_{other_participant_id}", {
                 "type": "typing_status",
                 "conversation_id": conversation_id,
                 "user_id": user["id"],
@@ -796,6 +833,15 @@ async def set_voice_recording_status(
             # Send directly to the other participant
             other_participant_id = conversation["customer_id"] if conversation["seller_id"] == user["id"] else conversation["seller_id"]
             await manager.send_to_user(other_participant_id, {
+                "type": "voice_recording_status",
+                "conversation_id": conversation_id,
+                "user_id": user["id"],
+                "is_recording": is_recording,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            # Broadcast to user-specific room
+            await manager.broadcast_to_room(f"user_{other_participant_id}", {
                 "type": "voice_recording_status",
                 "conversation_id": conversation_id,
                 "user_id": user["id"],

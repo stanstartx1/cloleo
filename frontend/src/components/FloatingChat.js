@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 const ChatContext = createContext(null);
 import { API_URL } from '../config/api';
-import { createChatRealtime } from '../services/chatRealtime';
+import { createChatRealtime, createGlobalRealtime } from '../services/chatRealtime';
 const API = API_URL;
 
 // Custom Audio Player Component (WhatsApp-style)
@@ -96,10 +96,11 @@ const CustomAudioPlayer = ({ audioUrl, duration }) => {
 };
 
 export const ChatProvider = ({ children }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const startConversation = useCallback(async (productId, dropshippedProductId = null, metadata = {}) => {
     if (!token) return null;
@@ -144,6 +145,13 @@ export const ChatProvider = ({ children }) => {
       });
       const list = Array.isArray(response.data) ? response.data : (response.data?.conversations || []);
       setConversations(list);
+      
+      // Calculate total unread count
+      const totalUnread = list.reduce((sum, conv) => {
+        return sum + (conv.unread_customer || 0) + (conv.unread_seller || 0);
+      }, 0);
+      setUnreadCount(totalUnread);
+      
       if (!activeConversationId && list.length > 0) {
         setActiveConversationId(list[0].id);
       }
@@ -157,11 +165,35 @@ export const ChatProvider = ({ children }) => {
     fetchConversations();
   }, [isOpen, fetchConversations]);
 
+  // Global WebSocket connection for receiving messages even when chat is closed
+  useEffect(() => {
+    if (!token || !user?.id) return;
+    
+    return createGlobalRealtime({
+      token,
+      onEvent: (event) => {
+        if (event.type === 'new_message') {
+          // Refresh conversations to update unread counts
+          fetchConversations();
+          
+          // Show notification if message is not from current user
+          if (event.message?.sender_id !== user.id) {
+            toast.info(`Nouveau message de ${event.message?.sender_name || 'votre interlocuteur'}`);
+          }
+        }
+      },
+      onStatusChange: (connected) => {
+        console.log('Global WebSocket connection:', connected ? 'connected' : 'disconnected');
+      }
+    });
+  }, [token, user?.id, fetchConversations]);
+
   const value = useMemo(
     () => ({
       isOpen,
       conversations,
       activeConversationId,
+      unreadCount,
       startConversation,
       openConversation,
       openChat,
@@ -170,7 +202,7 @@ export const ChatProvider = ({ children }) => {
       setConversations,
       setActiveConversationId,
     }),
-    [isOpen, conversations, activeConversationId, startConversation, openConversation, openChat, closeChat, fetchConversations]
+    [isOpen, conversations, activeConversationId, unreadCount, startConversation, openConversation, openChat, closeChat, fetchConversations]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
@@ -183,6 +215,7 @@ export const useChat = () => {
       isOpen: false,
       conversations: [],
       activeConversationId: null,
+      unreadCount: 0,
       startConversation: async () => null,
       openConversation: () => {},
       openChat: () => {},
@@ -199,7 +232,7 @@ const FloatingChat = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, isAuthenticated } = useAuth();
-  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations, setActiveConversationId } = useChat();
+  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations, setActiveConversationId, unreadCount } = useChat();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -716,9 +749,16 @@ const FloatingChat = () => {
         <span className="relative w-16 h-16 rounded-full bg-gradient-to-r from-fuchsia-600 via-orange-500 to-amber-500 shadow-2xl flex items-center justify-center overflow-visible">
           <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/35 to-transparent group-hover:translate-x-full transition-transform duration-1000" />
           <MessageCircle className="w-7 h-7 text-white relative z-10" />
-          <span className="absolute top-0 right-0 translate-x-1 -translate-y-1 px-1.5 py-0.5 rounded-full text-[10px] leading-none font-bold bg-emerald-500 text-white border border-white shadow">
-            En ligne
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-0 translate-x-1 -translate-y-1 px-1.5 py-0.5 rounded-full text-[10px] leading-none font-bold bg-red-500 text-white border border-white shadow">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+          {unreadCount === 0 && (
+            <span className="absolute top-0 right-0 translate-x-1 -translate-y-1 px-1.5 py-0.5 rounded-full text-[10px] leading-none font-bold bg-emerald-500 text-white border border-white shadow">
+              En ligne
+            </span>
+          )}
         </span>
       </button>
     );
