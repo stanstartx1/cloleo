@@ -89,9 +89,9 @@ class ConnectionManager:
         if user_id in self.user_connections:
             for room in self.user_connections[user_id]:
                 await self.broadcast_to_room(room, message)
-            logger.info(f"Sent to user {user_id}: {message.get('type', 'unknown')}")
+            logger.info(f"Sent to user {user_id} in {len(self.user_connections[user_id])} rooms: {message.get('type', 'unknown')}")
         else:
-            logger.warning(f"User {user_id} has no active connections")
+            logger.warning(f"User {user_id} has no active connections - message type: {message.get('type', 'unknown')}")
     
     def update_driver_location(self, driver_id: str, location: dict):
         self.driver_locations[driver_id] = {
@@ -203,6 +203,7 @@ class ConnectionManager:
             "is_typing": is_typing,
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
+        logger.info(f"Broadcast typing status: user {user_id} {'typing' if is_typing else 'not typing'} in conversation {conversation_id}")
     
     async def broadcast_voice_recording_status(self, conversation_id: str, user_id: str, is_recording: bool):
         """Broadcast voice recording status to all users in a conversation"""
@@ -213,5 +214,6 @@ class ConnectionManager:
             "is_recording": is_recording,
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
+        logger.info(f"Broadcast voice recording status: user {user_id} {'recording' if is_recording else 'not recording'} in conversation {conversation_id}")
 
 manager = ConnectionManager()

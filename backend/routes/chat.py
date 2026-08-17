@@ -342,9 +342,19 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
     
     # Broadcast via WebSocket if manager is available
     if manager:
+        # Broadcast to conversation room (both participants if connected)
         await manager.broadcast_to_room(f"chat_{conversation_id}", {
             "type": "new_message",
             "message": {k: v for k, v in message.items() if k != "_id"}
+        })
+        
+        # Also send directly to the other participant to ensure they receive it
+        # even if they're not connected to this specific conversation room
+        other_participant_id = conversation["customer_id"] if is_seller else conversation["seller_id"]
+        await manager.send_to_user(other_participant_id, {
+            "type": "new_message",
+            "message": {k: v for k, v in message.items() if k != "_id"},
+            "conversation_id": conversation_id
         })
     
     return {k: v for k, v in message.items() if k != "_id"}
@@ -483,9 +493,18 @@ async def upload_chat_image(
         # Notify via WebSocket
         if manager:
             try:
+                # Broadcast to conversation room
                 await manager.broadcast_to_room(f"chat_{conversation_id}", {
                     "type": "new_message",
                     "message": message
+                })
+                
+                # Send directly to other participant
+                other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
+                await manager.send_to_user(other_participant_id, {
+                    "type": "new_message",
+                    "message": message,
+                    "conversation_id": conversation_id
                 })
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
@@ -564,9 +583,18 @@ async def upload_chat_document(
         
         # Notify via WebSocket
         if manager:
+            # Broadcast to conversation room
             await manager.broadcast_to_room(f"chat_{conversation_id}", {
                 "type": "new_message",
                 "message": message
+            })
+            
+            # Send directly to other participant
+            other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
+            await manager.send_to_user(other_participant_id, {
+                "type": "new_message",
+                "message": message,
+                "conversation_id": conversation_id
             })
         
         # Convert ObjectId to string before returning
@@ -649,9 +677,18 @@ async def upload_chat_audio(
         # Notify via WebSocket
         if manager:
             try:
+                # Broadcast to conversation room
                 await manager.broadcast_to_room(f"chat_{conversation_id}", {
                     "type": "new_message",
                     "message": message
+                })
+                
+                # Send directly to other participant
+                other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
+                await manager.send_to_user(other_participant_id, {
+                    "type": "new_message",
+                    "message": message,
+                    "conversation_id": conversation_id
                 })
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
@@ -688,7 +725,20 @@ async def set_typing_status(
     if manager:
         try:
             manager.set_typing(conversation_id, user["id"], is_typing)
+            
+            # Broadcast to conversation room
             await manager.broadcast_typing_status(conversation_id, user["id"], is_typing)
+            
+            # Send directly to the other participant
+            other_participant_id = conversation["customer_id"] if conversation["seller_id"] == user["id"] else conversation["seller_id"]
+            await manager.send_to_user(other_participant_id, {
+                "type": "typing_status",
+                "conversation_id": conversation_id,
+                "user_id": user["id"],
+                "is_typing": is_typing,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
             return {"ok": True, "is_typing": is_typing}
         except Exception as e:
             print(f"Error setting typing status: {e}")
@@ -739,7 +789,20 @@ async def set_voice_recording_status(
     if manager:
         try:
             manager.set_voice_recording(conversation_id, user["id"], is_recording)
+            
+            # Broadcast to conversation room
             await manager.broadcast_voice_recording_status(conversation_id, user["id"], is_recording)
+            
+            # Send directly to the other participant
+            other_participant_id = conversation["customer_id"] if conversation["seller_id"] == user["id"] else conversation["seller_id"]
+            await manager.send_to_user(other_participant_id, {
+                "type": "voice_recording_status",
+                "conversation_id": conversation_id,
+                "user_id": user["id"],
+                "is_recording": is_recording,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
             return {"ok": True, "is_recording": is_recording}
         except Exception as e:
             print(f"Error setting voice recording status: {e}")

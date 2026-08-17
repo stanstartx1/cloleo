@@ -613,12 +613,17 @@ const FloatingChat = () => {
       token,
       onStatusChange: setIsRealtimeConnected,
       onEvent: (event) => {
+        // Handle new messages from any conversation
         if (event.type === 'new_message' && event.message) {
-          setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
-          if (event.message.sender_id !== user?.id) {
-            setTypingUsers([]);
-            setRecordingUsers([]);
+          // If message is for current conversation, add it
+          if (event.conversation_id === activeConversationId || !event.conversation_id) {
+            setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+            if (event.message.sender_id !== user?.id) {
+              setTypingUsers([]);
+              setRecordingUsers([]);
+            }
           }
+          // Always refresh conversations to update unread counts
           refreshConversations();
           return;
         }
@@ -626,10 +631,26 @@ const FloatingChat = () => {
           setMessages(prev => prev.filter(message => message.id !== event.message_id));
           return;
         }
+        // Don't show own typing/recording indicators
         if (event.user_id === user?.id) return;
-        const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
-        if (event.type === 'typing_status') setTypingUsers(event.is_typing ? [participant] : []);
-        if (event.type === 'voice_recording_status') setRecordingUsers(event.is_recording ? [participant] : []);
+        
+        // Handle typing status - show if it's for the current conversation
+        if (event.type === 'typing_status') {
+          if (event.conversation_id === activeConversationId || !event.conversation_id) {
+            const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+            setTypingUsers(event.is_typing ? [participant] : []);
+          }
+          return;
+        }
+        
+        // Handle voice recording status - show if it's for the current conversation
+        if (event.type === 'voice_recording_status') {
+          if (event.conversation_id === activeConversationId || !event.conversation_id) {
+            const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+            setRecordingUsers(event.is_recording ? [participant] : []);
+          }
+          return;
+        }
       },
     });
   }, [isOpen, activeConversationId, token, user?.id, activeConversation?.other_party_name, activeConversation?.seller_name, refreshConversations]);
