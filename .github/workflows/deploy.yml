@@ -103,21 +103,15 @@ jobs:
             
             # Clean and install dependencies
             echo "Cleaning and installing dependencies..."
-            rm -rf node_modules package-lock.json
+            rm -rf node_modules
             npm cache clean --force
             
-            # Use npm ci for more reliable installation in CI/CD
-            # If package-lock.json doesn't exist, fall back to npm install
-            if [ -f "package-lock.json" ]; then
-              echo "Using npm ci for reliable installation..."
-              npm ci --legacy-peer-deps --no-optional || {
-                echo "⚠️ npm ci failed, falling back to npm install..."
-                npm install --legacy-peer-deps --no-optional
-              }
-            else
-              echo "No package-lock.json found, using npm install..."
+            # Use npm install with robust options
+            echo "Installing dependencies with npm install..."
+            npm install --legacy-peer-deps --no-optional --prefer-offline || {
+              echo "⚠️ npm install failed with --prefer-offline, trying without..."
               npm install --legacy-peer-deps --no-optional
-            fi
+            }
             
             echo "Building frontend..."
             npm run build
