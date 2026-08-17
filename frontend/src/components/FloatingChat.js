@@ -556,7 +556,7 @@ const FloatingChat = () => {
   };
   
   // Typing indicator functionality
-  const setTypingStatus = async (isTyping: boolean) => {
+  const setTypingStatus = async (isTyping) => {
     if (!activeConversationId || !token) return;
     try {
       await axios.post(
@@ -594,7 +594,7 @@ const FloatingChat = () => {
   };
   
   // Voice recording indicator functionality
-  const setVoiceRecordingStatus = async (isRecording: boolean) => {
+  const setVoiceRecordingStatus = async (isRecording) => {
     if (!activeConversationId || !token) return;
     try {
       await axios.post(
