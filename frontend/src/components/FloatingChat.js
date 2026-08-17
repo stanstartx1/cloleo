@@ -166,56 +166,15 @@ export const ChatProvider = ({ children }) => {
     fetchConversations();
   }, [isOpen, fetchConversations]);
 
-  // Global WebSocket connection for receiving messages even when chat is closed
+  // Polling for new messages (fallback since WebSocket is not working yet)
   useEffect(() => {
     if (!token || !user?.id) return;
     
-    return createGlobalRealtime({
-      token,
-      onEvent: (event) => {
-        if (event.type === 'new_message') {
-          // Refresh conversations to update unread counts
-          fetchConversations();
-          
-          // Show notification if message is not from current user
-          if (event.message?.sender_id !== user.id) {
-            const senderName = event.message?.sender_name || event.message?.sender_type === 'seller' ? 'Vendeur' : 'Client';
-            
-            // Show toast notification
-            toast.info(`Nouveau message de ${senderName}`, {
-              action: {
-                label: 'Voir',
-                onClick: () => {
-                  setIsOpen(true);
-                  if (event.conversation_id) {
-                    setActiveConversationId(event.conversation_id);
-                  }
-                }
-              }
-            });
-            
-            // Show browser notification (if permission granted)
-            notificationService.showNotification(`Nouveau message de ${senderName}`, {
-              body: event.message?.content || event.message?.text || 'Message',
-              icon: '/logo192.png',
-              badge: '/badge72.png',
-              tag: `chat-${event.conversation_id}`,
-              requireInteraction: false,
-              onClick: () => {
-                setIsOpen(true);
-                if (event.conversation_id) {
-                  setActiveConversationId(event.conversation_id);
-                }
-                window.focus();
-              }
-            });
-          }
-        }
-      },
-      onStatusChange: (connected) => {
-        console.log('Global WebSocket connection:', connected ? 'connected' : 'disconnected');
-      }
-    });
+    const pollingInterval = setInterval(() => {
+      fetchConversations();
+    }, 15000); // Poll every 15 seconds
+    
+    return () => clearInterval(pollingInterval);
   }, [token, user?.id, fetchConversations]);
 
   const value = useMemo(

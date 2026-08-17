@@ -52,9 +52,18 @@ export const createGlobalRealtime = ({ token, onEvent, onStatusChange }) => {
   let reconnectTimer;
   let closed = false;
   let attempts = 0;
+  const maxAttempts = 3; // Stop trying after 3 failed attempts
 
   const connect = () => {
     if (closed || !token) return;
+    
+    // Stop trying if we've exceeded max attempts
+    if (attempts >= maxAttempts) {
+      console.log('Global WebSocket: Max attempts reached, stopping reconnection');
+      onStatusChange?.(false);
+      return;
+    }
+    
     socket = new WebSocket(`${WS_URL}/api/ws/user?token=${encodeURIComponent(token)}`);
 
     socket.onopen = () => {
@@ -71,11 +80,16 @@ export const createGlobalRealtime = ({ token, onEvent, onStatusChange }) => {
     socket.onclose = () => {
       onStatusChange?.(false);
       if (closed) return;
-      const delay = Math.min(1000 * (2 ** attempts), 15000);
       attempts += 1;
-      reconnectTimer = window.setTimeout(connect, delay);
+      if (attempts < maxAttempts) {
+        const delay = Math.min(1000 * (2 ** attempts), 15000);
+        reconnectTimer = window.setTimeout(connect, delay);
+      }
     };
-    socket.onerror = () => socket.close();
+    socket.onerror = () => {
+      console.error('Global WebSocket error');
+      socket.close();
+    };
   };
 
   connect();
