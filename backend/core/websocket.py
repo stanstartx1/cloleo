@@ -31,6 +31,7 @@ class ConnectionManager:
             if user_id not in self.user_connections:
                 self.user_connections[user_id] = set()
             self.user_connections[user_id].add(room)
+            logger.info(f"User {user_id} now connected to rooms: {self.user_connections[user_id]}")
         
         # Track driver connections
         if room.startswith("driver_"):

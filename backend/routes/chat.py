@@ -350,15 +350,9 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
         
         # Also send directly to the other participant to ensure they receive it
         # even if they're not connected to this specific conversation room
+        # send_to_user will broadcast to all their rooms including user-specific room
         other_participant_id = conversation["customer_id"] if is_seller else conversation["seller_id"]
         await manager.send_to_user(other_participant_id, {
-            "type": "new_message",
-            "message": {k: v for k, v in message.items() if k != "_id"},
-            "conversation_id": conversation_id
-        })
-        
-        # Also broadcast to user-specific room for global connection
-        await manager.broadcast_to_room(f"user_{other_participant_id}", {
             "type": "new_message",
             "message": {k: v for k, v in message.items() if k != "_id"},
             "conversation_id": conversation_id
@@ -506,16 +500,9 @@ async def upload_chat_image(
                     "message": message
                 })
                 
-                # Send directly to other participant
+                # Send directly to other participant (will broadcast to all their rooms including user-specific room)
                 other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
                 await manager.send_to_user(other_participant_id, {
-                    "type": "new_message",
-                    "message": message,
-                    "conversation_id": conversation_id
-                })
-                
-                # Broadcast to user-specific room
-                await manager.broadcast_to_room(f"user_{other_participant_id}", {
                     "type": "new_message",
                     "message": message,
                     "conversation_id": conversation_id
@@ -603,16 +590,9 @@ async def upload_chat_document(
                 "message": message
             })
             
-            # Send directly to other participant
+            # Send directly to other participant (will broadcast to all their rooms including user-specific room)
             other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
             await manager.send_to_user(other_participant_id, {
-                "type": "new_message",
-                "message": message,
-                "conversation_id": conversation_id
-            })
-            
-            # Broadcast to user-specific room
-            await manager.broadcast_to_room(f"user_{other_participant_id}", {
                 "type": "new_message",
                 "message": message,
                 "conversation_id": conversation_id
@@ -704,16 +684,9 @@ async def upload_chat_audio(
                     "message": message
                 })
                 
-                # Send directly to other participant
+                # Send directly to other participant (will broadcast to all their rooms including user-specific room)
                 other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
                 await manager.send_to_user(other_participant_id, {
-                    "type": "new_message",
-                    "message": message,
-                    "conversation_id": conversation_id
-                })
-                
-                # Broadcast to user-specific room
-                await manager.broadcast_to_room(f"user_{other_participant_id}", {
                     "type": "new_message",
                     "message": message,
                     "conversation_id": conversation_id
@@ -757,18 +730,9 @@ async def set_typing_status(
             # Broadcast to conversation room
             await manager.broadcast_typing_status(conversation_id, user["id"], is_typing)
             
-            # Send directly to the other participant
+            # Send directly to the other participant (will broadcast to all their rooms including user-specific room)
             other_participant_id = conversation["customer_id"] if conversation["seller_id"] == user["id"] else conversation["seller_id"]
             await manager.send_to_user(other_participant_id, {
-                "type": "typing_status",
-                "conversation_id": conversation_id,
-                "user_id": user["id"],
-                "is_typing": is_typing,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-            
-            # Broadcast to user-specific room
-            await manager.broadcast_to_room(f"user_{other_participant_id}", {
                 "type": "typing_status",
                 "conversation_id": conversation_id,
                 "user_id": user["id"],
@@ -830,18 +794,9 @@ async def set_voice_recording_status(
             # Broadcast to conversation room
             await manager.broadcast_voice_recording_status(conversation_id, user["id"], is_recording)
             
-            # Send directly to the other participant
+            # Send directly to the other participant (will broadcast to all their rooms including user-specific room)
             other_participant_id = conversation["customer_id"] if conversation["seller_id"] == user["id"] else conversation["seller_id"]
             await manager.send_to_user(other_participant_id, {
-                "type": "voice_recording_status",
-                "conversation_id": conversation_id,
-                "user_id": user["id"],
-                "is_recording": is_recording,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-            
-            # Broadcast to user-specific room
-            await manager.broadcast_to_room(f"user_{other_participant_id}", {
                 "type": "voice_recording_status",
                 "conversation_id": conversation_id,
                 "user_id": user["id"],

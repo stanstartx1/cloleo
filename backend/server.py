@@ -506,6 +506,9 @@ async def websocket_user_endpoint(websocket: WebSocket):
     user_room = f"user_{user['id']}"
     await manager.connect(websocket, user_room, user_id=user["id"])
     
+    # Send immediate confirmation
+    await websocket.send_json({"type": "connected", "user_id": user["id"]})
+    
     try:
         while True:
             data = await websocket.receive_json()
