@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 const ChatContext = createContext(null);
 import { API_URL } from '../config/api';
 import { createChatRealtime, createGlobalRealtime } from '../services/chatRealtime';
+import notificationService from '../services/notificationService';
 const API = API_URL;
 
 // Custom Audio Player Component (WhatsApp-style)
@@ -178,7 +179,36 @@ export const ChatProvider = ({ children }) => {
           
           // Show notification if message is not from current user
           if (event.message?.sender_id !== user.id) {
-            toast.info(`Nouveau message de ${event.message?.sender_name || 'votre interlocuteur'}`);
+            const senderName = event.message?.sender_name || event.message?.sender_type === 'seller' ? 'Vendeur' : 'Client';
+            
+            // Show toast notification
+            toast.info(`Nouveau message de ${senderName}`, {
+              action: {
+                label: 'Voir',
+                onClick: () => {
+                  setIsOpen(true);
+                  if (event.conversation_id) {
+                    setActiveConversationId(event.conversation_id);
+                  }
+                }
+              }
+            });
+            
+            // Show browser notification (if permission granted)
+            notificationService.showNotification(`Nouveau message de ${senderName}`, {
+              body: event.message?.content || event.message?.text || 'Message',
+              icon: '/logo192.png',
+              badge: '/badge72.png',
+              tag: `chat-${event.conversation_id}`,
+              requireInteraction: false,
+              onClick: () => {
+                setIsOpen(true);
+                if (event.conversation_id) {
+                  setActiveConversationId(event.conversation_id);
+                }
+                window.focus();
+              }
+            });
           }
         }
       },

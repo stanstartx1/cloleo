@@ -17,6 +17,7 @@ from core.auth import (
     decode_token,
     security
 )
+from core.notification_channels import notify_user_all_channels
 from models.schemas import ConversationCreate, MessageCreate, MessageMediaCreate
 
 router = APIRouter(prefix="/conversations", tags=["Chat"])
@@ -358,6 +359,24 @@ async def send_message(conversation_id: str, data: MessageCreate, user: dict = D
             "conversation_id": conversation_id
         })
     
+    # Send notification to the other participant
+    other_participant_id = conversation["customer_id"] if is_seller else conversation["seller_id"]
+    other_participant_name = conversation["customer_name"] if is_seller else conversation["seller_name"]
+    
+    await notify_user_all_channels(
+        other_participant_id,
+        f"Nouveau message de {user.get('shop_name') or user.get('name', 'Votre interlocuteur')}",
+        data.content[:100] if data.content else "Nouveau message",
+        notification_type="chat_message",
+        data={
+            "conversation_id": conversation_id,
+            "message_id": message["id"],
+            "sender_id": user["id"],
+            "sender_name": user.get("shop_name") or user.get("name"),
+            "product_name": conversation.get("product_name")
+        }
+    )
+    
     return {k: v for k, v in message.items() if k != "_id"}
 
 
@@ -510,6 +529,22 @@ async def upload_chat_image(
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
         
+        # Send notification to the other participant
+        other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
+        await notify_user_all_channels(
+            other_participant_id,
+            f"Nouvelle image de {user.get('shop_name') or user.get('name', 'Votre interlocuteur')}",
+            "Vous avez reçu une nouvelle image",
+            notification_type="chat_message",
+            data={
+                "conversation_id": conversation_id,
+                "message_id": message["id"],
+                "sender_id": user["id"],
+                "sender_name": user.get("shop_name") or user.get("name"),
+                "media_type": "image"
+            }
+        )
+        
         print(f"Image upload successful: {message['id']}")
         
         # Convert ObjectId to string before returning
@@ -597,6 +632,23 @@ async def upload_chat_document(
                 "message": message,
                 "conversation_id": conversation_id
             })
+        
+        # Send notification to the other participant
+        other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
+        await notify_user_all_channels(
+            other_participant_id,
+            f"Nouveau document de {user.get('shop_name') or user.get('name', 'Votre interlocuteur')}",
+            f"Document: {message.get('file_name', 'Document')}",
+            notification_type="chat_message",
+            data={
+                "conversation_id": conversation_id,
+                "message_id": message["id"],
+                "sender_id": user["id"],
+                "sender_name": user.get("shop_name") or user.get("name"),
+                "media_type": "document",
+                "file_name": message.get("file_name")
+            }
+        )
         
         # Convert ObjectId to string before returning
         message = convert_objectid_to_str(message)
@@ -693,6 +745,23 @@ async def upload_chat_audio(
                 })
             except Exception as ws_error:
                 print(f"WebSocket notification error: {ws_error}")
+        
+        # Send notification to the other participant
+        other_participant_id = conversation["customer_id"] if conversation["customer_id"] == user["id"] else conversation["seller_id"]
+        await notify_user_all_channels(
+            other_participant_id,
+            f"Nouveau message vocal de {user.get('shop_name') or user.get('name', 'Votre interlocuteur')}",
+            "Vous avez reçu un nouveau message vocal",
+            notification_type="chat_message",
+            data={
+                "conversation_id": conversation_id,
+                "message_id": message["id"],
+                "sender_id": user["id"],
+                "sender_name": user.get("shop_name") or user.get("name"),
+                "media_type": "audio",
+                "duration": message.get("duration", 0)
+            }
+        )
         
         print(f"Audio upload successful: {message['id']}")
         

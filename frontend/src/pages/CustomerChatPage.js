@@ -16,6 +16,7 @@ import ChatMessageDeleteButton from '../components/ChatMessageDeleteButton';
 
 import { API_BASE, API_URL } from '../config/api';
 import { createChatRealtime } from '../services/chatRealtime';
+import notificationService from '../services/notificationService';
 const API = API_URL;
 
 // Custom Audio Player Component (WhatsApp-style)
@@ -487,6 +488,45 @@ const CustomerChatPage = () => {
             }
           }
           fetchConversations();
+          
+          // Show notification if message is not from current user and not for current conversation
+          if (event.message?.sender_id !== user?.id && event.conversation_id !== selectedConversation.id) {
+            const senderName = event.message?.sender_name || event.message?.sender_type === 'seller' ? 'Vendeur' : 'Client';
+            
+            // Show toast notification
+            toast.info(`Nouveau message de ${senderName}`, {
+              action: {
+                label: 'Voir',
+                onClick: () => {
+                  if (event.conversation_id) {
+                    // Find and select the conversation
+                    const conversation = conversations.find(c => c.id === event.conversation_id);
+                    if (conversation) {
+                      setSelectedConversation(conversation);
+                    }
+                  }
+                }
+              }
+            });
+            
+            // Show browser notification
+            notificationService.showNotification(`Nouveau message de ${senderName}`, {
+              body: event.message?.content || event.message?.text || 'Message',
+              icon: '/logo192.png',
+              badge: '/badge72.png',
+              tag: `chat-${event.conversation_id}`,
+              requireInteraction: false,
+              onClick: () => {
+                if (event.conversation_id) {
+                  const conversation = conversations.find(c => c.id === event.conversation_id);
+                  if (conversation) {
+                    setSelectedConversation(conversation);
+                  }
+                }
+                window.focus();
+              }
+            });
+          }
           return;
         }
         if (event.type === 'message_deleted' && event.message_id) {
@@ -515,7 +555,7 @@ const CustomerChatPage = () => {
         }
       },
     });
-  }, [selectedConversation?.id, selectedConversation?.other_party_name, selectedConversation?.seller_name, token, user?.id, fetchConversations]);
+  }, [selectedConversation?.id, selectedConversation?.other_party_name, selectedConversation?.seller_name, token, user?.id, fetchConversations, conversations]);
 
   // Fallback for proxies or networks that block WebSocket connections.
   useEffect(() => {
