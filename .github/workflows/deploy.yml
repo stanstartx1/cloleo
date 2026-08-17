@@ -165,19 +165,13 @@ jobs:
             fi
             
             # Start or reload Apache
+            echo "Starting/reloading Apache..."
+            systemctl restart apache2
             if systemctl is-active --quiet apache2; then
-              echo "Reloading Apache..."
-              systemctl reload apache2 || echo "⚠️ Apache reload failed, trying restart"
-              systemctl restart apache2 || echo "⚠️ Apache restart failed"
-              echo "✅ Apache reloaded"
+              echo "✅ Apache is active"
             else
-              echo "Apache is not active, starting it..."
-              systemctl start apache2 || echo "⚠️ Apache start failed (SSL certificates may be missing)"
-              if systemctl is-active --quiet apache2; then
-                echo "✅ Apache started"
-              else
-                echo "⚠️ Apache failed to start - check SSL certificates"
-              fi
+              echo "⚠️ Apache failed to start/restart - check SSL certificates"
+              echo "⚠️ Deployment continued despite Apache issues - frontend is built"
             fi
             
             echo "✅ Deployment finished successfully at $(date)"
