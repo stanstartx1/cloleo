@@ -471,116 +471,104 @@ const CustomerChatPage = () => {
   };
   
   // Authenticated WebSocket: messages, typing and voice-recording are immediate.
-  useEffect(() => {
-    if (!selectedConversation?.id || !token) return undefined;
-    return createChatRealtime({
-      conversationId: selectedConversation.id,
-      token,
-      onStatusChange: setIsRealtimeConnected,
-      onEvent: (event) => {
-        if (event.type === 'new_message' && event.message) {
-          // If message is for current conversation, add it
-          if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
-            setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
-            if (event.message.sender_id !== user?.id) {
-              setTypingUsers([]);
-              setRecordingUsers([]);
-            }
-          }
-          fetchConversations();
-          
-          // Show notification if message is not from current user and not for current conversation
-          if (event.message?.sender_id !== user?.id && event.conversation_id !== selectedConversation.id) {
-            const senderName = event.message?.sender_name || event.message?.sender_type === 'seller' ? 'Vendeur' : 'Client';
-            
-            // Show toast notification
-            toast.info(`Nouveau message de ${senderName}`, {
-              action: {
-                label: 'Voir',
-                onClick: () => {
-                  if (event.conversation_id) {
-                    // Find and select the conversation
-                    const conversation = conversations.find(c => c.id === event.conversation_id);
-                    if (conversation) {
-                      setSelectedConversation(conversation);
-                    }
-                  }
-                }
-              }
-            });
-            
-            // Show browser notification
-            notificationService.showNotification(`Nouveau message de ${senderName}`, {
-              body: event.message?.content || event.message?.text || 'Message',
-              icon: '/logo192.png',
-              badge: '/badge72.png',
-              tag: `chat-${event.conversation_id}`,
-              requireInteraction: false,
-              onClick: () => {
-                if (event.conversation_id) {
-                  const conversation = conversations.find(c => c.id === event.conversation_id);
-                  if (conversation) {
-                    setSelectedConversation(conversation);
-                  }
-                }
-                window.focus();
-              }
-            });
-          }
-          return;
-        }
-        if (event.type === 'message_deleted' && event.message_id) {
-          setMessages(prev => prev.filter(message => message.id !== event.message_id));
-          return;
-        }
-        // Don't show own typing/recording indicators
-        if (event.user_id === user?.id) return;
-        
-        // Handle typing status - show if it's for the current conversation
-        if (event.type === 'typing_status') {
-          if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
-            const participant = { id: event.user_id, name: selectedConversation.other_party_name || selectedConversation.seller_name || 'Votre interlocuteur' };
-            setTypingUsers(event.is_typing ? [participant] : []);
-          }
-          return;
-        }
-        
-        // Handle voice recording status - show if it's for the current conversation
-        if (event.type === 'voice_recording_status') {
-          if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
-            const participant = { id: event.user_id, name: selectedConversation.other_party_name || selectedConversation.seller_name || 'Votre interlocuteur' };
-            setRecordingUsers(event.is_recording ? [participant] : []);
-          }
-          return;
-        }
-      },
-    });
-  }, [selectedConversation?.id, selectedConversation?.other_party_name, selectedConversation?.seller_name, token, user?.id, fetchConversations, conversations]);
+  // Disabled for now due to Apache WebSocket configuration issues
+  // useEffect(() => {
+  //   if (!selectedConversation?.id || !token) return undefined;
+  //   return createChatRealtime({
+  //     conversationId: selectedConversation.id,
+  //     token,
+  //     onStatusChange: setIsRealtimeConnected,
+  //     onEvent: (event) => {
+  //       if (event.type === 'new_message' && event.message) {
+  //         // If message is for current conversation, add it
+  //         if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
+  //           setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+  //           if (event.message.sender_id !== user?.id) {
+  //             setTypingUsers([]);
+  //             setRecordingUsers([]);
+  //           }
+  //         }
+  //         fetchConversations();
+  //         
+  //         // Show notification if message is not from current user and not for current conversation
+  //         if (event.message?.sender_id !== user?.id && event.conversation_id !== selectedConversation.id) {
+  //           const senderName = event.message?.sender_name || event.message?.sender_type === 'seller' ? 'Vendeur' : 'Client';
+  //           
+  //           // Show toast notification
+  //           toast.info(`Nouveau message de ${senderName}`, {
+  //             action: {
+  //               label: 'Voir',
+  //               onClick: () => {
+  //                 if (event.conversation_id) {
+  //                   // Find and select the conversation
+  //                   const conversation = conversations.find(c => c.id === event.conversation_id);
+  //                   if (conversation) {
+  //                     setSelectedConversation(conversation);
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           });
+  //           
+  //           // Show browser notification
+  //           notificationService.showNotification(`Nouveau message de ${senderName}`, {
+  //             body: event.message?.content || event.message?.text || 'Message',
+  //             icon: '/logo192.png',
+  //             badge: '/badge72.png',
+  //             tag: `chat-${event.conversation_id}`,
+  //             requireInteraction: false,
+  //             onClick: () => {
+  //               if (event.conversation_id) {
+  //                 const conversation = conversations.find(c => c.id === event.conversation_id);
+  //                 if (conversation) {
+  //                   setSelectedConversation(conversation);
+  //                 }
+  //               }
+  //               window.focus();
+  //             }
+  //           });
+  //         }
+  //         return;
+  //       }
+  //       if (event.type === 'message_deleted' && event.message_id) {
+  //         setMessages(prev => prev.filter(message => message.id !== event.message_id));
+  //         return;
+  //       }
+  //       // Don't show own typing/recording indicators
+  //       if (event.user_id === user?.id) return;
+  //       
+  //       // Handle typing status - show if it's for the current conversation
+  //       if (event.type === 'typing_status') {
+  //         if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
+  //           const participant = { id: event.user_id, name: selectedConversation.other_party_name || selectedConversation.seller_name || 'Votre interlocuteur' };
+  //           setTypingUsers(event.is_typing ? [participant] : []);
+  //         }
+  //         return;
+  //       }
+  //       
+  //       // Handle voice recording status - show if it's for the current conversation
+  //       if (event.type === 'voice_recording_status') {
+  //         if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
+  //           const participant = { id: event.user_id, name: selectedConversation.other_party_name || selectedConversation.seller_name || 'Votre interlocuteur' };
+  //           setRecordingUsers(event.is_recording ? [participant] : []);
+  //         }
+  //         return;
+  //       }
+  //     },
+  //   });
+  // }, [selectedConversation?.id, selectedConversation?.other_party_name, selectedConversation?.seller_name, token, user?.id, fetchConversations, conversations]);
 
-  // Fallback for proxies or networks that block WebSocket connections.
+  // Poll for new messages (WebSocket disabled)
   useEffect(() => {
-    if (!selectedConversation || !token || isRealtimeConnected) return;
+    if (!selectedConversation?.id || !token) return;
     
-    const pollInterval = setInterval(async () => {
-      try {
-        const [typingResponse, recordingResponse] = await Promise.all([
-          axios.get(`${API}/conversations/${selectedConversation.id}/typing-users`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`${API}/conversations/${selectedConversation.id}/voice-recording-users`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-        
-        setTypingUsers(typingResponse.data?.typing_users || []);
-        setRecordingUsers(recordingResponse.data?.recording_users || []);
-      } catch (error) {
-        console.error('Error polling status:', error);
-      }
-    }, 3000);
+    const pollInterval = setInterval(() => {
+      loadMessages(false); // Don't force reload, just merge new messages
+      fetchConversations();
+    }, 10000); // Poll every 10 seconds
     
     return () => clearInterval(pollInterval);
-  }, [selectedConversation, token, isRealtimeConnected]);
+  }, [selectedConversation?.id, token, loadMessages, fetchConversations]);
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);

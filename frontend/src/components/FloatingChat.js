@@ -303,14 +303,14 @@ const FloatingChat = () => {
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
 
-    // Disabled polling to prevent message flickering
-    // const pollingInterval = setInterval(() => {
-    //   loadMessages(false); // Don't force reload, just merge new messages
-    //   refreshConversations();
-    // }, 10000); // Poll every 10 seconds
+    // Poll for new messages every 10 seconds
+    const pollingInterval = setInterval(() => {
+      loadMessages(false); // Don't force reload, just merge new messages
+      refreshConversations();
+    }, 10000); // Poll every 10 seconds
     
-    // return () => clearInterval(pollingInterval);
-  }, [isOpen, activeConversationId]);
+    return () => clearInterval(pollingInterval);
+  }, [isOpen, activeConversationId, loadMessages, refreshConversations]);
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -628,79 +628,81 @@ const FloatingChat = () => {
   };
   
   // Authenticated WebSocket provides immediate message, typing and recording events.
-  useEffect(() => {
-    if (!isOpen || !activeConversationId || !token) return undefined;
-    return createChatRealtime({
-      conversationId: activeConversationId,
-      token,
-      onStatusChange: setIsRealtimeConnected,
-      onEvent: (event) => {
-        // Handle new messages from any conversation
-        if (event.type === 'new_message' && event.message) {
-          // If message is for current conversation, add it
-          if (event.conversation_id === activeConversationId || !event.conversation_id) {
-            setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
-            if (event.message.sender_id !== user?.id) {
-              setTypingUsers([]);
-              setRecordingUsers([]);
-            }
-          }
-          // Always refresh conversations to update unread counts
-          refreshConversations();
-          return;
-        }
-        if (event.type === 'message_deleted' && event.message_id) {
-          setMessages(prev => prev.filter(message => message.id !== event.message_id));
-          return;
-        }
-        // Don't show own typing/recording indicators
-        if (event.user_id === user?.id) return;
-        
-        // Handle typing status - show if it's for the current conversation
-        if (event.type === 'typing_status') {
-          if (event.conversation_id === activeConversationId || !event.conversation_id) {
-            const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
-            setTypingUsers(event.is_typing ? [participant] : []);
-          }
-          return;
-        }
-        
-        // Handle voice recording status - show if it's for the current conversation
-        if (event.type === 'voice_recording_status') {
-          if (event.conversation_id === activeConversationId || !event.conversation_id) {
-            const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
-            setRecordingUsers(event.is_recording ? [participant] : []);
-          }
-          return;
-        }
-      },
-    });
-  }, [isOpen, activeConversationId, token, user?.id, activeConversation?.other_party_name, activeConversation?.seller_name, refreshConversations]);
+  // Disabled for now due to Apache WebSocket configuration issues
+  // useEffect(() => {
+  //   if (!isOpen || !activeConversationId || !token) return undefined;
+  //   return createChatRealtime({
+  //     conversationId: activeConversationId,
+  //     token,
+  //     onStatusChange: setIsRealtimeConnected,
+  //     onEvent: (event) => {
+  //       // Handle new messages from any conversation
+  //       if (event.type === 'new_message' && event.message) {
+  //         // If message is for current conversation, add it
+  //         if (event.conversation_id === activeConversationId || !event.conversation_id) {
+  //           setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+  //           if (event.message.sender_id !== user?.id) {
+  //             setTypingUsers([]);
+  //             setRecordingUsers([]);
+  //           }
+  //         }
+  //         // Always refresh conversations to update unread counts
+  //         refreshConversations();
+  //         return;
+  //       }
+  //       if (event.type === 'message_deleted' && event.message_id) {
+  //         setMessages(prev => prev.filter(message => message.id !== event.message_id));
+  //         return;
+  //       }
+  //       // Don't show own typing/recording indicators
+  //       if (event.user_id === user?.id) return;
+  //       
+  //       // Handle typing status - show if it's for the current conversation
+  //       if (event.type === 'typing_status') {
+  //         if (event.conversation_id === activeConversationId || !event.conversation_id) {
+  //           const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+  //           setTypingUsers(event.is_typing ? [participant] : []);
+  //         }
+  //         return;
+  //       }
+  //       
+  //       // Handle voice recording status - show if it's for the current conversation
+  //       if (event.type === 'voice_recording_status') {
+  //         if (event.conversation_id === activeConversationId || !event.conversation_id) {
+  //           const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+  //           setRecordingUsers(event.is_recording ? [participant] : []);
+  //         }
+  //         return;
+  //       }
+  //     },
+  //   });
+  // }, [isOpen, activeConversationId, token, user?.id, activeConversation?.other_party_name, activeConversation?.seller_name, refreshConversations]);
 
   // Fallback for networks that block WebSocket connections.
-  useEffect(() => {
-    if (!isOpen || !activeConversationId || !token || isRealtimeConnected) return;
-    
-    const pollInterval = setInterval(async () => {
-      try {
-        const [typingResponse, recordingResponse] = await Promise.all([
-          axios.get(`${API}/conversations/${activeConversationId}/typing-users`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`${API}/conversations/${activeConversationId}/voice-recording-users`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-        
-        setTypingUsers(typingResponse.data?.typing_users || []);
-        setRecordingUsers(recordingResponse.data?.recording_users || []);
-      } catch (error) {
-        console.error('Error polling status:', error);
-      }
-    }, 3000);
-    
-    return () => clearInterval(pollInterval);
-  }, [isOpen, activeConversationId, token, isRealtimeConnected]);
+  // Disabled for now due to Apache WebSocket configuration issues
+  // useEffect(() => {
+  //   if (!isOpen || !activeConversationId || !token || isRealtimeConnected) return;
+  //   
+  //   const pollInterval = setInterval(async () => {
+  //     try {
+  //       const [typingResponse, recordingResponse] = await Promise.all([
+  //         axios.get(`${API}/conversations/${activeConversationId}/typing-users`, {
+  //           headers: { Authorization: `Bearer ${token}` }
+  //         }),
+  //         axios.get(`${API}/conversations/${activeConversationId}/voice-recording-users`, {
+  //           headers: { Authorization: `Bearer ${token}` }
+  //         })
+  //       ]);
+  //       
+  //       setTypingUsers(typingResponse.data?.typing_users || []);
+  //       setRecordingUsers(recordingResponse.data?.recording_users || []);
+  //     } catch (error) {
+  //       console.error('Error polling status:', error);
+  //     }
+  //   }, 3000);
+  //   
+  //   return () => clearInterval(pollInterval);
+  // }, [isOpen, activeConversationId, token, isRealtimeConnected]);
 
   // Hide floating chat button on chat pages
   const isChatPage = location.pathname === '/messages' || location.pathname.startsWith('/message');
