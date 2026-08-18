@@ -166,15 +166,81 @@ export const ChatProvider = ({ children }) => {
     fetchConversations();
   }, [isOpen, fetchConversations]);
 
-  // Polling for new messages (fallback since WebSocket is not working yet)
+  // Global WebSocket connection for receiving messages even when chat is closed
   useEffect(() => {
     if (!token || !user?.id) return;
     
-    const pollingInterval = setInterval(() => {
-      fetchConversations();
-    }, 15000); // Poll every 15 seconds
+    // Try WebSocket connection, fall back to polling if it fails
+    let wsCleanup;
+    let pollingInterval;
     
-    return () => clearInterval(pollingInterval);
+    try {
+      wsCleanup = createGlobalRealtime({
+        token,
+        onEvent: (event) => {
+          if (event.type === 'new_message') {
+            // Refresh conversations to update unread counts
+            fetchConversations();
+            
+            // Show notification if message is not from current user
+            if (event.message?.sender_id !== user.id) {
+              const senderName = event.message?.sender_name || event.message?.sender_type === 'seller' ? 'Vendeur' : 'Client';
+              
+              // Show toast notification
+              toast.info(`Nouveau message de ${senderName}`, {
+                action: {
+                  label: 'Voir',
+                  onClick: () => {
+                    setIsOpen(true);
+                    if (event.conversation_id) {
+                      setActiveConversationId(event.conversation_id);
+                    }
+                  }
+                }
+              });
+              
+              // Show browser notification (if permission granted)
+              notificationService.showNotification(`Nouveau message de ${senderName}`, {
+                body: event.message?.content || event.message?.text || 'Message',
+                icon: '/logo192.png',
+                badge: '/badge72.png',
+                tag: `chat-${event.conversation_id}`,
+                requireInteraction: false,
+                onClick: () => {
+                  setIsOpen(true);
+                  if (event.conversation_id) {
+                    setActiveConversationId(event.conversation_id);
+                  }
+                  window.focus();
+                }
+              });
+            }
+          }
+        },
+        onStatusChange: (connected) => {
+          console.log('Global WebSocket connection:', connected ? 'connected' : 'disconnected');
+          
+          // If WebSocket fails, fall back to polling
+          if (!connected && !pollingInterval) {
+            console.log('WebSocket failed, falling back to polling');
+            pollingInterval = setInterval(() => {
+              fetchConversations();
+            }, 10000); // Poll every 10 seconds
+          }
+        }
+      });
+    } catch (error) {
+      console.error('WebSocket initialization failed, using polling:', error);
+      // Fall back to polling immediately
+      pollingInterval = setInterval(() => {
+        fetchConversations();
+      }, 10000);
+    }
+    
+    return () => {
+      if (wsCleanup) wsCleanup();
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
   }, [token, user?.id, fetchConversations]);
 
   const value = useMemo(
@@ -299,18 +365,18 @@ const FloatingChat = () => {
     loadMessages(true); // Force reload on open
   }, [isOpen, activeConversationId]);
 
-  // HTTP polling for messages (WebSocket disabled due to Apache configuration)
+  // HTTP polling for messages (backup if WebSocket fails)
   useEffect(() => {
-    if (!isOpen || !activeConversationId) return;
+    if (!isOpen || !activeConversationId || isRealtimeConnected) return;
 
-    // Poll for new messages every 10 seconds
+    // Poll for new messages every 10 seconds only if WebSocket is not connected
     const pollingInterval = setInterval(() => {
       loadMessages(false); // Don't force reload, just merge new messages
       refreshConversations();
     }, 10000); // Poll every 10 seconds
     
     return () => clearInterval(pollingInterval);
-  }, [isOpen, activeConversationId, loadMessages, refreshConversations]);
+  }, [isOpen, activeConversationId, isRealtimeConnected, loadMessages, refreshConversations]);
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -628,55 +694,54 @@ const FloatingChat = () => {
   };
   
   // Authenticated WebSocket provides immediate message, typing and recording events.
-  // Disabled for now due to Apache WebSocket configuration issues
-  // useEffect(() => {
-  //   if (!isOpen || !activeConversationId || !token) return undefined;
-  //   return createChatRealtime({
-  //     conversationId: activeConversationId,
-  //     token,
-  //     onStatusChange: setIsRealtimeConnected,
-  //     onEvent: (event) => {
-  //       // Handle new messages from any conversation
-  //       if (event.type === 'new_message' && event.message) {
-  //         // If message is for current conversation, add it
-  //         if (event.conversation_id === activeConversationId || !event.conversation_id) {
-  //           setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
-  //           if (event.message.sender_id !== user?.id) {
-  //             setTypingUsers([]);
-  //             setRecordingUsers([]);
-  //           }
-  //         }
-  //         // Always refresh conversations to update unread counts
-  //         refreshConversations();
-  //         return;
-  //       }
-  //       if (event.type === 'message_deleted' && event.message_id) {
-  //         setMessages(prev => prev.filter(message => message.id !== event.message_id));
-  //         return;
-  //       }
-  //       // Don't show own typing/recording indicators
-  //       if (event.user_id === user?.id) return;
-  //       
-  //       // Handle typing status - show if it's for the current conversation
-  //       if (event.type === 'typing_status') {
-  //         if (event.conversation_id === activeConversationId || !event.conversation_id) {
-  //           const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
-  //           setTypingUsers(event.is_typing ? [participant] : []);
-  //         }
-  //         return;
-  //       }
-  //       
-  //       // Handle voice recording status - show if it's for the current conversation
-  //       if (event.type === 'voice_recording_status') {
-  //         if (event.conversation_id === activeConversationId || !event.conversation_id) {
-  //           const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
-  //           setRecordingUsers(event.is_recording ? [participant] : []);
-  //         }
-  //         return;
-  //       }
-  //     },
-  //   });
-  // }, [isOpen, activeConversationId, token, user?.id, activeConversation?.other_party_name, activeConversation?.seller_name, refreshConversations]);
+  useEffect(() => {
+    if (!isOpen || !activeConversationId || !token) return undefined;
+    return createChatRealtime({
+      conversationId: activeConversationId,
+      token,
+      onStatusChange: setIsRealtimeConnected,
+      onEvent: (event) => {
+        // Handle new messages from any conversation
+        if (event.type === 'new_message' && event.message) {
+          // If message is for current conversation, add it
+          if (event.conversation_id === activeConversationId || !event.conversation_id) {
+            setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+            if (event.message.sender_id !== user?.id) {
+              setTypingUsers([]);
+              setRecordingUsers([]);
+            }
+          }
+          // Always refresh conversations to update unread counts
+          refreshConversations();
+          return;
+        }
+        if (event.type === 'message_deleted' && event.message_id) {
+          setMessages(prev => prev.filter(message => message.id !== event.message_id));
+          return;
+        }
+        // Don't show own typing/recording indicators
+        if (event.user_id === user?.id) return;
+        
+        // Handle typing status - show if it's for the current conversation
+        if (event.type === 'typing_status') {
+          if (event.conversation_id === activeConversationId || !event.conversation_id) {
+            const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+            setTypingUsers(event.is_typing ? [participant] : []);
+          }
+          return;
+        }
+        
+        // Handle voice recording status - show if it's for the current conversation
+        if (event.type === 'voice_recording_status') {
+          if (event.conversation_id === activeConversationId || !event.conversation_id) {
+            const participant = { id: event.user_id, name: activeConversation?.other_party_name || activeConversation?.seller_name || 'Votre interlocuteur' };
+            setRecordingUsers(event.is_recording ? [participant] : []);
+          }
+          return;
+        }
+      },
+    });
+  }, [isOpen, activeConversationId, token, user?.id, activeConversation?.other_party_name, activeConversation?.seller_name, refreshConversations]);
 
   // Fallback for networks that block WebSocket connections.
   // Disabled for now due to Apache WebSocket configuration issues
