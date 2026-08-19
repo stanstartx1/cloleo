@@ -402,7 +402,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
     } finally {
       setLoading(false);
     }
-  }, [orderId, token, API]);
+  }, [orderId, token]);
 
   // Initialize WebSocket for real-time chat
   useEffect(() => {
