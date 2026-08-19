@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import ChatMessageDeleteButton from './ChatMessageDeleteButton';
 import { createChatRealtime, createGlobalRealtime } from '../services/chatRealtime';
+import { useAuth } from '../context/AuthContext';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 
@@ -100,6 +101,7 @@ const CustomAudioPlayer = ({ audioUrl, duration }) => {
 };
 
 const MessagesSection = ({ token, userType = 'vendor' }) => {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -123,7 +125,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [recordingUsers, setRecordingUsers] = useState([]);
   
   const messagesEndRef = useRef(null);
-  const userId = useRef(null);
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
   const documentInputRef = useRef(null);
@@ -232,8 +233,6 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
         });
       }
       
-      userId.current = response.data.conversation.seller_id;
-      
       // Update unread count in local state
       setConversations(prev => prev.map(c => 
         c.id === conversationId ? { ...c, unread_count: 0, unread_seller: 0 } : c
@@ -327,8 +326,8 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                 return prev;
               }
               // If this is our own message, replace optimistic message
-              if (event.message.sender_id === userId.current) {
-                const optimisticIndex = prev.findIndex(m => m.is_optimistic && m.sender_id === userId.current);
+              if (event.message.sender_id === user?.id) {
+                const optimisticIndex = prev.findIndex(m => m.is_optimistic && m.sender_id === user?.id);
                 if (optimisticIndex >= 0) {
                   const newMessages = [...prev];
                   newMessages[optimisticIndex] = event.message;
@@ -345,7 +344,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                 : c
             ));
             
-            if (event.message.sender_id !== userId.current) {
+            if (event.message.sender_id !== user?.id) {
               setTypingUsers([]);
               setRecordingUsers([]);
             }
@@ -357,7 +356,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
           setMessages(prev => prev.filter(message => message.id !== event.message_id));
         }
         // Don't show own typing/recording indicators
-        if (event.user_id === userId.current) return;
+        if (event.user_id === user?.id) return;
         
         // Handle typing status
         if (event.type === 'typing_status') {
@@ -400,7 +399,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
       content: messageContent,
-      sender_id: userId.current,
+      sender_id: user?.id,
       sender_type: 'seller',
       created_at: new Date().toISOString(),
       is_read: false,
@@ -856,8 +855,8 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-sm truncate">
                             {userType === 'vendor' || userType === 'dropshipper' || userType === 'revendeur' 
-                              ? conv.customer_name 
-                              : conv.seller_name || conv.customer_name}
+                              ? (conv.customer_name || 'Client inconnu') 
+                              : (conv.seller_name || conv.customer_name || 'Interlocuteur inconnu')}
                           </p>
                           <div className="flex items-center gap-2">
                             {conv.unread_count > 0 && (

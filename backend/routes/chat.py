@@ -974,8 +974,9 @@ revendeur_chat_router = APIRouter(prefix="/revendeur/conversations", tags=["Reve
 async def revendeur_get_conversations(user: dict = Depends(require_revendeur)):
     """Get all conversations for revendeur"""
     # Support both "revendeur" and "dropshipper" seller_type for backwards compatibility
+    # Also include conversations with seller_type: vendor where the seller is actually a revendeur
     conversations = await db.conversations.find(
-        {"seller_id": user["id"], "seller_type": {"$in": ["revendeur", "dropshipper"]}}, {"_id": 0}
+        {"seller_id": user["id"], "seller_type": {"$in": ["revendeur", "dropshipper", "vendor"]}}, {"_id": 0}
     ).sort("updated_at", -1).to_list(100)
     
     for conv in conversations:
