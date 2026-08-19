@@ -512,6 +512,13 @@ async def websocket_user_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_room, user_id=user["id"])
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(websocket, user_room, user_id=user["id"])
 
 
 # WebSocket endpoint for order tracking (real-time order status updates)
@@ -604,13 +611,6 @@ async def websocket_driver_orders(websocket: WebSocket, driver_id: str):
     except Exception as e:
         print(f"Driver orders WebSocket error: {e}")
         manager.disconnect(websocket, room, user_id=user["id"])
-            if data.get("type") == "ping":
-                await websocket.send_json({"type": "pong"})
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, user_room, user_id=user["id"])
-    except Exception as e:
-        print(f"WebSocket error: {e}")
-        manager.disconnect(websocket, user_room, user_id=user["id"])
 
 
 
