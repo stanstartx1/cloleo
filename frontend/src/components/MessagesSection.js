@@ -13,6 +13,7 @@ import { Badge } from './ui/badge';
 import { toast } from 'sonner';
 import axios from 'axios';
 import ChatMessageDeleteButton from './ChatMessageDeleteButton';
+import { createChatRealtime, createGlobalRealtime } from '../services/chatRealtime';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 
@@ -177,10 +178,28 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
 
   useEffect(() => {
     fetchConversations();
-    // Disabled polling to prevent message flickering
-    // const interval = setInterval(fetchConversations, 60000); // 60s instead of 30s
-    // return () => clearInterval(interval);
-  }, [fetchConversations]);
+    
+    // Global WebSocket for real-time conversation updates
+    let wsCleanup;
+    if (token) {
+      wsCleanup = createGlobalRealtime({
+        token,
+        onEvent: (event) => {
+          if (event.type === 'new_message') {
+            // Refresh conversations to update unread counts and last message
+            fetchConversations();
+          }
+        },
+        onStatusChange: (isConnected) => {
+          console.log('Global WebSocket status:', isConnected);
+        }
+      });
+    }
+    
+    return () => {
+      if (wsCleanup) wsCleanup();
+    };
+  }, [token, fetchConversations]);
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async (conversationId, forceReload = false) => {
@@ -260,17 +279,58 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     }
   };
 
-  // HTTP polling for messages (WebSocket disabled due to Apache configuration)
+  // WebSocket for real-time messages
   useEffect(() => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !token) return;
 
-    // Disabled polling to prevent message flickering
-    // const pollingInterval = setInterval(() => {
-    //   fetchMessages(selectedConversation.id);
-    // }, 15000); // Reduced from 10s to 15s to reduce flickering
-    
-    // return () => clearInterval(pollingInterval);
-  }, [selectedConversation, fetchMessages]);
+    let wsCleanup;
+    wsCleanup = createChatRealtime({
+      conversationId: selectedConversation.id,
+      token,
+      onEvent: (event) => {
+        if (event.type === 'new_message' && event.message) {
+          // Add message if it's for this conversation
+          if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
+            setMessages(prev => {
+              // If message already exists, don't add duplicate
+              if (prev.some(message => message.id === event.message.id)) {
+                return prev;
+              }
+              // If this is our own message, replace optimistic message
+              if (event.message.sender_id === userId.current) {
+                const optimisticIndex = prev.findIndex(m => m.is_optimistic && m.sender_id === userId.current);
+                if (optimisticIndex >= 0) {
+                  const newMessages = [...prev];
+                  newMessages[optimisticIndex] = event.message;
+                  return newMessages;
+                }
+              }
+              return [...prev, event.message];
+            });
+            
+            // Update conversation preview
+            setConversations(prev => prev.map(c => 
+              c.id === selectedConversation.id 
+                ? { ...c, last_message: event.message.content || event.message.text, last_message_at: event.message.created_at }
+                : c
+            ));
+          }
+          // Always refresh conversations to update unread counts
+          fetchConversations();
+        }
+        if (event.type === 'message_deleted' && event.message_id) {
+          setMessages(prev => prev.filter(message => message.id !== event.message_id));
+        }
+      },
+      onStatusChange: (isConnected) => {
+        console.log('Conversation WebSocket status:', isConnected);
+      }
+    });
+
+    return () => {
+      if (wsCleanup) wsCleanup();
+    };
+  }, [selectedConversation, token, fetchConversations]);
 
   // Send message
   const handleSend = async (e) => {
@@ -288,7 +348,8 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       sender_id: userId.current,
       sender_type: 'seller',
       created_at: new Date().toISOString(),
-      is_read: false
+      is_read: false,
+      is_optimistic: true
     };
     setMessages(prev => [...prev, optimisticMessage]);
 
@@ -721,20 +782,24 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      {conv?.seller_avatar ? (
+                      {(userType === 'vendor' || userType === 'dropshipper' || userType === 'revendeur') ? conv?.customer_avatar : conv?.seller_avatar ? (
                         <MediaImg 
-                          src={conv.seller_avatar} 
-                          alt={conv.seller_name}
+                          src={(userType === 'vendor' || userType === 'dropshipper' || userType === 'revendeur') ? conv.customer_avatar : conv.seller_avatar} 
+                          alt={(userType === 'vendor' || userType === 'dropshipper' || userType === 'revendeur') ? conv.customer_name : conv.seller_name}
                           className="w-10 h-10 rounded-full object-cover border-2 border-slate-200 flex-shrink-0"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {conv?.seller_name?.[0] || conv?.customer_name?.[0] || "C"}
+                          {(userType === 'vendor' || userType === 'dropshipper' || userType === 'revendeur') ? conv?.customer_name?.[0] : conv?.seller_name?.[0] || conv?.customer_name?.[0] || "C"}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium text-sm truncate">{conv.seller_name || conv.customer_name}</p>
+                          <p className="font-medium text-sm truncate">
+                            {userType === 'vendor' || userType === 'dropshipper' || userType === 'revendeur' 
+                              ? conv.customer_name 
+                              : conv.seller_name || conv.customer_name}
+                          </p>
                           <div className="flex items-center gap-2">
                             {conv.unread_count > 0 && (
                               <Badge className="bg-purple-600 text-white text-xs">{conv.unread_count}</Badge>
