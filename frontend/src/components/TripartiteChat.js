@@ -166,45 +166,6 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
       if (wsCleanup) wsCleanup();
     };
   }, [isOpen, orderId, token, user?.id, recipientName]);
-        case 'typing':
-          setTypingUsers(prev => [...new Set([...prev, data.user_id])]);
-          clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = setTimeout(() => {
-            setTypingUsers(prev => prev.filter(id => id !== data.user_id));
-          }, 3000);
-          break;
-        case 'online_status':
-          setOnlineUsers(data.online_users || []);
-          break;
-        case 'message_read':
-          setMessages(prev => prev.map(msg => 
-            msg.id === data.message_id ? { ...msg, read: true } : msg
-          ));
-          break;
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error('Chat WebSocket error:', error);
-    };
-    
-    ws.onclose = () => {
-      console.log('Chat WebSocket disconnected');
-      // Attempt reconnection after 5 seconds
-      setTimeout(() => {
-        if (isOpen) {
-          // Reconnection logic could be added here
-        }
-      }, 5000);
-    };
-    
-    return () => {
-      ws.close();
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [isOpen, orderId, user?.id, token]);
 
   // Initial fetch when chat opens
   useEffect(() => {

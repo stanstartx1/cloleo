@@ -967,20 +967,20 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                     )}
 
                     {Object.entries(groupedMessages).map(([date, dateMessages]) => (
-                    <div key={date}>
-                      <div className="flex items-center justify-center mb-3">
-                        <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm">
-                          {date}
-                        </span>
-                      </div>
-                      {dateMessages.map((message) => {
-                        const isSeller = message.sender_type === 'seller';
-                        const isOwn = message.sender_id === userId.current;
-                        return (
-                          <div
-                            key={message.id}
-                            className={`flex mb-3 items-end gap-1 ${isSeller ? 'justify-end' : 'justify-start'}`}
-                          >
+                      <div key={date}>
+                        <div className="flex items-center justify-center mb-3">
+                          <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm">
+                            {date}
+                          </span>
+                        </div>
+                        {dateMessages.map((message) => {
+                          const isSeller = message.sender_type === 'seller';
+                          const isOwn = message.sender_id === userId.current;
+                          return (
+                            <div
+                              key={message.id}
+                              className={`flex mb-3 items-end gap-1 ${isSeller ? 'justify-end' : 'justify-start'}`}
+                            >
                             {/* Message Actions Menu */}
                             <div className="relative message-menu-container">
                               <button
@@ -1122,9 +1122,10 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         );
                       })}
                     </div>
-                  ))
+                  ))}
+                  <div ref={messagesEndRef} />
+                  </>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Input */}
