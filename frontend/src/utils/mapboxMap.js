@@ -151,6 +151,12 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
     properties: {},
   };
 
+  // Check if map is properly initialized
+  if (!map || !map.getStyle) {
+    console.warn('Map not initialized, skipping route draw');
+    return;
+  }
+
   if (map.getSource(sourceId)) {
     map.getSource(sourceId).setData(feature);
     return;

@@ -624,6 +624,41 @@ async def websocket_driver_orders(websocket: WebSocket, driver_id: str):
         manager.disconnect(websocket, room, user_id=user["id"])
 
 
+# WebSocket endpoint for vendor order management
+@app.websocket("/api/ws/vendor-orders/{vendor_id}")
+async def websocket_vendor_orders(websocket: WebSocket, vendor_id: str):
+    """WebSocket for vendors to receive new order notifications"""
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    
+    # Verify user is the vendor
+    if user["id"] != vendor_id or user.get("role") not in ["vendor", "revendeur"]:
+        await websocket.close(code=1008, reason="Accès vendeur requis")
+        return
+    
+    # Connect to vendor-specific room
+    room = f"vendor_{vendor_id}"
+    await manager.connect(websocket, room, user_id=user["id"])
+    
+    # Send immediate confirmation
+    await websocket.send_json({
+        "type": "vendor_connected",
+        "vendor_id": vendor_id
+    })
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room, user_id=user["id"])
+    except Exception as e:
+        print(f"Vendor orders WebSocket error: {e}")
+        manager.disconnect(websocket, room, user_id=user["id"])
+
+
 
 
 
@@ -1378,6 +1413,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             # hash is persisted in MongoDB.
             main_order["delivery_pin"] = delivery_pin
 
+            # Broadcast new order to vendor via WebSocket
+            await manager.broadcast_new_order_to_vendor(seller_id, main_order["id"], main_order)
+
             return main_order
             
         except Exception as e:
@@ -1441,6 +1479,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     order.pop("_id", None)
 
     order["delivery_pin"] = delivery_pin
+
+    # Broadcast new order to vendor via WebSocket
+    await manager.broadcast_new_order_to_vendor(seller_id, order["id"], order)
 
     return order
 
@@ -3230,6 +3271,8 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
             "is_deleted": {"$ne": True}
         }).to_list(10)
         
+        print(f"Auto-assign: Found {len(pending_orders)} pending orders")
+        
         for order in pending_orders:
             # Calculate distance
             delivery_address = order.get("delivery_address", {})
@@ -3242,6 +3285,8 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                     order_lat, order_lon
                 )
                 
+                print(f"Auto-assign: Order {order['id']} is {distance:.2f} km away")
+                
                 # Only assign if within reasonable distance (e.g., 20km)
                 if distance <= 20:
                     # Check if this driver is the closest
@@ -3249,6 +3294,8 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                         {"role": "driver", "is_active": True, "is_verified": True, "is_online": True},
                         {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
                     ).to_list(100)
+                    
+                    print(f"Auto-assign: Found {len(all_drivers)} online drivers")
                     
                     closest_driver = None
                     min_distance = float('inf')
@@ -3266,6 +3313,8 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                     
                     # Assign if this driver is the closest
                     if closest_driver and closest_driver["id"] == user["id"]:
+                        print(f"Auto-assign: Assigning order {order['id']} to driver {user['id']} (distance: {min_distance:.2f} km)")
+                        
                         await db.orders.update_one(
                             {"id": order["id"]},
                             {
@@ -3286,10 +3335,28 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                             },
                         )
                         
+                        # Broadcast to customer and vendor
+                        await manager.broadcast_order_assigned(
+                            order["id"],
+                            user["id"],
+                            {
+                                "id": order["id"],
+                                "status": "assigned",
+                                "driver_id": user["id"],
+                                "driver_name": user.get("name"),
+                                "driver_phone": user.get("phone")
+                            }
+                        )
+                        
                         # Notify driver
                         await manager.broadcast_to_room(f"driver_{user['id']}", {
                             "type": "new_order",
                             "order_id": order["id"],
+                            "order_data": {
+                                "id": order["id"],
+                                "order_number": order.get("order_number"),
+                                "status": "assigned"
+                            },
                             "message": "Nouvelle commande assignée"
                         })
                         await notify_user_all_channels(
@@ -3299,6 +3366,12 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                             "order_assigned",
                             {"order_id": order["id"]},
                         )
+                    else:
+                        print(f"Auto-assign: Driver {user['id']} is not the closest (closest: {closest_driver['id'] if closest_driver else 'None'})")
+                else:
+                    print(f"Auto-assign: Order {order['id']} is too far ({distance:.2f} km > 20 km)")
+            else:
+                print(f"Auto-assign: Order {order['id']} has no delivery coordinates")
     
     return {"ok": True}
 

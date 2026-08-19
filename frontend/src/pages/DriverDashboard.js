@@ -273,14 +273,32 @@ const DriverDashboard = () => {
       // Get initial position
       navigator.geolocation.getCurrentPosition(updateLocation, (error) => {
         console.error('Initial geolocation error:', error);
-        toast.error('Impossible d\'obtenir votre position GPS');
+        if (error.code === 3) {
+          // Timeout - this is common, try again with lower accuracy
+          console.log('Geolocation timeout, retrying with lower accuracy');
+          navigator.geolocation.getCurrentPosition(updateLocation, (retryError) => {
+            if (retryError) {
+              console.error('Retry geolocation error:', retryError);
+              toast.warning('GPS indisponible, vérifiez vos paramètres de localisation');
+            }
+          }, { enableHighAccuracy: false, timeout: 15000 });
+        } else if (error.code === 1) {
+          // Permission denied
+          toast.error('Permission GPS refusée. Activez la localisation pour les livraisons.');
+        } else {
+          toast.error('Impossible d\'obtenir votre position GPS');
+        }
       }, { enableHighAccuracy: true, timeout: 10000 });
       
       // Watch position changes
       watchIdRef.current = navigator.geolocation.watchPosition(updateLocation, (error) => {
         console.error('Geolocation watch error:', error);
+        if (error.code === 3) {
+          // Timeout during watch - silent retry
+          console.log('Geolocation watch timeout, will retry automatically');
+        }
       }, { 
-        enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 
+        enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 
       });
     }
     

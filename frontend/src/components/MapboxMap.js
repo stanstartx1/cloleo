@@ -122,17 +122,27 @@ const MapboxMap = ({
         routeSourceRef.current = null;
       }
 
-      setRouteLine(mapInstance.current, 'delivery-route', driverLocation, customerLocation);
-      routeSourceRef.current = true;
-      fitToLocations(mapboxRef.current, mapInstance.current, [driverLocation, customerLocation], {
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        maxZoom: 16,
-      });
+      // Check if map is ready before drawing route
+      if (!mapInstance.current || !mapInstance.current.getStyle) {
+        console.warn('Map not ready for route drawing');
+        return;
+      }
+
+      try {
+        setRouteLine(mapInstance.current, 'delivery-route', driverLocation, customerLocation);
+        routeSourceRef.current = true;
+        fitToLocations(mapboxRef.current, mapInstance.current, [driverLocation, customerLocation], {
+          padding: { top: 50, bottom: 50, left: 50, right: 50 },
+          maxZoom: 16,
+        });
+      } catch (error) {
+        console.error('Error drawing route:', error);
+      }
     };
 
-    if (mapInstance.current.isStyleLoaded()) {
+    if (mapInstance.current && mapInstance.current.isStyleLoaded()) {
       drawRoute();
-    } else {
+    } else if (mapInstance.current) {
       mapInstance.current.once('load', drawRoute);
     }
   }, [driverLocation, customerLocation, showRoute]);

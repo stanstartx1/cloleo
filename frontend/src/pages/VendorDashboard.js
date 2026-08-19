@@ -54,6 +54,8 @@ import {
 
 import { API_BASE, API_URL } from '../config/api';
 
+import { useVendorOrders } from '../hooks/useVendorOrders';
+
 
 
 const API = API_URL;
@@ -169,6 +171,39 @@ const VendorDashboard = () => {
   
 
   const wsRef = React.useRef(null);
+  const audioRef = React.useRef(null);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } });
+      setOrders(response.data.orders || []);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }, [token]);
+
+  // Real-time order notifications using WebSocket
+  const {
+    newOrderAlert,
+    connectionStatus: wsConnectionStatus,
+    clearNewOrderAlert
+  } = useVendorOrders(user?.id, token);
+
+  useEffect(() => {
+    audioRef.current = new Audio('/notification.mp3');
+  }, []);
+
+  // Handle new order alerts
+  useEffect(() => {
+    if (newOrderAlert) {
+      toast.info('Nouvelle commande reçue !', {
+        description: `Commande #${newOrderAlert.order_number?.slice(0, 8).toUpperCase()}`,
+        duration: 5000
+      });
+      audioRef.current?.play().catch(() => {});
+      fetchOrders(); // Refresh orders list
+    }
+  }, [newOrderAlert, fetchOrders]);
 
 
 
@@ -247,24 +282,6 @@ const VendorDashboard = () => {
     }
 
   };
-
-
-
-  const fetchOrders = useCallback(async () => {
-
-    try {
-
-      const response = await axios.get(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } });
-
-      setOrders(response.data.orders || []);
-
-    } catch (error) {
-
-      console.error('Error:', error);
-
-    }
-
-  }, [token]);
 
 
 

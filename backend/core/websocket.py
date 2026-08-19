@@ -260,6 +260,18 @@ class ConnectionManager:
         await self.broadcast_to_all_drivers(message)
         logger.info(f"Broadcast new order: {order_id} to all drivers")
     
+    async def broadcast_new_order_to_vendor(self, seller_id: str, order_id: str, order_data: dict):
+        """Broadcast new order to specific vendor"""
+        message = {
+            "type": "new_order",
+            "order_id": order_id,
+            "order_data": order_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await self.broadcast_to_room(f"vendor_{seller_id}", message)
+        logger.info(f"Broadcast new order: {order_id} to vendor {seller_id}")
+    
     async def broadcast_order_assigned(self, order_id: str, driver_id: str, order_data: dict):
         """Broadcast order assignment to customer and driver"""
         message = {
