@@ -119,6 +119,8 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
   const [showMessageMenu, setShowMessageMenu] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showForwardDialog, setShowForwardDialog] = useState(false);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [recordingUsers, setRecordingUsers] = useState([]);
   
   const messagesEndRef = useRef(null);
   const userId = useRef(null);
@@ -279,6 +281,34 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     }
   };
 
+  // Typing indicator functionality
+  const setTypingStatus = async (isTyping) => {
+    if (!selectedConversation || !token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${selectedConversation.id}/typing`,
+        { is_typing: isTyping },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting typing status:', error);
+    }
+  };
+
+  // Voice recording indicator functionality
+  const setVoiceRecordingStatus = async (isRecording) => {
+    if (!selectedConversation || !token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${selectedConversation.id}/voice-recording`,
+        { is_recording: isRecording },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting voice recording status:', error);
+    }
+  };
+
   // WebSocket for real-time messages
   useEffect(() => {
     if (!selectedConversation || !token) return;
@@ -314,12 +344,37 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                 ? { ...c, last_message: event.message.content || event.message.text, last_message_at: event.message.created_at }
                 : c
             ));
+            
+            if (event.message.sender_id !== userId.current) {
+              setTypingUsers([]);
+              setRecordingUsers([]);
+            }
           }
           // Always refresh conversations to update unread counts
           fetchConversations();
         }
         if (event.type === 'message_deleted' && event.message_id) {
           setMessages(prev => prev.filter(message => message.id !== event.message_id));
+        }
+        // Don't show own typing/recording indicators
+        if (event.user_id === userId.current) return;
+        
+        // Handle typing status
+        if (event.type === 'typing_status') {
+          if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
+            const participant = { id: event.user_id, name: selectedConversation.customer_name || selectedConversation.seller_name || 'Votre interlocuteur' };
+            setTypingUsers(event.is_typing ? [participant] : []);
+          }
+          return;
+        }
+        
+        // Handle voice recording status
+        if (event.type === 'voice_recording_status') {
+          if (event.conversation_id === selectedConversation.id || !event.conversation_id) {
+            const participant = { id: event.user_id, name: selectedConversation.customer_name || selectedConversation.seller_name || 'Votre interlocuteur' };
+            setRecordingUsers(event.is_recording ? [participant] : []);
+          }
+          return;
         }
       },
       onStatusChange: (isConnected) => {
@@ -547,6 +602,9 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
         }
       }, 1000);
       
+      // Send voice recording status
+      await setVoiceRecordingStatus(true);
+      
     } catch (error) {
       console.error('Error starting recording:', error);
       toast.error('Impossible d\'accéder au microphone');
@@ -590,6 +648,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
         clearInterval(recordingIntervalRef.current);
       }
       setRecordingTime(0);
+      setVoiceRecordingStatus(false);
     }
   };
 
@@ -882,7 +941,32 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                     <p className="text-gray-500 text-sm">Début de la conversation</p>
                   </div>
                 ) : (
-                  Object.entries(groupedMessages).map(([date, dateMessages]) => (
+                  <>
+                    {/* Typing indicator */}
+                    {typingUsers.length > 0 && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm mb-2">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          {typingUsers.map(u => u.name).join(', ')} {typingUsers.length > 1 ? 'sont' : 'est'} en train d'écrire...
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Voice recording indicator */}
+                    {recordingUsers.length > 0 && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg shadow-sm mb-2">
+                        <Mic className="w-4 h-4 text-red-600 animate-pulse" />
+                        <span className="text-sm text-red-700">
+                          {recordingUsers.map(u => u.name).join(', ')} {recordingUsers.length > 1 ? 'sont' : 'est'} en train d'enregistrer un message vocal...
+                        </span>
+                      </div>
+                    )}
+
+                    {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                     <div key={date}>
                       <div className="flex items-center justify-center mb-3">
                         <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm">
@@ -1217,7 +1301,15 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                   <Input
                     type="text"
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      if (e.target.value.trim()) {
+                        setTypingStatus(true);
+                      } else {
+                        setTypingStatus(false);
+                      }
+                    }}
+                    onBlur={() => setTypingStatus(false)}
                     placeholder="Écrivez votre réponse..."
                     className="flex-1"
                     disabled={sending || uploadingFile}
