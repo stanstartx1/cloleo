@@ -3,7 +3,7 @@ import {
   Send, Phone, MapPin, User, Truck, Store, 
   X, Minimize2, Maximize2, MoreVertical, Camera, 
   Image as ImageIcon, FileText, Check, CheckCheck,
-  Clock, AlertCircle, MessageCircle
+  Clock, AlertCircle, MessageCircle, Mic
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_URL, WS_URL } from '../config/api';
@@ -15,6 +15,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { createChatRealtime } from '../services/chatRealtime';
 
 const API = API_URL;
 
@@ -26,11 +27,38 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
   const [sending, setSending] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [recordingUsers, setRecordingUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   
   const messagesEndRef = useRef(null);
-  const wsRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
+
+  // Typing indicator functionality
+  const setTypingStatus = async (isTyping) => {
+    if (!token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${orderId}/typing`,
+        { is_typing: isTyping },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting typing status:', error);
+    }
+  };
+
+  // Voice recording indicator functionality
+  const setVoiceRecordingStatus = async (isRecording) => {
+    if (!token) return;
+    try {
+      await axios.post(
+        `${API}/conversations/${orderId}/voice-recording`,
+        { is_recording: isRecording },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error('Error setting voice recording status:', error);
+    }
+  };
 
   // Determine chat context based on user role
   const getChatContext = useCallback(() => {
@@ -89,24 +117,55 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
   useEffect(() => {
     if (!isOpen || !orderId || !user?.id || !token) return;
 
-    const wsUrl = `${WS_URL}/api/ws/order-chat/${orderId}/${user.id}?token=${encodeURIComponent(token)}`;
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('Chat WebSocket connected');
-      wsRef.current = ws;
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      switch (data.type) {
-        case 'new_message':
-          setMessages(prev => [...prev, data.message]);
+    let wsCleanup;
+    wsCleanup = createChatRealtime({
+      conversationId: orderId,
+      token,
+      onEvent: (event) => {
+        if (event.type === 'new_message' && event.message) {
+          setMessages(prev => {
+            // If message already exists, don't add duplicate
+            if (prev.some(message => message.id === event.message.id)) {
+              return prev;
+            }
+            return [...prev, event.message];
+          });
           scrollToBottom();
-          // Play notification sound
           playNotificationSound();
-          break;
+        }
+        if (event.type === 'message_deleted' && event.message_id) {
+          setMessages(prev => prev.filter(message => message.id !== event.message_id));
+        }
+        // Don't show own typing/recording indicators
+        if (event.user_id === user?.id) return;
+        
+        // Handle typing status
+        if (event.type === 'typing_status') {
+          if (event.conversation_id === orderId || !event.conversation_id) {
+            const participant = { id: event.user_id, name: recipientName };
+            setTypingUsers(event.is_typing ? [participant] : []);
+          }
+          return;
+        }
+        
+        // Handle voice recording status
+        if (event.type === 'voice_recording_status') {
+          if (event.conversation_id === orderId || !event.conversation_id) {
+            const participant = { id: event.user_id, name: recipientName };
+            setRecordingUsers(event.is_recording ? [participant] : []);
+          }
+          return;
+        }
+      },
+      onStatusChange: (isConnected) => {
+        console.log('Tripartite chat WebSocket status:', isConnected);
+      }
+    });
+
+    return () => {
+      if (wsCleanup) wsCleanup();
+    };
+  }, [isOpen, orderId, token, user?.id, recipientName]);
         case 'typing':
           setTypingUsers(prev => [...new Set([...prev, data.user_id])]);
           clearTimeout(typingTimeoutRef.current);
@@ -196,21 +255,14 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
     }
   };
 
-  // Send typing indicator
-  const sendTypingIndicator = () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'typing',
-        user_id: user.id,
-        order_id: orderId
-      }));
-    }
-  };
-
   // Handle input change with typing indicator
   const handleInputChange = (e) => {
     setNewMessage(e.target.value);
-    sendTypingIndicator();
+    if (e.target.value.trim()) {
+      setTypingStatus(true);
+    } else {
+      setTypingStatus(false);
+    }
   };
 
   // Play notification sound
@@ -366,6 +418,30 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
                     </div>
                   );
                 })}
+                {/* Typing indicator */}
+                {typingUsers.length > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm mb-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {typingUsers.map(u => u.name).join(', ')} {typingUsers.length > 1 ? 'sont' : 'est'} en train d'écrire...
+                    </span>
+                  </div>
+                )}
+
+                {/* Voice recording indicator */}
+                {recordingUsers.length > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg shadow-sm mb-2">
+                    <Mic className="w-4 h-4 text-red-600 animate-pulse" />
+                    <span className="text-sm text-red-700">
+                      {recordingUsers.map(u => u.name).join(', ')} {recordingUsers.length > 1 ? 'sont' : 'est'} en train d'enregistrer un message vocal...
+                    </span>
+                  </div>
+                )}
+
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -406,6 +482,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
               <Input
                 value={newMessage}
                 onChange={handleInputChange}
+                onBlur={() => setTypingStatus(false)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
                 placeholder="Écrivez votre message..."
                 className="flex-1"
