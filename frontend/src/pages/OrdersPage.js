@@ -175,7 +175,7 @@ const OrderCard = ({ order, cancellationSettings, onCancelOrder, onDeleteOrder }
         {/* Actions */}
         <div className="flex gap-2 mt-4">
           <Button
-            onClick={() => navigate(`/commande/${order.id}`)}
+            onClick={() => navigate(`/suivi/${order.id}`)}
             className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
             size="sm"
           >

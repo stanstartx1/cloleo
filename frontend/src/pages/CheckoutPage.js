@@ -227,7 +227,7 @@ const CheckoutPage = () => {
       } catch {}
       
       // Redirect directly to order tracking page
-      navigate(`/commande/${orderId}`);
+      navigate(`/suivi/${orderId}`);
       
     } catch (error) {
       console.error('Order error:', error);

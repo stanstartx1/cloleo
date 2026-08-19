@@ -484,7 +484,7 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
           Continuer mes achats
         </Button>
         <Button
-          onClick={() => navigate(`/commande/${orderId}`)}
+          onClick={() => navigate(`/suivi/${orderId}`)}
           className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500"
         >
           Suivre ma commande

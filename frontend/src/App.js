@@ -1,7 +1,7 @@
 ﻿import { API_URL, API_BASE, WS_URL } from './config/api';
 import React, { useEffect, Suspense } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Toaster } from "sonner";
 import axios from "axios";
 
@@ -108,6 +108,12 @@ import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 
 // Forum
 import ForumPage from "./pages/ForumPage";
+
+// Redirect component for order detail to tracking
+const OrderDetailRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/suivi/${id}`} replace />;
+};
 
 const API = API_URL;
 
@@ -272,7 +278,7 @@ const AppRoutes = () => {
       } />
       <Route path="/commande/:id" element={
         <ProtectedRoute>
-          <PublicLayout><OrderDetailPage /></PublicLayout>
+          <OrderDetailRedirect />
         </ProtectedRoute>
       } />
       <Route path="/mes-offres" element={
