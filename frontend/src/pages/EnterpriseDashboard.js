@@ -75,7 +75,7 @@ import CustomKPIsSection from '../components/CustomKPIsSection';
 
 import EnhancedOffersSection from '../components/EnhancedOffersSection';
 
-import EnhancedMessagesSection from '../components/EnhancedMessagesSection';
+import MessagesSection from '../components/MessagesSection';
 
 import EnhancedForumSection from '../components/EnhancedForumSection';
 
@@ -1137,7 +1137,7 @@ const EnterpriseDashboard = () => {
 
             >
 
-              <EnhancedMessagesSection 
+              <MessagesSection
 
                 token={token}
 
