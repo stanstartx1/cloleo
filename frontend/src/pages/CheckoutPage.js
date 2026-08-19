@@ -33,8 +33,6 @@ const CheckoutPage = () => {
   const markerRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderId, setOrderId] = useState(null);
   const [locatingUser, setLocatingUser] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [mapboxLoaded, setMapboxLoaded] = useState(false);
@@ -215,8 +213,7 @@ const CheckoutPage = () => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await axios.post(`${API}/orders`, orderData, { headers });
       
-      setOrderId(response.data.id);
-      setOrderPlaced(true);
+      const orderId = response.data.id;
       
       // Clear cart
       await clearCart();
@@ -229,6 +226,9 @@ const CheckoutPage = () => {
         audio.play().catch(() => {});
       } catch {}
       
+      // Redirect directly to order tracking page
+      navigate(`/commande/${orderId}`);
+      
     } catch (error) {
       console.error('Order error:', error);
       toast.error(error.response?.data?.detail || 'Erreur lors de la commande');
@@ -236,41 +236,6 @@ const CheckoutPage = () => {
       setLoading(false);
     }
   };
-
-  if (orderPlaced) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-            <CheckCircle className="w-10 h-10 text-green-600" />
-          </div>
-          
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('checkout.confirmed')}</h1>
-          <p className="text-gray-600 mb-6">
-            {t('checkout.confirmationText')}
-          </p>
-          
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-gray-500">{t('checkout.orderNumber')}</p>
-            <p className="font-mono font-bold text-lg">{orderId?.slice(0, 8).toUpperCase()}</p>
-          </div>
-          
-          <div className="space-y-3">
-            <Button asChild className="w-full">
-              <Link to={`/commande/${orderId}`}>
-                <MapPin className="w-4 h-4 mr-2" /> {t('checkout.trackOrder')}
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/">
-                {t('checkout.continueShopping')}
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen py-8 bg-gray-50" data-testid="checkout-page">

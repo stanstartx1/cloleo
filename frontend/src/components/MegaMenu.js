@@ -53,29 +53,38 @@ const MegaMenu = () => {
     return () => window.clearInterval(interval);
   }, [menuSlides.length]);
 
-  // Load recommended categories
+  // Load recommended categories (optional endpoint)
   useEffect(() => {
     const fetchRecommendations = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
       try {
         const response = await axios.get(`${API}/user/recommended-categories`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
         setRecommendedCategories(response.data || []);
       } catch (error) {
-        console.error('Error loading recommendations:', error);
+        // Silently ignore 404 - endpoint may not exist
+        if (error.response?.status !== 404) {
+          console.error('Error loading recommendations:', error);
+        }
       }
     };
     fetchRecommendations();
   }, []);
 
-  // Load category stats
+  // Load category stats (optional endpoint)
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await axios.get(`${API}/categories/stats`);
         setCategoryStats(response.data || {});
       } catch (error) {
-        console.error('Error loading stats:', error);
+        // Silently ignore 404 - endpoint may not exist
+        if (error.response?.status !== 404) {
+          console.error('Error loading stats:', error);
+        }
       } finally {
         setLoadingStats(false);
       }

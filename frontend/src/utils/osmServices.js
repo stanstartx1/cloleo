@@ -115,7 +115,14 @@ export const getOSRMDirections = async (originLat, originLon, destLat, destLon, 
       })
     });
 
-    if (!response.ok) throw new Error('Directions failed');
+    if (!response.ok) {
+      // Silently handle 500 errors - backend service may be unavailable
+      if (response.status === 500) {
+        console.warn('OSRM directions service unavailable (500)');
+        return { error: 'Service unavailable' };
+      }
+      throw new Error('Directions failed');
+    }
     
     return await response.json();
   } catch (error) {

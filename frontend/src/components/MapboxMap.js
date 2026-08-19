@@ -107,9 +107,18 @@ const MapboxMap = ({
     if (!mapInstance.current || !showRoute || !driverLocation?.latitude || !customerLocation?.latitude) return;
 
     const drawRoute = () => {
+      // Safely remove existing layer and source if they exist
       if (routeSourceRef.current) {
-        mapInstance.current.removeLayer('delivery-route');
-        mapInstance.current.removeSource('delivery-route');
+        try {
+          if (mapInstance.current.getLayer('delivery-route')) {
+            mapInstance.current.removeLayer('delivery-route');
+          }
+          if (mapInstance.current.getSource('delivery-route')) {
+            mapInstance.current.removeSource('delivery-route');
+          }
+        } catch (error) {
+          console.warn('Error removing route layer/source:', error);
+        }
         routeSourceRef.current = null;
       }
 
