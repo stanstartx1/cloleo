@@ -127,12 +127,25 @@ async def start_conversation(
         product_id = data.dropshipped_product_id
         
     elif data.product_id:
-        # Original product - chat with vendor
+        # Original product - chat with vendor/revendeur/dropshipper
         product = await db.products.find_one({"id": data.product_id}, {"_id": 0})
         if not product:
             raise HTTPException(status_code=404, detail="Produit non trouvé")
         seller_id = product["seller_id"]
-        seller_type = "vendor"
+        
+        # Get seller to determine their actual type
+        seller = await db.users.find_one({"id": seller_id}, {"_id": 0, "role": 1})
+        if seller:
+            # Determine seller_type based on their actual role
+            if seller.get("role") == "revendeur":
+                seller_type = "revendeur"
+            elif seller.get("role") == "dropshipper":
+                seller_type = "dropshipper"
+            else:
+                seller_type = "vendor"
+        else:
+            seller_type = "vendor"  # fallback
+            
         product_name = product["name"]
         product_image = product.get("images", [None])[0]
         product_price_fcfa = product.get("price_fcfa")
