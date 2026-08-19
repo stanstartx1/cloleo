@@ -602,7 +602,8 @@ const FloatingChat = () => {
       sender_id: user?.id,
       sender_type: 'customer',
       created_at: new Date().toISOString(),
-      is_read: false
+      is_read: false,
+      is_optimistic: true
     };
     setMessages(prev => [...prev, optimisticMessage]);
     
@@ -627,7 +628,7 @@ const FloatingChat = () => {
     try {
       await axios.post(
         `${API}/conversations/${activeConversationId}/typing`,
-        { is_typing },
+        { is_typing: isTyping },
         { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (error) {
@@ -705,7 +706,22 @@ const FloatingChat = () => {
         if (event.type === 'new_message' && event.message) {
           // If message is for current conversation, add it
           if (event.conversation_id === activeConversationId || !event.conversation_id) {
-            setMessages(prev => prev.some(message => message.id === event.message.id) ? prev : [...prev, event.message]);
+            setMessages(prev => {
+              // If message already exists, don't add duplicate
+              if (prev.some(message => message.id === event.message.id)) {
+                return prev;
+              }
+              // If this is our own message, replace optimistic message
+              if (event.message.sender_id === user?.id) {
+                const optimisticIndex = prev.findIndex(m => m.is_optimistic && m.sender_id === user?.id);
+                if (optimisticIndex >= 0) {
+                  const newMessages = [...prev];
+                  newMessages[optimisticIndex] = event.message;
+                  return newMessages;
+                }
+              }
+              return [...prev, event.message];
+            });
             if (event.message.sender_id !== user?.id) {
               setTypingUsers([]);
               setRecordingUsers([]);
