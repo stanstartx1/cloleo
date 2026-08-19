@@ -21,6 +21,7 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import GamificationSystem from '../components/GamificationSystem';
 import { geolocationService } from '../services/geolocationService';
 import { notificationService } from '../services/notificationService';
+import { useDriverOrders } from '../hooks/useDriverOrders';
 
 import { API_BASE, API_URL, WS_URL } from '../config/api';
 
@@ -166,94 +167,33 @@ const DriverDashboard = () => {
     return () => geolocationService.stopTracking();
   }, [user?.id, token, selectedOrder?.id]);
 
-  // WebSocket - disabled for production stability
-  /* DISABLED: WebSocket causes "Unexpected response code: 200" errors
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    const connectWebSocket = () => {
-      const ws = new WebSocket(`${WS_URL}/ws/driver/${user.id}`);
-      
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-        toast.success('Connecté au système en temps réel');
-      };
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message:', data);
-        
-        if (data.type === 'new_order') {
-          // Refresh orders to get the new assignment
-          fetchOrders();
-          toast.info('Nouvelle commande assignée !');
-          audioRef.current?.play().catch(() => {});
-        }
-        
-        if (data.type === 'order_reassigned') {
-          // Refresh orders
-          fetchOrders();
-          toast.info('Commande réassignée à un autre livreur');
-        }
-        
-        if (data.type === 'order_cancelled') {
-          // Refresh orders
-          fetchOrders();
-          toast.info('Commande annulée');
-        }
-        
-        if (data.type === 'order_available') {
-          // Refresh orders
-          fetchOrders();
-          toast.info('Commande disponible pour réassignation');
-        }
-        
-        if (data.type === 'order_assigned') {
-          // Refresh orders if this driver is the one assigned
-          if (data.driver_id === user.id) {
-            fetchOrders();
-            toast.success('Commande assignée !');
-            audioRef.current?.play().catch(() => {});
-          }
-        }
-        
-        if (data.type === 'order_update') {
-          // Refresh orders on status changes
-          fetchOrders();
-        }
-      };
-      
-      ws.onclose = () => {
-        console.log('WebSocket disconnected, reconnecting...');
-        toast.warning('Connexion perdue, reconnexion...');
-        setTimeout(connectWebSocket, 3000);
-      };
-      
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast.error('Erreur de connexion temps réel');
-      };
-      wsRef.current = ws;
-    };
-    
-    connectWebSocket();
-    
-    const pingInterval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 30000);
-    
-    return () => {
-      clearInterval(pingInterval);
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [user?.id]);
-  */
+  // Real-time order updates using WebSocket
+  const {
+    newOrderAlert,
+    connectionStatus: wsConnectionStatus,
+    sendLocationUpdate
+  } = useDriverOrders(user?.id, token);
 
-  // Polling instead of WebSocket for production stability
+  // Handle new order alerts
+  useEffect(() => {
+    if (newOrderAlert) {
+      toast.info('Nouvelle commande assignée !', {
+        description: `Commande #${newOrderAlert.order_number?.slice(0, 8).toUpperCase()}`,
+        duration: 5000
+      });
+      audioRef.current?.play().catch(() => {});
+      fetchOrders();
+    }
+  }, [newOrderAlert, fetchOrders]);
+
+  // Send location updates via WebSocket when available
+  useEffect(() => {
+    if (wsConnectionStatus === 'connected' && currentLocation) {
+      sendLocationUpdate(currentLocation);
+    }
+  }, [currentLocation, wsConnectionStatus, sendLocationUpdate]);
+
+  // Polling fallback for production stability
   useEffect(() => {
     if (!user?.id) return;
 

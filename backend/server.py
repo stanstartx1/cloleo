@@ -512,6 +512,98 @@ async def websocket_user_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
+
+
+# WebSocket endpoint for order tracking (real-time order status updates)
+@app.websocket("/api/ws/order/{order_id}")
+async def websocket_order_tracking(websocket: WebSocket, order_id: str):
+    """WebSocket for real-time order status and driver location updates"""
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    
+    # Verify user has access to this order
+    order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
+    if not order:
+        await websocket.close(code=1008, reason="Commande non trouvée")
+        return
+    
+    # Check if user is authorized (customer, seller, driver, or admin)
+    participants = {
+        order.get("customer_id"),
+        order.get("seller_id"), 
+        order.get("driver_id"),
+        order.get("dropshipper_id")
+    }
+    
+    if user.get("role") != "admin" and user["id"] not in participants:
+        await websocket.close(code=1008, reason="Accès non autorisé")
+        return
+    
+    # Connect to order-specific room
+    room = f"order_{order_id}"
+    await manager.connect(websocket, room, user_id=user["id"])
+    
+    # Send immediate confirmation with current order status
+    await websocket.send_json({
+        "type": "order_connected",
+        "order_id": order_id,
+        "current_status": order.get("status"),
+        "order_data": order
+    })
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+            # Handle incoming messages from client if needed
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room, user_id=user["id"])
+    except Exception as e:
+        print(f"Order tracking WebSocket error: {e}")
+        manager.disconnect(websocket, room, user_id=user["id"])
+
+
+# WebSocket endpoint for driver order management
+@app.websocket("/api/ws/driver-orders/{driver_id}")
+async def websocket_driver_orders(websocket: WebSocket, driver_id: str):
+    """WebSocket for drivers to receive order assignments and updates"""
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    
+    # Verify user is the driver
+    if user["id"] != driver_id or user.get("role") != "driver":
+        await websocket.close(code=1008, reason="Accès livreur requis")
+        return
+    
+    # Connect to driver-specific room
+    room = f"driver_{driver_id}"
+    await manager.connect(websocket, room, user_id=user["id"])
+    
+    # Send immediate confirmation
+    await websocket.send_json({
+        "type": "driver_connected",
+        "driver_id": driver_id
+    })
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+            # Handle driver location updates
+            if data.get("type") == "location_update":
+                location = data.get("location", {})
+                manager.update_driver_location(driver_id, location)
+                # Broadcast to all orders this driver is handling
+                # (This would need to be implemented based on active orders)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room, user_id=user["id"])
+    except Exception as e:
+        print(f"Driver orders WebSocket error: {e}")
+        manager.disconnect(websocket, room, user_id=user["id"])
             if data.get("type") == "ping":
                 await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:
@@ -1634,7 +1726,18 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
 
     )
 
-    await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "assigned", "message": "Livreur assigné"})
+    # Broadcast order status update via WebSocket
+    await manager.broadcast_order_status_update(order_id, "assigned", {
+        "driver_id": user["id"],
+        "driver_name": user.get("name")
+    })
+    
+    # Broadcast to driver's room
+    await manager.broadcast_to_room(f"driver_{user['id']}", {
+        "type": "order_assigned",
+        "order_id": order_id,
+        "order_data": await db.orders.find_one({"id": order_id}, {"_id": 0})
+    })
 
     await notify_all_parties(
         order_id,
@@ -1716,6 +1819,17 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
                 "$push": {"status_history": {"status": "confirmed", "note": "Commande acceptée par le vendeur", "timestamp": _utc()}},
             },
         )
+    
+    # Broadcast order status update via WebSocket
+    await manager.broadcast_order_status_update(order_id, "confirmed", {"vendor_name": user.get("name")})
+    
+    # Notify customer via all channels
+    await notify_all_parties(
+        order_id,
+        "order_update",
+        f"Commande acceptée par {user.get('name', 'le vendeur')}".strip(),
+        manager,
+    )
 
     # Check for auto-assign driver setting
     delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
@@ -1885,6 +1999,12 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
         },
     )
     
+    # Broadcast order status update via WebSocket
+    await manager.broadcast_order_status_update(order_id, "picked_up", {
+        "driver_name": user.get("name"),
+        "picked_up_at": _utc()
+    })
+
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Colis récupéré par le livreur {user.get('name')}", manager)
     
@@ -1942,6 +2062,13 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
         },
     )
     
+    # Broadcast order status update via WebSocket
+    await manager.broadcast_order_status_update(order_id, "in_transit", {
+        "driver_name": user.get("name"),
+        "in_transit_at": _utc(),
+        "eta_minutes": eta_minutes
+    })
+
     # Notify all parties with ETA information
     eta_message = f"Livraison en cours (arrivée estimée: {eta_minutes} min)" if eta_minutes else "Livraison en cours"
     await notify_all_parties(order_id, "order_update", f"{eta_message} - Livreur {user.get('name')}", manager)
@@ -1987,6 +2114,12 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
         },
     )
     
+    # Broadcast order status update via WebSocket
+    await manager.broadcast_order_status_update(order_id, "delivered", {
+        "driver_name": user.get("name"),
+        "delivered_at": _utc()
+    })
+
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Commande livrée avec succès par {user.get('name')}", manager)
 

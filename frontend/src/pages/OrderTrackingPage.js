@@ -16,6 +16,7 @@ import UserAvatar from '../components/UserAvatar';
 import TripartiteChat from '../components/TripartiteChat';
 import DeliveryScheduler from '../components/DeliveryScheduler';
 import RatingSystem from '../components/RatingSystem';
+import { useOrderTracking } from '../hooks/useOrderTracking';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
@@ -38,6 +39,15 @@ const OrderTrackingPage = () => {
   const { orderId } = useParams();
   const { token } = useAuth();
   
+  // Use WebSocket-based real-time tracking
+  const {
+    order: realtimeOrder,
+    driverLocation: realtimeDriverLocation,
+    connectionStatus,
+    error: wsError,
+    isConnected
+  } = useOrderTracking(orderId, token);
+  
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -55,22 +65,48 @@ const OrderTrackingPage = () => {
   const mapboxRef = useRef(null);
   const driverMarker = useRef(null);
   const customerMarker = useRef(null);
-  const wsRef = useRef(null);
   const previousStatusRef = useRef(null);
 
-  // Fetch order details
+  // Sync real-time data with local state
+  useEffect(() => {
+    if (realtimeOrder) {
+      setOrder(realtimeOrder);
+      setLoading(false);
+      
+      // Show notification for status changes
+      if (realtimeOrder.status !== previousStatusRef.current) {
+        const oldStatus = previousStatusRef.current;
+        previousStatusRef.current = realtimeOrder.status;
+        
+        if (ORDER_STATUSES[realtimeOrder.status] && oldStatus !== realtimeOrder.status) {
+          const statusInfo = ORDER_STATUSES[realtimeOrder.status];
+          toast.success(`Statut mis à jour: ${statusInfo.label}`, {
+            description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
+            duration: 3000
+          });
+        }
+      }
+    }
+  }, [realtimeOrder]);
+
+  // Sync driver location
+  useEffect(() => {
+    if (realtimeDriverLocation) {
+      setDriverLocation(realtimeDriverLocation);
+    }
+  }, [realtimeDriverLocation]);
+
+  // Fetch initial order data (fallback if WebSocket fails)
   const fetchOrder = useCallback(async () => {
     try {
-      // Use public tracking endpoint (no auth required)
       const response = await axios.get(`${API}/orders/track/${orderId}`);
       const data = response.data;
       
-      // Handle the new response structure
-      if (data.order) {
+      if (data.order && !realtimeOrder) {
         setOrder(data.order);
       }
       
-      if (data.driver_live_location) {
+      if (data.driver_live_location && !realtimeDriverLocation) {
         setDriverLocation(data.driver_live_location);
       }
       
@@ -83,41 +119,20 @@ const OrderTrackingPage = () => {
       }
     } catch (error) {
       console.error('Error fetching order:', error);
-      toast.error('Commande non trouvée');
+      if (!realtimeOrder) {
+        toast.error('Commande non trouvée');
+      }
     } finally {
-      setLoading(false);
+      if (!realtimeOrder) {
+        setLoading(false);
+      }
     }
-  }, [orderId]);
+  }, [orderId, realtimeOrder, realtimeDriverLocation]);
 
-  // Initialize real-time updates with enhanced polling
+  // Fetch initial data
   useEffect(() => {
     fetchOrder();
-    
-    // Use faster polling for real-time updates (2 seconds for more responsiveness)
-    const pollingInterval = setInterval(fetchOrder, 2000);
-    
-    // Also add status change detection for immediate updates
-    const statusCheckInterval = setInterval(() => {
-      if (order && order.status !== previousStatusRef.current) {
-        const oldStatus = previousStatusRef.current;
-        previousStatusRef.current = order.status;
-        
-        // Show notification for important status changes
-        if (ORDER_STATUSES[order.status] && oldStatus !== order.status) {
-          const statusInfo = ORDER_STATUSES[order.status];
-          toast.success(`Statut mis à jour: ${statusInfo.label}`, {
-            description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
-            duration: 3000
-          });
-        }
-      }
-    }, 1000);
-    
-    return () => {
-      clearInterval(pollingInterval);
-      clearInterval(statusCheckInterval);
-    };
-  }, [orderId, fetchOrder]);
+  }, [fetchOrder]);
 
   // Initialize map (only once)
   useEffect(() => {
@@ -261,11 +276,23 @@ const OrderTrackingPage = () => {
                 #{order.order_number}
               </p>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/">
-                <Home className="w-4 h-4 mr-2" /> Accueil
-              </Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Connection status indicator */}
+              <div className="flex items-center gap-2 text-xs">
+                <div className={`w-2 h-2 rounded-full ${
+                  isConnected ? 'bg-green-500 animate-pulse' : 
+                  connectionStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
+                }`} />
+                <span className="text-muted-foreground">
+                  {isConnected ? 'En direct' : connectionStatus === 'error' ? 'Erreur' : 'Hors ligne'}
+                </span>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/">
+                  <Home className="w-4 h-4 mr-2" /> Accueil
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </header>

@@ -216,5 +216,66 @@ class ConnectionManager:
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         logger.info(f"Broadcast voice recording status: user {user_id} {'recording' if is_recording else 'not recording'} in conversation {conversation_id}")
+    
+    # ==================== ORDER STATUS UPDATES ====================
+    
+    async def broadcast_order_status_update(self, order_id: str, status: str, order_data: dict = None):
+        """Broadcast order status update to all relevant users"""
+        message = {
+            "type": "order_status_update",
+            "order_id": order_id,
+            "status": status,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        if order_data:
+            message["order_data"] = order_data
+        
+        # Broadcast to order-specific room
+        await self.broadcast_to_room(f"order_{order_id}", message)
+        logger.info(f"Broadcast order status update: order {order_id} -> {status}")
+    
+    async def broadcast_driver_location_update(self, order_id: str, driver_id: str, location: dict):
+        """Broadcast driver location update for an order"""
+        message = {
+            "type": "driver_location_update",
+            "order_id": order_id,
+            "driver_id": driver_id,
+            "location": location,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await self.broadcast_to_room(f"order_{order_id}", message)
+        logger.info(f"Broadcast driver location update: order {order_id}, driver {driver_id}")
+    
+    async def broadcast_new_order(self, order_id: str, order_data: dict):
+        """Broadcast new order to all drivers"""
+        message = {
+            "type": "new_order",
+            "order_id": order_id,
+            "order_data": order_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await self.broadcast_to_all_drivers(message)
+        logger.info(f"Broadcast new order: {order_id} to all drivers")
+    
+    async def broadcast_order_assigned(self, order_id: str, driver_id: str, order_data: dict):
+        """Broadcast order assignment to customer and driver"""
+        message = {
+            "type": "order_assigned",
+            "order_id": order_id,
+            "driver_id": driver_id,
+            "order_data": order_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Send to order room (customer)
+        await self.broadcast_to_room(f"order_{order_id}", message)
+        
+        # Send to driver room
+        await self.broadcast_to_room(f"driver_{driver_id}", message)
+        
+        logger.info(f"Broadcast order assigned: {order_id} to driver {driver_id}")
 
 manager = ConnectionManager()
