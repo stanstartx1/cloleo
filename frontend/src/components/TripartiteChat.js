@@ -3,7 +3,8 @@ import {
   Send, Phone, MapPin, User, Truck, Store, 
   X, Minimize2, Maximize2, MoreVertical, Camera, 
   Image as ImageIcon, FileText, Check, CheckCheck,
-  Clock, AlertCircle, MessageCircle, Mic
+  Clock, AlertCircle, MessageCircle, Mic, Paperclip, Upload,
+  Play, Pause, Radio
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_URL, WS_URL } from '../config/api';
@@ -16,8 +17,89 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from 'sonner';
 import axios from 'axios';
 import { createChatRealtime } from '../services/chatRealtime';
+import MediaImg from './MediaImg';
 
 const API = API_URL;
+
+// Custom Audio Player Component (WhatsApp-style)
+const CustomAudioPlayer = ({ audioUrl, duration }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(duration || 0);
+  const audioRef = useRef(null);
+
+  const handlePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setTotalDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e) => {
+    const seekTime = parseFloat(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    }
+  };
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={() => setIsPlaying(false)}
+        className="hidden"
+      />
+      <button
+        onClick={handlePlayPause}
+        className="w-8 h-8 rounded-full bg-fuchsia-600 text-white flex items-center justify-center hover:bg-fuchsia-700 transition-colors flex-shrink-0"
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 flex items-center gap-2">
+        <input
+          type="range"
+          min="0"
+          max={totalDuration || 100}
+          value={currentTime}
+          onChange={handleSeek}
+          className="flex-1 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #d946ef 0%, #d946ef ${(currentTime / (totalDuration || 1)) * 100}%, #e5e7eb ${(currentTime / (totalDuration || 1)) * 100}%, #e5e7eb 100%)`
+          }}
+        />
+        <span className="text-xs text-gray-500 w-12 text-right flex-shrink-0">
+          {formatTime(currentTime)} / {formatTime(totalDuration)}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, isOpen, onClose }) => {
   const { user, token } = useAuth();
@@ -29,15 +111,29 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
   const [typingUsers, setTypingUsers] = useState([]);
   const [recordingUsers, setRecordingUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [showMediaMenu, setShowMediaMenu] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const audioInputRef = useRef(null);
+  const documentInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const typingTimeoutRef = useRef(null);
+  const discardRecordingRef = useRef(false);
 
   // Typing indicator functionality
   const setTypingStatus = async (isTyping) => {
-    if (!token) return;
+    if (!token || !orderId) return;
     try {
       await axios.post(
-        `${API}/conversations/${orderId}/typing`,
+        `${API}/chat/conversation/${orderId}/typing`,
         { is_typing: isTyping },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -48,15 +144,210 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
 
   // Voice recording indicator functionality
   const setVoiceRecordingStatus = async (isRecording) => {
-    if (!token) return;
+    if (!token || !orderId) return;
     try {
       await axios.post(
-        `${API}/conversations/${orderId}/voice-recording`,
+        `${API}/chat/conversation/${orderId}/voice-recording`,
         { is_recording: isRecording },
         { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (error) {
       console.error('Error setting voice recording status:', error);
+    }
+  };
+
+  // Audio recording functionality
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        audioChunksRef.current.push(e.data);
+      };
+      
+      mediaRecorderRef.current.onstop = async () => {
+        if (discardRecordingRef.current) {
+          discardRecordingRef.current = false;
+          stream.getTracks().forEach(track => track.stop());
+          audioChunksRef.current = [];
+          return;
+        }
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+        
+        setUploadingFile(true);
+        const formData = new FormData();
+        formData.append('file', audioFile);
+        formData.append('duration', recordingTime);
+        
+        try {
+          const response = await axios.post(
+            `${API}/chat/conversation/${orderId}/upload`,
+            formData,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+          );
+          
+          if (response.data && response.data.message) {
+            setMessages(prev => [...prev, response.data.message]);
+            scrollToBottom();
+          }
+        } catch (error) {
+          console.error('Error uploading recording:', error);
+          toast.error('Erreur lors de l\'envoi du message vocal');
+        } finally {
+          setUploadingFile(false);
+        }
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        audioChunksRef.current = [];
+      };
+      
+      mediaRecorderRef.current.start();
+      discardRecordingRef.current = false;
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+      await setVoiceRecordingStatus(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error('Impossible d\'accéder au microphone');
+      throw error;
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+      setVoiceRecordingStatus(false);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      discardRecordingRef.current = true;
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setRecordingTime(0);
+      audioChunksRef.current = [];
+      setVoiceRecordingStatus(false);
+      toast.info('Enregistrement annulé');
+    }
+  };
+
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Media upload handlers
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !orderId) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `${API}/chat/conversation/${orderId}/upload`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      if (response.data && response.data.message) {
+        setMessages(prev => [...prev, response.data.message]);
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Erreur lors de l\'envoi de l\'image');
+    } finally {
+      setUploadingFile(false);
+      fileInputRef.current.value = '';
+      setShowMediaMenu(false);
+    }
+  };
+
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !orderId) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `${API}/chat/conversation/${orderId}/upload`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+
+      if (response.data && response.data.message) {
+        setMessages(prev => [...prev, response.data.message]);
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Erreur lors de l\'envoi du document');
+    } finally {
+      setUploadingFile(false);
+      documentInputRef.current.value = '';
+      setShowMediaMenu(false);
+    }
+  };
+
+  // Share location
+  const shareLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Votre navigateur ne supporte pas la géolocalisation');
+      return;
+    }
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000
+        });
+      });
+
+      const location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      };
+
+      const response = await axios.post(
+        `${API}/chat/conversation/${orderId}/location`,
+        { location, recipient_id: recipientId, recipient_type: recipientType },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data && response.data.message) {
+        setMessages(prev => [...prev, response.data.message]);
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Error sharing location:', error);
+      toast.error('Erreur lors du partage de localisation');
     }
   };
 
@@ -188,6 +479,26 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
   const sendMessage = async (messageType = 'text', attachment = null) => {
     if ((!newMessage.trim() && !attachment) || sending) return;
     
+    // Stop typing indicator
+    await setTypingStatus(false);
+    
+    const content = newMessage.trim();
+    setNewMessage('');
+    
+    // Optimistic update
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      content: content,
+      sender_id: user?.id,
+      sender_name: user?.name,
+      sender_role: user?.role,
+      message_type: messageType,
+      attachment: attachment,
+      created_at: new Date().toISOString(),
+      is_optimistic: true
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    
     try {
       setSending(true);
       
@@ -196,7 +507,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
         recipient_id: recipientId,
         recipient_type: recipientType,
         message_type: messageType,
-        content: newMessage.trim(),
+        content: content,
         attachment: attachment
       };
       
@@ -204,13 +515,21 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (response.data && response.data.message) {
-        setMessages(prev => [...prev, response.data.message]);
-        setNewMessage('');
-        scrollToBottom();
-      }
+      // Remove optimistic message and add real message
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.id !== optimisticMessage.id);
+        if (response.data && response.data.message) {
+          return [...filtered, response.data.message];
+        }
+        return filtered;
+      });
+      
+      scrollToBottom();
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      setNewMessage(content);
       toast.error('Erreur lors de l\'envoi du message');
     } finally {
       setSending(false);
@@ -219,10 +538,25 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
 
   // Handle input change with typing indicator
   const handleInputChange = (e) => {
-    setNewMessage(e.target.value);
-    if (e.target.value.trim()) {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    if (value.trim() && !isTyping) {
+      setIsTyping(true);
       setTypingStatus(true);
-    } else {
+      
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Stop typing after 3 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        setTypingStatus(false);
+      }, 3000);
+    } else if (!value.trim() && isTyping) {
+      setIsTyping(false);
       setTypingStatus(false);
     }
   };
