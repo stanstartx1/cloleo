@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Bell, Send, Clock, Check, CheckCheck, Trash2, Search, Filter, Loader2, MoreVertical } from 'lucide-react';
 import axios from 'axios';
 
-const API = process.env.REACT_APP_BACKEND_URL || 'https://cloleo.com';
+import { API_URL } from '../config/api';
+
+const API = API_URL;
 
 /**
  * EnhancedMessagesSection - Enhanced messages section with unread notifications
@@ -16,7 +18,6 @@ const EnhancedMessagesSection = ({ token, userType }) => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     fetchConversations();
@@ -24,23 +25,11 @@ const EnhancedMessagesSection = ({ token, userType }) => {
 
   const fetchConversations = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get(`${API}/enterprises/conversations`, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      // setConversations(response.data.conversations || []);
-      // setUnreadCount(response.data.unreadCount || 0);
-
-      // Mock data for now
-      const mockConversations = [
-        { id: 1, name: 'TechCorp Solutions', avatar: 'TC', lastMessage: 'Merci pour votre offre !', lastTime: '10:30', unread: 2, type: 'vendor' },
-        { id: 2, name: 'Global Logistics', avatar: 'GL', lastMessage: 'Livraison prévue demain', lastTime: '09:15', unread: 0, type: 'vendor' },
-        { id: 3, name: 'Client Premium', avatar: 'CP', lastMessage: 'Puis-je avoir une remise ?', lastTime: 'Hier', unread: 5, type: 'customer' },
-        { id: 4, name: 'Support Client', avatar: 'SC', lastMessage: 'Votre ticket a été résolu', lastTime: 'Hier', unread: 1, type: 'support' },
-        { id: 5, name: 'Partenaire B2B', avatar: 'PB', lastMessage: 'Proposition de partenariat', lastTime: '2j', unread: 0, type: 'partner' },
-      ];
-      setConversations(mockConversations);
-      setUnreadCount(mockConversations.reduce((sum, c) => sum + c.unread, 0));
+      const response = await axios.get(`${API}/conversations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setConversations(response.data.conversations || []);
+      setUnreadCount(response.data.conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0);
     } catch (error) {
       console.error('Error fetching conversations:', error);
     } finally {
@@ -50,19 +39,10 @@ const EnhancedMessagesSection = ({ token, userType }) => {
 
   const fetchMessages = async (conversationId) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get(`${API}/enterprises/conversations/${conversationId}/messages`, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      // setMessages(response.data.messages || []);
-
-      // Mock data for now
-      const mockMessages = [
-        { id: 1, sender: 'them', text: 'Bonjour, je suis intéressé par vos produits', time: '10:00', read: true },
-        { id: 2, sender: 'me', text: 'Bonjour ! Je suis ravi de vous entendre', time: '10:05', read: true },
-        { id: 3, sender: 'them', text: 'Merci pour votre offre !', time: '10:30', read: false },
-      ];
-      setMessages(mockMessages);
+      const response = await axios.get(`${API}/conversations/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages(response.data.messages || []);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -71,32 +51,24 @@ const EnhancedMessagesSection = ({ token, userType }) => {
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.id);
-    // Mark as read
-    setConversations(conversations.map(c => 
-      c.id === conversation.id ? { ...c, unread: 0 } : c
+    // Mark as read locally
+    setConversations(conversations.map(c =>
+      c.id === conversation.id ? { ...c, unread_count: 0 } : c
     ));
-    setUnreadCount(Math.max(0, unreadCount - conversation.unread));
+    setUnreadCount(Math.max(0, unreadCount - (conversation.unread_count || 0)));
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !selectedConversation) return;
 
     try {
-      // TODO: Replace with actual API call
-      // await axios.post(`${API}/enterprises/conversations/${selectedConversation.id}/messages`, {
-      //   text: newMessage
-      // }, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-
-      const message = {
-        id: Date.now(),
-        sender: 'me',
-        text: newMessage,
-        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        read: true
-      };
-      setMessages([...messages, message]);
+      await axios.post(`${API}/conversations/${selectedConversation.id}/messages`, {
+        text: newMessage
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Refresh messages after sending
+      fetchMessages(selectedConversation.id);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -104,9 +76,9 @@ const EnhancedMessagesSection = ({ token, userType }) => {
   };
 
   const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = conv.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filter === 'all' || conv.type === filter;
-    return matchesSearch && matchesFilter;
+    const name = conv.other_party_name || conv.customer_name || conv.seller_name || '';
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   if (loading) {
@@ -134,66 +106,61 @@ const EnhancedMessagesSection = ({ token, userType }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Conversations List */}
         <div className="lg:col-span-1 space-y-4">
-          {/* Search & Filter */}
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-            <div className="flex gap-2">
-              {['all', 'vendor', 'customer', 'support'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilter(type)}
-                  className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                    filter === type
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  {type === 'all' ? 'Tous' : type}
-                </button>
-              ))}
-            </div>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white focus:border-amber-500 focus:outline-none"
+            />
           </div>
 
           {/* Conversations */}
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
-            {filteredConversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={() => handleSelectConversation(conversation)}
-                className={`w-full flex items-center gap-3 p-4 rounded-xl transition-colors text-left ${
-                  selectedConversation?.id === conversation.id
-                    ? 'bg-amber-500/20 border border-amber-500/30'
-                    : 'bg-slate-800/50 hover:bg-slate-800'
-                }`}
-              >
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-white font-bold">
-                    {conversation.avatar}
+            {filteredConversations.map((conversation) => {
+              const name = conversation.other_party_name || conversation.customer_name || conversation.seller_name || 'Inconnu';
+              const avatar = conversation.seller_avatar || conversation.customer_avatar || null;
+              const lastMessage = conversation.last_message || 'Aucun message';
+              const lastTime = conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+              const unread = conversation.unread_count || 0;
+
+              return (
+                <button
+                  key={conversation.id}
+                  onClick={() => handleSelectConversation(conversation)}
+                  className={`w-full flex items-center gap-3 p-4 rounded-xl transition-colors text-left ${
+                    selectedConversation?.id === conversation.id
+                      ? 'bg-amber-500/20 border border-amber-500/30'
+                      : 'bg-slate-800/50 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="relative">
+                    {avatar ? (
+                      <img src={avatar} alt={name} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-white font-bold">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {unread > 0 && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {unread}
+                      </div>
+                    )}
                   </div>
-                  {conversation.unread > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                      {conversation.unread}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-semibold text-white truncate">{name}</p>
+                      <p className="text-xs text-slate-400">{lastTime}</p>
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-semibold text-white truncate">{conversation.name}</p>
-                    <p className="text-xs text-slate-400">{conversation.lastTime}</p>
+                    <p className="text-sm text-slate-400 truncate">{lastMessage}</p>
                   </div>
-                  <p className="text-sm text-slate-400 truncate">{conversation.lastMessage}</p>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -204,12 +171,24 @@ const EnhancedMessagesSection = ({ token, userType }) => {
               {/* Conversation Header */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-white font-bold">
-                    {selectedConversation.avatar}
-                  </div>
+                  {selectedConversation.seller_avatar || selectedConversation.customer_avatar ? (
+                    <img
+                      src={selectedConversation.seller_avatar || selectedConversation.customer_avatar}
+                      alt={selectedConversation.other_party_name || selectedConversation.customer_name || selectedConversation.seller_name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-white font-bold">
+                      {(selectedConversation.other_party_name || selectedConversation.customer_name || selectedConversation.seller_name || 'I').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
-                    <h3 className="font-semibold text-white">{selectedConversation.name}</h3>
-                    <p className="text-xs text-slate-400 capitalize">{selectedConversation.type}</p>
+                    <h3 className="font-semibold text-white">
+                      {selectedConversation.other_party_name || selectedConversation.customer_name || selectedConversation.seller_name || 'Inconnu'}
+                    </h3>
+                    <p className="text-xs text-slate-400 capitalize">
+                      {selectedConversation.other_participant?.role || selectedConversation.seller_type || 'Utilisateur'}
+                    </p>
                   </div>
                 </div>
                 <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
@@ -222,21 +201,20 @@ const EnhancedMessagesSection = ({ token, userType }) => {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.sender_id === selectedConversation.customer_id ? 'justify-start' : 'justify-end'}`}
                   >
                     <div
                       className={`max-w-[70%] p-3 rounded-2xl ${
-                        message.sender === 'me'
+                        message.sender_id !== selectedConversation.customer_id
                           ? 'bg-amber-500 text-white'
                           : 'bg-slate-700 text-white'
                       }`}
                     >
                       <p className="text-sm">{message.text}</p>
                       <div className="flex items-center justify-end gap-1 mt-1">
-                        <p className="text-xs opacity-70">{message.time}</p>
-                        {message.sender === 'me' && (
-                          message.read ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />
-                        )}
+                        <p className="text-xs opacity-70">
+                          {message.created_at ? new Date(message.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </p>
                       </div>
                     </div>
                   </div>
