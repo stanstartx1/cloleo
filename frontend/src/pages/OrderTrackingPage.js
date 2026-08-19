@@ -17,6 +17,7 @@ import TripartiteChat from '../components/TripartiteChat';
 import DeliveryScheduler from '../components/DeliveryScheduler';
 import RatingSystem from '../components/RatingSystem';
 import { useOrderTracking } from '../hooks/useOrderTracking';
+import { useUserRealtime } from '../hooks/useUserRealtime';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
@@ -37,7 +38,7 @@ const ORDER_STATUSES = {
 
 const OrderTrackingPage = () => {
   const { orderId } = useParams();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   
   // Use WebSocket-based real-time tracking
   const {
@@ -47,6 +48,13 @@ const OrderTrackingPage = () => {
     error: wsError,
     isConnected
   } = useOrderTracking(orderId, token);
+  
+  // Use global user real-time for immediate status updates
+  const {
+    isConnected: globalConnected,
+    orderUpdates,
+    clearOrderUpdates
+  } = useUserRealtime(token, user?.id);
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,12 +97,64 @@ const OrderTrackingPage = () => {
     }
   }, [realtimeOrder]);
 
+  // Update driver info when order changes
+  useEffect(() => {
+    if (order?.driver_id && order?.driver_name) {
+      setDriverInfo({
+        id: order.driver_id,
+        name: order.driver_name,
+        phone: order.driver_phone
+      });
+    }
+    
+    // Update ETA when available
+    if (order?.eta_minutes) {
+      setEtaMinutes(order.eta_minutes);
+    }
+  }, [order]);
+
   // Sync driver location
   useEffect(() => {
     if (realtimeDriverLocation) {
       setDriverLocation(realtimeDriverLocation);
     }
   }, [realtimeDriverLocation]);
+
+  // Handle global order updates for immediate status changes
+  useEffect(() => {
+    if (orderUpdates.length > 0) {
+      const latestUpdate = orderUpdates[orderUpdates.length - 1];
+      
+      // Only process updates for this order
+      if (latestUpdate.order_id === orderId) {
+        if (latestUpdate.type === 'order_status_update') {
+          setOrder(prev => ({
+            ...prev,
+            status: latestUpdate.status,
+            ...(latestUpdate.driver_id && { driver_id: latestUpdate.driver_id }),
+            ...(latestUpdate.driver_name && { driver_name: latestUpdate.driver_name }),
+            ...(latestUpdate.vendor_name && { vendor_name: latestUpdate.vendor_name }),
+            ...(latestUpdate.eta_minutes !== undefined && { eta_minutes: latestUpdate.eta_minutes }),
+            updated_at: latestUpdate.timestamp
+          }));
+          
+          // Show notification for status change
+          const statusInfo = ORDER_STATUSES[latestUpdate.status];
+          if (statusInfo) {
+            toast.success(`Statut mis à jour: ${statusInfo.label}`, {
+              description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
+              duration: 3000
+            });
+          }
+        } else if (latestUpdate.type === 'order_created' && latestUpdate.order_data) {
+          setOrder(latestUpdate.order_data);
+        }
+        
+        // Clear processed updates
+        clearOrderUpdates();
+      }
+    }
+  }, [orderUpdates, orderId, clearOrderUpdates]);
 
   // Fetch initial order data (fallback if WebSocket fails)
   const fetchOrder = useCallback(async () => {
@@ -359,28 +419,28 @@ const OrderTrackingPage = () => {
                   </div>
                   <div className="flex justify-between mt-3 text-xs text-muted-foreground">
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'pending' ? 'bg-amber-500' : 'bg-gray-300'}`} />
-                      <span>Commande</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'pending' ? 'bg-amber-500 animate-pulse' : ['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-amber-500' : 'bg-gray-300'}`} />
+                      <span className={order.status === 'pending' ? 'font-bold text-amber-600' : ''}>Commande</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500' : 'bg-gray-300'}`} />
-                      <span>Assigné</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500 animate-pulse' : order.status === 'assigned' ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                      <span className={['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-blue-600' : ''}>Assigné</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-green-500' : 'bg-gray-300'}`} />
-                      <span>Accepté</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-green-500 animate-pulse' : order.status === 'accepted' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                      <span className={['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-green-600' : ''}>Accepté</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500' : 'bg-gray-300'}`} />
-                      <span>Récupéré</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500 animate-pulse' : order.status === 'picked_up' ? 'bg-indigo-500' : 'bg-gray-300'}`} />
+                      <span className={['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-indigo-600' : ''}>Récupéré</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500' : 'bg-gray-300'}`} />
-                      <span>En route</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500 animate-pulse' : order.status === 'in_transit' ? 'bg-purple-500' : 'bg-gray-300'}`} />
+                      <span className={['in_transit', 'delivered'].includes(order.status) ? 'font-bold text-purple-600' : ''}>En route</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600' : 'bg-gray-300'}`} />
-                      <span>Livré</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600 animate-pulse' : 'bg-gray-300'}`} />
+                      <span className={order.status === 'delivered' ? 'font-bold text-green-600' : ''}>Livré</span>
                     </div>
                   </div>
                 </div>

@@ -48,11 +48,22 @@ export const useOrderTracking = (orderId, token) => {
               setOrder(data.order_data);
               break;
 
+            case 'order_created':
+              setOrder(data.order_data);
+              break;
+
             case 'order_status_update':
               setOrder(prev => ({
                 ...prev,
                 status: data.status,
                 updated_at: data.timestamp,
+                ...(data.driver_id && { driver_id: data.driver_id }),
+                ...(data.driver_name && { driver_name: data.driver_name }),
+                ...(data.vendor_name && { vendor_name: data.vendor_name }),
+                ...(data.picked_up_at && { picked_up_at: data.picked_up_at }),
+                ...(data.in_transit_at && { in_transit_at: data.in_transit_at }),
+                ...(data.delivered_at && { delivered_at: data.delivered_at }),
+                ...(data.eta_minutes !== undefined && { eta_minutes: data.eta_minutes }),
                 ...data.order_data
               }));
               break;
@@ -64,7 +75,7 @@ export const useOrderTracking = (orderId, token) => {
             case 'order_assigned':
               setOrder(prev => ({
                 ...prev,
-                status: data.status,
+                status: data.status || 'assigned',
                 driver_id: data.driver_id,
                 driver_name: data.order_data?.driver_name,
                 ...data.order_data
