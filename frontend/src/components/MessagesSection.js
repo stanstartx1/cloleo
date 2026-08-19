@@ -974,7 +974,7 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
                         </div>
                         {dateMessages.map((message) => {
                           const isSeller = message.sender_type === 'seller';
-                          const isOwn = message.sender_id === userId.current;
+                          const isOwn = message.sender_id === user?.id;
                           return (
                             <div
                               key={message.id}
