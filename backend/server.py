@@ -3284,7 +3284,6 @@ async def driver_orders(user: dict = Depends(require_driver)):
                     "location": dropshipper.get("location"),
                     "address": dropshipper.get("address")
                 }
-                }
         
         # Ensure customer information is complete
         if not order.get("customer_info"):
