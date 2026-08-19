@@ -599,22 +599,26 @@ const EnterpriseDashboard = () => {
 
   return (
 
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
 
-      {/* Sidebar */}
-
-      <motion.aside
-
-        initial={false}
-
-        animate={{ x: mobileMenuOpen ? 0 : -320 }}
-
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl lg:translate-x-0 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl lg:hidden"
+            >
 
         <div className="flex flex-col h-full">
 
@@ -773,38 +777,91 @@ const EnterpriseDashboard = () => {
         </div>
 
       </motion.aside>
-
-
-
-      {/* Mobile Overlay */}
-
-      <AnimatePresence>
-
-        {mobileMenuOpen && (
-
-          <motion.div
-
-            initial={{ opacity: 0 }}
-
-            animate={{ opacity: 1 }}
-
-            exit={{ opacity: 0 }}
-
-            className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm"
-
-            onClick={() => setMobileMenuOpen(false)}
-
-          />
-
+          </>
         )}
-
       </AnimatePresence>
 
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-slate-900 to-slate-950 border-r border-slate-800/50 min-h-screen fixed left-0 top-0">
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="p-6 border-b border-slate-800/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-amber-500/30">
+                C
+              </div>
+              <div>
+                <h1 className="font-black text-lg text-white">
+                  <span className="text-amber-400">Clo</span><span className="text-yellow-500">léo</span>
+                </h1>
+                <p className="text-xs text-slate-400">Entreprise Premium</p>
+              </div>
+            </div>
+          </div>
 
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white shadow-lg shadow-amber-500/30 border border-amber-400/30'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-white hover:border hover:border-slate-700/50'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-medium text-sm">{item.label}</span>
+                  {item.badge && item.id === 'orders' && pendingOrdersCount > 0 && (
+                    <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
+                      {pendingOrdersCount}
+                    </span>
+                  )}
+                  {item.badge && item.id === 'offers' && pendingOffersCount > 0 && (
+                    <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
+                      {pendingOffersCount}
+                    </span>
+                  )}
+                  {item.badge && item.id === 'products' && products.length > 0 && (
+                    <span className="ml-auto bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/30">
+                      {products.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* User Info */}
+          <div className="p-4 border-t border-slate-800/50">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-500/30">
+                {user?.company_name?.[0] || user?.name?.[0] || 'E'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-white truncate">{user?.company_name || user?.name}</p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-600"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Déconnexion
+            </Button>
+          </div>
+        </div>
+      </aside>
 
       {/* Main Content */}
-
-      <main className="flex-1 lg:ml-0 overflow-auto">
+      <main className="flex-1 lg:ml-64 overflow-auto">
 
         {/* Top Bar */}
 
