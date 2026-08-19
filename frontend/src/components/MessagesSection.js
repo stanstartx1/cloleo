@@ -308,6 +308,31 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
     }
   };
 
+  // Fallback polling for typing/recording status (WebSocket may fail)
+  useEffect(() => {
+    if (!selectedConversation || !token) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const [typingResponse, recordingResponse] = await Promise.all([
+          axios.get(`${API}/conversations/${selectedConversation.id}/typing-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API}/conversations/${selectedConversation.id}/voice-recording-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        setTypingUsers(typingResponse.data?.typing_users || []);
+        setRecordingUsers(recordingResponse.data?.recording_users || []);
+      } catch (error) {
+        console.error('Error polling status:', error);
+      }
+    }, 3000);
+    
+    return () => clearInterval(pollInterval);
+  }, [selectedConversation, token, API]);
+
   // WebSocket for real-time messages
   useEffect(() => {
     if (!selectedConversation || !token) return;

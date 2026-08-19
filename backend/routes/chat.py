@@ -154,15 +154,30 @@ async def start_conversation(
     else:
         raise HTTPException(status_code=400, detail="product_id ou dropshipped_product_id requis")
     
-    # Check if conversation already exists
+    # Check if conversation already exists with this customer and seller (regardless of product)
     existing = await db.conversations.find_one({
         "customer_id": user["id"],
-        "seller_id": seller_id,
-        "product_id": product_id
+        "seller_id": seller_id
     }, {"_id": 0})
     
     if existing:
-        return existing
+        # Update the existing conversation with the new product info if needed
+        await db.conversations.update_one(
+            {"id": existing["id"]},
+            {
+                "$set": {
+                    "product_id": product_id,
+                    "product_name": product_name,
+                    "product_image": product_image,
+                    "product_price_fcfa": product_price_fcfa,
+                    "product_promo_price_fcfa": product_promo_price_fcfa,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        # Return the updated conversation
+        updated = await db.conversations.find_one({"id": existing["id"]}, {"_id": 0})
+        return updated
     
     # Get seller info
     seller = await db.users.find_one({"id": seller_id}, {"_id": 0, "password": 0})
