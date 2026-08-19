@@ -867,9 +867,9 @@ const EnterpriseDashboard = () => {
 
         <header className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/50 sticky top-0 z-30">
 
-          <div className="px-4 lg:px-8 py-4 flex items-center justify-between">
+          <div className="px-3 sm:px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
 
               <Button
 
@@ -887,15 +887,15 @@ const EnterpriseDashboard = () => {
 
               </Button>
 
-              <div>
+              <div className="min-w-0">
 
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white truncate">
 
                   {NAV_ITEMS.find(item => item.id === activeSection)?.label}
 
                 </h2>
 
-                <p className="text-sm text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-400 truncate">
 
                   {user?.company_name || user?.name}
 
@@ -951,7 +951,7 @@ const EnterpriseDashboard = () => {
 
         {/* Content Area */}
 
-        <div className="p-4 lg:p-8 bg-slate-900/50 min-h-screen">
+        <div className="p-3 sm:p-4 lg:p-8 bg-slate-900/50 min-h-screen">
 
           <AnimatePresence mode="wait">
 
@@ -1381,7 +1381,7 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
       {/* Stats Cards */}
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
 
         <StatCard icon={Package} color="text-amber-400" value={dashboard?.total_products || 0} label="Produits" />
 
@@ -1397,11 +1397,11 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
       {/* Quick Actions */}
 
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
 
-        <h3 className="font-bold text-lg mb-4 text-white">Actions rapides</h3>
+        <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 text-white">Actions rapides</h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
 
           <QuickAction icon={Plus} label="Ajouter produit" color="bg-gradient-to-r from-amber-500 to-yellow-500" />
 
@@ -1419,9 +1419,9 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
       {/* Recent Orders */}
 
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
 
-        <h3 className="font-bold text-lg mb-4 text-white">Commandes récentes</h3>
+        <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 text-white">Commandes récentes</h3>
 
         {orders?.slice(0, 5).map(order => (
 
@@ -1435,9 +1435,9 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
       {/* Recent Offers */}
 
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-4 sm:p-6 shadow-xl">
 
-        <h3 className="font-bold text-lg mb-4 text-white">Offres récentes</h3>
+        <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 text-white">Offres récentes</h3>
 
         {offers?.slice(0, 3).map(offer => (
 
@@ -1477,23 +1477,23 @@ const DashboardSection = ({ dashboard, orders, products, offers, followerCount, 
 
 const StatCard = ({ icon: Icon, color, value, label }) => (
 
-  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-3 sm:p-4 md:p-6 shadow-xl">
 
-    <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center justify-between mb-2 sm:mb-4">
 
-      <Icon className={`w-8 h-8 ${color}`} />
+      <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${color}`} />
 
-      <div className="w-10 h-10 rounded-full bg-slate-700/50 flex items-center justify-center">
+      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700/50 flex items-center justify-center">
 
-        <TrendingUp className="w-5 h-5 text-slate-400" />
+        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
 
       </div>
 
     </div>
 
-    <p className="text-3xl font-bold text-white">{value}</p>
+    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{value}</p>
 
-    <p className="text-sm text-slate-400">{label}</p>
+    <p className="text-xs sm:text-sm text-slate-400">{label}</p>
 
   </div>
 
@@ -1505,11 +1505,11 @@ const StatCard = ({ icon: Icon, color, value, label }) => (
 
 const QuickAction = ({ icon: Icon, label, color }) => (
 
-  <button className={`flex flex-col items-center gap-2 p-4 rounded-xl ${color} text-white hover:opacity-90 transition-opacity shadow-lg`}>
+  <button className={`flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 md:p-4 rounded-xl ${color} text-white hover:opacity-90 transition-opacity shadow-lg`}>
 
-    <Icon className="w-6 h-6" />
+    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
 
-    <span className="text-sm font-medium">{label}</span>
+    <span className="text-xs sm:text-sm font-medium text-center">{label}</span>
 
   </button>
 
@@ -1521,19 +1521,19 @@ const QuickAction = ({ icon: Icon, label, color }) => (
 
 const OrderCard = ({ order, formatPrice }) => (
 
-  <div className="flex items-center justify-between p-4 border-b border-slate-700/50 last:border-0">
+  <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-700/50 last:border-0">
 
-    <div>
+    <div className="min-w-0 flex-1">
 
-      <p className="font-semibold text-white">{order.order_number || order.id}</p>
+      <p className="font-semibold text-white text-sm sm:text-base truncate">{order.order_number || order.id}</p>
 
-      <p className="text-sm text-slate-400">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
+      <p className="text-xs sm:text-sm text-slate-400">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
 
     </div>
 
-    <div className="text-right">
+    <div className="text-right ml-2 sm:ml-4">
 
-      <p className="font-bold text-white">{formatPrice(order.total_fcfa)} FCFA</p>
+      <p className="font-bold text-white text-sm sm:text-base">{formatPrice(order.total_fcfa)} FCFA</p>
 
       <span className={`text-xs px-2 py-1 rounded-full ${
 
@@ -1561,19 +1561,19 @@ const OrderCard = ({ order, formatPrice }) => (
 
 const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLink, formatPrice }) => (
 
-  <div className="border border-slate-700/50 rounded-xl p-4 mb-4 bg-slate-800/30">
+  <div className="border border-slate-700/50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 bg-slate-800/30">
 
-    <div className="flex items-start justify-between mb-3">
+    <div className="flex items-start justify-between mb-2 sm:mb-3">
 
-      <div>
+      <div className="min-w-0 flex-1">
 
-        <p className="font-semibold text-white">{offer.product?.name}</p>
+        <p className="font-semibold text-white text-sm sm:text-base truncate">{offer.product?.name}</p>
 
-        <p className="text-sm text-slate-400">Offre de {offer.buyer?.name}</p>
+        <p className="text-xs sm:text-sm text-slate-400">Offre de {offer.buyer?.name}</p>
 
       </div>
 
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 shrink-0 ${
 
         offer.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
 
@@ -1581,7 +1581,7 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
 
         'bg-slate-700/50 text-slate-400 border border-slate-600/50'
 
-      }`}>
+      }}`}>
 
         {offer.status}
 
@@ -1589,13 +1589,13 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
 
     </div>
 
-    <div className="flex items-center gap-4 mb-3">
+    <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-3">
 
       <div>
 
         <p className="text-xs text-slate-400">Prix original</p>
 
-        <p className="text-sm text-slate-500 line-through">{formatPrice(offer.original_price_fcfa)} FCFA</p>
+        <p className="text-xs sm:text-sm text-slate-500 line-through">{formatPrice(offer.original_price_fcfa)} FCFA</p>
 
       </div>
 
@@ -1603,7 +1603,7 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
 
         <p className="text-xs text-slate-400">Offre</p>
 
-        <p className="text-lg font-bold text-emerald-400">{formatPrice(offer.offered_price_fcfa)} FCFA</p>
+        <p className="text-base sm:text-lg font-bold text-emerald-400">{formatPrice(offer.offered_price_fcfa)} FCFA</p>
 
       </div>
 
@@ -1611,17 +1611,17 @@ const OfferCard = ({ offer, onAccept, onReject, onCounter, onWithdraw, onCopyLin
 
     {offer.status === 'pending' && (
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
 
-        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600" onClick={() => onAccept(offer.id)}>
+        <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-xs sm:text-sm" onClick={() => onAccept(offer.id)}>
 
-          <CheckCircle className="w-4 h-4 mr-1" /> Accepter
+          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Accepter
 
         </Button>
 
-        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50" onClick={() => onReject(offer.id)}>
+        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700/50 text-xs sm:text-sm" onClick={() => onReject(offer.id)}>
 
-          <XCircle className="w-4 h-4 mr-1" /> Refuser
+          <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> Refuser
 
         </Button>
 
@@ -1812,31 +1812,31 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
   return (
 
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
 
       {/* Header */}
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
         <div>
 
-          <h3 className="font-bold text-xl text-white flex items-center gap-2">
+          <h3 className="font-bold text-lg sm:text-xl text-white flex items-center gap-2">
 
-            <Package className="w-6 h-6 text-amber-400" />
+            <Package className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
 
             Mes produits
 
           </h3>
 
-          <p className="text-sm text-slate-400">Gérez votre catalogue de produits</p>
+          <p className="text-xs sm:text-sm text-slate-400">Gérez votre catalogue de produits</p>
 
         </div>
 
-        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600">
+        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-xs sm:text-sm">
 
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
 
-          Ajouter un produit
+          Ajouter
 
         </Button>
 
@@ -1846,15 +1846,15 @@ const ProductsSection = ({ products, loading, onRefresh, token, formatPrice }) =
 
       {/* Filters */}
 
-      <div className="flex flex-wrap gap-4 items-center">
+      <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
 
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2 flex-wrap">
 
           <button
 
             onClick={() => setFilterStatus('all')}
 
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors ${
 
               filterStatus === 'all' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
 
