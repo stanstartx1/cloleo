@@ -719,8 +719,20 @@ const DriverDashboard = () => {
                               {activeOrderForMap.seller_info.address && (
                                 <p className="text-sm text-slate-400">📍 {activeOrderForMap.seller_info.address}</p>
                               )}
-                              {activeOrderForMap.seller_info.location && (
-                                <p className="text-xs text-slate-500 mt-1">📍 GPS: {activeOrderForMap.seller_info.location.latitude.toFixed(4)}, {activeOrderForMap.seller_info.location.longitude.toFixed(4)}</p>
+                              {activeOrderForMap.seller_info.location && activeOrderForMap.seller_info.location.latitude && activeOrderForMap.seller_info.location.longitude ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-xs text-slate-500">📍 GPS: {activeOrderForMap.seller_info.location.latitude.toFixed(4)}, {activeOrderForMap.seller_info.location.longitude.toFixed(4)}</p>
+                                  <a
+                                    href={`geo:${activeOrderForMap.seller_info.location.latitude},${activeOrderForMap.seller_info.location.longitude}?q=${activeOrderForMap.seller_info.location.latitude},${activeOrderForMap.seller_info.location.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-purple-400 hover:text-purple-300"
+                                  >
+                                    <Navigation className="w-3 h-3 inline" />
+                                  </a>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-amber-500 mt-1">⚠️ Localisation non disponible</p>
                               )}
                             </div>
                             {activeOrderForMap.seller_info.phone && (
@@ -913,6 +925,22 @@ const DriverDashboard = () => {
                                 )}
                                 {order.seller_info.address && (
                                   <p className="text-sm text-slate-400 truncate">📍 {order.seller_info.address}</p>
+                                )}
+                                {order.seller_info.location && order.seller_info.location.latitude && order.seller_info.location.longitude ? (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs text-slate-500">📍 GPS: {order.seller_info.location.latitude.toFixed(4)}, {order.seller_info.location.longitude.toFixed(4)}</p>
+                                    <a
+                                      href={`geo:${order.seller_info.location.latitude},${order.seller_info.location.longitude}?q=${order.seller_info.location.latitude},${order.seller_info.location.longitude}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-purple-400 hover:text-purple-300"
+                                    >
+                                      <Navigation className="w-3 h-3 inline" />
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-amber-500 mt-1">⚠️ Localisation non disponible</p>
+                                )}
                                 )}
                                 {order.seller_info.location && (
                                   <p className="text-xs text-slate-500 mt-1">📍 GPS: {order.seller_info.location.latitude.toFixed(4)}, {order.seller_info.location.longitude.toFixed(4)}</p>

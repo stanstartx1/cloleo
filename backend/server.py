@@ -3191,6 +3191,15 @@ async def driver_orders(user: dict = Depends(require_driver)):
                     "location": seller.get("location"),
                     "address": seller.get("address")
                 }
+            else:
+                # Fallback if seller not found
+                order["seller_info"] = {
+                    "name": "Vendeur",
+                    "phone": None,
+                    "email": None,
+                    "location": None,
+                    "address": None
+                }
         
         # Get dropshipper information if applicable
         dropshipper_id = order.get("dropshipper_id")
@@ -3206,6 +3215,7 @@ async def driver_orders(user: dict = Depends(require_driver)):
                     "email": dropshipper.get("email"),
                     "location": dropshipper.get("location"),
                     "address": dropshipper.get("address")
+                }
                 }
         
         # Ensure customer information is complete
