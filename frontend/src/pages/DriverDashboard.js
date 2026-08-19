@@ -145,6 +145,13 @@ const DriverDashboard = () => {
 
     geolocationService.startTracking('high', async (pos) => {
       try {
+        // Update local state for WebSocket broadcast
+        setCurrentLocation({
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          accuracy: pos.accuracy
+        });
+
         await axios.post(`${API}/driver/location/update`, {
           latitude: pos.latitude,
           longitude: pos.longitude,

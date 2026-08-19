@@ -604,8 +604,19 @@ async def websocket_driver_orders(websocket: WebSocket, driver_id: str):
             if data.get("type") == "location_update":
                 location = data.get("location", {})
                 manager.update_driver_location(driver_id, location)
-                # Broadcast to all orders this driver is handling
-                # (This would need to be implemented based on active orders)
+                
+                # Broadcast to all active orders this driver is handling
+                active_orders = await db.orders.find(
+                    {"driver_id": driver_id, "status": {"$in": ["assigned", "accepted", "picked_up", "in_transit"]}},
+                    {"_id": 0, "id": 1}
+                ).to_list(length=100)
+                
+                for order in active_orders:
+                    await manager.broadcast_driver_location_update(
+                        order["id"],
+                        driver_id,
+                        location
+                    )
     except WebSocketDisconnect:
         manager.disconnect(websocket, room, user_id=user["id"])
     except Exception as e:
@@ -3193,6 +3204,19 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
     })
     
     await manager.broadcast_to_room("admin_tracking", {"type": "driver_location", "location": manager.get_driver_location(user["id"])})
+    
+    # Broadcast to all active orders this driver is handling
+    active_orders = await db.orders.find(
+        {"driver_id": user["id"], "status": {"$in": ["assigned", "accepted", "picked_up", "in_transit"]}},
+        {"_id": 0, "id": 1}
+    ).to_list(length=100)
+    
+    for order in active_orders:
+        await manager.broadcast_driver_location_update(
+            order["id"],
+            user["id"],
+            location
+        )
     
     # Auto-assign pending orders if driver just came online with location
     delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
