@@ -121,6 +121,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
     wsCleanup = createChatRealtime({
       conversationId: orderId,
       token,
+      isOrderChat: true, // Use order chat endpoint for tripartite conversations
       onEvent: (event) => {
         if (event.type === 'new_message' && event.message) {
           setMessages(prev => {

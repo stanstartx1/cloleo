@@ -494,6 +494,73 @@ async def websocket_chat_endpoint(websocket: WebSocket, conversation_id: str):
         manager.disconnect(websocket, room, user_id=user["id"])
 
 
+# WebSocket endpoint for order/delivery chat (tripartite: customer, vendor, driver)
+@app.websocket("/api/ws/order-chat/{order_id}")
+async def websocket_order_chat_endpoint(websocket: WebSocket, order_id: str):
+    """WebSocket for real-time order chat between customer, vendor, and driver"""
+    user = await websocket_authenticated_user(websocket)
+    if not user:
+        return
+    
+    # Get order participants
+    order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
+    if not order:
+        await websocket.close(code=1008, reason="Commande non trouvée")
+        return
+    
+    # Check if user is authorized (customer, seller, driver, or admin)
+    participants = {
+        order.get("customer_id"),
+        order.get("seller_id"),
+        order.get("driver_id"),
+        order.get("dropshipper_id")
+    }
+    
+    if user.get("role") != "admin" and user["id"] not in participants:
+        await websocket.close(code=1008, reason="Accès non autorisé")
+        return
+    
+    # Connect to order-specific chat room
+    room = f"order_chat_{order_id}"
+    await manager.connect(websocket, room, user_id=user["id"])
+    
+    # Send immediate confirmation
+    await websocket.send_json({
+        "type": "chat_connected",
+        "order_id": order_id,
+        "user_id": user["id"]
+    })
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+            # Handle typing indicators
+            if data.get("type") == "typing":
+                await manager.broadcast_to_room(room, {
+                    "type": "typing_status",
+                    "user_id": user["id"],
+                    "user_name": user.get("name"),
+                    "is_typing": data.get("is_typing", True),
+                    "conversation_id": order_id
+                })
+            # Handle voice recording indicators
+            if data.get("type") == "voice_recording":
+                await manager.broadcast_to_room(room, {
+                    "type": "voice_recording_status",
+                    "user_id": user["id"],
+                    "user_name": user.get("name"),
+                    "is_recording": data.get("is_recording", True),
+                    "conversation_id": order_id
+                })
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, room, user_id=user["id"])
+    except Exception as e:
+        print(f"Order chat WebSocket error: {e}")
+        manager.disconnect(websocket, room, user_id=user["id"])
+
+
 # Global WebSocket endpoint for user-specific events
 @app.websocket("/api/ws/user")
 async def websocket_user_endpoint(websocket: WebSocket):
@@ -2133,7 +2200,7 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
 
 @api.put("/orders/{order_id}/deliver")
 async def driver_deliver_order(order_id: str, user: dict = Depends(require_driver)):
-    """Driver confirms delivery - final validation step with proof of delivery"""
+    """Driver confirms delivery - final validation step"""
     order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
     
     if not order:
@@ -2141,8 +2208,9 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     
     if order["status"] != "in_transit":
         raise HTTPException(status_code=400, detail="La livraison doit être en cours pour confirmer")
-    if order.get("delivery_proof_required") and not order.get("delivery_proof"):
-        raise HTTPException(status_code=400, detail="Une photo de preuve est requise avant confirmation")
+    # Photo requirement removed - delivery can be confirmed without proof
+    # if order.get("delivery_proof_required") and not order.get("delivery_proof"):
+    #     raise HTTPException(status_code=400, detail="Une photo de preuve est requise avant confirmation")
     if order.get("delivery_pin_hash") and not order.get("delivery_pin_verified"):
         raise HTTPException(status_code=400, detail="Le code PIN client doit être vérifié avant confirmation")
     

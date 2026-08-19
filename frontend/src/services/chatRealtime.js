@@ -4,7 +4,7 @@ import { WS_URL } from '../config/api';
  * Lightweight, authenticated chat transport with exponential reconnection.
  * REST remains the source of truth; this transport only delivers live events.
  */
-export const createChatRealtime = ({ conversationId, token, onEvent, onStatusChange }) => {
+export const createChatRealtime = ({ conversationId, token, onEvent, onStatusChange, isOrderChat = false }) => {
   let socket;
   let reconnectTimer;
   let closed = false;
@@ -12,7 +12,13 @@ export const createChatRealtime = ({ conversationId, token, onEvent, onStatusCha
 
   const connect = () => {
     if (closed || !conversationId || !token) return;
-    socket = new WebSocket(`${WS_URL}/api/ws/chat/${conversationId}?token=${encodeURIComponent(token)}`);
+    
+    // Use order chat endpoint for order-based conversations
+    const wsEndpoint = isOrderChat 
+      ? `${WS_URL}/api/ws/order-chat/${conversationId}?token=${encodeURIComponent(token)}`
+      : `${WS_URL}/api/ws/chat/${conversationId}?token=${encodeURIComponent(token)}`;
+    
+    socket = new WebSocket(wsEndpoint);
 
     socket.onopen = () => {
       attempts = 0;
