@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 import uuid
 import logging
+import sys
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
@@ -16,8 +17,17 @@ router = APIRouter(prefix="/chat", tags=["Delivery Chat"])
 
 _manager = None
 
-# Set up logging
+# Set up logging for this module
 logger = logging.getLogger(__name__)
+
+# Ensure logger outputs to stdout
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 # Cloleo system user ID for automated messages
 CLOLEO_SYSTEM_USER_ID = "cloleo-system-00000000-0000-0000-0000-000000000000"

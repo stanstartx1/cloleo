@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import os
+import sys
 import logging
 
 # Order cancellation system - dynamic configuration
@@ -110,6 +111,15 @@ from core.gamification_delivery import add_delivery_points, check_on_time_delive
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Ensure logger outputs to stdout
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 load_dotenv()
 
