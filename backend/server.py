@@ -1924,7 +1924,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
 
         {
 
-            "$set": {"status": "assigned", "driver_id": user["id"], "driver_name": user.get("name"), "updated_at": _utc()},
+            "$set": {"status": "assigned", "driver_id": user["id"], "driver_name": user.get("name"), "driver_vehicle_type": user.get("vehicle_type"), "updated_at": _utc()},
 
             "$push": {"status_history": {"status": "assigned", "note": "Livreur assigné", "timestamp": _utc()}},
 
@@ -1935,7 +1935,8 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     # Broadcast order status update via WebSocket
     await manager.broadcast_order_status_update(order_id, "assigned", {
         "driver_id": user["id"],
-        "driver_name": user.get("name")
+        "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type")
     })
     
     # Broadcast to driver's room
@@ -2126,6 +2127,7 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
                             "driver_id": closest_driver["id"],
                             "driver_name": closest_driver.get("name"),
                             "driver_phone": closest_driver.get("phone"),
+                            "driver_vehicle_type": closest_driver.get("vehicle_type"),
                             "updated_at": _utc()
                         },
                         "$push": {
@@ -2562,7 +2564,7 @@ async def driver_cancel_order(order_id: str, payload: dict = {}, user: dict = De
         # Find available online drivers (excluding the cancelled driver)
         available_drivers = await db.users.find(
             {"role": "driver", "is_active": True, "is_verified": True, "is_online": True, "id": {"$ne": user["id"]}},
-            {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
+            {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1, "vehicle_type": 1}
         ).to_list(100)
         
         if available_drivers:
@@ -2596,6 +2598,7 @@ async def driver_cancel_order(order_id: str, payload: dict = {}, user: dict = De
                             "driver_id": closest_driver["id"],
                             "driver_name": closest_driver.get("name"),
                             "driver_phone": closest_driver.get("phone"),
+                            "driver_vehicle_type": closest_driver.get("vehicle_type"),
                             "updated_at": _utc()
                         },
                         "$push": {
@@ -3591,6 +3594,7 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
                                     "driver_id": user["id"],
                                     "driver_name": user.get("name"),
                                     "driver_phone": user.get("phone"),
+                                    "driver_vehicle_type": user.get("vehicle_type"),
                                     "updated_at": _utc()
                                 },
                                 "$push": {
