@@ -15,6 +15,10 @@ router = APIRouter(prefix="/chat", tags=["Delivery Chat"])
 
 _manager = None
 
+# Cloleo system user ID for automated messages
+CLOLEO_SYSTEM_USER_ID = "cloleo-system-00000000-0000-0000-0000-000000000000"
+CLOLEO_SYSTEM_NAME = "Cloleo"
+
 
 def set_manager(mgr):
     global _manager
@@ -256,3 +260,86 @@ async def mark_messages_read(order_id: str, user: dict = Depends(get_current_use
         {"$set": {"read": True, "read_at": _utc()}},
     )
     return {"ok": True}
+
+
+async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, order_number: str = None):
+    """
+    Send automated system message with delivery PIN to customer from Cloleo.
+    This is called automatically when an order is assigned to a driver.
+    """
+    try:
+        order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
+        if not order:
+            print(f"Order {order_id} not found for PIN message")
+            return
+        
+        customer_id = order.get("customer_id")
+        if not customer_id:
+            print(f"No customer_id found for order {order_id}")
+            return
+        
+        # Ensure conversation exists
+        participants = {
+            "customer_id": customer_id,
+            "seller_id": order.get("seller_id"),
+            "driver_id": order.get("driver_id"),
+            "order": order
+        }
+        conv = await _ensure_order_conversation(order_id, participants)
+        
+        # Create system message with delivery PIN
+        system_message = {
+            "id": str(uuid.uuid4()),
+            "order_id": order_id,
+            "conversation_id": conv["id"],
+            "sender_id": CLOLEO_SYSTEM_USER_ID,
+            "sender_name": CLOLEO_SYSTEM_NAME,
+            "sender_role": "system",
+            "recipient_id": customer_id,
+            "recipient_type": "customer",
+            "message_type": "text",
+            "content": f"📦 Commande #{order_number or order_id}\n\nVotre code de livraison est : {delivery_pin}\n\nCommuniquez ce code au livreur pour confirmer la livraison.\n\n— Cloleo",
+            "attachment": None,
+            "location": None,
+            "read": False,
+            "is_system_message": True,
+            "created_at": _utc(),
+        }
+        
+        # Insert message
+        await db.delivery_messages.insert_one(system_message)
+        
+        # Update conversation
+        await db.delivery_conversations.update_one(
+            {"order_id": order_id},
+            {"$set": {"last_message": system_message["content"][:100], "updated_at": _utc()}},
+        )
+        
+        # Broadcast via WebSocket
+        if _manager:
+            clean_message = {k: v for k, v in system_message.items() if k != "_id"}
+            await _manager.broadcast_to_room(f"order_chat_{order_id}", {
+                "type": "new_message",
+                "message": clean_message,
+            })
+            await _manager.send_to_user(customer_id, {
+                "type": "chat_notification", 
+                "message": clean_message, 
+                "order_id": order_id
+            })
+        
+        # Send notification
+        await notify_user_all_channels(
+            customer_id,
+            "Code de livraison",
+            f"Votre code de livraison est : {delivery_pin}",
+            "delivery_pin",
+            {"order_id": order_id, "message_id": system_message["id"]},
+        )
+        
+        print(f"✅ Delivery PIN message sent to customer {customer_id} for order {order_id}")
+        return {"ok": True, "message": clean_message}
+        
+    except Exception as e:
+        print(f"❌ Error sending system PIN message: {e}")
+        return {"ok": False, "error": str(e)}
