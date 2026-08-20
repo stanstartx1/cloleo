@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 import uuid
+import logging
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
@@ -14,6 +15,9 @@ from core.notification_channels import notify_user_all_channels
 router = APIRouter(prefix="/chat", tags=["Delivery Chat"])
 
 _manager = None
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Cloleo system user ID for automated messages
 CLOLEO_SYSTEM_USER_ID = "cloleo-system-00000000-0000-0000-0000-000000000000"
@@ -94,12 +98,12 @@ def _validate_location(location: dict) -> dict:
 
 
 async def _ensure_order_conversation(order_id: str, participants: dict) -> dict:
-    print(f"🔍 [CONV DEBUG] Ensuring conversation for order {order_id}")
+    logger.info(f"🔍 [CONV DEBUG] Ensuring conversation for order {order_id}")
     conv = await db.delivery_conversations.find_one({"order_id": order_id}, {"_id": 0})
     if conv:
-        print(f"✅ [CONV DEBUG] Conversation exists: {conv['id']}")
+        logger.info(f"✅ [CONV DEBUG] Conversation exists: {conv['id']}")
         return conv
-    print(f"⚠️  [CONV DEBUG] Creating new conversation for order {order_id}")
+    logger.warning(f"⚠️  [CONV DEBUG] Creating new conversation for order {order_id}")
     conv = {
         "id": str(uuid.uuid4()),
         "order_id": order_id,
@@ -114,9 +118,9 @@ async def _ensure_order_conversation(order_id: str, participants: dict) -> dict:
         "created_at": _utc(),
         "updated_at": _utc(),
     }
-    print(f"📝 [CONV DEBUG] Conversation data: customer_id={conv['customer_id']}, seller_id={conv['seller_id']}, driver_id={conv['driver_id']}")
+    logger.info(f"📝 [CONV DEBUG] Conversation data: customer_id={conv['customer_id']}, seller_id={conv['seller_id']}, driver_id={conv['driver_id']}")
     await db.delivery_conversations.insert_one(conv)
-    print(f"✅ [CONV DEBUG] Conversation created: {conv['id']}")
+    logger.info(f"✅ [CONV DEBUG] Conversation created: {conv['id']}")
     return conv
 
 
@@ -273,21 +277,21 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
     This is called automatically when an order is assigned to a driver.
     """
     try:
-        print(f"🔍 [PIN DEBUG] Starting PIN message send for order {order_id}")
+        logger.info(f"🔍 [PIN DEBUG] Starting PIN message send for order {order_id}")
         
         order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
         if not order:
-            print(f"❌ [PIN DEBUG] Order {order_id} not found for PIN message")
+            logger.error(f"❌ [PIN DEBUG] Order {order_id} not found for PIN message")
             return {"ok": False, "error": "Order not found"}
         
-        print(f"✅ [PIN DEBUG] Order found: {order.get('order_number')}, status: {order.get('status')}")
+        logger.info(f"✅ [PIN DEBUG] Order found: {order.get('order_number')}, status: {order.get('status')}")
         
         customer_id = order.get("customer_id")
         if not customer_id:
-            print(f"❌ [PIN DEBUG] No customer_id found for order {order_id}")
+            logger.error(f"❌ [PIN DEBUG] No customer_id found for order {order_id}")
             return {"ok": False, "error": "No customer_id"}
         
-        print(f"✅ [PIN DEBUG] Customer ID: {customer_id}")
+        logger.info(f"✅ [PIN DEBUG] Customer ID: {customer_id}")
         
         # Ensure conversation exists
         participants = {
@@ -297,7 +301,7 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
             "order": order
         }
         conv = await _ensure_order_conversation(order_id, participants)
-        print(f"✅ [PIN DEBUG] Conversation ensured: {conv['id']}")
+        logger.info(f"✅ [PIN DEBUG] Conversation ensured: {conv['id']}")
         
         # Create system message with delivery PIN
         system_message = {
@@ -318,28 +322,28 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
             "created_at": _utc(),
         }
         
-        print(f"✅ [PIN DEBUG] System message created: {system_message['id']}")
+        logger.info(f"✅ [PIN DEBUG] System message created: {system_message['id']}")
         
         # Insert message
         result = await db.delivery_messages.insert_one(system_message)
-        print(f"✅ [PIN DEBUG] Message inserted in DB, result: {result}")
+        logger.info(f"✅ [PIN DEBUG] Message inserted in DB, result: {result}")
         
         # Update conversation
         await db.delivery_conversations.update_one(
             {"order_id": order_id},
             {"$set": {"last_message": system_message["content"][:100], "updated_at": _utc()}},
         )
-        print(f"✅ [PIN DEBUG] Conversation updated")
+        logger.info(f"✅ [PIN DEBUG] Conversation updated")
         
         # Broadcast via WebSocket
         if _manager:
             clean_message = {k: v for k, v in system_message.items() if k != "_id"}
-            print(f"📡 [PIN DEBUG] Broadcasting to room order_chat_{order_id}")
+            logger.info(f"📡 [PIN DEBUG] Broadcasting to room order_chat_{order_id}")
             await _manager.broadcast_to_room(f"order_chat_{order_id}", {
                 "type": "new_message",
                 "message": clean_message,
             })
-            print(f"📡 [PIN DEBUG] Sending to user {customer_id}")
+            logger.info(f"📡 [PIN DEBUG] Sending to user {customer_id}")
             await _manager.send_to_user(customer_id, {
                 "type": "chat_notification", 
                 "message": clean_message, 
@@ -352,10 +356,10 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
                 "order_id": order_id
             })
         else:
-            print(f"⚠️  [PIN DEBUG] No WebSocket manager available")
+            logger.warning(f"⚠️  [PIN DEBUG] No WebSocket manager available")
         
         # Send notification
-        print(f"🔔 [PIN DEBUG] Sending notification to user {customer_id}")
+        logger.info(f"🔔 [PIN DEBUG] Sending notification to user {customer_id}")
         await notify_user_all_channels(
             customer_id,
             "Code de livraison",
@@ -370,13 +374,13 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
             {"id": order_id},
             {"$set": {"delivery_pin_sent_via_chat": True, "delivery_pin_sent_at": _utc()}}
         )
-        print(f"✅ [PIN DEBUG] Marked PIN as sent in order document")
+        logger.info(f"✅ [PIN DEBUG] Marked PIN as sent in order document")
         
-        print(f"✅ [PIN DEBUG] Delivery PIN message sent successfully to customer {customer_id} for order {order_id}")
+        logger.info(f"✅ [PIN DEBUG] Delivery PIN message sent successfully to customer {customer_id} for order {order_id}")
         return {"ok": True, "message": clean_message}
         
     except Exception as e:
-        print(f"❌ [PIN DEBUG] Error sending system PIN message: {e}")
+        logger.error(f"❌ [PIN DEBUG] Error sending system PIN message: {e}")
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         return {"ok": False, "error": str(e)}
