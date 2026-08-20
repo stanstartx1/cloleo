@@ -113,17 +113,19 @@ const OrderCard = ({ order, cancellationSettings, onCancelOrder, onDeleteOrder }
       <CardContent className="p-4">
         {/* Delivery PIN Section - Show for active orders */}
         {order.delivery_pin && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 mb-4">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-300 mb-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-white" />
+                </div>
                 <div>
-                  <p className="font-bold text-green-800 text-sm">Code de livraison</p>
-                  <p className="text-xs text-green-600">À communiquer au livreur</p>
+                  <p className="font-bold text-green-800">Code de livraison</p>
+                  <p className="text-xs text-green-600">Communiquez ce code au livreur</p>
                 </div>
               </div>
-              <div className="bg-white rounded-lg px-4 py-2 border-2 border-green-300">
-                <p className="text-xl font-bold text-green-700 tracking-widest">
+              <div className="bg-white rounded-lg px-6 py-3 border-2 border-green-400 shadow-sm">
+                <p className="text-2xl font-bold text-green-700 tracking-widest">
                   {order.delivery_pin}
                 </p>
               </div>

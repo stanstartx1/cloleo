@@ -851,9 +851,9 @@ const DriverDashboard = () => {
                         )}
                       </div>
                       
-                      {activeOrderForMap.delivery_address?.latitude && (
+                      {activeOrderForMap.delivery_address?.latitude && activeOrderForMap.delivery_address?.longitude && (
                         <a
-                          href={`geo:${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}?q=${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}`}
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="block p-3 text-center text-sm text-blue-400 hover:bg-slate-700/50 border-t border-slate-700"

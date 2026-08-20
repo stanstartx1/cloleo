@@ -10,14 +10,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
-import { loadMapbox } from '../utils/mapboxLoader';
-import { fitToLocations, setRouteLine, toLngLat, upsertMarker } from '../utils/mapboxMap';
 import UserAvatar from '../components/UserAvatar';
 import TripartiteChat from '../components/TripartiteChat';
 import DeliveryScheduler from '../components/DeliveryScheduler';
 import RatingSystem from '../components/RatingSystem';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useUserRealtime } from '../hooks/useUserRealtime';
+import MapboxMap from '../components/MapboxMap';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
@@ -27,13 +26,13 @@ const API = API_URL;
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
 const ORDER_STATUSES = {
-  pending: { label: 'En attente', color: 'amber', icon: Clock, progress: 10 },
-  assigned: { label: 'Livreur assigné', color: 'blue', icon: User, progress: 25 },
-  accepted: { label: 'Commande acceptée', color: 'green', icon: CheckCircle, progress: 40 },
-  picked_up: { label: 'Colis récupéré', color: 'indigo', icon: Package, progress: 60 },
-  in_transit: { label: 'En route', color: 'purple', icon: Truck, progress: 80 },
-  delivered: { label: 'Livré', color: 'green', icon: CheckCircle, progress: 100 },
-  cancelled: { label: 'Annulé', color: 'red', icon: XCircle, progress: 0 }
+  pending: { label: 'En attente', color: 'amber', bgColor: 'bg-amber-100', textColor: 'text-amber-600', icon: Clock, progress: 10 },
+  assigned: { label: 'Livreur assigné', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: User, progress: 25 },
+  accepted: { label: 'Commande acceptée', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-600', icon: CheckCircle, progress: 40 },
+  picked_up: { label: 'Colis récupéré', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: Package, progress: 60 },
+  in_transit: { label: 'En route', color: 'purple', bgColor: 'bg-purple-100', textColor: 'text-purple-600', icon: Truck, progress: 80 },
+  delivered: { label: 'Livré', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-600', icon: CheckCircle, progress: 100 },
+  cancelled: { label: 'Annulé', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-600', icon: XCircle, progress: 0 }
 };
 
 const OrderTrackingPage = () => {
@@ -68,11 +67,6 @@ const OrderTrackingPage = () => {
   const [schedulerOpen, setSchedulerOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   
-  const mapRef = useRef(null);
-  const mapInstance = useRef(null);
-  const mapboxRef = useRef(null);
-  const driverMarker = useRef(null);
-  const customerMarker = useRef(null);
   const previousStatusRef = useRef(null);
 
   // Sync real-time data with local state
@@ -230,142 +224,11 @@ const OrderTrackingPage = () => {
     fetchOrder();
   }, [fetchOrder]);
 
-  // Initialize map (only once)
-  useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return;
-
-    loadMapbox()
-      .then((mapboxgl) => {
-        mapboxRef.current = mapboxgl;
-        // Initialize map immediately if order is available
-        if (order) {
-          initMap(mapboxgl);
-        }
-      })
-      .catch((error) => {
-        console.error('Error loading Mapbox:', error);
-        toast.error('Erreur chargement de la carte');
-      });
-  }, []);
-
-  // Re-initialize map when order changes (if not already initialized)
-  useEffect(() => {
-    if (!order || !mapboxRef.current || mapInstance.current) return;
-    // Small delay to ensure DOM is ready
-    setTimeout(() => {
-      if (mapboxRef.current && !mapInstance.current) {
-        initMap(mapboxRef.current);
-      }
-    }, 100);
-  }, [order]);
-
-  // Update map when driver location changes
-  useEffect(() => {
-    if (!mapInstance.current || !mapboxRef.current) return;
-
-    const customerPos = order?.delivery_address ? {
-      latitude: order.delivery_address.latitude || 5.3599,
-      longitude: order.delivery_address.longitude || -4.0083
-    } : null;
-
-    if (driverLocation && customerPos) {
-      // Add/update driver marker
-      upsertMarker(mapboxRef.current, mapInstance.current, driverMarker, driverLocation, {
-        color: '#2563eb',
-        title: 'Livreur',
-        size: 'large',
-        pulse: true
-      });
-
-      // Update route
-      updateRoute(driverLocation);
-
-      // Smoothly follow driver if in transit
-      if (order.status === 'in_transit' || order.status === 'picked_up') {
-        mapInstance.current.easeTo({
-          center: toLngLat(driverLocation),
-          zoom: 15,
-          duration: 1000,
-          easing: (t) => t * (2 - t),
-        });
-      } else {
-        // Fit both positions for other statuses
-        fitToLocations(mapboxRef.current, mapInstance.current, [customerPos, driverLocation], 50);
-      }
-    } else if (customerPos) {
-      // Just show customer position if no driver location
-      fitToLocations(mapboxRef.current, mapInstance.current, [customerPos], 13);
-    }
-  }, [driverLocation, order, order?.status]);
-
-  const initMap = (mapboxgl) => {
-    if (!order?.delivery_address) {
-      console.warn('No delivery address for map initialization');
-      return;
-    }
-    
-    const customerPos = {
-      latitude: order.delivery_address.latitude || 5.3599,
-      longitude: order.delivery_address.longitude || -4.0083
-    };
-    
-    try {
-      mapInstance.current = new mapboxgl.Map({
-        container: mapRef.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: toLngLat(customerPos),
-        zoom: 13,
-      });
-      
-      mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      
-      // Customer marker
-      upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
-        color: '#ef4444',
-        title: 'Votre position',
-        size: 'large'
-      });
-      
-      // Driver marker with animation (if location available)
-      const driverPos = driverLocation 
-        ? { latitude: driverLocation.latitude, longitude: driverLocation.longitude }
-        : null;
-      
-      if (driverPos) {
-        upsertMarker(mapboxgl, mapInstance.current, driverMarker, driverPos, {
-          color: '#2563eb',
-          title: 'Livreur',
-          size: 'large',
-          pulse: true
-        });
-
-        updateRoute(driverPos);
-        fitToLocations(mapboxgl, mapInstance.current, [customerPos, driverPos], 50);
-      } else {
-        // Center on customer position if no driver location yet
-        fitToLocations(mapboxgl, mapInstance.current, [customerPos], 13);
-      }
-      
-      // Handle map errors
-      mapInstance.current.on('error', (e) => {
-        console.error('Mapbox error:', e);
-      });
-      
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      toast.error('Erreur lors de l\'initialisation de la carte');
-    }
-  };
-
-  const updateRoute = (driverPos) => {
-    if (!mapInstance.current || !order?.delivery_address) return;
-
-    const destination = {
-      latitude: order.delivery_address.latitude,
-      longitude: order.delivery_address.longitude
-    };
-    setRouteLine(mapInstance.current, 'order-tracking-route', driverPos, destination);
-  };
+  // Calculate customer location for map
+  const customerLocation = order?.delivery_address ? {
+    latitude: order.delivery_address.latitude || 5.3599,
+    longitude: order.delivery_address.longitude || -4.0083
+  } : null;
 
   const getStatusProgress = () => {
     const statuses = ['pending', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'];
@@ -444,10 +307,14 @@ const OrderTrackingPage = () => {
                 Suivi en direct
               </h2>
             </div>
-            <div 
-              ref={mapRef} 
-              className="w-full h-80 lg:h-96"
-              data-testid="tracking-map"
+            
+            <MapboxMap
+              driverLocation={driverLocation}
+              customerLocation={customerLocation}
+              showRoute={!!driverLocation && !!customerLocation}
+              height="400px"
+              mapType="streets"
+              followDriver={order?.status === 'in_transit' || order?.status === 'picked_up'}
             />
             
             {/* Legend */}
@@ -470,16 +337,38 @@ const OrderTrackingPage = () => {
             {/* Status Card */}
             <div className="bg-white rounded-2xl border p-6">
               <div className="flex items-center gap-4 mb-6">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center bg-${statusInfo.color}-100`}>
-                  <StatusIcon className={`w-7 h-7 text-${statusInfo.color}-600`} />
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center ${statusInfo.bgColor}`}>
+                  <StatusIcon className={`w-7 h-7 ${statusInfo.textColor}`} />
                 </div>
                 <div>
-                  <p className={`text-sm font-medium text-${statusInfo.color}-600`}>
+                  <p className={`text-sm font-medium ${statusInfo.textColor}`}>
                     Statut actuel
                   </p>
                   <h3 className="text-xl font-bold">{statusInfo.label}</h3>
                 </div>
               </div>
+
+              {/* Delivery PIN Section - Show for customer when order is assigned or in transit */}
+              {order.delivery_pin && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-300 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-green-800">Code de livraison</p>
+                        <p className="text-xs text-green-600">Communiquez ce code au livreur</p>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg px-6 py-3 border-2 border-green-400 shadow-sm">
+                      <p className="text-2xl font-bold text-green-700 tracking-widest">
+                        {order.delivery_pin}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Progress Bar */}
               {order.status !== 'cancelled' && (
@@ -519,29 +408,6 @@ const OrderTrackingPage = () => {
                       <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600 animate-pulse' : 'bg-gray-300'}`} />
                       <span className={order.status === 'delivered' ? 'font-bold text-green-600' : ''}>Livré</span>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Delivery PIN Section - Show for customer when order is assigned or in transit */}
-              {order.delivery_pin && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 mb-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-green-800">Code de livraison</p>
-                      <p className="text-xs text-green-600">Communiquez ce code au livreur</p>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 border-2 border-green-300 text-center">
-                    <p className="text-3xl font-bold text-green-700 tracking-widest mb-1">
-                      {order.delivery_pin}
-                    </p>
-                    <p className="text-xs text-green-600">
-                      Ce code permet au livreur de confirmer la livraison
-                    </p>
                   </div>
                 </div>
               )}
