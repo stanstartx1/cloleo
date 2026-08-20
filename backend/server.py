@@ -1823,6 +1823,7 @@ async def track_order(order_id: str):
         "order": public_order,
         "driver_live_location": driver_location,
         "driver_info": driver_info,
+        "driver_vehicle_type": driver_info.get("vehicle_type") if driver_info else None,
         "eta_minutes": eta_minutes,
         "active_connections": manager.get_active_connections_count(),
         "connected_drivers": manager.get_connected_drivers()

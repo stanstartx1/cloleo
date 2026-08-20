@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { loadMapbox } from '../utils/mapboxLoader';
-import { DEFAULT_MAP_CENTER, fitToLocations, setRouteLine, toLngLat, upsertMarker } from '../utils/mapboxMap';
+import { DEFAULT_MAP_CENTER, fitToLocations, setRouteLine, toLngLat, upsertMarker, createDriverMarker, createCustomerMarker } from '../utils/mapboxMap';
 
 const getMapStyle = (mapType) => {
   if (mapType === 'satellite' || mapType === 'hybrid') return 'mapbox://styles/mapbox/satellite-streets-v12';
@@ -17,6 +17,7 @@ const MapboxMap = ({
   className = '',
   mapType = 'roadmap',
   followDriver = false,
+  vehicleType = 'default', // New prop for vehicle type
 }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -71,7 +72,11 @@ const MapboxMap = ({
   useEffect(() => {
     if (!mapInstance.current || !driverLocation?.latitude) return;
 
+    // Create custom driver marker based on vehicle type
+    const driverElement = createDriverMarker(vehicleType, 'normal', true);
+    
     upsertMarker(mapboxRef.current, mapInstance.current, driverMarkerRef, driverLocation, {
+      element: driverElement,
       color: '#2563eb',
       title: 'Livreur',
     });
@@ -92,12 +97,16 @@ const MapboxMap = ({
     }
 
     previousDriverLocation.current = driverLocation;
-  }, [driverLocation, customerLocation, followDriver]);
+  }, [driverLocation, customerLocation, followDriver, vehicleType]);
 
   useEffect(() => {
     if (!mapInstance.current || !customerLocation?.latitude) return;
 
+    // Create custom customer marker with person icon
+    const customerElement = createCustomerMarker('normal', false);
+    
     upsertMarker(mapboxRef.current, mapInstance.current, customerMarkerRef, customerLocation, {
+      element: customerElement,
       color: '#ef4444',
       title: 'Client',
     });

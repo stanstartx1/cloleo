@@ -129,6 +129,7 @@ const OrderTrackingPage = () => {
             ...(latestUpdate.driver_name && { driver_name: latestUpdate.driver_name }),
             ...(latestUpdate.vendor_name && { vendor_name: latestUpdate.vendor_name }),
             ...(latestUpdate.eta_minutes !== undefined && { eta_minutes: latestUpdate.eta_minutes }),
+            ...(latestUpdate.driver_vehicle_type && { driver_vehicle_type: latestUpdate.driver_vehicle_type }),
             updated_at: latestUpdate.timestamp
           }));
           
@@ -163,12 +164,13 @@ const OrderTrackingPage = () => {
       const data = orderResponse.data;
       
       if (data.order && !realtimeOrder) {
-        // Merge delivery PIN into order data
+        // Merge delivery PIN and driver vehicle type into order data
         const orderWithPin = {
           ...data.order,
           delivery_pin: pinData.delivery_pin,
           delivery_pin_created_at: pinData.delivery_pin_created_at,
-          delivery_pin_verified: pinData.delivery_pin_verified
+          delivery_pin_verified: pinData.delivery_pin_verified,
+          driver_vehicle_type: data.driver_vehicle_type
         };
         setOrder(orderWithPin);
       }
@@ -315,18 +317,21 @@ const OrderTrackingPage = () => {
               height="400px"
               mapType="streets"
               followDriver={order?.status === 'in_transit' || order?.status === 'picked_up'}
+              vehicleType={order?.driver_vehicle_type || 'default'}
             />
             
             {/* Legend */}
             <div className="p-4 bg-gray-50 flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500 rounded-full" />
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-lg">👤</div>
                 <span>Votre position</span>
               </div>
               {order.driver_id && (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full" />
-                  <span>Livreur</span>
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg">
+                    {order.driver_vehicle_type === 'moto' ? '🏍️' : order.driver_vehicle_type === 'velo' ? '🚲' : order.driver_vehicle_type === 'voiture' ? '🚗' : '📦'}
+                  </div>
+                  <span>Livreur ({order.driver_vehicle_type || 'véhicule'})</span>
                 </div>
               )}
             </div>

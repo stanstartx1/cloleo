@@ -18,15 +18,15 @@ export const toLngLat = (location, fallback = DEFAULT_MAP_CENTER) => {
   return [longitude, latitude];
 };
 
-export const createMarkerElement = (color = '#2563eb', label = '', size = 'normal', pulse = false) => {
+export const createMarkerElement = (color = '#2563eb', label = '', size = 'normal', pulse = false, icon = null) => {
   const el = document.createElement('div');
   el.className = 'mapbox-custom-marker';
   el.title = label;
   
   const sizeMap = {
-    normal: { width: '34px', height: '34px' },
+    normal: { width: '40px', height: '40px' },
     large: { width: '48px', height: '48px' },
-    small: { width: '24px', height: '24px' }
+    small: { width: '32px', height: '32px' }
   };
   
   const sizeStyles = sizeMap[size] || sizeMap.normal;
@@ -37,6 +37,17 @@ export const createMarkerElement = (color = '#2563eb', label = '', size = 'norma
   el.style.border = '3px solid #fff';
   el.style.boxShadow = '0 10px 24px rgba(15, 23, 42, 0.28)';
   el.style.cursor = 'pointer';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.fontSize = '20px';
+  el.style.color = '#fff';
+  el.style.fontWeight = 'bold';
+  
+  // Add icon if provided
+  if (icon) {
+    el.innerHTML = icon;
+  }
   
   if (pulse) {
     el.style.animation = 'pulse 2s infinite';
@@ -54,6 +65,30 @@ export const createMarkerElement = (color = '#2563eb', label = '', size = 'norma
   return el;
 };
 
+// Vehicle icons for different delivery types
+export const VEHICLE_ICONS = {
+  moto: '🏍️',
+  voiture: '🚗',
+  velo: '🚲',
+  default: '📦'
+};
+
+// Create custom marker for driver based on vehicle type
+export const createDriverMarker = (vehicleType = 'default', size = 'normal', pulse = true) => {
+  const icon = VEHICLE_ICONS[vehicleType] || VEHICLE_ICONS.default;
+  const color = '#3b82f6'; // Blue for drivers
+  
+  return createMarkerElement(color, `Livreur (${vehicleType})`, size, pulse, icon);
+};
+
+// Create custom marker for customer
+export const createCustomerMarker = (size = 'normal', pulse = false) => {
+  const icon = '👤'; // Person icon for customer
+  const color = '#ef4444'; // Red for customer
+  
+  return createMarkerElement(color, 'Client', size, pulse, icon);
+};
+
 export const upsertMarker = (mapboxgl, map, markerRef, location, options = {}) => {
   if (!map || !location) return null;
 
@@ -65,8 +100,11 @@ export const upsertMarker = (mapboxgl, map, markerRef, location, options = {}) =
     return marker;
   }
 
+  // Use custom element if provided, otherwise create default
+  const element = options.element || createMarkerElement(options.color, options.title, options.size, options.pulse);
+
   markerRef.current = new mapboxgl.Marker({
-    element: createMarkerElement(options.color, options.title, options.size, options.pulse),
+    element: element,
     draggable: Boolean(options.draggable),
   })
     .setLngLat(lngLat)
