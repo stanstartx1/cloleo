@@ -214,14 +214,23 @@ const OrderTrackingPage = () => {
 
   // Update map when driver location changes
   useEffect(() => {
-    if (!driverLocation || !mapInstance.current || !mapboxRef.current) return;
+    if (!mapInstance.current || !mapboxRef.current) return;
 
-    upsertMarker(mapboxRef.current, mapInstance.current, driverMarker, driverLocation, {
-      color: '#2563eb',
-      title: 'Livreur',
-    });
+    const customerPos = order?.delivery_address ? {
+      latitude: order.delivery_address.latitude || 5.3599,
+      longitude: order.delivery_address.longitude || -4.0083
+    } : null;
 
-    if (order?.delivery_address?.latitude) {
+    if (driverLocation && customerPos) {
+      // Add/update driver marker
+      upsertMarker(mapboxRef.current, mapInstance.current, driverMarker, driverLocation, {
+        color: '#2563eb',
+        title: 'Livreur',
+        size: 'large',
+        pulse: true
+      });
+
+      // Update route
       updateRoute(driverLocation);
 
       // Smoothly follow driver if in transit
@@ -232,9 +241,15 @@ const OrderTrackingPage = () => {
           duration: 1000,
           easing: (t) => t * (2 - t),
         });
+      } else {
+        // Fit both positions for other statuses
+        fitToLocations(mapboxRef.current, mapInstance.current, [customerPos, driverLocation], 50);
       }
+    } else if (customerPos) {
+      // Just show customer position if no driver location
+      fitToLocations(mapboxRef.current, mapInstance.current, [customerPos], 13);
     }
-  }, [driverLocation, order]);
+  }, [driverLocation, order, order?.status]);
 
   const initMap = (mapboxgl) => {
     if (!order?.delivery_address) return;
@@ -259,7 +274,7 @@ const OrderTrackingPage = () => {
       size: 'large'
     });
     
-    // Driver marker with animation
+    // Driver marker with animation (if location available)
     const driverPos = driverLocation 
       ? { latitude: driverLocation.latitude, longitude: driverLocation.longitude }
       : null;
@@ -274,9 +289,9 @@ const OrderTrackingPage = () => {
 
       updateRoute(driverPos);
       fitToLocations(mapboxgl, mapInstance.current, [customerPos, driverPos], 50);
-    } else if (driverInfo) {
-      // Show notification if driver is assigned but no location yet
-      console.log('Driver assigned but location not yet available');
+    } else {
+      // Center on customer position if no driver location yet
+      fitToLocations(mapboxgl, mapInstance.current, [customerPos], 13);
     }
   };
 

@@ -524,11 +524,15 @@ async def websocket_order_chat_endpoint(websocket: WebSocket, order_id: str):
     room = f"order_chat_{order_id}"
     await manager.connect(websocket, room, user_id=user["id"])
     
-    # Send immediate confirmation
+    # Send immediate confirmation with order details
     await websocket.send_json({
         "type": "chat_connected",
         "order_id": order_id,
-        "user_id": user["id"]
+        "user_id": user["id"],
+        "user_role": user.get("role"),
+        "customer_id": order.get("customer_id"),
+        "seller_id": order.get("seller_id"),
+        "driver_id": order.get("driver_id")
     })
     
     try:

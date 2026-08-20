@@ -5,20 +5,15 @@ import {
   Truck, Package, DollarSign, MapPin, Clock, CheckCircle, 
   XCircle, AlertCircle, Phone, LogOut, Navigation, 
   Loader2, Star, Play, Flag, PackageCheck, Bell,
-  Menu, Home, Map, List, History, ChevronRight, X, MessageCircle,
-  Trophy, Target, BarChart3, Layers, TrendingUp
+  Menu, Home, Map, List, History, ChevronRight, X, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import MapboxMap from '../components/MapboxMap';
-import MessagesSection from '../components/MessagesSection';
 import TripartiteChat from '../components/TripartiteChat';
 import DeliveryProof from '../components/DeliveryProof';
-import MultiDeliveryManager from '../components/MultiDeliveryManager';
-import AnalyticsDashboard from '../components/AnalyticsDashboard';
-import GamificationSystem from '../components/GamificationSystem';
 import { geolocationService } from '../services/geolocationService';
 import { notificationService } from '../services/notificationService';
 import { useDriverOrders } from '../hooks/useDriverOrders';
@@ -39,14 +34,11 @@ const ORDER_STATUSES = {
 };
 
 const NAV_ITEMS = [
-  { id: 'map', label: 'Carte & Navigation', icon: Map },
+  { id: 'map', label: 'Navigation', icon: Map },
   { id: 'orders', label: 'Commandes', icon: Package, badge: true },
-  { id: 'multi', label: 'Multi-livraisons', icon: Layers },
   { id: 'messages', label: 'Messages', icon: MessageCircle },
   { id: 'history', label: 'Historique', icon: History },
-  { id: 'stats', label: 'Mes gains', icon: DollarSign },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'gamification', label: 'Récompenses', icon: Trophy },
+  { id: 'stats', label: 'Gains', icon: DollarSign },
 ];
 
 const DriverDashboard = () => {
@@ -69,9 +61,6 @@ const DriverDashboard = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatRecipient, setChatRecipient] = useState(null);
   const [deliveryProofOpen, setDeliveryProofOpen] = useState(false);
-  const [multiDeliveryOpen, setMultiDeliveryOpen] = useState(false);
-  const [analyticsOpen, setAnalyticsOpen] = useState(false);
-  const [gamificationOpen, setGamificationOpen] = useState(false);
   
   const wsRef = React.useRef(null);
   const watchIdRef = React.useRef(null);
@@ -521,18 +510,18 @@ const DriverDashboard = () => {
 
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-64 premium-panel border-r border-slate-700 min-h-screen fixed left-0 top-0">
+        <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-slate-900 to-slate-800 border-r border-slate-700 min-h-screen fixed left-0 top-0">
           {/* Logo */}
-          <div className="p-4 border-b border-slate-700">
+          <div className="p-6 border-b border-slate-700">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                currentStatus === 'available' ? 'bg-green-500' :
-                currentStatus === 'busy' ? 'bg-amber-500' : 'bg-slate-600'
-              }`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                currentStatus === 'available' ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
+                currentStatus === 'busy' ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-slate-700'
+              } shadow-lg`}>
                 <Truck className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-white">Espace Livreur</h1>
+                <h1 className="font-bold text-white text-lg">Espace Livreur</h1>
                 <p className="text-xs text-slate-400">{driverUser?.name}</p>
               </div>
             </div>
@@ -540,7 +529,7 @@ const DriverDashboard = () => {
 
           {/* Status Selector */}
           <div className="p-4 border-b border-slate-700">
-            <p className="text-xs text-slate-400 mb-2">Votre statut</p>
+            <p className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Statut</p>
             <div className="space-y-2">
               {[
                 { value: 'available', label: 'Disponible', color: 'green', icon: CheckCircle },
@@ -554,21 +543,21 @@ const DriverDashboard = () => {
                     key={status.value}
                     onClick={() => !isPendingVerification && !updatingStatus && updateDriverStatus(status.value)}
                     disabled={isPendingVerification || updatingStatus}
-                    className={`w-full p-2 rounded-lg border transition-all flex items-center gap-2 ${
+                    className={`w-full p-3 rounded-xl border transition-all flex items-center gap-3 ${
                       isActive 
-                        ? status.color === 'green' ? 'border-green-500 bg-green-500/20' :
-                          status.color === 'amber' ? 'border-amber-500 bg-amber-500/20' :
-                          'border-slate-500 bg-slate-500/20'
-                        : 'border-slate-700 hover:border-slate-600'
+                        ? status.color === 'green' ? 'border-green-500 bg-green-500/10 shadow-lg shadow-green-500/20' :
+                          status.color === 'amber' ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/20' :
+                          'border-slate-500 bg-slate-500/10'
+                        : 'border-slate-700 hover:border-slate-600 hover:bg-slate-700/50'
                     } ${isPendingVerification ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <Icon className={`w-4 h-4 ${
+                    <Icon className={`w-5 h-5 ${
                       isActive 
                         ? status.color === 'green' ? 'text-green-400' :
                           status.color === 'amber' ? 'text-amber-400' : 'text-slate-400'
                         : 'text-slate-500'
                     }`} />
-                    <span className={`text-sm ${isActive ? 'text-white' : 'text-slate-400'}`}>{status.label}</span>
+                    <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-400'}`}>{status.label}</span>
                   </button>
                 );
               })}
@@ -576,7 +565,7 @@ const DriverDashboard = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -585,13 +574,13 @@ const DriverDashboard = () => {
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                    isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="flex-1 text-left">{item.label}</span>
+                  <span className="flex-1 text-left font-medium">{item.label}</span>
                   {item.badge && availableOrders.length > 0 && (
-                    <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                    <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
                       {availableOrders.length}
                     </span>
                   )}
@@ -601,56 +590,69 @@ const DriverDashboard = () => {
           </nav>
 
           {/* Bottom Actions */}
-          <div className="p-4 border-t border-slate-700">
-            <Link to="/" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-xl">
-              <Home className="w-5 h-5" /> Voir la boutique
+          <div className="p-4 border-t border-slate-700 space-y-2">
+            <Link to="/" className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-xl transition-all">
+              <Home className="w-5 h-5" /> <span className="font-medium">Voir la boutique</span>
             </Link>
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl mt-2">
-              <LogOut className="w-5 h-5" /> Déconnexion
+            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all">
+              <LogOut className="w-5 h-5" /> <span className="font-medium">Déconnexion</span>
             </button>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 p-4 lg:p-6">
-          <div className="mb-4 flex justify-end">
-            <Button variant="destructive" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" /> Déconnexion
-            </Button>
-          </div>
+        <main className="flex-1 lg:ml-64 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+          <div className="p-4 lg:p-8">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
+                {activeSection === 'map' ? 'Navigation' :
+                 activeSection === 'orders' ? 'Commandes disponibles' :
+                 activeSection === 'messages' ? 'Messages' :
+                 activeSection === 'history' ? 'Historique des livraisons' :
+                 activeSection === 'stats' ? 'Vos gains' : 'Tableau de bord'}
+              </h1>
+              <p className="text-slate-600">
+                {activeSection === 'map' ? 'Suivez votre position et gérez vos livraisons' :
+                 activeSection === 'orders' ? 'Acceptez et gérez les nouvelles commandes' :
+                 activeSection === 'messages' ? 'Communiquez avec vos clients' :
+                 activeSection === 'history' ? 'Consultez vos livraisons passées' :
+                 activeSection === 'stats' ? 'Vos statistiques de revenus' : 'Bienvenue'}
+              </p>
+            </div>
 
           {/* Pending Verification Alert */}
           {isPendingVerification && (
-            <div className="mb-4 p-4 bg-amber-500/20 border border-amber-500/50 rounded-xl flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-amber-400 shrink-0" />
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
               <div>
-                <h3 className="font-bold text-amber-200">Compte en attente de vérification</h3>
-                <p className="text-sm text-amber-300/70">Vous ne pouvez pas accepter de commandes pour l'instant.</p>
+                <h3 className="font-bold text-amber-800">Compte en attente de vérification</h3>
+                <p className="text-sm text-amber-700">Vous ne pouvez pas accepter de commandes pour l'instant.</p>
               </div>
             </div>
           )}
 
           {/* Map Section */}
           {activeSection === 'map' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Active Orders List (Multiple) */}
               {activeOrders.length > 0 && (
                 <div className="space-y-4">
                   {/* Order Selector if multiple */}
                   {activeOrders.length > 1 && (
-                    <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-                      <p className="text-sm text-slate-400 mb-3">
-                        Vous avez <span className="text-blue-400 font-bold">{activeOrders.length}</span> commandes en cours
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                      <p className="text-sm text-slate-600 mb-3">
+                        Vous avez <span className="text-blue-600 font-bold">{activeOrders.length}</span> commandes en cours
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {activeOrders.map((order) => (
                           <button
                             key={order.id}
                             onClick={() => setSelectedOrder(order)}
-                            className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                               selectedOrder?.id === order.id 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                ? 'bg-blue-600 text-white shadow-md' 
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                             }`}
                           >
                             {order.order_number || `#${order.id?.slice(-8)}`} - {ORDER_STATUSES[order.status]?.label}
@@ -662,40 +664,39 @@ const DriverDashboard = () => {
                   
                   {/* Selected Active Order Card */}
                   {activeOrderForMap && (
-                    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-                      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                            <Package className="w-5 h-5 text-blue-400" />
+                          <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <Package className="w-6 h-6 text-white" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-white">Commande en cours</h3>
-                            <p className="text-xs text-slate-400">{activeOrderForMap.order_number || `#${activeOrderForMap.id?.slice(-8)}`}</p>
+                            <h3 className="font-bold text-slate-900">Commande en cours</h3>
+                            <p className="text-sm text-slate-600">{activeOrderForMap.order_number || `#${activeOrderForMap.id?.slice(-8)}`}</p>
                           </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-sm ${ORDER_STATUSES[activeOrderForMap.status]?.bgColor} ${ORDER_STATUSES[activeOrderForMap.status]?.textColor}`}>
+                        <span className={`px-4 py-2 rounded-full text-sm font-semibold ${ORDER_STATUSES[activeOrderForMap.status]?.bgColor} ${ORDER_STATUSES[activeOrderForMap.status]?.textColor}`}>
                           {ORDER_STATUSES[activeOrderForMap.status]?.label}
                         </span>
                       </div>
                       
                       {/* Customer Info */}
-                      <div className="p-4 bg-slate-700/30">
+                      <div className="p-5 bg-white">
                         <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3">
-                            <MapPin className="w-5 h-5 text-red-400 mt-0.5" />
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                              <MapPin className="w-6 h-6 text-red-600" />
+                            </div>
                             <div className="flex-1">
-                              <p className="font-medium text-white">{activeOrderForMap.delivery_address?.name}</p>
-                              <p className="text-sm text-slate-400">{activeOrderForMap.delivery_address?.street}</p>
-                              <p className="text-sm text-slate-400">{activeOrderForMap.delivery_address?.city}</p>
+                              <p className="font-semibold text-slate-900">{activeOrderForMap.delivery_address?.name}</p>
+                              <p className="text-sm text-slate-600">{activeOrderForMap.delivery_address?.street}</p>
+                              <p className="text-sm text-slate-600">{activeOrderForMap.delivery_address?.city}</p>
                               {activeOrderForMap.delivery_address?.phone && (
-                                <p className="text-sm text-green-400 mt-1">📞 {activeOrderForMap.delivery_address?.phone}</p>
-                              )}
-                              {activeOrderForMap.customer_info?.address?.latitude && activeOrderForMap.customer_info?.address?.longitude && (
-                                <p className="text-xs text-slate-500 mt-1">📍 GPS: {activeOrderForMap.customer_info.address.latitude.toFixed(4)}, {activeOrderForMap.customer_info.address.longitude.toFixed(4)}</p>
+                                <p className="text-sm text-green-600 mt-2 font-medium">� {activeOrderForMap.delivery_address?.phone}</p>
                               )}
                             </div>
                           </div>
-                          <a href={`tel:${activeOrderForMap.delivery_address?.phone}`} className="p-3 bg-green-500/20 rounded-full text-green-400">
+                          <a href={`tel:${activeOrderForMap.delivery_address?.phone}`} className="p-3 bg-green-100 rounded-xl text-green-600 hover:bg-green-200 transition-colors">
                             <Phone className="w-5 h-5" />
                           </a>
                         </div>
@@ -827,104 +828,107 @@ const DriverDashboard = () => {
                   )}
                 </div>
               )}
-              
-              {/* Map */}
-              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-                <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-                  <h3 className="font-bold text-white flex items-center gap-2">
-                    <Map className="w-5 h-5 text-blue-400" />
-                    {activeOrders.length > 0 ? 'Navigation' : 'Ma position'}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    {trackingEnabled && (
-                      <span className="flex items-center gap-1 text-xs text-green-400 px-2 py-1 bg-green-500/20 rounded-full">
-                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                        GPS
-                      </span>
-                    )}
-                    <Button size="sm" variant="outline" onClick={getCurrentLocation} className="border-slate-600 text-white">
-                      <Navigation className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <MapboxMap
-                  driverLocation={currentLocation}
-                  customerLocation={customerLocation}
-                  showRoute={activeOrders.length > 0}
-                  height="320px"
-                  mapType="satellite"
-                  followDriver={true}
-                />
-                
-                <div className="p-3 bg-slate-700/50 flex items-center gap-6 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                    <span className="text-slate-300">Ma position</span>
-                  </div>
-                  {customerLocation && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full" />
-                      <span className="text-slate-300">Client</span>
-                    </div>
-                  )}
-                </div>
+            </div>
+          )}
+
+          {/* Map */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <Map className="w-5 h-5 text-blue-600" />
+                {activeOrders.length > 0 ? 'Navigation' : 'Ma position'}
+              </h3>
+              <div className="flex items-center gap-2">
+                {trackingEnabled && (
+                  <span className="flex items-center gap-1 text-xs text-green-600 px-3 py-1 bg-green-100 rounded-full font-medium">
+                    <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse" />
+                    GPS actif
+                  </span>
+                )}
+                <Button size="sm" onClick={getCurrentLocation} className="bg-blue-600 hover:bg-blue-700">
+                  <Navigation className="w-4 h-4" />
+                </Button>
               </div>
-              
-              {activeOrders.length === 0 && (
-                <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center">
-                  <Package className="w-16 h-16 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400 mb-4">Aucune livraison en cours</p>
-                  <Button onClick={() => setActiveSection('orders')}>
-                    Voir les commandes disponibles
-                  </Button>
+            </div>
+            
+            <MapboxMap
+              driverLocation={currentLocation}
+              customerLocation={customerLocation}
+              showRoute={activeOrders.length > 0}
+              height="400px"
+              mapType="streets"
+              followDriver={true}
+            />
+            
+            <div className="p-4 bg-slate-50 flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-600 rounded-full" />
+                <span className="text-slate-700 font-medium">Ma position</span>
+              </div>
+              {customerLocation && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-600 rounded-full" />
+                  <span className="text-slate-700 font-medium">Client</span>
                 </div>
               )}
+            </div>
+          </div>
+          
+          {activeOrders.length === 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+              <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucune livraison en cours</h3>
+              <p className="text-slate-600 mb-4">Vous n'avez pas de commandes actives pour le moment</p>
+              <Button onClick={() => setActiveSection('orders')} className="bg-blue-600 hover:bg-blue-700">
+                Voir les commandes disponibles
+              </Button>
+            </div>
+          )}
             </div>
           )}
 
           {/* Orders Section */}
           {activeSection === 'orders' && (
             <div className="space-y-6">
-              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-                <div className="p-4 border-b border-slate-700">
-                  <h3 className="font-bold text-white flex items-center gap-2">
-                    <Bell className="w-5 h-5 text-amber-400" />
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-amber-600" />
                     Commandes disponibles ({availableOrders.length})
                   </h3>
                 </div>
                 
                 {availableOrders.length > 0 ? (
-                  <div className="divide-y divide-slate-700">
+                  <div className="divide-y divide-slate-100">
                     {availableOrders.map(order => (
-                      <div key={order.id} className="p-4 space-y-3">
+                      <div key={order.id} className="p-5 space-y-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <p className="font-medium text-white">{order.order_number || `#${order.id?.slice(-8)}`}</p>
-                            <p className="text-sm text-slate-400">{order.delivery_address?.city}</p>
+                            <p className="font-semibold text-slate-900">{order.order_number || `#${order.id?.slice(-8)}`}</p>
+                            <p className="text-sm text-slate-600">{order.delivery_address?.city}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-white">{formatPrice(order.total_fcfa)} FCFA</p>
+                            <p className="font-bold text-slate-900">{formatPrice(order.total_fcfa)} FCFA</p>
                           </div>
                         </div>
                         
                         {/* Seller Information */}
                         {order.seller_info && (
-                          <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
+                          <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                             <div className="flex items-start gap-3">
-                              <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center shrink-0">
-                                <span className="text-purple-400 font-bold text-sm">
+                              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center shrink-0">
+                                <span className="text-purple-600 font-bold text-sm">
                                   {order.seller_info.name?.[0] || 'V'}
                                 </span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs text-purple-400 mb-1">Récupérer chez :</p>
-                                <p className="font-medium text-white text-sm truncate">{order.seller_info.name}</p>
+                                <p className="text-xs text-purple-600 mb-1 font-medium">Récupérer chez :</p>
+                                <p className="font-semibold text-slate-900 text-sm truncate">{order.seller_info.name}</p>
                                 {order.seller_info.phone && (
-                                  <p className="text-sm text-slate-400">📞 {order.seller_info.phone}</p>
+                                  <p className="text-sm text-slate-600">📞 {order.seller_info.phone}</p>
                                 )}
                                 {order.seller_info.address && (
-                                  <p className="text-sm text-slate-400 truncate">📍 {order.seller_info.address}</p>
+                                  <p className="text-sm text-slate-600 truncate">📍 {order.seller_info.address}</p>
                                 )}
                                 {order.seller_info.location && order.seller_info.location.latitude && order.seller_info.location.longitude ? (
                                   <div className="flex items-center gap-2 mt-1">
@@ -933,21 +937,17 @@ const DriverDashboard = () => {
                                       href={`geo:${order.seller_info.location.latitude},${order.seller_info.location.longitude}?q=${order.seller_info.location.latitude},${order.seller_info.location.longitude}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-xs text-purple-400 hover:text-purple-300"
+                                      className="text-xs text-purple-600 hover:text-purple-700"
                                     >
                                       <Navigation className="w-3 h-3 inline" />
                                     </a>
                                   </div>
                                 ) : (
-                                  <p className="text-xs text-amber-500 mt-1">⚠️ Localisation non disponible</p>
-                                )}
-                                )}
-                                {order.seller_info.location && (
-                                  <p className="text-xs text-slate-500 mt-1">📍 GPS: {order.seller_info.location.latitude.toFixed(4)}, {order.seller_info.location.longitude.toFixed(4)}</p>
+                                  <p className="text-xs text-amber-600 mt-1">⚠️ Localisation non disponible</p>
                                 )}
                               </div>
                               {order.seller_info.phone && (
-                                <a href={`tel:${order.seller_info.phone}`} className="p-2 bg-purple-500/20 rounded-full text-purple-400 shrink-0">
+                                <a href={`tel:${order.seller_info.phone}`} className="p-2 bg-purple-100 rounded-xl text-purple-600 hover:bg-purple-200 transition-colors shrink-0">
                                   <Phone className="w-4 h-4" />
                                 </a>
                               )}
@@ -1024,8 +1024,9 @@ const DriverDashboard = () => {
                   </div>
                 ) : (
                   <div className="p-12 text-center">
-                    <Package className="w-16 h-16 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400">Aucune commande disponible</p>
+                    <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucune commande disponible</h3>
+                    <p className="text-slate-600">Revenez plus tard pour voir les nouvelles commandes</p>
                   </div>
                 )}
               </div>
@@ -1034,48 +1035,83 @@ const DriverDashboard = () => {
 
           {/* Messages Section */}
           {activeSection === 'messages' && (
-            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-              <div className="p-4 border-b border-slate-700">
-                <h3 className="font-bold text-white flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-purple-400" />
-                  Messages
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-pink-50">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-purple-600" />
+                  Messages de commande
                 </h3>
               </div>
-              <div className="p-4">
-                <MessagesSection token={token} userType="driver" />
+              <div className="p-5">
+                {activeOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {activeOrders.map(order => (
+                      <div key={order.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-semibold text-slate-900">{order.order_number || `#${order.id?.slice(-8)}`}</p>
+                            <p className="text-sm text-slate-600">{order.customer_name || order.delivery_address?.name}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setChatRecipient({
+                                type: 'customer',
+                                id: order.customer_id,
+                                name: order.customer_name || order.delivery_address?.name
+                              });
+                              setChatOpen(true);
+                            }}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Discuter
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center">
+                    <MessageCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucune commande active</h3>
+                    <p className="text-slate-600">Vous devez avoir une commande active pour discuter avec les clients</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* History Section */}
           {activeSection === 'history' && (
-            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-              <div className="p-4 border-b border-slate-700">
-                <h3 className="font-bold text-white flex items-center gap-2">
-                  <History className="w-5 h-5 text-green-400" />
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <History className="w-5 h-5 text-green-600" />
                   Historique ({completedOrders.length})
                 </h3>
               </div>
               
               {completedOrders.length > 0 ? (
-                <div className="divide-y divide-slate-700">
+                <div className="divide-y divide-slate-100">
                   {completedOrders.map(order => (
-                    <div key={order.id} className="p-4 flex items-center justify-between">
+                    <div key={order.id} className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
                       <div>
-                        <p className="font-medium text-white">{order.order_number || `#${order.id?.slice(-8)}`}</p>
-                        <p className="text-sm text-slate-400">{order.customer_name}</p>
+                        <p className="font-semibold text-slate-900">{order.order_number || `#${order.id?.slice(-8)}`}</p>
+                        <p className="text-sm text-slate-600">{order.customer_name}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-green-400">{formatPrice(order.total_fcfa)} FCFA</p>
-                        <span className="text-xs text-green-400">Livrée</span>
+                        <p className="font-bold text-green-600">{formatPrice(order.total_fcfa)} FCFA</p>
+                        <span className="text-xs text-green-600 font-medium">Livrée</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="p-12 text-center">
-                  <CheckCircle className="w-16 h-16 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400">Aucune livraison terminée</p>
+                  <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucune livraison terminée</h3>
+                  <p className="text-slate-600">Vos livraisons complétées apparaîtront ici</p>
                 </div>
               )}
             </div>
@@ -1084,112 +1120,53 @@ const DriverDashboard = () => {
           {/* Stats Section */}
           {activeSection === 'stats' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                  <Package className="w-8 h-8 text-blue-400 mb-3" />
-                  <p className="text-3xl font-bold text-white">{stats?.total_deliveries || 0}</p>
-                  <p className="text-sm text-slate-400">Livraisons</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <Package className="w-7 h-7 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-slate-900">{stats?.total_deliveries || 0}</p>
+                      <p className="text-sm text-slate-600 font-medium">Livraisons totales</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                  <DollarSign className="w-8 h-8 text-emerald-400 mb-3" />
-                  <p className="text-3xl font-bold text-white">{formatPrice(stats?.total_earnings || 0)}</p>
-                  <p className="text-sm text-slate-400">FCFA gagnés</p>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-7 h-7 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-slate-900">{formatPrice(stats?.total_earnings || 0)}</p>
+                      <p className="text-sm text-slate-600 font-medium">FCFA gagnés</p>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="font-bold text-white mb-4">Performance</h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 className="font-bold text-slate-900 mb-4">Performance</h3>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Note moyenne</span>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                    <span className="font-bold text-white">{driverUser?.rating?.toFixed(1) || '5.0'}</span>
+                  <span className="text-slate-600 font-medium">Note moyenne</span>
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <span className="font-bold text-slate-900 text-lg">{driverUser?.rating?.toFixed(1) || '5.0'}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Multi-Delivery Section */}
-          {activeSection === 'multi' && (
-            <div className="space-y-6">
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-white flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-purple-400" />
-                    Gestion multi-livraisons
-                  </h3>
-                  <Button
-                    onClick={() => setMultiDeliveryOpen(true)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500"
-                  >
-                    <Target className="w-4 h-4 mr-2" />
-                    Ouvrir le gestionnaire
-                  </Button>
-                </div>
-                <p className="text-slate-400 text-sm">
-                  Optimisez vos routes et gérez plusieurs livraisons simultanément
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Analytics Section */}
-          {activeSection === 'analytics' && (
-            <div className="space-y-6">
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-white flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-blue-400" />
-                    Analytics Dashboard
-                  </h3>
-                  <Button
-                    onClick={() => setAnalyticsOpen(true)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500"
-                  >
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Voir les analytics
-                  </Button>
-                </div>
-                <p className="text-slate-400 text-sm">
-                  Analyses détaillées de votre performance livreur
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Gamification Section */}
-          {activeSection === 'gamification' && (
-            <div className="space-y-6">
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-white flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-400" />
-                    Système de récompenses
-                  </h3>
-                  <Button
-                    onClick={() => setGamificationOpen(true)}
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500"
-                  >
-                    <Trophy className="w-4 h-4 mr-2" />
-                    Voir mes récompenses
-                  </Button>
-                </div>
-                <p className="text-slate-400 text-sm">
-                  Gagnez des points, débloquez des niveaux et obtenez des avantages
-                </p>
-              </div>
-            </div>
-          )}
         </main>
       </div>
 
       {/* Integrated Components */}
       <TripartiteChat
         orderId={selectedOrder?.id}
-        recipientType={chatRecipient?.type}
-        recipientId={chatRecipient?.id}
-        recipientName={chatRecipient?.name}
+        recipientType={chatRecipient?.type || 'customer'}
+        recipientId={chatRecipient?.id || selectedOrder?.customer_id}
+        recipientName={chatRecipient?.name || selectedOrder?.customer_name || selectedOrder?.delivery_address?.name}
         isOpen={chatOpen}
         onClose={() => setChatOpen(false)}
       />
@@ -1199,23 +1176,6 @@ const DriverDashboard = () => {
         isOpen={deliveryProofOpen}
         onClose={() => setDeliveryProofOpen(false)}
         onSubmit={(data) => console.log('Delivery proof submitted:', data)}
-      />
-
-      <MultiDeliveryManager
-        isOpen={multiDeliveryOpen}
-        onClose={() => setMultiDeliveryOpen(false)}
-      />
-
-      <AnalyticsDashboard
-        isOpen={analyticsOpen}
-        onClose={() => setAnalyticsOpen(false)}
-        userRole="driver"
-      />
-
-      <GamificationSystem
-        isOpen={gamificationOpen}
-        onClose={() => setGamificationOpen(false)}
-        userRole="driver"
       />
     </div>
   );
