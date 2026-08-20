@@ -1948,11 +1948,13 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         
         # Send delivery PIN via chat message from Cloleo
         if order.get("delivery_pin"):
-            await send_system_delivery_pin_message(
+            print(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id}")
+            pin_result = await send_system_delivery_pin_message(
                 order_id, 
                 order["delivery_pin"], 
                 order.get("order_number")
             )
+            print(f"📊 [SERVER DEBUG] PIN message result: {pin_result}")
 
     await notify_all_parties(
         order_id,
@@ -2058,11 +2060,13 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
     # Send delivery PIN via chat message from Cloleo when vendor accepts
     # (This ensures the customer gets the PIN as soon as the order is confirmed)
     if order and order.get("delivery_pin"):
-        await send_system_delivery_pin_message(
+        print(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id} (vendor accept)")
+        pin_result = await send_system_delivery_pin_message(
             order_id, 
             order["delivery_pin"], 
             order.get("order_number")
         )
+        print(f"📊 [SERVER DEBUG] PIN message result (vendor accept): {pin_result}")
 
     # Check for auto-assign driver setting
     delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
@@ -2149,11 +2153,13 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
                 # Send delivery PIN via chat message from Cloleo for auto-assignment
                 order = await db.orders.find_one({"id": order_id}, {"_id": 0})
                 if order and order.get("delivery_pin"):
-                    await send_system_delivery_pin_message(
+                    print(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id} (auto-assign)")
+                    pin_result = await send_system_delivery_pin_message(
                         order_id, 
                         order["delivery_pin"], 
                         order.get("order_number")
                     )
+                    print(f"📊 [SERVER DEBUG] PIN message result (auto-assign): {pin_result}")
 
     # Broadcast update to all order-related rooms
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
