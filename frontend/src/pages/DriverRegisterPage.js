@@ -140,25 +140,32 @@ const DriverRegisterPage = () => {
       const formData = new FormData();
       formData.append('file', licenseFile);
 
-      await axios.post(`${API}/driver/upload-license`, formData, {
+      const response = await axios.post(`${API}/driver/upload-license`, formData, {
         headers: {
           Authorization: `Bearer ${tempToken}`
         }
       });
 
+      console.log('License upload successful:', response.data);
       setRegistrationComplete(true);
       toast.success('Permis uploadé avec succès !');
       
       // Auto login after 2 seconds
       setTimeout(() => {
-        login(tempToken, undefined, tempUser);
-        navigate('/livreur');
+        try {
+          login(tempToken, undefined, tempUser);
+          navigate('/livreur', { replace: true });
+        } catch (error) {
+          console.error('Login redirect error:', error);
+          toast.error('Erreur lors de la redirection. Veuillez vous connecter manuellement.');
+          navigate('/connexion', { replace: true });
+        }
       }, 2000);
       
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.response?.data?.detail || 'Erreur lors de l\'upload du permis');
-    } finally {
+      const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'upload du permis';
+      toast.error(errorMessage);
       setUploadingLicense(false);
     }
   };

@@ -201,36 +201,91 @@ const DriverDashboard = () => {
     return () => clearInterval(pollingInterval);
   }, [user?.id, fetchOrders, fetchDashboard]);
 
-  // Request GPS permission on mount for drivers
+  // Request GPS permission on mount for drivers - MORE AGGRESSIVE
   useEffect(() => {
     if (isDriver && navigator.geolocation) {
       // Request GPS permission immediately on dashboard load
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('GPS permission granted, initial position:', position.coords);
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          };
-          setCurrentLocation(location);
-          
-          // Update backend with initial location
-          axios.post(`${API}/driver/location/update`, location, {
-            headers: { Authorization: `Bearer ${token}` }
-          }).catch(error => console.error('Error updating initial location:', error));
-          
-          toast.success('GPS activé avec succès', {
-            description: 'Votre position est maintenant partagée pour recevoir des commandes'
-          });
-        },
-        (error) => {
-          console.error('GPS permission denied:', error);
-          toast.error('GPS non activé', {
-            description: 'Veuillez activer votre GPS pour recevoir des commandes'
-          });
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+      const requestGPS = () => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log('GPS permission granted, initial position:', position.coords);
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            setCurrentLocation(location);
+            
+            // Update backend with initial location
+            axios.post(`${API}/driver/location/update`, location, {
+              headers: { Authorization: `Bearer ${token}` }
+            }).then(() => {
+              console.log('Initial location updated successfully');
+              toast.success('GPS activé avec succès', {
+                description: 'Votre position est maintenant partagée pour recevoir des commandes'
+              });
+            }).catch(error => {
+              console.error('Error updating initial location:', error);
+              toast.error('Erreur de mise à jour de position', {
+                description: 'Veuillez réessayer'
+              });
+            });
+          },
+          (error) => {
+            console.error('GPS permission denied:', error);
+            let errorMessage = 'Veuillez activer votre GPS pour recevoir des commandes';
+            if (error.code === 1) { // PERMISSION_DENIED
+              errorMessage = 'Permission GPS refusée. Activez-la dans les paramètres du navigateur.';
+            } else if (error.code === 2) { // POSITION_UNAVAILABLE
+              errorMessage = 'Position GPS non disponible. Vérifiez vos paramètres.';
+            } else if (error.code === 3) { // TIMEOUT
+              errorMessage = 'Délai GPS expiré. Réessayez.';
+            }
+            toast.error('GPS non activé', {
+              description: errorMessage
+            });
+            
+            // Retry after 5 seconds
+            setTimeout(requestGPS, 5000);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      };
+      
+      requestGPS();
+      
+      // Also request location on driver accepting orders
+      const handleOrderAccept = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const location = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              };
+              setCurrentLocation(location);
+              
+              axios.post(`${API}/driver/location/update`, location, {
+                headers: { Authorization: `Bearer ${token}` }
+              }).then(() => {
+                console.log('Location updated on order accept');
+              }).catch(error => {
+                console.error('Error updating location on order accept:', error);
+              });
+            },
+            (error) => {
+              console.error('GPS error on order accept:', error);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+      };
+      
+      // Add event listener for order acceptance
+      window.addEventListener('driverOrderAccepted', handleOrderAccept);
+      
+      return () => {
+        window.removeEventListener('driverOrderAccepted', handleOrderAccept);
+      };
     }
   }, [isDriver, token]);
 
@@ -361,9 +416,84 @@ const DriverDashboard = () => {
       let payload = {};
       
       switch (action) {
-        case 'driver-accept': endpoint = `/orders/${order.id}/driver-accept`; break;
-        case 'pickup': endpoint = `/orders/${order.id}/pickup`; setTrackingEnabled(true); break;
-        case 'in-transit': endpoint = `/orders/${order.id}/in-transit`; break;
+        case 'driver-accept': 
+          endpoint = `/orders/${order.id}/driver-accept`; 
+          setTrackingEnabled(true);
+          
+          // Request GPS immediately when accepting order
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const location = {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude
+                };
+                setCurrentLocation(location);
+                axios.post(`${API}/driver/location/update`, location, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).then(() => {
+                  console.log('Location updated on order accept');
+                  toast.success('Position GPS mise à jour', {
+                    description: 'Votre position est partagée avec le client'
+                  });
+                }).catch(error => {
+                  console.error('Error updating location on order accept:', error);
+                });
+              },
+              (error) => {
+                console.error('GPS error on order accept:', error);
+                toast.error('GPS requis', {
+                  description: 'Activez votre GPS pour suivre la commande'
+                });
+              },
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          }
+          break;
+        case 'pickup': 
+          endpoint = `/orders/${order.id}/pickup`; 
+          setTrackingEnabled(true);
+          
+          // Request GPS when picking up
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const location = {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude
+                };
+                setCurrentLocation(location);
+                axios.post(`${API}/driver/location/update`, location, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).catch(console.error);
+              },
+              console.error,
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          }
+          break;
+        case 'in-transit': 
+          endpoint = `/orders/${order.id}/in-transit`; 
+          setTrackingEnabled(true);
+          
+          // Request GPS when starting transit
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const location = {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude
+                };
+                setCurrentLocation(location);
+                axios.post(`${API}/driver/location/update`, location, {
+                  headers: { Authorization: `Bearer ${token}` }
+                }).catch(console.error);
+              },
+              console.error,
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          }
+          break;
         case 'deliver': 
           // Require PIN verification before delivery
           const pin = prompt("Entrez le code de livraison du client (code à 6 chiffres) :");
@@ -412,6 +542,10 @@ const DriverDashboard = () => {
       if (action === 'driver-cancel') {
         toast.success('Commande annulée et réassignée');
         setSelectedOrder(null);
+      } else if (action === 'driver-accept') {
+        toast.success('Commande acceptée !', {
+          description: 'Votre position GPS est partagée avec le client'
+        });
       } else {
         toast.success(
           action === 'driver-accept' ? 'Commande acceptée !' :
