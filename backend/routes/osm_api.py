@@ -76,7 +76,11 @@ async def forward_geocode(request: GeocodeRequest):
         )
         return {"results": results, "count": len(results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "error": str(e),
+            "results": [],
+            "count": 0
+        }
 
 
 @router.post("/autocomplete")
@@ -111,7 +115,11 @@ async def address_autocomplete(request: AutocompleteRequest):
         
         return {"suggestions": formatted_results, "count": len(formatted_results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "error": str(e),
+            "suggestions": [],
+            "count": 0
+        }
 
 
 def _format_address_for_autocomplete(result: dict) -> str:
@@ -190,12 +198,18 @@ async def reverse_geocode(request: ReverseGeocodeRequest):
             request.language
         )
         if not result:
-            raise HTTPException(status_code=404, detail="Address not found")
+            return {
+                "error": "Address not found",
+                "display_name": "",
+                "address": {}
+            }
         return result
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "error": str(e),
+            "display_name": "",
+            "address": {}
+        }
 
 
 @router.post("/batch-geocode")
@@ -210,7 +224,11 @@ async def batch_geocode_endpoint(request: BatchGeocodeRequest):
         )
         return {"results": results, "total": len(results)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "error": str(e),
+            "results": [],
+            "total": 0
+        }
 
 
 # ==================== DIRECTIONS ENDPOINTS ====================
@@ -231,13 +249,25 @@ async def get_directions(request: DirectionsRequest):
         )
         
         if "error" in result:
-            raise HTTPException(status_code=500, detail=result["error"])
+            # Return the error gracefully instead of 500
+            return {
+                "error": result["error"],
+                "geometry": result.get("geometry"),
+                "distance_m": 0,
+                "duration_s": 0,
+                "steps": []
+            }
             
         return result
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return error gracefully instead of 500
+        return {
+            "error": str(e),
+            "geometry": None,
+            "distance_m": 0,
+            "duration_s": 0,
+            "steps": []
+        }
 
 
 @router.post("/optimize-route")
@@ -254,7 +284,13 @@ async def optimize_route(request: MultiDestinationRequest):
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return error gracefully instead of 500
+        return {
+            "error": str(e),
+            "optimized_order": [],
+            "total_distance_m": 0,
+            "total_duration_s": 0
+        }
 
 
 # ==================== TILE ENDPOINTS ====================
@@ -269,15 +305,15 @@ async def get_map_tile(z: int, x: int, y: str, force_refresh: bool = False):
         tile_data = await get_tile(z, x, y, force_refresh)
         
         if not tile_data:
-            raise HTTPException(status_code=404, detail="Tile not found")
+            from fastapi.responses import Response
+            return Response(content=b"", media_type="image/png", status_code=404)
             
         from fastapi.responses import Response
         return Response(content=tile_data, media_type="image/png")
         
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        from fastapi.responses import Response
+        return Response(content=b"", media_type="image/png", status_code=500)
 
 
 # ==================== CACHE MANAGEMENT ====================
@@ -289,7 +325,7 @@ async def clear_expired_tiles_endpoint():
         deleted_count = await clear_expired_tiles()
         return {"deleted": deleted_count, "message": f"Cleared {deleted_count} expired tiles"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"error": str(e), "deleted": 0, "message": "Failed to clear expired tiles"}
 
 
 @router.get("/cache/stats")
@@ -299,7 +335,7 @@ async def get_cache_stats():
         stats = await get_tile_cache_stats()
         return stats
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"error": str(e), "total_tiles": 0, "cache_size_mb": 0}
 
 
 # ==================== MONITORING ENDPOINTS ====================
@@ -378,7 +414,12 @@ async def get_cache_statistics():
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get cache stats: {str(e)}")
+        return {
+            "error": str(e),
+            "geocoding": {"total": 0, "expired": 0, "utilization_percent": 0},
+            "tiles": {"total": 0, "expired": 0, "utilization_percent": 0},
+            "collections": {"geocoding_cache_exists": False, "map_tiles_exists": False}
+        }
 
 
 # ==================== HEALTH CHECK ====================

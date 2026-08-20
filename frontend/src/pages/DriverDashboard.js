@@ -125,7 +125,7 @@ const DriverDashboard = () => {
     };
     
     init();
-    notificationService.requestPermission().catch(() => {});
+    // Don't request notification permission automatically - it requires user gesture
   }, [isDriver, navigate, fetchDashboard, fetchOrders]);
 
   // Advanced GPS tracking with offline sync

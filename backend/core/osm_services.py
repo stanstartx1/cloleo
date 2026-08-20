@@ -105,11 +105,17 @@ async def get_osrm_directions(
                         }
         
         logger.warning(f"OSRM request failed: {response.status}")
-        return {"error": "OSRM request failed"}
+        return {"error": "OSRM service unavailable", "geometry": None}
         
+    except asyncio.TimeoutError:
+        logger.warning("OSRM request timeout")
+        return {"error": "OSRM timeout", "geometry": None}
+    except aiohttp.ClientError as e:
+        logger.warning(f"OSRM client error: {e}")
+        return {"error": "OSRM connection error", "geometry": None}
     except Exception as e:
         logger.error(f"OSRM directions error: {e}")
-        return {"error": str(e)}
+        return {"error": str(e), "geometry": None}
 
 
 async def optimize_multi_destinations(
