@@ -96,9 +96,15 @@ export const fitToLocations = (mapboxgl, map, locations, padding = 60) => {
 export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') => {
   if (!map || !from || !to) return;
 
+  // Wait for map to be ready
   if (!map.isStyleLoaded()) {
-    map.once('load', () => setRouteLine(map, sourceId, from, to, color));
-    return;
+    if (map.loaded()) {
+      // Map is loaded but style might not be ready
+      await new Promise(resolve => map.once('styledata', resolve));
+    } else {
+      map.once('load', () => setRouteLine(map, sourceId, from, to, color));
+      return;
+    }
   }
 
   const fromLngLat = toLngLat(from);
@@ -157,23 +163,27 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
     return;
   }
 
-  if (map.getSource(sourceId)) {
-    map.getSource(sourceId).setData(feature);
-    return;
-  }
+  try {
+    if (map.getSource(sourceId)) {
+      map.getSource(sourceId).setData(feature);
+      return;
+    }
 
-  map.addSource(sourceId, { type: 'geojson', data: feature });
-  map.addLayer({
-    id: sourceId,
-    type: 'line',
-    source: sourceId,
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: {
-      'line-color': color,
-      'line-width': 4,
-      'line-opacity': 0.9,
-    },
-  });
+    map.addSource(sourceId, { type: 'geojson', data: feature });
+    map.addLayer({
+      id: sourceId,
+      type: 'line',
+      source: sourceId,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': color,
+        'line-width': 4,
+        'line-opacity': 0.9,
+      },
+    });
+  } catch (error) {
+    console.error('Error adding route to map:', error);
+  }
 };
 
 export const reverseGeocodeMapbox = async (latitude, longitude) => {

@@ -159,11 +159,24 @@ const OrderTrackingPage = () => {
   // Fetch initial order data (fallback if WebSocket fails)
   const fetchOrder = useCallback(async () => {
     try {
-      const response = await axios.get(`${API}/orders/track/${orderId}`);
-      const data = response.data;
+      // Use customer-specific endpoint to get delivery PIN
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get(`${API}/orders/${orderId}/delivery-pin`, { headers });
+      const pinData = response.data;
+      
+      // Get order data from public endpoint
+      const orderResponse = await axios.get(`${API}/orders/track/${orderId}`);
+      const data = orderResponse.data;
       
       if (data.order && !realtimeOrder) {
-        setOrder(data.order);
+        // Merge delivery PIN into order data
+        const orderWithPin = {
+          ...data.order,
+          delivery_pin: pinData.delivery_pin,
+          delivery_pin_created_at: pinData.delivery_pin_created_at,
+          delivery_pin_verified: pinData.delivery_pin_verified
+        };
+        setOrder(orderWithPin);
       }
       
       if (data.driver_live_location && !realtimeDriverLocation) {
@@ -179,15 +192,38 @@ const OrderTrackingPage = () => {
       }
     } catch (error) {
       console.error('Error fetching order:', error);
-      if (!realtimeOrder) {
-        toast.error('Commande non trouvée');
+      // Fallback to public endpoint if PIN endpoint fails
+      try {
+        const fallbackResponse = await axios.get(`${API}/orders/track/${orderId}`);
+        const data = fallbackResponse.data;
+        
+        if (data.order && !realtimeOrder) {
+          setOrder(data.order);
+        }
+        
+        if (data.driver_live_location && !realtimeDriverLocation) {
+          setDriverLocation(data.driver_live_location);
+        }
+        
+        if (data.driver_info) {
+          setDriverInfo(data.driver_info);
+        }
+        
+        if (data.eta_minutes) {
+          setEtaMinutes(data.eta_minutes);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback fetch error:', fallbackError);
+        if (!realtimeOrder) {
+          toast.error('Commande non trouvée');
+        }
       }
     } finally {
       if (!realtimeOrder) {
         setLoading(false);
       }
     }
-  }, [orderId, realtimeOrder, realtimeDriverLocation]);
+  }, [orderId, token, realtimeOrder, realtimeDriverLocation]);
 
   // Fetch initial data
   useEffect(() => {
@@ -201,15 +237,26 @@ const OrderTrackingPage = () => {
     loadMapbox()
       .then((mapboxgl) => {
         mapboxRef.current = mapboxgl;
-        initMap(mapboxgl);
+        // Initialize map immediately if order is available
+        if (order) {
+          initMap(mapboxgl);
+        }
       })
-      .catch(() => toast.error('Erreur chargement Mapbox'));
+      .catch((error) => {
+        console.error('Error loading Mapbox:', error);
+        toast.error('Erreur chargement de la carte');
+      });
   }, []);
 
   // Re-initialize map when order changes (if not already initialized)
   useEffect(() => {
     if (!order || !mapboxRef.current || mapInstance.current) return;
-    initMap(mapboxRef.current);
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      if (mapboxRef.current && !mapInstance.current) {
+        initMap(mapboxRef.current);
+      }
+    }, 100);
   }, [order]);
 
   // Update map when driver location changes
@@ -252,46 +299,61 @@ const OrderTrackingPage = () => {
   }, [driverLocation, order, order?.status]);
 
   const initMap = (mapboxgl) => {
-    if (!order?.delivery_address) return;
+    if (!order?.delivery_address) {
+      console.warn('No delivery address for map initialization');
+      return;
+    }
     
     const customerPos = {
       latitude: order.delivery_address.latitude || 5.3599,
       longitude: order.delivery_address.longitude || -4.0083
     };
     
-    mapInstance.current = new mapboxgl.Map({
-      container: mapRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: toLngLat(customerPos),
-      zoom: 13,
-    });
-    mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    
-    // Customer marker
-    upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
-      color: '#ef4444',
-      title: 'Votre position',
-      size: 'large'
-    });
-    
-    // Driver marker with animation (if location available)
-    const driverPos = driverLocation 
-      ? { latitude: driverLocation.latitude, longitude: driverLocation.longitude }
-      : null;
-    
-    if (driverPos) {
-      upsertMarker(mapboxgl, mapInstance.current, driverMarker, driverPos, {
-        color: '#2563eb',
-        title: 'Livreur',
-        size: 'large',
-        pulse: true
+    try {
+      mapInstance.current = new mapboxgl.Map({
+        container: mapRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: toLngLat(customerPos),
+        zoom: 13,
       });
+      
+      mapInstance.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      
+      // Customer marker
+      upsertMarker(mapboxgl, mapInstance.current, customerMarker, customerPos, {
+        color: '#ef4444',
+        title: 'Votre position',
+        size: 'large'
+      });
+      
+      // Driver marker with animation (if location available)
+      const driverPos = driverLocation 
+        ? { latitude: driverLocation.latitude, longitude: driverLocation.longitude }
+        : null;
+      
+      if (driverPos) {
+        upsertMarker(mapboxgl, mapInstance.current, driverMarker, driverPos, {
+          color: '#2563eb',
+          title: 'Livreur',
+          size: 'large',
+          pulse: true
+        });
 
-      updateRoute(driverPos);
-      fitToLocations(mapboxgl, mapInstance.current, [customerPos, driverPos], 50);
-    } else {
-      // Center on customer position if no driver location yet
-      fitToLocations(mapboxgl, mapInstance.current, [customerPos], 13);
+        updateRoute(driverPos);
+        fitToLocations(mapboxgl, mapInstance.current, [customerPos, driverPos], 50);
+      } else {
+        // Center on customer position if no driver location yet
+        fitToLocations(mapboxgl, mapInstance.current, [customerPos], 13);
+      }
+      
+      // Handle map errors
+      mapInstance.current.on('error', (e) => {
+        console.error('Mapbox error:', e);
+      });
+      
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      toast.error('Erreur lors de l\'initialisation de la carte');
     }
   };
 

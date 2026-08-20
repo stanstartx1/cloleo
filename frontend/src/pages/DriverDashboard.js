@@ -268,14 +268,18 @@ const DriverDashboard = () => {
           navigator.geolocation.getCurrentPosition(updateLocation, (retryError) => {
             if (retryError) {
               console.error('Retry geolocation error:', retryError);
-              toast.warning('GPS indisponible, vérifiez vos paramètres de localisation');
+              // Don't show toast for common timeout issues
+              console.log('GPS temporarily unavailable, will retry automatically');
             }
           }, { enableHighAccuracy: false, timeout: 15000 });
         } else if (error.code === 1) {
           // Permission denied
           toast.error('Permission GPS refusée. Activez la localisation pour les livraisons.');
+        } else if (error.code === 2) {
+          // Position unavailable
+          console.log('GPS position unavailable, will retry automatically');
         } else {
-          toast.error('Impossible d\'obtenir votre position GPS');
+          console.log('GPS temporarily unavailable, will retry automatically');
         }
       }, { enableHighAccuracy: true, timeout: 10000 });
       
@@ -285,6 +289,11 @@ const DriverDashboard = () => {
         if (error.code === 3) {
           // Timeout during watch - silent retry
           console.log('Geolocation watch timeout, will retry automatically');
+        } else if (error.code === 1) {
+          // Permission denied during watch
+          console.log('GPS permission denied during watch');
+        } else {
+          console.log('GPS watch error, will retry automatically');
         }
       }, { 
         enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 

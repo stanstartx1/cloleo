@@ -9,6 +9,8 @@ export const useOrderTracking = (orderId, token) => {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const heartbeatIntervalRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const connect = useCallback(() => {
     if (!orderId || !token) return;
@@ -16,6 +18,14 @@ export const useOrderTracking = (orderId, token) => {
     // Close existing connection
     if (wsRef.current) {
       wsRef.current.close();
+    }
+
+    // Check if we've exceeded max reconnect attempts
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.log('Max reconnect attempts reached, stopping reconnection');
+      setConnectionStatus('error');
+      setError('Impossible de se connecter après plusieurs tentatives');
+      return;
     }
 
     try {
@@ -26,6 +36,7 @@ export const useOrderTracking = (orderId, token) => {
         console.log('Order tracking WebSocket connected');
         setConnectionStatus('connected');
         setError(null);
+        reconnectAttemptsRef.current = 0; // Reset on successful connection
 
         // Start heartbeat
         if (heartbeatIntervalRef.current) {
@@ -109,12 +120,16 @@ export const useOrderTracking = (orderId, token) => {
           clearInterval(heartbeatIntervalRef.current);
         }
 
-        // Auto-reconnect after 5 seconds (unless it was a manual close)
+        // Auto-reconnect with exponential backoff (unless it was a manual close)
         if (event.code !== 1000) {
+          reconnectAttemptsRef.current++;
+          const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000); // Max 30 seconds
+          
+          console.log(`Attempting to reconnect order tracking WebSocket in ${backoffTime}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+          
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('Attempting to reconnect order tracking WebSocket...');
             connect();
-          }, 5000);
+          }, backoffTime);
         }
       };
     } catch (error) {
@@ -135,6 +150,7 @@ export const useOrderTracking = (orderId, token) => {
       wsRef.current.close(1000); // Normal close
       wsRef.current = null;
     }
+    reconnectAttemptsRef.current = 0; // Reset reconnect attempts
     setConnectionStatus('disconnected');
   }, []);
 

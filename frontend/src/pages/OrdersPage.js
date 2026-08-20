@@ -1,5 +1,5 @@
 import { API_URL } from '../config/api';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -253,7 +253,7 @@ const OrdersPage = () => {
   const [filter, setFilter] = useState('all');
   const [cancellationSettings, setCancellationSettings] = useState(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     if (!isAuthenticated || !token) {
       navigate('/connexion');
       return;
@@ -265,7 +265,31 @@ const OrdersPage = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const ordersData = response.data?.orders || [];
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      
+      // Fetch delivery PINs for active orders
+      const ordersWithPins = await Promise.all(
+        ordersData.map(async (order) => {
+          if (['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status)) {
+            try {
+              const pinResponse = await axios.get(`${API}/orders/${order.id}/delivery-pin`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              return {
+                ...order,
+                delivery_pin: pinResponse.data.delivery_pin,
+                delivery_pin_created_at: pinResponse.data.delivery_pin_created_at,
+                delivery_pin_verified: pinResponse.data.delivery_pin_verified
+              };
+            } catch (pinError) {
+              console.error('Error fetching PIN for order:', order.id, pinError);
+              return order;
+            }
+          }
+          return order;
+        })
+      );
+      
+      setOrders(Array.isArray(ordersWithPins) ? ordersWithPins : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Erreur lors du chargement des commandes');
@@ -273,7 +297,7 @@ const OrdersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, token, navigate]);
 
   const fetchCancellationSettings = async () => {
     try {
@@ -352,7 +376,7 @@ const OrdersPage = () => {
   useEffect(() => {
     fetchOrders();
     fetchCancellationSettings();
-  }, [isAuthenticated, token, navigate]);
+  }, [fetchOrders]);
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
