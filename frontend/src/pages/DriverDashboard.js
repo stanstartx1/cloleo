@@ -355,7 +355,36 @@ const DriverDashboard = () => {
         case 'driver-accept': endpoint = `/orders/${order.id}/driver-accept`; break;
         case 'pickup': endpoint = `/orders/${order.id}/pickup`; setTrackingEnabled(true); break;
         case 'in-transit': endpoint = `/orders/${order.id}/in-transit`; break;
-        case 'deliver': endpoint = `/orders/${order.id}/deliver`; break;
+        case 'deliver': 
+          // Require PIN verification before delivery
+          const pin = prompt("Entrez le code de livraison du client (code à 6 chiffres) :");
+          if (!pin) {
+            toast.error('Code PIN requis pour confirmer la livraison');
+            setUpdatingStatus(false);
+            return;
+          }
+          
+          // Verify PIN first
+          try {
+            const verifyResponse = await axios.post(
+              `${API}/orders/${order.id}/verify-delivery-pin`,
+              { pin },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            if (!verifyResponse.data.verified) {
+              toast.error('Code PIN incorrect');
+              setUpdatingStatus(false);
+              return;
+            }
+          } catch (error) {
+            toast.error(error.response?.data?.detail || 'Erreur lors de la vérification du code PIN');
+            setUpdatingStatus(false);
+            return;
+          }
+          
+          endpoint = `/orders/${order.id}/deliver`; 
+          break;
         case 'driver-cancel': 
           endpoint = `/orders/${order.id}/driver-cancel`;
           const reason = prompt("Veuillez indiquer la raison de l'annulation (ex: accident, problème véhicule) :");

@@ -461,6 +461,29 @@ const OrderTrackingPage = () => {
                 </div>
               )}
 
+              {/* Delivery PIN Section - Show for customer when order is assigned or in transit */}
+              {order.delivery_pin && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 mb-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-green-800">Code de livraison</p>
+                      <p className="text-xs text-green-600">Communiquez ce code au livreur</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border-2 border-green-300 text-center">
+                    <p className="text-3xl font-bold text-green-700 tracking-widest mb-1">
+                      {order.delivery_pin}
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Ce code permet au livreur de confirmer la livraison
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Driver Info */}
               {driverInfo ? (
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">

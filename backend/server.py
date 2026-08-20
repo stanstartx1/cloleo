@@ -1339,11 +1339,12 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     total = subtotal + delivery_fee
 
     order_id = str(uuid.uuid4())
+    
+    # Generate delivery PIN for order verification
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
 
     
-
     # Si c'est une commande dropshippée, créer deux commandes optimisées : une pour le vendeur, une pour le revendeur
 
     if is_dropshipped_order and dropshipped_product_info:
@@ -1816,6 +1817,63 @@ async def track_order(order_id: str):
         "active_connections": manager.get_active_connections_count(),
         "connected_drivers": manager.get_connected_drivers()
     }
+
+
+@api.get("/orders/{order_id}/delivery-pin")
+async def get_delivery_pin(order_id: str, user: dict = Depends(get_current_user)):
+    """Get delivery PIN for order verification - customer only"""
+    order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Authorization check - only customer can see their own PIN
+    if user["id"] != order.get("customer_id") and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    # Return the delivery PIN (only to the customer)
+    return {
+        "order_id": order_id,
+        "delivery_pin": order.get("delivery_pin"),
+        "delivery_pin_created_at": order.get("delivery_pin_created_at"),
+        "delivery_pin_verified": order.get("delivery_pin_verified", False)
+    }
+
+
+@api.post("/orders/{order_id}/verify-delivery-pin")
+async def verify_delivery_pin_endpoint(order_id: str, payload: dict, user: dict = Depends(require_driver)):
+    """Verify delivery PIN entered by driver"""
+    order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    if order.get("status") != "in_transit":
+        raise HTTPException(status_code=400, detail="La livraison doit être en cours pour vérifier le code")
+    
+    pin = payload.get("pin")
+    if not pin:
+        raise HTTPException(status_code=400, detail="Code PIN requis")
+    
+    pin_hash = order.get("delivery_pin_hash")
+    # Support for existing orders without hash
+    if not pin_hash and order.get("delivery_pin"):
+        pin_hash = hashlib.sha256(str(order["delivery_pin"]).encode()).hexdigest()
+    
+    if not pin_hash:
+        return {"ok": True, "verified": True, "message": "Aucun PIN requis"}
+    
+    candidate = hashlib.sha256(str(pin).encode()).hexdigest()
+    if not hmac.compare_digest(candidate, pin_hash):
+        raise HTTPException(status_code=400, detail="Code PIN incorrect")
+    
+    # Mark PIN as verified
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {"delivery_pin_verified": True, "delivery_pin_verified_at": _utc()}}
+    )
+    
+    return {"ok": True, "verified": True, "message": "Code PIN vérifié avec succès"}
 
 
 

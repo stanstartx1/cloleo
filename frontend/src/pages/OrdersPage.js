@@ -111,6 +111,26 @@ const OrderCard = ({ order, cancellationSettings, onCancelOrder, onDeleteOrder }
         </div>
       </CardHeader>
       <CardContent className="p-4">
+        {/* Delivery PIN Section - Show for active orders */}
+        {order.delivery_pin && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="font-bold text-green-800 text-sm">Code de livraison</p>
+                  <p className="text-xs text-green-600">À communiquer au livreur</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg px-4 py-2 border-2 border-green-300">
+                <p className="text-xl font-bold text-green-700 tracking-widest">
+                  {order.delivery_pin}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Products */}
         <div className="space-y-3 mb-4">
           {order.items?.map((item, index) => (
