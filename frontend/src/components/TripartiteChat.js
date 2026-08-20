@@ -669,6 +669,31 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
               <div className="space-y-4">
                 {messages.map((message, index) => {
                   const isOwn = message.sender_id === user.id;
+                  const isSystemMessage = message.sender_role === 'system' || message.sender_name === 'Cloleo';
+                  
+                  // Special styling for system messages from Cloleo
+                  if (isSystemMessage) {
+                    return (
+                      <div key={message.id || index} className="flex justify-center my-4">
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl px-4 py-3 max-w-[90%] shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                              <Store className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="font-semibold text-sm text-blue-700">Cloleo</span>
+                            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">Système</Badge>
+                          </div>
+                          <div className="text-sm text-slate-700 whitespace-pre-line">
+                            {message.content}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-2">
+                            {formatTime(message.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
                   return (
                     <div key={message.id || index} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       <div className={`flex gap-2 max-w-[80%] ${isOwn ? 'flex-row-reverse' : ''}`}>
