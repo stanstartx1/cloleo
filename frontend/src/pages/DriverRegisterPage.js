@@ -145,7 +145,7 @@ const DriverRegisterPage = () => {
       // First test authentication
       console.log('Testing authentication...');
       try {
-        const testResponse = await axios.get(`${API}/driver/upload-license-test`, {
+        const testResponse = await axios.post(`${API}/driver/upload-license-test`, {}, {
           headers: {
             Authorization: `Bearer ${tempToken}`
           }
