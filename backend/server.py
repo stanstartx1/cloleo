@@ -1949,16 +1949,16 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         "timestamp": _utc()
     })
     logger.info(f"📱 [WS DRIVER] Order {order_id} assigned to driver {user['id']}")
-        
-        # Send delivery PIN via chat message from Cloleo
-        if order.get("delivery_pin"):
-            logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id}")
-            pin_result = await send_system_delivery_pin_message(
-                order_id, 
-                order["delivery_pin"], 
-                order.get("order_number")
-            )
-            logger.info(f"📊 [SERVER DEBUG] PIN message result: {pin_result}")
+
+    # Send delivery PIN via chat message from Cloleo
+    if order.get("delivery_pin"):
+        logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id}")
+        pin_result = await send_system_delivery_pin_message(
+            order_id, 
+            order["delivery_pin"], 
+            order.get("order_number")
+        )
+        logger.info(f"📊 [SERVER DEBUG] PIN message result: {pin_result}")
 
     await notify_all_parties(
         order_id,
