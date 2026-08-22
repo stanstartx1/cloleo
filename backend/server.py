@@ -142,6 +142,130 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
+# Helper function for automatic driver assignment
+async def auto_assign_driver(order_id: str, order: dict, manager, excluded_driver_id: str = None):
+    """Automatically find and assign the closest available driver to an order"""
+    logger.info(f"🔍 [AUTO ASSIGN] Starting automatic driver search for order {order_id}")
+    if excluded_driver_id:
+        logger.info(f"🔍 [AUTO ASSIGN] Excluding driver {excluded_driver_id} from search")
+    
+    # Get order delivery address for location-based assignment
+    delivery_address = order.get("delivery_address", {})
+    order_lat = delivery_address.get("latitude")
+    order_lon = delivery_address.get("longitude")
+    
+    logger.info(f"🔍 [AUTO ASSIGN] Order location: lat={order_lat}, lon={order_lon}")
+    
+    # Build query to find available online drivers
+    driver_query = {"role": "driver", "is_active": True, "is_verified": True, "is_online": True}
+    if excluded_driver_id:
+        driver_query["id"] = {"$ne": excluded_driver_id}
+    
+    # Find available online drivers with location data
+    available_drivers = await db.users.find(
+        driver_query,
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1, "vehicle_type": 1}
+    ).to_list(100)
+    
+    logger.info(f"🔍 [AUTO ASSIGN] Found {len(available_drivers)} available drivers")
+    
+    if available_drivers:
+        # Find the closest driver based on location
+        closest_driver = None
+        min_distance = float('inf')
+        
+        for driver in available_drivers:
+            driver_location = driver.get("location", {})
+            driver_lat = driver_location.get("latitude")
+            driver_lon = driver_location.get("longitude")
+            
+            logger.info(f"🔍 [AUTO ASSIGN] Driver {driver.get('name')} location: lat={driver_lat}, lon={driver_lon}")
+            
+            if driver_lat and driver_lon and order_lat and order_lon:
+                # Calculate distance using Haversine formula
+                distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
+                logger.info(f"🔍 [AUTO ASSIGN] Distance to driver {driver.get('name')}: {distance:.2f} km")
+                
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_driver = driver
+            elif not closest_driver:
+                # Fallback to first driver if no location data
+                logger.warning(f"🔍 [AUTO ASSIGN] Driver {driver.get('name')} has no location, using as fallback")
+                closest_driver = driver
+        
+        if closest_driver:
+            logger.info(f"✅ [AUTO ASSIGN] Found closest driver: {closest_driver.get('name')} at {min_distance:.2f} km")
+            
+            # Update order with driver assignment
+            await db.orders.update_one(
+                {"id": order_id},
+                {
+                    "$set": {
+                        "status": "assigned",
+                        "driver_id": closest_driver["id"],
+                        "driver_name": closest_driver.get("name"),
+                        "driver_phone": closest_driver.get("phone"),
+                        "driver_vehicle_type": closest_driver.get("vehicle_type"),
+                        "updated_at": _utc()
+                    },
+                    "$push": {
+                        "status_history": {
+                            "status": "assigned",
+                            "note": f"Livreur assigné automatiquement: {closest_driver.get('name')} (distance: {min_distance:.2f} km)",
+                            "timestamp": _utc()
+                        }
+                    },
+                },
+            )
+            
+            logger.info(f"📱 [AUTO ASSIGN] Broadcasting assignment to driver {closest_driver['id']}")
+            
+            # Broadcast order assignment via WebSocket to all parties
+            await manager.broadcast_order_status_update(order_id, "assigned", {
+                "driver_id": closest_driver["id"],
+                "driver_name": closest_driver.get("name"),
+                "driver_vehicle_type": closest_driver.get("vehicle_type"),
+                "assigned_at": _utc(),
+                "auto_assigned": True,
+                "distance_km": round(min_distance, 2)
+            }, customer_id=order.get("customer_id"))
+            
+            # Notify the assigned driver specifically
+            await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
+                "type": "new_order",
+                "order_id": order_id,
+                "driver_id": closest_driver["id"],
+                "message": "Nouvelle commande assignée automatiquement",
+                "auto_assigned": True
+            })
+            
+            await notify_user_all_channels(
+                closest_driver["id"],
+                "Nouvelle commande assignée",
+                "Une commande vous a été attribuée automatiquement. Consultez votre itinéraire.",
+                "order_assigned",
+                {"order_id": order_id},
+            )
+            
+            # Send delivery PIN via chat message from Cloleo for auto-assignment
+            order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+            if order and order.get("delivery_pin"):
+                logger.info(f"🚀 [AUTO ASSIGN] Sending PIN message for order {order_id}")
+                pin_result = await send_system_delivery_pin_message(
+                    order_id, 
+                    order["delivery_pin"], 
+                    order.get("order_number")
+                )
+                logger.info(f"📊 [AUTO ASSIGN] PIN message result: {pin_result}")
+            return True
+        else:
+            logger.warning(f"⚠️ [AUTO ASSIGN] No driver found for order {order_id}")
+            return False
+    else:
+        logger.warning(f"⚠️ [AUTO ASSIGN] No available drivers found for order {order_id}")
+        return False
+
 # Helper function to calculate ETA based on distance and average speed
 def calculate_eta(distance_km, average_speed_kmh=30):
     """Calculate estimated time of arrival in minutes"""
@@ -1505,6 +1629,10 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "order_data": main_order
             })
 
+            # Automatic driver assignment after order creation
+            logger.info(f"🔍 [DROP ORDER CREATION] Starting automatic driver search for order {order_id}")
+            await auto_assign_driver(order_id, main_order, manager)
+
             return main_order
             
         except Exception as e:
@@ -1578,6 +1706,10 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         "order_id": order["id"],
         "order_data": order
     })
+
+    # Automatic driver assignment after order creation
+    logger.info(f"🔍 [ORDER CREATION] Starting automatic driver search for order {order_id}")
+    await auto_assign_driver(order_id, order, manager)
 
     return order
 
@@ -2073,99 +2205,13 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
         )
         logger.info(f"📊 [SERVER DEBUG] PIN message result (vendor accept): {pin_result}")
 
-    # Check for auto-assign driver setting
+    # Check for auto-assign driver setting (default to True for automatic assignment)
     delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
-    auto_assign = delivery_settings.get("auto_assign", False)
+    auto_assign = delivery_settings.get("auto_assign", True)  # Changed default to True
     
     if auto_assign:
-        # Get order delivery address for location-based assignment
-        delivery_address = order.get("delivery_address", {})
-        order_lat = delivery_address.get("latitude")
-        order_lon = delivery_address.get("longitude")
-        
-        # Find available online drivers
-        available_drivers = await db.users.find(
-            {"role": "driver", "is_active": True, "is_verified": True, "is_online": True},
-            {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
-        ).to_list(100)
-        
-        if available_drivers:
-            # Find the closest driver based on location
-            closest_driver = None
-            min_distance = float('inf')
-            
-            for driver in available_drivers:
-                driver_location = driver.get("location", {})
-                driver_lat = driver_location.get("latitude")
-                driver_lon = driver_location.get("longitude")
-                
-                if driver_lat and driver_lon and order_lat and order_lon:
-                    # Calculate distance using Haversine formula
-                    distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
-                    
-                    if distance < min_distance:
-                        min_distance = distance
-                        closest_driver = driver
-                elif not closest_driver:
-                    # Fallback to first driver if no location data
-                    closest_driver = driver
-            
-            if closest_driver:
-                # Update order with driver assignment
-                await db.orders.update_one(
-                    {"id": order_id},
-                    {
-                        "$set": {
-                            "status": "assigned",
-                            "driver_id": closest_driver["id"],
-                            "driver_name": closest_driver.get("name"),
-                            "driver_phone": closest_driver.get("phone"),
-                            "driver_vehicle_type": closest_driver.get("vehicle_type"),
-                            "updated_at": _utc()
-                        },
-                        "$push": {
-                            "status_history": {
-                                "status": "assigned",
-                                "note": f"Livreur assigné automatiquement: {closest_driver.get('name')} (distance: {min_distance:.2f} km)",
-                                "timestamp": _utc()
-                            }
-                        },
-                    },
-                )
-                
-                # Broadcast driver assignment to all drivers
-                await manager.broadcast_to_all_drivers({
-                    "type": "order_assigned",
-                    "order_id": order_id,
-                    "driver_id": closest_driver["id"],
-                    "driver_name": closest_driver.get("name"),
-                    "message": f"Commande assignée à {closest_driver.get('name')}"
-                })
-                
-                # Notify the assigned driver specifically
-                await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
-                    "type": "new_order",
-                    "order_id": order_id,
-                    "message": "Nouvelle commande assignée"
-                })
-                await notify_user_all_channels(
-                    closest_driver["id"],
-                    "Nouvelle commande assignée",
-                    "Une commande vous a été attribuée. Consultez votre itinéraire.",
-                    "order_assigned",
-                    {"order_id": order_id},
-                )
-                
-                # Send delivery PIN via chat message from Cloleo for auto-assignment
-                order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-                if order and order.get("delivery_pin"):
-                    logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id} (auto-assign)")
-                    pin_result = await send_system_delivery_pin_message(
-                        order_id, 
-                        order["delivery_pin"], 
-                        order.get("order_number")
-                    )
-                    logger.info(f"📊 [SERVER DEBUG] PIN message result (auto-assign): {pin_result}")
+        logger.info(f"🔍 [VENDOR ACCEPT] Starting automatic driver search for order {order_id}")
+        await auto_assign_driver(order_id, order, manager)
 
     # Broadcast update to all order-related rooms
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
@@ -2514,89 +2560,8 @@ async def driver_cancel_order(order_id: str, payload: dict = {}, user: dict = De
     auto_assign = delivery_settings.get("auto_assign", True)
     
     if auto_assign:
-        # Get order delivery address for location-based assignment
-        delivery_address = order.get("delivery_address", {})
-        order_lat = delivery_address.get("latitude")
-        order_lon = delivery_address.get("longitude")
-        
-        # Find available online drivers (excluding the cancelled driver)
-        available_drivers = await db.users.find(
-            {"role": "driver", "is_active": True, "is_verified": True, "is_online": True, "id": {"$ne": user["id"]}},
-            {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1, "vehicle_type": 1}
-        ).to_list(100)
-        
-        if available_drivers:
-            # Find the closest driver based on location
-            closest_driver = None
-            min_distance = float('inf')
-            
-            for driver in available_drivers:
-                driver_location = driver.get("location", {})
-                driver_lat = driver_location.get("latitude")
-                driver_lon = driver_location.get("longitude")
-                
-                if driver_lat and driver_lon and order_lat and order_lon:
-                    # Calculate distance using Haversine formula
-                    distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
-                    
-                    if distance < min_distance:
-                        min_distance = distance
-                        closest_driver = driver
-                elif not closest_driver:
-                    # Fallback to first driver if no location data
-                    closest_driver = driver
-            
-            if closest_driver:
-                # Update order with new driver assignment
-                await db.orders.update_one(
-                    {"id": order_id},
-                    {
-                        "$set": {
-                            "status": "assigned",
-                            "driver_id": closest_driver["id"],
-                            "driver_name": closest_driver.get("name"),
-                            "driver_phone": closest_driver.get("phone"),
-                            "driver_vehicle_type": closest_driver.get("vehicle_type"),
-                            "updated_at": _utc()
-                        },
-                        "$push": {
-                            "status_history": {
-                                "status": "reassigned",
-                                "note": f"Réassigné automatiquement à {closest_driver.get('name')} (distance: {min_distance:.2f} km)",
-                                "timestamp": _utc()
-                            }
-                        },
-                    },
-                )
-                
-                # Broadcast new assignment to all drivers
-                await manager.broadcast_to_room("all_drivers", {
-                    "type": "order_reassigned",
-                    "order_id": order_id,
-                    "driver_id": closest_driver["id"],
-                    "message": f"Commande réassignée à {closest_driver.get('name')}"
-                })
-                
-                # Notify the newly assigned driver specifically
-                await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
-                    "type": "new_order",
-                    "order_id": order_id,
-                    "message": "Nouvelle commande assignée (réassignation)"
-                })
-                await notify_user_all_channels(
-                    closest_driver["id"],
-                    "Nouvelle commande assignée",
-                    "Une commande vous a été réassignée. Consultez votre itinéraire.",
-                    "order_assigned",
-                    {"order_id": order_id},
-                )
-                
-                return {
-                    "ok": True, 
-                    "message": "Commande annulée et réassignée à un autre livreur",
-                    "reassigned_to": closest_driver.get("name"),
-                    "distance_km": round(min_distance, 2) if min_distance != float('inf') else None
-                }
+        logger.info(f"🔍 [DRIVER CANCEL] Starting automatic driver reassignment for order {order_id}")
+        await auto_assign_driver(order_id, order, manager, excluded_driver_id=user["id"])
     
     # If auto-assign is disabled or no drivers available
     await manager.broadcast_to_room("all_drivers", {
@@ -3493,6 +3458,8 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
     auto_assign = delivery_settings.get("auto_assign", True)
     
     if auto_assign:
+        logger.info(f"🔍 [LOCATION UPDATE] Driver {user['id']} updated location, checking for pending orders")
+        
         # Find pending orders without drivers
         pending_orders = await db.orders.find({
             "status": "confirmed",
@@ -3500,110 +3467,16 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
             "is_deleted": {"$ne": True}
         }).to_list(10)
         
-        print(f"Auto-assign: Found {len(pending_orders)} pending orders")
+        logger.info(f"🔍 [LOCATION UPDATE] Found {len(pending_orders)} pending orders")
         
         for order in pending_orders:
-            # Calculate distance
-            delivery_address = order.get("delivery_address", {})
-            order_lat = delivery_address.get("latitude")
-            order_lon = delivery_address.get("longitude")
-            
-            if order_lat and order_lon:
-                distance = calculate_distance(
-                    location["latitude"], location["longitude"],
-                    order_lat, order_lon
-                )
-                
-                print(f"Auto-assign: Order {order['id']} is {distance:.2f} km away")
-                
-                # Only assign if within reasonable distance (e.g., 20km)
-                if distance <= 20:
-                    # Check if this driver is the closest
-                    all_drivers = await db.users.find(
-                        {"role": "driver", "is_active": True, "is_verified": True, "is_online": True},
-                        {"_id": 0, "id": 1, "name": 1, "phone": 1, "location": 1}
-                    ).to_list(100)
-                    
-                    print(f"Auto-assign: Found {len(all_drivers)} online drivers")
-                    
-                    closest_driver = None
-                    min_distance = float('inf')
-                    
-                    for driver in all_drivers:
-                        driver_location = driver.get("location", {})
-                        driver_lat = driver_location.get("latitude")
-                        driver_lon = driver_location.get("longitude")
-                        
-                        if driver_lat and driver_lon:
-                            driver_distance = calculate_distance(driver_lat, driver_lon, order_lat, order_lon)
-                            if driver_distance < min_distance:
-                                min_distance = driver_distance
-                                closest_driver = driver
-                    
-                    # Assign if this driver is the closest
-                    if closest_driver and closest_driver["id"] == user["id"]:
-                        print(f"Auto-assign: Assigning order {order['id']} to driver {user['id']} (distance: {min_distance:.2f} km)")
-                        
-                        await db.orders.update_one(
-                            {"id": order["id"]},
-                            {
-                                "$set": {
-                                    "status": "assigned",
-                                    "driver_id": user["id"],
-                                    "driver_name": user.get("name"),
-                                    "driver_phone": user.get("phone"),
-                                    "driver_vehicle_type": user.get("vehicle_type"),
-                                    "updated_at": _utc()
-                                },
-                                "$push": {
-                                    "status_history": {
-                                        "status": "assigned",
-                                        "note": f"Livreur assigné automatiquement: {user.get('name')} (distance: {min_distance:.2f} km)",
-                                        "timestamp": _utc()
-                                    }
-                                },
-                            },
-                        )
-                        
-                        # Broadcast to customer and vendor
-                        await manager.broadcast_order_assigned(
-                            order["id"],
-                            user["id"],
-                            {
-                                "id": order["id"],
-                                "status": "assigned",
-                                "driver_id": user["id"],
-                                "driver_name": user.get("name"),
-                                "driver_phone": user.get("phone")
-                            }
-                        )
-                        
-                        # Notify driver
-                        await manager.broadcast_to_room(f"driver_{user['id']}", {
-                            "type": "new_order",
-                            "order_id": order["id"],
-                            "order_data": {
-                                "id": order["id"],
-                                "order_number": order.get("order_number"),
-                                "status": "assigned"
-                            },
-                            "message": "Nouvelle commande assignée"
-                        })
-                        await notify_user_all_channels(
-                            user["id"],
-                            "Nouvelle commande assignée",
-                            "Une commande vous a été attribuée. Consultez votre itinéraire.",
-                            "order_assigned",
-                            {"order_id": order["id"]},
-                        )
-                    else:
-                        print(f"Auto-assign: Driver {user['id']} is not the closest (closest: {closest_driver['id'] if closest_driver else 'None'})")
-                else:
-                    print(f"Auto-assign: Order {order['id']} is too far ({distance:.2f} km > 20 km)")
-            else:
-                print(f"Auto-assign: Order {order['id']} has no delivery coordinates")
-    
-    return {"ok": True}
+            logger.info(f"🔍 [LOCATION UPDATE] Attempting to assign order {order['id']} to driver {user['id']}")
+            success = await auto_assign_driver(order["id"], order, manager)
+            if success:
+                logger.info(f"✅ [LOCATION UPDATE] Successfully assigned order {order['id']} to driver {user['id']}")
+                break  # Only assign one order at a time
+
+    return {"ok": True, "message": "Location updated successfully"}
 
 
 
