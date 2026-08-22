@@ -17,7 +17,7 @@ const MapboxMap = ({
   className = '',
   mapType = 'roadmap',
   followDriver = false,
-  vehicleType = 'default', // New prop for vehicle type
+  driverVehicleType = null, // Updated prop name
 }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -72,8 +72,10 @@ const MapboxMap = ({
   useEffect(() => {
     if (!mapInstance.current || !driverLocation?.latitude) return;
 
+    console.log('🗺️ [MAP] Updating driver marker:', driverLocation, 'vehicle:', driverVehicleType);
+    
     // Create custom driver marker based on vehicle type
-    const driverElement = createDriverMarker(vehicleType, 'normal', true);
+    const driverElement = createDriverMarker(driverVehicleType, 'normal', true);
     
     upsertMarker(mapboxRef.current, mapInstance.current, driverMarkerRef, driverLocation, {
       element: driverElement,
@@ -97,11 +99,13 @@ const MapboxMap = ({
     }
 
     previousDriverLocation.current = driverLocation;
-  }, [driverLocation, customerLocation, followDriver, vehicleType]);
+  }, [driverLocation, customerLocation, followDriver, driverVehicleType]);
 
   useEffect(() => {
     if (!mapInstance.current || !customerLocation?.latitude) return;
 
+    console.log('🗺️ [MAP] Updating customer marker:', customerLocation);
+    
     // Create custom customer marker with person icon
     const customerElement = createCustomerMarker('normal', false);
     
@@ -114,6 +118,8 @@ const MapboxMap = ({
 
   useEffect(() => {
     if (!mapInstance.current || !showRoute || !driverLocation?.latitude || !customerLocation?.latitude) return;
+
+    console.log('🗺️ [MAP] Drawing route from driver to customer:', driverLocation, customerLocation);
 
     const drawRoute = () => {
       // Safely remove existing layer and source if they exist
@@ -138,13 +144,16 @@ const MapboxMap = ({
       }
 
       try {
+        console.log('🗺️ [MAP] Calling setRouteLine');
         setRouteLine(mapInstance.current, 'delivery-route', driverLocation, customerLocation);
         routeSourceRef.current = true;
+        console.log('🗺️ [MAP] Route drawn successfully, fitting to locations');
         fitToLocations(mapboxRef.current, mapInstance.current, [driverLocation, customerLocation], {
           padding: { top: 50, bottom: 50, left: 50, right: 50 },
           maxZoom: 16,
         });
       } catch (error) {
+        console.error('🗺️ [MAP] Error drawing route:', error);
         console.error('Error drawing route:', error);
       }
     };

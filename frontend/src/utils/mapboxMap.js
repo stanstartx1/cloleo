@@ -132,14 +132,21 @@ export const fitToLocations = (mapboxgl, map, locations, padding = 60) => {
 };
 
 export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') => {
-  if (!map || !from || !to) return;
+  console.log('🗺️ [ROUTE] setRouteLine called:', { sourceId, from, to, color });
+  
+  if (!map || !from || !to) {
+    console.warn('🗺️ [ROUTE] Missing required parameters:', { map: !!map, from: !!from, to: !!to });
+    return;
+  }
 
   // Wait for map to be ready
   if (!map.isStyleLoaded()) {
+    console.log('🗺️ [ROUTE] Map style not loaded, waiting...');
     if (map.loaded()) {
       // Map is loaded but style might not be ready
       await new Promise(resolve => map.once('styledata', resolve));
     } else {
+      console.log('🗺️ [ROUTE] Map not loaded, waiting for load event');
       map.once('load', () => setRouteLine(map, sourceId, from, to, color));
       return;
     }
@@ -147,6 +154,8 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
 
   const fromLngLat = toLngLat(from);
   const toLngLatValue = toLngLat(to);
+  console.log('🗺️ [ROUTE] Coordinates:', { fromLngLat, toLngLatValue });
+  
   let geometry = {
     type: 'LineString',
     coordinates: [fromLngLat, toLngLatValue],
@@ -155,6 +164,7 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
   try {
     // Try OSRM first if configured
     if (MAP_CONFIG.useOSMForDirections) {
+      console.log('🗺️ [ROUTE] Using OSRM for directions');
       const osrmResult = await getOSRMDirections(
         from.latitude, from.longitude,
         to.latitude, to.longitude
@@ -162,30 +172,33 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
       
       if (osrmResult.geometry && !osrmResult.error) {
         geometry = osrmResult.geometry;
-        console.log('Using OSRM route:', { distance: osrmResult.distance_m, duration: osrmResult.duration_s });
+        console.log('🗺️ [ROUTE] Using OSRM route:', { distance: osrmResult.distance_m, duration: osrmResult.duration_s });
       } else if (MAP_CONFIG.fallbackToMapbox && MAPBOX_ACCESS_TOKEN) {
         // Fallback to Mapbox Directions
-        console.log('OSRM failed, falling back to Mapbox Directions');
+        console.log('🗺️ [ROUTE] OSRM failed, falling back to Mapbox Directions');
         const coords = `${fromLngLat[0]},${fromLngLat[1]};${toLngLatValue[0]},${toLngLatValue[1]}`;
         const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
         const response = await fetch(url);
         const data = await response.json();
         if (data?.routes?.[0]?.geometry) {
           geometry = data.routes[0].geometry;
+          console.log('🗺️ [ROUTE] Using Mapbox route');
         }
       }
     } else if (MAPBOX_ACCESS_TOKEN) {
       // Use Mapbox Directions directly
+      console.log('🗺️ [ROUTE] Using Mapbox Directions directly');
       const coords = `${fromLngLat[0]},${fromLngLat[1]};${toLngLatValue[0]},${toLngLatValue[1]}`;
       const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_ACCESS_TOKEN}`;
       const response = await fetch(url);
       const data = await response.json();
       if (data?.routes?.[0]?.geometry) {
         geometry = data.routes[0].geometry;
+        console.log('🗺️ [ROUTE] Using Mapbox route');
       }
     }
   } catch (error) {
-    console.error('Route calculation error:', error);
+    console.error('🗺️ [ROUTE] Route calculation error:', error);
     // Keep the straight fallback line if route lookup fails.
   }
 
@@ -195,17 +208,22 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
     properties: {},
   };
 
+  console.log('🗺️ [ROUTE] Final geometry:', geometry);
+
   // Check if map is properly initialized
   if (!map || !map.getStyle) {
-    console.warn('Map not initialized, skipping route draw');
+    console.warn('🗺️ [ROUTE] Map not initialized, skipping route draw');
     return;
   }
 
   try {
     if (map.getSource(sourceId)) {
+      console.log('🗺️ [ROUTE] Updating existing source');
       map.getSource(sourceId).setData(feature);
       return;
     }
+
+    console.log('🗺️ [ROUTE] Creating new source and layer');
 
     map.addSource(sourceId, { type: 'geojson', data: feature });
     map.addLayer({

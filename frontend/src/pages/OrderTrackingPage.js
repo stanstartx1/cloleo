@@ -331,7 +331,7 @@ const OrderTrackingPage = () => {
               height="400px"
               mapType="streets"
               followDriver={order?.status === 'in_transit' || order?.status === 'picked_up'}
-              vehicleType={order?.driver_vehicle_type || 'default'}
+              driverVehicleType={order?.driver_vehicle_type || null}
             />
             
             {/* Legend */}

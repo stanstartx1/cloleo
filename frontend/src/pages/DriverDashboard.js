@@ -186,8 +186,14 @@ const DriverDashboard = () => {
       );
       setActiveOrders(active);
       console.log('📱 [DRIVER] Active orders:', active.length);
+      
+      // Auto-select first active order if none selected
+      if (active.length > 0 && !selectedOrder) {
+        console.log('📱 [DRIVER] Auto-selecting first active order:', active[0].id);
+        setSelectedOrder(active[0]);
+      }
     }
-  }, [wsOrders]);
+  }, [wsOrders, selectedOrder]);
 
   // Real-time order updates using WebSocket - NO POLLING NEEDED
   useEffect(() => {
@@ -690,6 +696,15 @@ const DriverDashboard = () => {
     longitude: activeOrderForMap.delivery_address.longitude
   } : null;
 
+  console.log('🗺️ [DRIVER MAP] Map state:', {
+    currentLocation,
+    customerLocation,
+    activeOrdersCount: activeOrders.length,
+    activeOrderForMap: activeOrderForMap?.id,
+    showRoute: activeOrders.length > 0,
+    driverVehicleType
+  });
+
   return (
     <div className="min-h-screen premium-dashboard-bg dashboard-card-skin" data-testid="driver-dashboard">
       {/* Mobile Header */}
@@ -1088,7 +1103,7 @@ const DriverDashboard = () => {
             <MapboxMap
               driverLocation={currentLocation}
               customerLocation={customerLocation}
-              showRoute={activeOrders.length > 0}
+              showRoute={!!customerLocation && !!currentLocation}
               height="400px"
               mapType="streets"
               followDriver={true}
