@@ -221,6 +221,9 @@ async def auto_assign_driver(order_id: str, order: dict, manager, excluded_drive
             
             logger.info(f"📱 [AUTO ASSIGN] Broadcasting assignment to driver {closest_driver['id']}")
             
+            # Fetch the full order data to send to the driver
+            updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+            
             # Broadcast order assignment via WebSocket to all parties
             await manager.broadcast_order_status_update(order_id, "assigned", {
                 "driver_id": closest_driver["id"],
@@ -231,13 +234,21 @@ async def auto_assign_driver(order_id: str, order: dict, manager, excluded_drive
                 "distance_km": round(min_distance, 2)
             }, customer_id=order.get("customer_id"))
             
-            # Notify the assigned driver specifically
+            # Notify the assigned driver specifically with full order data
             await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
                 "type": "new_order",
                 "order_id": order_id,
                 "driver_id": closest_driver["id"],
                 "message": "Nouvelle commande assignée automatiquement",
-                "auto_assigned": True
+                "auto_assigned": True,
+                "order_data": updated_order
+            })
+            
+            # Also send order_assigned event for list update
+            await manager.broadcast_to_room(f"driver_{closest_driver['id']}", {
+                "type": "order_assigned",
+                "order_id": order_id,
+                "order_data": updated_order
             })
             
             await notify_user_all_channels(
@@ -2065,31 +2076,36 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
 
         {
 
-            "$set": {"status": "assigned", "driver_id": user["id"], "driver_name": user.get("name"), "driver_vehicle_type": user.get("vehicle_type"), "updated_at": _utc()},
+            "$set": {"status": "accepted", "driver_id": user["id"], "driver_name": user.get("name"), "driver_vehicle_type": user.get("vehicle_type"), "updated_at": _utc()},
 
-            "$push": {"status_history": {"status": "assigned", "note": "Livreur assigné", "timestamp": _utc()}},
+            "$push": {"status_history": {"status": "accepted", "note": "Livreur accepté", "timestamp": _utc()}},
 
         },
 
     )
 
+    # Fetch updated order
+    updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+
     # Broadcast order status update via WebSocket
-    await manager.broadcast_order_status_update(order_id, "assigned", {
+    await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type")
     }, customer_id=order.get("customer_id"))
     
-    # Broadcast to driver's room for immediate notification
+    # Broadcast to driver's room for immediate notification with full order data
     await manager.broadcast_to_room(f"driver_{user['id']}", {
-        "type": "order_assigned",
+        "type": "order_status_update",
         "order_id": order_id,
+        "status": "accepted",
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
-        "timestamp": _utc()
+        "timestamp": _utc(),
+        "order_data": updated_order
     })
-    logger.info(f"📱 [WS DRIVER] Order {order_id} assigned to driver {user['id']}")
+    logger.info(f"📱 [WS DRIVER] Order {order_id} accepted by driver {user['id']}")
 
     # PIN is already sent on order creation, no need to send again
     # Send delivery PIN via chat message from Cloleo

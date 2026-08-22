@@ -55,10 +55,12 @@ const DriverDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null); // Currently focused order
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingOrderIds, setUpdatingOrderIds] = useState(new Set()); // Track updating orders per-order
   const [currentStatus, setCurrentStatus] = useState('offline');
   const [currentLocation, setCurrentLocation] = useState(null);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [driverVehicleType, setDriverVehicleType] = useState(null);
+  const [forceUpdate, setForceUpdate] = useState(0); // Force re-render trigger
   
   // New component states
   const [chatOpen, setChatOpen] = useState(false);
@@ -429,7 +431,9 @@ const DriverDashboard = () => {
 
   const handleOrderAction = async (order, action) => {
     console.log('📱 [DRIVER ACTION] Handling action:', action, 'for order:', order.id);
-    setUpdatingStatus(true);
+    
+    // Set per-order updating status
+    setUpdatingOrderIds(prev => new Set([...prev, order.id]));
     
     const statusMap = {
       'driver-accept': 'accepted',
@@ -459,6 +463,13 @@ const DriverDashboard = () => {
         setActiveOrders(prev => prev.map(o => 
           o.id === order.id ? { ...o, status: newStatus } : o
         ));
+        
+        // Force re-render by incrementing the counter
+        setForceUpdate(prev => {
+          const newValue = prev + 1;
+          console.log('📱 [DRIVER ACTION] Force re-render trigger:', newValue);
+          return newValue;
+        });
       }
       
       switch (action) {
@@ -545,7 +556,11 @@ const DriverDashboard = () => {
           const pin = prompt("Entrez le code de livraison du client (code à 6 chiffres) :");
           if (!pin) {
             toast.error('Code PIN requis pour confirmer la livraison');
-            setUpdatingStatus(false);
+            setUpdatingOrderIds(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(order.id);
+              return newSet;
+            });
             // Revert optimistic update
             setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
             setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
@@ -563,7 +578,11 @@ const DriverDashboard = () => {
             
             if (!verifyResponse.data.verified) {
               toast.error('Code PIN incorrect');
-              setUpdatingStatus(false);
+              setUpdatingOrderIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(order.id);
+                return newSet;
+              });
               // Revert optimistic update
               setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
               setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
@@ -572,7 +591,11 @@ const DriverDashboard = () => {
             }
           } catch (error) {
             toast.error(error.response?.data?.detail || 'Erreur lors de la vérification du code PIN');
-            setUpdatingStatus(false);
+            setUpdatingOrderIds(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(order.id);
+              return newSet;
+            });
             // Revert optimistic update
             setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
             setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
@@ -587,7 +610,11 @@ const DriverDashboard = () => {
           const reason = prompt("Veuillez indiquer la raison de l'annulation (ex: accident, problème véhicule) :");
           if (!reason) {
             toast.error('Annulation annulée');
-            setUpdatingStatus(false);
+            setUpdatingOrderIds(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(order.id);
+              return newSet;
+            });
             // Revert optimistic update
             setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
             setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
@@ -646,7 +673,11 @@ const DriverDashboard = () => {
         setSelectedOrder(order);
       }
     } finally {
-      setUpdatingStatus(false);
+      setUpdatingOrderIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(order.id);
+        return newSet;
+      });
     }
   };
 
@@ -1031,11 +1062,11 @@ const DriverDashboard = () => {
                         {activeOrderForMap.status in ['assigned', 'accepted'] && (
                           <Button
                             onClick={() => handleOrderAction(activeOrderForMap, 'driver-cancel')}
-                            disabled={updatingStatus}
+                            disabled={updatingOrderIds.has(activeOrderForMap.id)}
                             variant="destructive"
                             size="sm"
                           >
-                            {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                            {updatingOrderIds.has(activeOrderForMap.id) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
                             Annuler
                           </Button>
                         )}
@@ -1048,11 +1079,11 @@ const DriverDashboard = () => {
                               activeOrderForMap.status === 'accepted' ? 'pickup' :
                               activeOrderForMap.status === 'picked_up' ? 'in-transit' : 'deliver'
                             )}
-                            disabled={updatingStatus}
+                            disabled={updatingOrderIds.has(activeOrderForMap.id)}
                             size="lg"
                             className={activeOrderForMap.status === 'in_transit' ? 'bg-green-600 hover:bg-green-700' : ''}
                           >
-                            {updatingStatus ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> :
+                            {updatingOrderIds.has(activeOrderForMap.id) ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> :
                              activeOrderForMap.status === 'assigned' ? <CheckCircle className="w-5 h-5 mr-2" /> :
                              activeOrderForMap.status === 'accepted' ? <PackageCheck className="w-5 h-5 mr-2" /> :
                              activeOrderForMap.status === 'picked_up' ? <Play className="w-5 h-5 mr-2" /> :
@@ -1263,10 +1294,10 @@ const DriverDashboard = () => {
 
                         <Button
                           onClick={() => handleOrderAction(order, 'driver-accept')}
-                          disabled={updatingStatus || isPendingVerification}
+                          disabled={updatingOrderIds.has(order.id) || isPendingVerification}
                           className="w-full bg-green-600 hover:bg-green-700"
                         >
-                          {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                          {updatingOrderIds.has(order.id) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                           Accepter la commande
                         </Button>
                       </div>
