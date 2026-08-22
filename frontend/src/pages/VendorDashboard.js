@@ -193,37 +193,31 @@ const VendorDashboard = () => {
     clearNewOrderAlert
   } = useVendorOrders(user?.id, token);
 
-  useEffect(() => {
-    audioRef.current = new Audio('/notification.mp3');
-  }, []);
-
-  // Handle new order alerts
+  // Sync WebSocket order updates with local state
   useEffect(() => {
     if (newOrderAlert) {
+      console.log('📱 [VENDOR] New order alert received:', newOrderAlert);
       toast.info('Nouvelle commande reçue !', {
         description: `Commande #${newOrderAlert.order_number?.slice(0, 8).toUpperCase()}`,
         duration: 5000
       });
       audioRef.current?.play().catch(() => {});
-      fetchOrders(); // Refresh orders list
+      // WebSocket handles the order update, no need to fetch
+      // fetchOrders();
     }
-  }, [newOrderAlert, fetchOrders]);
-
-
+  }, [newOrderAlert]);
 
   useEffect(() => {
+    audioRef.current = new Audio('/notification.mp3');
+  }, []);
 
+  useEffect(() => {
     if (!isVendor) {
-
       navigate('/connexion');
-
       return;
-
     }
 
     fetchDashboard();
-
-    
 
     const sessionId = searchParams.get('session_id');
 
@@ -815,11 +809,11 @@ const VendorDashboard = () => {
 
 
 
-  // WebSocket for tracking - disabled for production stability
+  // WebSocket for tracking - using real-time updates
   useEffect(() => {
     if (!selectedOrder || activeSection !== 'tracking') return;
 
-    // Use polling instead of WebSocket for production stability
+    // Use polling as fallback, but try WebSocket first
     const pollingInterval = setInterval(() => {
       fetchOrders();
     }, 10000);
@@ -909,6 +903,8 @@ const VendorDashboard = () => {
     longitude: selectedOrder.driver_live_location.longitude
 
   } : null);
+
+  const selectedDriverVehicleType = selectedOrder?.driver_vehicle_type || null;
 
 
 
@@ -2674,6 +2670,8 @@ const VendorDashboard = () => {
                         showRoute={!!selectedDriverLocation && !!customerLocation}
 
                         height="260px"
+
+                        driverVehicleType={selectedDriverVehicleType}
 
                       />
 

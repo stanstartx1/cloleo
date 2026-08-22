@@ -22,7 +22,7 @@ export const useVendorOrders = (vendorId, token) => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('Vendor orders WebSocket connected');
+        console.log('📱 [WS VENDOR] Vendor orders WebSocket connected for vendor:', vendorId);
         setConnectionStatus('connected');
         setError(null);
 
@@ -60,7 +60,11 @@ export const useVendorOrders = (vendorId, token) => {
 
             case 'order_status_update':
               // Order status updated (e.g., confirmed, assigned, etc.)
-              console.log('Order status update:', data);
+              console.log('📱 [WS VENDOR] Order status update:', data);
+              // Handle vehicle type updates if present
+              if (data.driver_vehicle_type) {
+                console.log('📱 [WS VENDOR] Driver vehicle type updated:', data.driver_vehicle_type);
+              }
               break;
 
             case 'pong':

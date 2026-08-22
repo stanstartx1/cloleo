@@ -2058,6 +2058,7 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
         "order_id": order_id,
         "status": "confirmed",
         "vendor_name": user.get("name"),
+        "driver_vehicle_type": order.get("driver_vehicle_type"),
         "timestamp": _utc()
     })
     
@@ -2222,6 +2223,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
         "driver_accepted_at": _utc()
     }, customer_id=order.get("customer_id") if order else None)
 
@@ -2265,6 +2267,7 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
     logger.info(f"📱 [WS DRIVER] Driver {user['id']} picking up order {order_id}")
     await manager.broadcast_order_status_update(order_id, "picked_up", {
         "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
         "picked_up_at": _utc()
     }, customer_id=order.get("customer_id"))
 
@@ -2329,6 +2332,7 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
     logger.info(f"📱 [WS DRIVER] Driver {user['id']} starting delivery for order {order_id}")
     await manager.broadcast_order_status_update(order_id, "in_transit", {
         "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
         "in_transit_at": _utc(),
         "eta_minutes": eta_minutes
     }, customer_id=order.get("customer_id"))
@@ -2383,6 +2387,7 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     logger.info(f"📱 [WS DRIVER] Driver {user['id']} delivering order {order_id}")
     await manager.broadcast_order_status_update(order_id, "delivered", {
         "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
         "delivered_at": _utc()
     }, customer_id=order.get("customer_id"))
 
