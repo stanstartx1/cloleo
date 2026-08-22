@@ -248,16 +248,7 @@ async def auto_assign_driver(order_id: str, order: dict, manager, excluded_drive
                 {"order_id": order_id},
             )
             
-            # Send delivery PIN via chat message from Cloleo for auto-assignment
-            order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-            if order and order.get("delivery_pin"):
-                logger.info(f"🚀 [AUTO ASSIGN] Sending PIN message for order {order_id}")
-                pin_result = await send_system_delivery_pin_message(
-                    order_id, 
-                    order["delivery_pin"], 
-                    order.get("order_number")
-                )
-                logger.info(f"📊 [AUTO ASSIGN] PIN message result: {pin_result}")
+            # PIN is already sent on order creation, no need to send again
             return True
         else:
             logger.warning(f"⚠️ [AUTO ASSIGN] No driver found for order {order_id}")
@@ -1629,6 +1620,15 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "order_data": main_order
             })
 
+            # Send delivery PIN immediately to customer via chat from Cloleo
+            logger.info(f"🚀 [DROP ORDER CREATION] Sending PIN message for order {order_id}")
+            pin_result = await send_system_delivery_pin_message(
+                order_id, 
+                delivery_pin, 
+                main_order.get("order_number")
+            )
+            logger.info(f"📊 [DROP ORDER CREATION] PIN message result: {pin_result}")
+
             # Automatic driver assignment after order creation
             logger.info(f"🔍 [DROP ORDER CREATION] Starting automatic driver search for order {order_id}")
             await auto_assign_driver(order_id, main_order, manager)
@@ -1706,6 +1706,15 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         "order_id": order["id"],
         "order_data": order
     })
+
+    # Send delivery PIN immediately to customer via chat from Cloleo
+    logger.info(f"🚀 [ORDER CREATION] Sending PIN message for order {order_id}")
+    pin_result = await send_system_delivery_pin_message(
+        order_id, 
+        delivery_pin, 
+        order.get("order_number")
+    )
+    logger.info(f"📊 [ORDER CREATION] PIN message result: {pin_result}")
 
     # Automatic driver assignment after order creation
     logger.info(f"🔍 [ORDER CREATION] Starting automatic driver search for order {order_id}")
@@ -2082,15 +2091,16 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     })
     logger.info(f"📱 [WS DRIVER] Order {order_id} assigned to driver {user['id']}")
 
+    # PIN is already sent on order creation, no need to send again
     # Send delivery PIN via chat message from Cloleo
-    if order.get("delivery_pin"):
-        logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id}")
-        pin_result = await send_system_delivery_pin_message(
-            order_id, 
-            order["delivery_pin"], 
-            order.get("order_number")
-        )
-        logger.info(f"📊 [SERVER DEBUG] PIN message result: {pin_result}")
+    # if order.get("delivery_pin"):
+    #     logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id}")
+    #     pin_result = await send_system_delivery_pin_message(
+    #         order_id, 
+    #         order["delivery_pin"], 
+    #         order.get("order_number")
+    #     )
+    #     logger.info(f"📊 [SERVER DEBUG] PIN message result: {pin_result}")
 
     await notify_all_parties(
         order_id,
@@ -2194,16 +2204,17 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
         "timestamp": _utc()
     })
     
+    # PIN is already sent on order creation, no need to send again
     # Send delivery PIN via chat message from Cloleo when vendor accepts
     # (This ensures the customer gets the PIN as soon as the order is confirmed)
-    if order and order.get("delivery_pin"):
-        logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id} (vendor accept)")
-        pin_result = await send_system_delivery_pin_message(
-            order_id, 
-            order["delivery_pin"], 
-            order.get("order_number")
-        )
-        logger.info(f"📊 [SERVER DEBUG] PIN message result (vendor accept): {pin_result}")
+    # if order and order.get("delivery_pin"):
+    #     logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id} (vendor accept)")
+    #     pin_result = await send_system_delivery_pin_message(
+    #         order_id, 
+    #         order["delivery_pin"], 
+    #         order.get("order_number")
+    #     )
+    #     logger.info(f"📊 [SERVER DEBUG] PIN message result (vendor accept): {pin_result}")
 
     # Check for auto-assign driver setting (default to True for automatic assignment)
     delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
