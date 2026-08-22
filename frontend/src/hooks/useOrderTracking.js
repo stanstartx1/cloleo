@@ -33,7 +33,7 @@ export const useOrderTracking = (orderId, token) => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('Order tracking WebSocket connected');
+        console.log('📱 [WS ORDER] Order tracking WebSocket connected for order:', orderId);
         setConnectionStatus('connected');
         setError(null);
         reconnectAttemptsRef.current = 0; // Reset on successful connection
@@ -64,6 +64,7 @@ export const useOrderTracking = (orderId, token) => {
               break;
 
             case 'order_status_update':
+              console.log('📱 [WS ORDER] Status update received:', data.status, data);
               setOrder(prev => ({
                 ...prev,
                 status: data.status,
@@ -75,6 +76,7 @@ export const useOrderTracking = (orderId, token) => {
                 ...(data.in_transit_at && { in_transit_at: data.in_transit_at }),
                 ...(data.delivered_at && { delivered_at: data.delivered_at }),
                 ...(data.eta_minutes !== undefined && { eta_minutes: data.eta_minutes }),
+                ...(data.driver_vehicle_type && { driver_vehicle_type: data.driver_vehicle_type }),
                 ...data.order_data
               }));
               break;

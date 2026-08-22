@@ -73,6 +73,7 @@ const OrderTrackingPage = () => {
   // Sync real-time data with local state
   useEffect(() => {
     if (realtimeOrder) {
+      console.log('📱 [TRACKING SYNC] Syncing realtime order data:', realtimeOrder.status, realtimeOrder);
       setOrder(realtimeOrder);
       setLoading(false);
       
@@ -80,6 +81,8 @@ const OrderTrackingPage = () => {
       if (realtimeOrder.status !== previousStatusRef.current) {
         const oldStatus = previousStatusRef.current;
         previousStatusRef.current = realtimeOrder.status;
+        
+        console.log('📱 [TRACKING SYNC] Status changed from', oldStatus, 'to', realtimeOrder.status);
         
         if (ORDER_STATUSES[realtimeOrder.status] && oldStatus !== realtimeOrder.status) {
           const statusInfo = ORDER_STATUSES[realtimeOrder.status];

@@ -22,7 +22,7 @@ export const useUserRealtime = (token, userId) => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('User global WebSocket connected');
+        console.log('📱 [WS USER] User global WebSocket connected for user:', userId);
         setIsConnected(true);
 
         // Start heartbeat
@@ -52,6 +52,7 @@ export const useUserRealtime = (token, userId) => {
               break;
 
             case 'order_status_update':
+              console.log('📱 [WS USER] Order status update received:', data.status, data);
               setOrderUpdates(prev => [...prev, {
                 type: 'order_status_update',
                 order_id: data.order_id,
@@ -59,6 +60,9 @@ export const useUserRealtime = (token, userId) => {
                 driver_id: data.driver_id,
                 driver_name: data.driver_name,
                 vendor_name: data.vendor_name,
+                eta_minutes: data.eta_minutes,
+                driver_vehicle_type: data.driver_vehicle_type,
+                delivery_pin: data.delivery_pin,
                 timestamp: data.timestamp,
                 order_data: data.order_data
               }]);

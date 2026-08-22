@@ -1937,7 +1937,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type")
-    })
+    }, customer_id=order.get("customer_id"))
     
     # Broadcast to driver's room
     await manager.broadcast_to_room(f"driver_{user['id']}", {
@@ -2050,7 +2050,7 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
         )
     
     # Broadcast order status update via WebSocket
-    await manager.broadcast_order_status_update(order_id, "confirmed", {"vendor_name": user.get("name")})
+    await manager.broadcast_order_status_update(order_id, "confirmed", {"vendor_name": user.get("name")}, customer_id=order.get("customer_id"))
     
     # Notify customer via all channels
     await notify_all_parties(
@@ -2225,24 +2225,12 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     )
     
     # Broadcast order status update via WebSocket
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_accepted_at": _utc()
-    })
-    
-    # Broadcast to customer for immediate UI update
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-    if order:
-        await manager.broadcast_to_room(f"user_{order.get('customer_id')}", {
-            "type": "order_status_update",
-            "order_id": order_id,
-            "status": "accepted",
-            "driver_id": user["id"],
-            "driver_name": user.get("name"),
-            "driver_accepted_at": _utc(),
-            "timestamp": _utc()
-        })
+    }, customer_id=order.get("customer_id") if order else None)
 
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Livreur {user.get('name')} a accepté la commande", manager)
@@ -2284,17 +2272,7 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
     await manager.broadcast_order_status_update(order_id, "picked_up", {
         "driver_name": user.get("name"),
         "picked_up_at": _utc()
-    })
-    
-    # Broadcast to customer for immediate UI update
-    await manager.broadcast_to_room(f"user_{order.get('customer_id')}", {
-        "type": "order_status_update",
-        "order_id": order_id,
-        "status": "picked_up",
-        "driver_name": user.get("name"),
-        "picked_up_at": _utc(),
-        "timestamp": _utc()
-    })
+    }, customer_id=order.get("customer_id"))
 
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Colis récupéré par le livreur {user.get('name')}", manager)
@@ -2358,18 +2336,7 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
         "driver_name": user.get("name"),
         "in_transit_at": _utc(),
         "eta_minutes": eta_minutes
-    })
-    
-    # Broadcast to customer for immediate UI update
-    await manager.broadcast_to_room(f"user_{order.get('customer_id')}", {
-        "type": "order_status_update",
-        "order_id": order_id,
-        "status": "in_transit",
-        "driver_name": user.get("name"),
-        "in_transit_at": _utc(),
-        "eta_minutes": eta_minutes,
-        "timestamp": _utc()
-    })
+    }, customer_id=order.get("customer_id"))
 
     # Notify all parties with ETA information
     eta_message = f"Livraison en cours (arrivée estimée: {eta_minutes} min)" if eta_minutes else "Livraison en cours"
@@ -2421,17 +2388,7 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     await manager.broadcast_order_status_update(order_id, "delivered", {
         "driver_name": user.get("name"),
         "delivered_at": _utc()
-    })
-    
-    # Broadcast to customer for immediate UI update
-    await manager.broadcast_to_room(f"user_{order.get('customer_id')}", {
-        "type": "order_status_update",
-        "order_id": order_id,
-        "status": "delivered",
-        "driver_name": user.get("name"),
-        "delivered_at": _utc(),
-        "timestamp": _utc()
-    })
+    }, customer_id=order.get("customer_id"))
 
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Commande livrée avec succès par {user.get('name')}", manager)

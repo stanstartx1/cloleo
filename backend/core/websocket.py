@@ -219,7 +219,7 @@ class ConnectionManager:
     
     # ==================== ORDER STATUS UPDATES ====================
     
-    async def broadcast_order_status_update(self, order_id: str, status: str, order_data: dict = None):
+    async def broadcast_order_status_update(self, order_id: str, status: str, order_data: dict = None, customer_id: str = None):
         """Broadcast order status update to all relevant users"""
         message = {
             "type": "order_status_update",
@@ -229,11 +229,16 @@ class ConnectionManager:
         }
         
         if order_data:
-            message["order_data"] = order_data
+            message.update(order_data)
         
         # Broadcast to order-specific room
         await self.broadcast_to_room(f"order_{order_id}", message)
-        logger.info(f"Broadcast order status update: order {order_id} -> {status}")
+        logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (order room)")
+        
+        # Also broadcast to customer user room for immediate UI update
+        if customer_id:
+            await self.broadcast_to_room(f"user_{customer_id}", message)
+            logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (user_{customer_id} room)")
     
     async def broadcast_driver_location_update(self, order_id: str, driver_id: str, location: dict):
         """Broadcast driver location update for an order"""
