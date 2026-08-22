@@ -1939,24 +1939,16 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         "driver_vehicle_type": user.get("vehicle_type")
     }, customer_id=order.get("customer_id"))
     
-    # Broadcast to driver's room
+    # Broadcast to driver's room for immediate notification
     await manager.broadcast_to_room(f"driver_{user['id']}", {
         "type": "order_assigned",
         "order_id": order_id,
-        "order_data": await db.orders.find_one({"id": order_id}, {"_id": 0})
+        "driver_id": user["id"],
+        "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
+        "timestamp": _utc()
     })
-    
-    # Broadcast to customer for immediate UI update
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-    if order:
-        await manager.broadcast_to_room(f"user_{order.get('customer_id')}", {
-            "type": "order_status_update",
-            "order_id": order_id,
-            "status": "assigned",
-            "driver_id": user["id"],
-            "driver_name": user.get("name"),
-            "timestamp": _utc()
-        })
+    logger.info(f"📱 [WS DRIVER] Order {order_id} assigned to driver {user['id']}")
         
         # Send delivery PIN via chat message from Cloleo
         if order.get("delivery_pin"):
@@ -2226,6 +2218,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     
     # Broadcast order status update via WebSocket
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} accepting order {order_id}")
     await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
@@ -2269,6 +2262,7 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
     )
     
     # Broadcast order status update via WebSocket
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} picking up order {order_id}")
     await manager.broadcast_order_status_update(order_id, "picked_up", {
         "driver_name": user.get("name"),
         "picked_up_at": _utc()
@@ -2332,6 +2326,7 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
     )
     
     # Broadcast order status update via WebSocket
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} starting delivery for order {order_id}")
     await manager.broadcast_order_status_update(order_id, "in_transit", {
         "driver_name": user.get("name"),
         "in_transit_at": _utc(),
@@ -2385,6 +2380,7 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     )
     
     # Broadcast order status update via WebSocket
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} delivering order {order_id}")
     await manager.broadcast_order_status_update(order_id, "delivered", {
         "driver_name": user.get("name"),
         "delivered_at": _utc()

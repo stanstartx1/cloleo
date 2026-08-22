@@ -23,7 +23,7 @@ export const useDriverOrders = (driverId, token) => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('Driver orders WebSocket connected');
+        console.log('📱 [WS DRIVER] Driver orders WebSocket connected for driver:', driverId);
         setConnectionStatus('connected');
         setError(null);
 
@@ -41,14 +41,15 @@ export const useDriverOrders = (driverId, token) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Driver orders WebSocket message:', data);
+          console.log('📱 [WS DRIVER] Message received:', data.type, data);
 
           switch (data.type) {
             case 'driver_connected':
-              console.log('Driver connected to orders system');
+              console.log('📱 [WS DRIVER] Driver connected to orders system');
               break;
 
             case 'new_order':
+              console.log('📱 [WS DRIVER] New order assigned:', data.order_data);
               setNewOrderAlert(data.order_data);
               // Show notification sound
               try {
@@ -60,6 +61,7 @@ export const useDriverOrders = (driverId, token) => {
               break;
 
             case 'order_assigned':
+              console.log('📱 [WS DRIVER] Order assigned:', data.order_id, data.order_data);
               // Update order in the list
               setOrders(prev => {
                 const existingIndex = prev.findIndex(o => o.id === data.order_id);
@@ -73,6 +75,7 @@ export const useDriverOrders = (driverId, token) => {
               break;
 
             case 'order_status_update':
+              console.log('📱 [WS DRIVER] Order status update:', data.order_id, data.status);
               // Update order status
               setOrders(prev => {
                 const existingIndex = prev.findIndex(o => o.id === data.order_id);
@@ -82,6 +85,11 @@ export const useDriverOrders = (driverId, token) => {
                     ...updated[existingIndex],
                     status: data.status,
                     updated_at: data.timestamp,
+                    ...(data.driver_name && { driver_name: data.driver_name }),
+                    ...(data.picked_up_at && { picked_up_at: data.picked_up_at }),
+                    ...(data.in_transit_at && { in_transit_at: data.in_transit_at }),
+                    ...(data.delivered_at && { delivered_at: data.delivered_at }),
+                    ...(data.eta_minutes !== undefined && { eta_minutes: data.eta_minutes }),
                     ...data.order_data
                   };
                   return updated;
@@ -95,10 +103,10 @@ export const useDriverOrders = (driverId, token) => {
               break;
 
             default:
-              console.log('Unknown message type:', data.type);
+              console.log('📱 [WS DRIVER] Unknown message type:', data.type);
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error('📱 [WS DRIVER] Error parsing WebSocket message:', error);
         }
       };
 

@@ -251,7 +251,7 @@ class ConnectionManager:
         }
         
         await self.broadcast_to_room(f"order_{order_id}", message)
-        logger.info(f"Broadcast driver location update: order {order_id}, driver {driver_id}")
+        logger.info(f"📱 [WS BROADCAST] Driver location update: order {order_id}, driver {driver_id}")
     
     async def broadcast_new_order(self, order_id: str, order_data: dict):
         """Broadcast new order to all drivers"""
@@ -263,7 +263,7 @@ class ConnectionManager:
         }
         
         await self.broadcast_to_all_drivers(message)
-        logger.info(f"Broadcast new order: {order_id} to all drivers")
+        logger.info(f"📱 [WS BROADCAST] New order: {order_id} to all drivers")
     
     async def broadcast_new_order_to_vendor(self, seller_id: str, order_id: str, order_data: dict):
         """Broadcast new order to specific vendor"""
@@ -293,6 +293,6 @@ class ConnectionManager:
         # Send to driver room
         await self.broadcast_to_room(f"driver_{driver_id}", message)
         
-        logger.info(f"Broadcast order assigned: {order_id} to driver {driver_id}")
+        logger.info(f"📱 [WS BROADCAST] Order assigned: {order_id} to driver {driver_id}")
 
 manager = ConnectionManager()

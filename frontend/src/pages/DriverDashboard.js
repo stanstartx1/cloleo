@@ -170,22 +170,38 @@ const DriverDashboard = () => {
 
   // Real-time order updates using WebSocket
   const {
+    orders: wsOrders,
     newOrderAlert,
     connectionStatus: wsConnectionStatus,
     sendLocationUpdate
   } = useDriverOrders(user?.id, token);
 
-  // Handle new order alerts
+  // Sync WebSocket orders with local state
+  useEffect(() => {
+    if (wsOrders.length > 0) {
+      console.log('📱 [DRIVER] Syncing WebSocket orders:', wsOrders.length);
+      setOrders(wsOrders);
+      const active = wsOrders.filter(o => 
+        ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(o.status)
+      );
+      setActiveOrders(active);
+      console.log('📱 [DRIVER] Active orders:', active.length);
+    }
+  }, [wsOrders]);
+
+  // Real-time order updates using WebSocket - NO POLLING NEEDED
   useEffect(() => {
     if (newOrderAlert) {
+      console.log('📱 [DRIVER] New order alert received:', newOrderAlert);
       toast.info('Nouvelle commande assignée !', {
         description: `Commande #${newOrderAlert.order_number?.slice(0, 8).toUpperCase()}`,
         duration: 5000
       });
       audioRef.current?.play().catch(() => {});
-      fetchOrders();
+      // WebSocket handles the order update, no need to fetch
+      // fetchOrders();
     }
-  }, [newOrderAlert, fetchOrders]);
+  }, [newOrderAlert]);
 
   // Send location updates via WebSocket when available
   useEffect(() => {
@@ -194,17 +210,8 @@ const DriverDashboard = () => {
     }
   }, [currentLocation, wsConnectionStatus, sendLocationUpdate]);
 
-  // Polling fallback for production stability
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const pollingInterval = setInterval(() => {
-      fetchOrders();
-      fetchDashboard();
-    }, 5000); // Poll every 5 seconds for faster order detection
-
-    return () => clearInterval(pollingInterval);
-  }, [user?.id, fetchOrders, fetchDashboard]);
+  // NO POLLING - WebSocket handles all real-time updates
+  // Removed polling interval to rely entirely on WebSocket
 
   // Request GPS permission on mount for drivers - MORE AGGRESSIVE
   useEffect(() => {
@@ -415,10 +422,38 @@ const DriverDashboard = () => {
   };
 
   const handleOrderAction = async (order, action) => {
+    console.log('📱 [DRIVER ACTION] Handling action:', action, 'for order:', order.id);
     setUpdatingStatus(true);
+    
+    const statusMap = {
+      'driver-accept': 'accepted',
+      'pickup': 'picked_up', 
+      'in-transit': 'in_transit',
+      'deliver': 'delivered'
+    };
+    
     try {
       let endpoint = '';
       let payload = {};
+      
+      // Optimistic update - update UI immediately
+      if (statusMap[action]) {
+        const newStatus = statusMap[action];
+        console.log('📱 [DRIVER ACTION] Optimistic update to status:', newStatus);
+        
+        // Update selected order
+        setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+        
+        // Update orders list
+        setOrders(prev => prev.map(o => 
+          o.id === order.id ? { ...o, status: newStatus } : o
+        ));
+        
+        // Update active orders
+        setActiveOrders(prev => prev.map(o => 
+          o.id === order.id ? { ...o, status: newStatus } : o
+        ));
+      }
       
       switch (action) {
         case 'driver-accept': 
@@ -505,6 +540,10 @@ const DriverDashboard = () => {
           if (!pin) {
             toast.error('Code PIN requis pour confirmer la livraison');
             setUpdatingStatus(false);
+            // Revert optimistic update
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+            setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+            setSelectedOrder(order);
             return;
           }
           
@@ -519,11 +558,19 @@ const DriverDashboard = () => {
             if (!verifyResponse.data.verified) {
               toast.error('Code PIN incorrect');
               setUpdatingStatus(false);
+              // Revert optimistic update
+              setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+              setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+              setSelectedOrder(order);
               return;
             }
           } catch (error) {
             toast.error(error.response?.data?.detail || 'Erreur lors de la vérification du code PIN');
             setUpdatingStatus(false);
+            // Revert optimistic update
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+            setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+            setSelectedOrder(order);
             return;
           }
           
@@ -535,6 +582,10 @@ const DriverDashboard = () => {
           if (!reason) {
             toast.error('Annulation annulée');
             setUpdatingStatus(false);
+            // Revert optimistic update
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+            setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: order.status } : o));
+            setSelectedOrder(order);
             return;
           }
           payload = { reason };
@@ -543,10 +594,14 @@ const DriverDashboard = () => {
       }
       
       const response = await axios.put(`${API}${endpoint}`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      console.log('📱 [DRIVER ACTION] API response:', response.data);
       
       if (action === 'driver-cancel') {
         toast.success('Commande annulée et réassignée');
         setSelectedOrder(null);
+        // Remove from orders list
+        setOrders(prev => prev.filter(o => o.id !== order.id));
+        setActiveOrders(prev => prev.filter(o => o.id !== order.id));
       } else if (action === 'driver-accept') {
         toast.success('Commande acceptée !', {
           description: 'Votre position GPS est partagée avec le client'
@@ -559,29 +614,31 @@ const DriverDashboard = () => {
           'Livraison terminée !'
         );
         
-        // Manually update the selected order status for immediate UI feedback
-        const statusMap = {
-          'driver-accept': 'accepted',
-          'pickup': 'picked_up', 
-          'in-transit': 'in_transit',
-          'deliver': 'delivered'
-        };
-        
-        if (statusMap[action]) {
-          setSelectedOrder({
-            ...order,
-            status: statusMap[action]
-          });
+        if (action === 'deliver') {
+          setSelectedOrder(null);
+          // Remove from active orders when delivered
+          setActiveOrders(prev => prev.filter(o => o.id !== order.id));
         }
       }
       
-      await fetchOrders();
-      await fetchDashboard();
-      
-      if (action === 'deliver') setSelectedOrder(null);
+      // No need to fetchOrders() - WebSocket will handle updates
+      // await fetchOrders();
+      // await fetchDashboard();
       
     } catch (error) {
+      console.error('📱 [DRIVER ACTION] Error:', error);
       toast.error(error.response?.data?.detail || 'Erreur');
+      
+      // Revert optimistic update on error
+      if (statusMap[action]) {
+        setOrders(prev => prev.map(o => 
+          o.id === order.id ? { ...o, status: order.status } : o
+        ));
+        setActiveOrders(prev => prev.map(o => 
+          o.id === order.id ? { ...o, status: order.status } : o
+        ));
+        setSelectedOrder(order);
+      }
     } finally {
       setUpdatingStatus(false);
     }
