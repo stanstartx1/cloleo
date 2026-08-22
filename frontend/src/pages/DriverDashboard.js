@@ -25,9 +25,11 @@ const API = API_URL;
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price);
 
 const ORDER_STATUSES = {
-  assigned: { label: 'Assignée', action: 'Accepter commande', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+  pending: { label: 'En attente', action: null, bgColor: 'bg-amber-500/20', textColor: 'text-amber-400' },
+  confirmed: { label: 'Confirmée', action: 'Accepter commande', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+  assigned: { label: 'Assignée', action: 'Accepter commande', bgColor: 'bg-indigo-500/20', textColor: 'text-indigo-400' },
   accepted: { label: 'Acceptée', action: 'Récupérer colis', bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
-  picked_up: { label: 'Colis récupéré', action: 'Démarrer livraison', bgColor: 'bg-indigo-500/20', textColor: 'text-indigo-400' },
+  picked_up: { label: 'Colis récupéré', action: 'Démarrer livraison', bgColor: 'bg-violet-500/20', textColor: 'text-violet-400' },
   in_transit: { label: 'En cours de livraison', action: 'Confirmer livraison', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400' },
   delivered: { label: 'Livrée', action: null, bgColor: 'bg-emerald-500/20', textColor: 'text-emerald-400' },
   cancelled: { label: 'Annulée', action: null, bgColor: 'bg-red-500/20', textColor: 'text-red-400' }

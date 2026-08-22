@@ -70,9 +70,13 @@ const ORDER_STATUSES = {
 
   pending: { label: 'En attente', bgColor: 'bg-amber-500/20', textColor: 'text-amber-400' },
 
-  assigned: { label: 'Livreur assigné', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+  confirmed: { label: 'Confirmée', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
 
-  picked_up: { label: 'Colis récupéré', bgColor: 'bg-indigo-500/20', textColor: 'text-indigo-400' },
+  assigned: { label: 'Livreur assigné', bgColor: 'bg-indigo-500/20', textColor: 'text-indigo-400' },
+
+  accepted: { label: 'Livreur accepté', bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
+
+  picked_up: { label: 'Colis récupéré', bgColor: 'bg-violet-500/20', textColor: 'text-violet-400' },
 
   in_transit: { label: 'En livraison', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400' },
 
@@ -512,12 +516,14 @@ const VendorDashboard = () => {
 
     try {
 
+      console.log('📱 [VENDOR] Accepting order:', orderId);
       await axios.put(`${API}/orders/${orderId}/vendor-accept`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success('Commande acceptée');
+      console.log('📱 [VENDOR] Order accepted successfully, status should be confirmed');
+      toast.success('Commande confirmée avec succès');
 
       fetchOrders();
 
