@@ -138,13 +138,25 @@ const DriverRegisterPage = () => {
 
     try {
       console.log('Starting license upload...');
+      console.log('License file:', licenseFile);
+      console.log('License file type:', licenseFile.type);
+      console.log('License file size:', licenseFile.size);
+      
       const formData = new FormData();
       formData.append('file', licenseFile);
+      
+      console.log('FormData entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
 
       console.log('Uploading license to:', `${API}/driver/upload-license`);
+      console.log('Using token:', tempToken ? 'Token present' : 'No token');
+      
       const response = await axios.post(`${API}/driver/upload-license`, formData, {
         headers: {
           Authorization: `Bearer ${tempToken}`
+          // Don't set Content-Type - axios will set it automatically with proper boundary
         }
       });
 
@@ -157,8 +169,8 @@ const DriverRegisterPage = () => {
         try {
           console.log('Attempting auto-login...');
           login(tempToken, undefined, tempUser);
-          console.log('Auto-login successful, redirecting to /livreur');
-          navigate('/livreur', { replace: true });
+          console.log('Auto-login successful, redirecting to home page');
+          navigate('/', { replace: true }); // Redirect to home page instead of /livreur
         } catch (error) {
           console.error('Login redirect error:', error);
           toast.error('Erreur lors de la redirection. Veuillez vous connecter manuellement.');
@@ -169,6 +181,9 @@ const DriverRegisterPage = () => {
       
     } catch (error) {
       console.error('Upload error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'upload du permis';
       console.error('Error details:', errorMessage);
       toast.error(errorMessage);

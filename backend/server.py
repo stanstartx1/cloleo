@@ -3672,26 +3672,36 @@ async def driver_status_update(payload: dict, user: dict = Depends(require_drive
 @api.post("/driver/upload-license")
 
 async def driver_upload_license(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    logger.info(f"📄 [LICENSE UPLOAD] Driver license upload attempt for user: {user.get('id')}")
+    logger.info(f"📄 [LICENSE UPLOAD] File info: {file.filename}, content_type: {file.content_type}")
 
     if user.get("role") != "driver":
-
+        logger.warning(f"📄 [LICENSE UPLOAD] Access denied for non-driver user: {user.get('role')}")
         raise HTTPException(status_code=403, detail="Acces reserve aux livreurs")
 
     ext = Path(file.filename or "").suffix or ".bin"
+    logger.info(f"📄 [LICENSE UPLOAD] File extension: {ext}")
 
     filename = f"license_{user['id']}_{uuid.uuid4()}{ext}"
-
     dest = uploads_dir / filename
 
-    content = await file.read()
-
-    dest.write_bytes(content)
-
-    url = f"/uploads/{filename}"
-
-    await db.users.update_one({"id": user["id"]}, {"$set": {"license_image": url, "updated_at": _utc()}})
-
-    return {"url": url}
+    try:
+        content = await file.read()
+        logger.info(f"📄 [LICENSE UPLOAD] File size: {len(content)} bytes")
+        
+        dest.write_bytes(content)
+        logger.info(f"📄 [LICENSE UPLOAD] File saved to: {dest}")
+        
+        url = f"/uploads/{filename}"
+        
+        await db.users.update_one({"id": user["id"]}, {"$set": {"license_image": url, "updated_at": _utc()}})
+        logger.info(f"📄 [LICENSE UPLOAD] Database updated for user: {user['id']}")
+        
+        logger.info(f"📄 [LICENSE UPLOAD] Upload successful: {url}")
+        return {"url": url}
+    except Exception as e:
+        logger.error(f"📄 [LICENSE UPLOAD] Error during upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
 
 
 
