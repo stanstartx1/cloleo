@@ -142,6 +142,22 @@ const DriverRegisterPage = () => {
       console.log('License file type:', licenseFile.type);
       console.log('License file size:', licenseFile.size);
       
+      // First test authentication
+      console.log('Testing authentication...');
+      try {
+        const testResponse = await axios.get(`${API}/driver/upload-license-test`, {
+          headers: {
+            Authorization: `Bearer ${tempToken}`
+          }
+        });
+        console.log('Authentication test successful:', testResponse.data);
+      } catch (testError) {
+        console.error('Authentication test failed:', testError);
+        toast.error('Erreur d\'authentification. Veuillez vous reconnecter.');
+        setUploadingLicense(false);
+        return;
+      }
+      
       const formData = new FormData();
       formData.append('file', licenseFile);
       

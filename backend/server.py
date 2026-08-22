@@ -3669,11 +3669,22 @@ async def driver_status_update(payload: dict, user: dict = Depends(require_drive
 
 
 
+@api.post("/driver/upload-license-test")
+
+async def driver_upload_license_test(request: Request, user: dict = Depends(get_current_user)):
+    """Test endpoint to check authentication"""
+    logger.info(f"🧪 [LICENSE TEST] Authentication test for user: {user.get('id')}, role: {user.get('role')}")
+    logger.info(f"🧪 [LICENSE TEST] Request headers: {dict(request.headers)}")
+    return {"success": True, "user_id": user.get('id'), "role": user.get('role')}
+
+
 @api.post("/driver/upload-license")
 
-async def driver_upload_license(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
-    logger.info(f"📄 [LICENSE UPLOAD] Driver license upload attempt for user: {user.get('id')}")
+async def driver_upload_license(request: Request, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    logger.info(f"📄 [LICENSE UPLOAD] Driver license upload attempt")
+    logger.info(f"📄 [LICENSE UPLOAD] Request headers: {dict(request.headers)}")
     logger.info(f"📄 [LICENSE UPLOAD] File info: {file.filename}, content_type: {file.content_type}")
+    logger.info(f"📄 [LICENSE UPLOAD] User info: {user.get('id')}, role: {user.get('role')}")
 
     if user.get("role") != "driver":
         logger.warning(f"📄 [LICENSE UPLOAD] Access denied for non-driver user: {user.get('role')}")
@@ -3689,6 +3700,10 @@ async def driver_upload_license(file: UploadFile = File(...), user: dict = Depen
         content = await file.read()
         logger.info(f"📄 [LICENSE UPLOAD] File size: {len(content)} bytes")
         
+        if len(content) == 0:
+            logger.error(f"📄 [LICENSE UPLOAD] File is empty!")
+            raise HTTPException(status_code=422, detail="Le fichier est vide")
+        
         dest.write_bytes(content)
         logger.info(f"📄 [LICENSE UPLOAD] File saved to: {dest}")
         
@@ -3699,6 +3714,8 @@ async def driver_upload_license(file: UploadFile = File(...), user: dict = Depen
         
         logger.info(f"📄 [LICENSE UPLOAD] Upload successful: {url}")
         return {"url": url}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"📄 [LICENSE UPLOAD] Error during upload: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
