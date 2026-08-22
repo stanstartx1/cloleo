@@ -475,7 +475,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
       console.log('📱 [CHAT DEBUG] Chat opening, fetching messages for order:', orderId);
       fetchMessages();
     }
-  }, [isOpen, fetchMessages]);
+  }, [isOpen, fetchMessages, orderId]);
 
   // Scroll to bottom when new messages arrive
   const scrollToBottom = () => {

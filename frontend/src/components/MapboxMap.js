@@ -63,7 +63,7 @@ const MapboxMap = ({
       console.error('Mapbox init error:', err);
       setError('Erreur initialisation carte');
     }
-  }, [mapReady, mapType]);
+  }, [mapReady, mapType, driverLocation, customerLocation]);
 
   useEffect(() => {
     initializeMap();

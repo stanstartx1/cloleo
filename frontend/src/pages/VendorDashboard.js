@@ -217,16 +217,16 @@ const VendorDashboard = () => {
       return;
     }
 
-    fetchDashboard();
+    const initDashboard = async () => {
+      await fetchDashboard();
+      const sessionId = searchParams.get('session_id');
+      if (sessionId) checkSubscriptionPayment(sessionId);
+      if (searchParams.get('success') === 'true') toast.success('Plan gratuit activé !');
+      if (searchParams.get('cancelled') === 'true') toast.info('Paiement annulé');
+    };
 
-    const sessionId = searchParams.get('session_id');
-
-    if (sessionId) checkSubscriptionPayment(sessionId);
-
-    if (searchParams.get('success') === 'true') toast.success('Plan gratuit activé !');
-
-    if (searchParams.get('cancelled') === 'true') toast.info('Paiement annulé');
-
+    initDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVendor, navigate, searchParams]);
 
 
