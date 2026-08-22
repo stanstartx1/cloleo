@@ -178,21 +178,13 @@ const DriverRegisterPage = () => {
 
       console.log('License upload successful:', response.data);
       setRegistrationComplete(true);
-      toast.success('Permis uploadé avec succès !');
+      toast.success('Permis uploadé avec succès ! Inscription terminée.');
       
-      // Auto login after 2 seconds
+      // Redirect to login page after 2 seconds
       setTimeout(() => {
-        try {
-          console.log('Attempting auto-login...');
-          login(tempToken, undefined, tempUser);
-          console.log('Auto-login successful, redirecting to home page');
-          navigate('/', { replace: true }); // Redirect to home page instead of /livreur
-        } catch (error) {
-          console.error('Login redirect error:', error);
-          toast.error('Erreur lors de la redirection. Veuillez vous connecter manuellement.');
-          console.log('Redirecting to /connexion...');
-          navigate('/connexion', { replace: true });
-        }
+        console.log('Redirecting to login page...');
+        toast.info('Veuillez vous connecter avec vos identifiants');
+        navigate('/connexion', { replace: true });
       }, 2000);
       
     } catch (error) {
@@ -208,8 +200,9 @@ const DriverRegisterPage = () => {
   };
 
   const handleSkipLicense = () => {
-    login(tempToken, undefined, tempUser);
-    navigate('/livreur');
+    console.log('Skipping license upload, redirecting to login...');
+    toast.info('Veuillez vous connecter avec vos identifiants');
+    navigate('/connexion', { replace: true });
   };
 
   if (registrationComplete) {

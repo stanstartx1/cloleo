@@ -142,6 +142,10 @@ const CustomerChatPage = () => {
       setConversations(list);
     } catch (error) {
       console.error('Error fetching conversations:', error);
+      // Don't show error for 401 - user might not be authenticated
+      if (error.response?.status !== 401) {
+        console.error('Non-401 error fetching conversations:', error);
+      }
     } finally {
       setLoading(false);
     }

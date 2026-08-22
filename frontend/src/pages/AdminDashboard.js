@@ -515,7 +515,10 @@ const AdminDashboard = () => {
       });
       setAdminConversations(response.data?.conversations || []);
     } catch (error) {
-      toast.error('Erreur de chargement des messages admin');
+      // Don't show error toast for 401 errors - admin might not be authenticated
+      if (error.response?.status !== 401) {
+        toast.error('Erreur de chargement des messages admin');
+      }
     }
   };
 

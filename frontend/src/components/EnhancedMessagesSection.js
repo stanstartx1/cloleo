@@ -32,6 +32,10 @@ const EnhancedMessagesSection = ({ token, userType }) => {
       setUnreadCount(response.data.conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0);
     } catch (error) {
       console.error('Error fetching conversations:', error);
+      // Don't show error for 401 - user might not be authenticated
+      if (error.response?.status !== 401) {
+        console.error('Non-401 error fetching conversations:', error);
+      }
     } finally {
       setLoading(false);
     }

@@ -173,7 +173,10 @@ const MessagesSection = ({ token, userType = 'vendor' }) => {
       setConversations(response.data || []);
     } catch (error) {
       console.error('Error fetching conversations:', error);
-      toast.error('Erreur lors du chargement des conversations');
+      // Don't show error toast for 401 errors - user might not be authenticated
+      if (error.response?.status !== 401) {
+        toast.error('Erreur lors du chargement des conversations');
+      }
     } finally {
       setLoading(false);
     }

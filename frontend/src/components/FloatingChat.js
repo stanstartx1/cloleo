@@ -158,6 +158,10 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error loading conversations:", error);
+      // Don't show error toast for 401 errors - user might not be logged in
+      if (error.response?.status !== 401) {
+        console.error("Non-401 error loading conversations:", error);
+      }
     }
   }, [token, activeConversationId]);
 
