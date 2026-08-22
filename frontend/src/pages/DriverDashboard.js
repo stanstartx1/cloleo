@@ -56,6 +56,7 @@ const DriverDashboard = () => {
   const [currentStatus, setCurrentStatus] = useState('offline');
   const [currentLocation, setCurrentLocation] = useState(null);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
+  const [driverVehicleType, setDriverVehicleType] = useState(null);
   
   // New component states
   const [chatOpen, setChatOpen] = useState(false);
@@ -76,6 +77,8 @@ const DriverDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDashboard(response.data);
+      // Extract driver vehicle type
+      setDriverVehicleType(response.data.user?.vehicle_type || null);
       // Use is_online field from backend
       const isOnline = response.data.user?.is_online ?? true;
       if (isOnline) {
@@ -1030,6 +1033,7 @@ const DriverDashboard = () => {
               height="400px"
               mapType="streets"
               followDriver={true}
+              driverVehicleType={driverVehicleType}
             />
             
             <div className="p-4 bg-slate-50 flex items-center gap-6 text-sm">

@@ -5,7 +5,7 @@ import axios from 'axios';
 import {
   Package, Truck, MapPin, Phone, CheckCircle, Clock,
   User, Navigation, Home, XCircle, Loader2, MessageCircle,
-  Calendar, Star, Trophy
+  Calendar, Star, Trophy, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -27,10 +27,11 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' 
 
 const ORDER_STATUSES = {
   pending: { label: 'En attente', color: 'amber', bgColor: 'bg-amber-100', textColor: 'text-amber-600', icon: Clock, progress: 10 },
-  assigned: { label: 'Livreur assigné', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: User, progress: 25 },
-  accepted: { label: 'Commande acceptée', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-600', icon: CheckCircle, progress: 40 },
-  picked_up: { label: 'Colis récupéré', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: Package, progress: 60 },
-  in_transit: { label: 'En route', color: 'purple', bgColor: 'bg-purple-100', textColor: 'text-purple-600', icon: Truck, progress: 80 },
+  confirmed: { label: 'Commande confirmée', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: CheckCircle, progress: 20 },
+  assigned: { label: 'Livreur assigné', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: User, progress: 30 },
+  accepted: { label: 'Livreur accepté', color: 'purple', bgColor: 'bg-purple-100', textColor: 'text-purple-600', icon: UserCheck, progress: 40 },
+  picked_up: { label: 'Colis récupéré', color: 'violet', bgColor: 'bg-violet-100', textColor: 'text-violet-600', icon: Package, progress: 60 },
+  in_transit: { label: 'En route', color: 'fuchsia', bgColor: 'bg-fuchsia-100', textColor: 'text-fuchsia-600', icon: Truck, progress: 80 },
   delivered: { label: 'Livré', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-600', icon: CheckCircle, progress: 100 },
   cancelled: { label: 'Annulé', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-600', icon: XCircle, progress: 0 }
 };
@@ -136,10 +137,16 @@ const OrderTrackingPage = () => {
           // Show notification for status change
           const statusInfo = ORDER_STATUSES[latestUpdate.status];
           if (statusInfo) {
+            console.log('📱 [TRACKING DEBUG] Status updated:', latestUpdate.status, statusInfo.label);
             toast.success(`Statut mis à jour: ${statusInfo.label}`, {
               description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
               duration: 3000
             });
+          }
+          
+          // Check for PIN
+          if (latestUpdate.delivery_pin) {
+            console.log('🔐 [PIN DEBUG] PIN received in order update:', latestUpdate.delivery_pin);
           }
         } else if (latestUpdate.type === 'order_created' && latestUpdate.order_data) {
           setOrder(latestUpdate.order_data);
@@ -154,14 +161,17 @@ const OrderTrackingPage = () => {
   // Fetch initial order data (fallback if WebSocket fails)
   const fetchOrder = useCallback(async () => {
     try {
+      console.log('📱 [TRACKING DEBUG] Fetching order data for:', orderId);
       // Use customer-specific endpoint to get delivery PIN
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await axios.get(`${API}/orders/${orderId}/delivery-pin`, { headers });
       const pinData = response.data;
+      console.log('🔐 [PIN DEBUG] PIN data fetched:', pinData);
       
       // Get order data from public endpoint
       const orderResponse = await axios.get(`${API}/orders/track/${orderId}`);
       const data = orderResponse.data;
+      console.log('📱 [TRACKING DEBUG] Order data fetched:', data);
       
       if (data.order && !realtimeOrder) {
         // Merge delivery PIN and driver vehicle type into order data
@@ -172,6 +182,7 @@ const OrderTrackingPage = () => {
           delivery_pin_verified: pinData.delivery_pin_verified,
           driver_vehicle_type: data.driver_vehicle_type
         };
+        console.log('📱 [TRACKING DEBUG] Merged order data:', orderWithPin);
         setOrder(orderWithPin);
       }
       

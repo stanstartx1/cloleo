@@ -388,16 +388,22 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
     if (!orderId || !token) return;
     
     try {
+      console.log('📱 [CHAT DEBUG] Fetching messages for order:', orderId);
       setLoading(true);
       const response = await axios.get(`${API}/chat/conversation/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      console.log('📱 [CHAT DEBUG] Messages fetched:', response.data);
       if (response.data && response.data.messages) {
+        const pinMessages = response.data.messages.filter(m => m.is_system && m.content.includes('PIN'));
+        if (pinMessages.length > 0) {
+          console.log('🔐 [PIN DEBUG] Found PIN messages in chat:', pinMessages);
+        }
         setMessages(response.data.messages);
       }
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('📱 [CHAT DEBUG] Error fetching messages:', error);
       // Don't show error for missing conversations
     } finally {
       setLoading(false);
@@ -415,6 +421,10 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
       isOrderChat: true, // Use order chat endpoint for tripartite conversations
       onEvent: (event) => {
         if (event.type === 'new_message' && event.message) {
+          console.log('📱 [CHAT DEBUG] New message received:', event.message);
+          if (event.message.is_system && event.message.content.includes('PIN')) {
+            console.log('🔐 [PIN DEBUG] PIN message received in chat:', event.message);
+          }
           setMessages(prev => {
             // If message already exists, don't add duplicate
             if (prev.some(message => message.id === event.message.id)) {
@@ -462,6 +472,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
   // Initial fetch when chat opens
   useEffect(() => {
     if (isOpen) {
+      console.log('📱 [CHAT DEBUG] Chat opening, fetching messages for order:', orderId);
       fetchMessages();
     }
   }, [isOpen, fetchMessages]);
