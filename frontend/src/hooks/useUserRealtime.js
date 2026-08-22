@@ -5,12 +5,22 @@ export const useUserRealtime = (token, userId) => {
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [orderUpdates, setOrderUpdates] = useState([]);
+  const [connectionError, setConnectionError] = useState(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const heartbeatIntervalRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const connect = useCallback(() => {
     if (!token || !userId) return;
+
+    // Check if we've exceeded max reconnect attempts
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.warn('📱 [WS USER] Max reconnection attempts reached, stopping reconnection');
+      setConnectionError('Unable to connect to WebSocket. Please refresh the page.');
+      return;
+    }
 
     // Close existing connection
     if (wsRef.current) {
@@ -24,6 +34,8 @@ export const useUserRealtime = (token, userId) => {
       ws.onopen = () => {
         console.log('📱 [WS USER] User global WebSocket connected for user:', userId);
         setIsConnected(true);
+        setConnectionError(null);
+        reconnectAttemptsRef.current = 0; // Reset on successful connection
 
         // Start heartbeat
         if (heartbeatIntervalRef.current) {
@@ -105,10 +117,17 @@ export const useUserRealtime = (token, userId) => {
 
         // Auto-reconnect after 10 seconds (unless it was a manual close)
         if (event.code !== 1000) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('Attempting to reconnect user global WebSocket...');
-            connect();
-          }, 10000);
+          reconnectAttemptsRef.current += 1;
+          const delay = Math.min(10000 * reconnectAttemptsRef.current, 60000); // Exponential backoff, max 60s
+          
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+            console.log(`📱 [WS USER] Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts}) in ${delay/1000}s...`);
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            setConnectionError('Unable to connect to WebSocket. Please refresh the page.');
+          }
         }
       };
     } catch (error) {
@@ -152,6 +171,7 @@ export const useUserRealtime = (token, userId) => {
     notifications,
     orderUpdates,
     clearOrderUpdates,
-    clearNotifications
+    clearNotifications,
+    connectionError
   };
 };

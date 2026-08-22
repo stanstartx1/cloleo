@@ -102,6 +102,7 @@ export const ChatProvider = ({ children }) => {
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [authError, setAuthError] = useState(false); // Track auth errors to stop retries
 
   const startConversation = useCallback(async (productId, dropshippedProductId = null, metadata = {}) => {
     if (!token) return null;
@@ -139,7 +140,7 @@ export const ChatProvider = ({ children }) => {
   const closeChat = useCallback(() => setIsOpen(false), []);
 
   const fetchConversations = useCallback(async () => {
-    if (!token) return;
+    if (!token || authError) return;
     try {
       const response = await axios.get(`${API}/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -158,12 +159,18 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error loading conversations:", error);
+      // Stop retrying on 401 errors - token expired
+      if (error.response?.status === 401) {
+        console.warn('📱 [FLOATING CHAT] Token expired, stopping conversation fetch');
+        setAuthError(true);
+        return;
+      }
       // Don't show error toast for 401 errors - user might not be logged in
       if (error.response?.status !== 401) {
         console.error("Non-401 error loading conversations:", error);
       }
     }
-  }, [token, activeConversationId]);
+  }, [token, activeConversationId, authError]);
 
   useEffect(() => {
     if (!isOpen) return;

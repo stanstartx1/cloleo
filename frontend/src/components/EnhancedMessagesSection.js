@@ -18,12 +18,18 @@ const EnhancedMessagesSection = ({ token, userType }) => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [authError, setAuthError] = useState(false); // Track auth errors to stop retries
 
   useEffect(() => {
     fetchConversations();
   }, [token]);
 
   const fetchConversations = async () => {
+    if (authError) {
+      console.warn('📱 [ENHANCED CHAT] Auth error previously detected, skipping fetch');
+      return;
+    }
+
     try {
       const response = await axios.get(`${API}/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -32,6 +38,12 @@ const EnhancedMessagesSection = ({ token, userType }) => {
       setUnreadCount(response.data.conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0);
     } catch (error) {
       console.error('Error fetching conversations:', error);
+      // Stop retrying on 401 errors - token expired
+      if (error.response?.status === 401) {
+        console.warn('📱 [ENHANCED CHAT] Token expired, stopping conversation fetch');
+        setAuthError(true);
+        return;
+      }
       // Don't show error for 401 - user might not be authenticated
       if (error.response?.status !== 401) {
         console.error('Non-401 error fetching conversations:', error);
