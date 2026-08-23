@@ -1641,9 +1641,8 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             )
             logger.info(f"📊 [DROP ORDER CREATION] PIN message result: {pin_result}")
 
-            # Automatic driver assignment after order creation
-            logger.info(f"🔍 [DROP ORDER CREATION] Starting automatic driver search for order {order_id}")
-            await auto_assign_driver(order_id, main_order, manager)
+            # Manual driver assignment - driver will be assigned after vendor acceptance
+            logger.info(f"🔍 [DROP ORDER CREATION] Order created, waiting for vendor acceptance before driver assignment")
 
             return main_order
             
@@ -2583,15 +2582,8 @@ async def driver_cancel_order(order_id: str, payload: dict = {}, user: dict = De
         "message": "Commande annulée avec succès"
     })
     
-    # Immediately reassign to another available driver
-    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
-    auto_assign = delivery_settings.get("auto_assign", True)
-    
-    if auto_assign:
-        logger.info(f"🔍 [DRIVER CANCEL] Starting automatic driver reassignment for order {order_id}")
-        await auto_assign_driver(order_id, order, manager, excluded_driver_id=user["id"])
-    
-    # If auto-assign is disabled or no drivers available
+    # Broadcast order as available for manual reassignment
+    logger.info(f"🔍 [DRIVER CANCEL] Order {order_id} available for manual reassignment")
     await manager.broadcast_to_room("all_drivers", {
         "type": "order_available",
         "order_id": order_id,
@@ -3510,28 +3502,8 @@ async def driver_location_update(payload: dict, user: dict = Depends(require_dri
             location
         )
     
-    # Auto-assign pending orders if driver just came online with location
-    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
-    auto_assign = delivery_settings.get("auto_assign", True)
-    
-    if auto_assign:
-        logger.info(f"🔍 [LOCATION UPDATE] Driver {user['id']} updated location, checking for pending orders")
-        
-        # Find pending orders without drivers
-        pending_orders = await db.orders.find({
-            "status": "confirmed",
-            "driver_id": {"$exists": False},
-            "is_deleted": {"$ne": True}
-        }).to_list(10)
-        
-        logger.info(f"🔍 [LOCATION UPDATE] Found {len(pending_orders)} pending orders")
-        
-        for order in pending_orders:
-            logger.info(f"🔍 [LOCATION UPDATE] Attempting to assign order {order['id']} to driver {user['id']}")
-            success = await auto_assign_driver(order["id"], order, manager)
-            if success:
-                logger.info(f"✅ [LOCATION UPDATE] Successfully assigned order {order['id']} to driver {user['id']}")
-                break  # Only assign one order at a time
+    # Manual assignment only - no auto-assign on location update
+    logger.info(f"🔍 [LOCATION UPDATE] Driver {user['id']} updated location successfully")
 
     return {"ok": True, "message": "Location updated successfully"}
 
@@ -4589,7 +4561,7 @@ async def admin_delivery_settings(user: dict = Depends(require_admin)):
 
     settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0})
 
-    return settings or {"type": "delivery", "max_active_orders": 5, "auto_assign": True}
+    return settings or {"type": "delivery", "max_active_orders": 5, "auto_assign": False}
 
 
 
