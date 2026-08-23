@@ -78,6 +78,8 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
   const icon = VEHICLE_ICONS[vehicleType] || VEHICLE_ICONS.default;
   const color = '#3b82f6'; // Blue for drivers
   
+  console.log('🗺️ [MARKER] Creating driver marker:', { vehicleType, icon, size, pulse });
+  
   return createMarkerElement(color, `Livreur (${vehicleType})`, size, pulse, icon);
 };
 
@@ -217,10 +219,14 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
   }
 
   try {
+    // Always remove existing layer and source first to prevent conflicts
+    if (map.getLayer(sourceId)) {
+      console.log('🗺️ [ROUTE] Removing existing layer');
+      map.removeLayer(sourceId);
+    }
     if (map.getSource(sourceId)) {
-      console.log('🗺️ [ROUTE] Updating existing source');
-      map.getSource(sourceId).setData(feature);
-      return;
+      console.log('🗺️ [ROUTE] Removing existing source');
+      map.removeSource(sourceId);
     }
 
     console.log('🗺️ [ROUTE] Creating new source and layer');
@@ -237,8 +243,9 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
         'line-opacity': 0.9,
       },
     });
+    console.log('🗺️ [ROUTE] Route layer added successfully');
   } catch (error) {
-    console.error('Error adding route to map:', error);
+    console.error('🗺️ [ROUTE] Error adding route to map:', error);
   }
 };
 

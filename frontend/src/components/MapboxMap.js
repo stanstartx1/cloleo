@@ -28,6 +28,8 @@ const MapboxMap = ({
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState(null);
   const previousDriverLocation = useRef(null);
+  const previousCustomerLocation = useRef(null);
+  const previousShowRoute = useRef(false);
 
   useEffect(() => {
     loadMapbox()
@@ -72,6 +74,15 @@ const MapboxMap = ({
   useEffect(() => {
     if (!mapInstance.current || !driverLocation?.latitude) return;
 
+    // Skip if location hasn't changed significantly
+    if (previousDriverLocation.current) {
+      const latDiff = Math.abs(driverLocation.latitude - previousDriverLocation.current.latitude);
+      const lngDiff = Math.abs(driverLocation.longitude - previousDriverLocation.current.longitude);
+      if (latDiff < 0.0001 && lngDiff < 0.0001) {
+        return; // Skip update if change is minimal
+      }
+    }
+
     console.log('🗺️ [MAP] Updating driver marker:', driverLocation, 'vehicle:', driverVehicleType);
     
     // Create custom driver marker based on vehicle type
@@ -99,10 +110,19 @@ const MapboxMap = ({
     }
 
     previousDriverLocation.current = driverLocation;
-  }, [driverLocation, customerLocation, followDriver, driverVehicleType]);
+  }, [driverLocation, followDriver, driverVehicleType, customerLocation]);
 
   useEffect(() => {
     if (!mapInstance.current || !customerLocation?.latitude) return;
+
+    // Skip if location hasn't changed significantly
+    if (previousCustomerLocation.current) {
+      const latDiff = Math.abs(customerLocation.latitude - previousCustomerLocation.current.latitude);
+      const lngDiff = Math.abs(customerLocation.longitude - previousCustomerLocation.current.longitude);
+      if (latDiff < 0.0001 && lngDiff < 0.0001) {
+        return; // Skip update if change is minimal
+      }
+    }
 
     console.log('🗺️ [MAP] Updating customer marker:', customerLocation);
     
@@ -114,29 +134,28 @@ const MapboxMap = ({
       color: '#ef4444',
       title: 'Client',
     });
+
+    previousCustomerLocation.current = customerLocation;
   }, [customerLocation]);
 
   useEffect(() => {
     if (!mapInstance.current || !showRoute || !driverLocation?.latitude || !customerLocation?.latitude) return;
 
+    // Skip if route params haven't changed significantly
+    if (previousShowRoute.current && previousDriverLocation.current && previousCustomerLocation.current) {
+      const driverLatDiff = Math.abs(driverLocation.latitude - previousDriverLocation.current.latitude);
+      const driverLngDiff = Math.abs(driverLocation.longitude - previousDriverLocation.current.longitude);
+      const customerLatDiff = Math.abs(customerLocation.latitude - previousCustomerLocation.current.latitude);
+      const customerLngDiff = Math.abs(customerLocation.longitude - previousCustomerLocation.current.longitude);
+      
+      if (driverLatDiff < 0.001 && driverLngDiff < 0.001 && customerLatDiff < 0.001 && customerLngDiff < 0.001) {
+        return; // Skip update if changes are minimal
+      }
+    }
+
     console.log('🗺️ [MAP] Drawing route from driver to customer:', driverLocation, customerLocation);
 
     const drawRoute = () => {
-      // Safely remove existing layer and source if they exist
-      if (routeSourceRef.current) {
-        try {
-          if (mapInstance.current.getLayer('delivery-route')) {
-            mapInstance.current.removeLayer('delivery-route');
-          }
-          if (mapInstance.current.getSource('delivery-route')) {
-            mapInstance.current.removeSource('delivery-route');
-          }
-        } catch (error) {
-          console.warn('Error removing route layer/source:', error);
-        }
-        routeSourceRef.current = null;
-      }
-
       // Check if map is ready before drawing route
       if (!mapInstance.current || !mapInstance.current.getStyle) {
         console.warn('Map not ready for route drawing');
@@ -154,16 +173,43 @@ const MapboxMap = ({
         });
       } catch (error) {
         console.error('🗺️ [MAP] Error drawing route:', error);
-        console.error('Error drawing route:', error);
       }
     };
 
-    if (mapInstance.current && mapInstance.current.isStyleLoaded()) {
-      drawRoute();
-    } else if (mapInstance.current) {
-      mapInstance.current.once('load', drawRoute);
-    }
+    // Add a small delay to ensure map is fully ready
+    const timeoutId = setTimeout(() => {
+      if (mapInstance.current && mapInstance.current.isStyleLoaded()) {
+        drawRoute();
+      } else if (mapInstance.current) {
+        mapInstance.current.once('load', drawRoute);
+      }
+    }, 100);
+
+    // Update previous values
+    previousShowRoute.current = showRoute;
+    previousDriverLocation.current = driverLocation;
+    previousCustomerLocation.current = customerLocation;
+
+    return () => clearTimeout(timeoutId);
   }, [driverLocation, customerLocation, showRoute]);
+
+  // Clean up route when showRoute becomes false
+  useEffect(() => {
+    if (!showRoute && routeSourceRef.current && mapInstance.current) {
+      try {
+        if (mapInstance.current.getLayer('delivery-route')) {
+          mapInstance.current.removeLayer('delivery-route');
+        }
+        if (mapInstance.current.getSource('delivery-route')) {
+          mapInstance.current.removeSource('delivery-route');
+        }
+        routeSourceRef.current = false;
+        console.log('🗺️ [MAP] Route removed');
+      } catch (error) {
+        console.warn('Error removing route:', error);
+      }
+    }
+  }, [showRoute]);
 
   useEffect(() => {
     return () => {
