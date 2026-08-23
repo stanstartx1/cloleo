@@ -215,10 +215,10 @@ const CheckoutPage = () => {
       
       const orderId = response.data.id;
       
-      // Clear cart
+      // Clear cart immediately
       await clearCart();
       
-      toast.success('Commande passée avec succès !');
+      toast.success('Commande passée avec succès ! Redirection vers le suivi...');
       
       // Play notification sound
       try {
@@ -226,8 +226,9 @@ const CheckoutPage = () => {
         audio.play().catch(() => {});
       } catch {}
       
-      // Redirect directly to order tracking page
-      navigate(`/suivi/${orderId}`);
+      // Redirect immediately to order tracking page
+      console.log('Redirecting to tracking page for order:', orderId);
+      navigate(`/suivi/${orderId}`, { replace: true });
       
     } catch (error) {
       console.error('Order error:', error);

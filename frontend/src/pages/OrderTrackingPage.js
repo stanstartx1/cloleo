@@ -26,12 +26,12 @@ const API = API_URL;
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
 const ORDER_STATUSES = {
-  pending: { label: 'En attente', color: 'amber', bgColor: 'bg-amber-100', textColor: 'text-amber-600', icon: Clock, progress: 10 },
-  confirmed: { label: 'Commande confirmée', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: CheckCircle, progress: 20 },
-  assigned: { label: 'Livreur assigné', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: User, progress: 30 },
-  accepted: { label: 'Livreur accepté', color: 'purple', bgColor: 'bg-purple-100', textColor: 'text-purple-600', icon: UserCheck, progress: 40 },
-  picked_up: { label: 'Colis récupéré', color: 'violet', bgColor: 'bg-violet-100', textColor: 'text-violet-600', icon: Package, progress: 60 },
-  in_transit: { label: 'En route', color: 'fuchsia', bgColor: 'bg-fuchsia-100', textColor: 'text-fuchsia-600', icon: Truck, progress: 80 },
+  pending: { label: 'Commande passée', color: 'amber', bgColor: 'bg-amber-100', textColor: 'text-amber-600', icon: CheckCircle, progress: 15 },
+  confirmed: { label: 'Confirmée par le vendeur', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: CheckCircle, progress: 30 },
+  assigned: { label: 'Livreur assigné', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: User, progress: 45 },
+  accepted: { label: 'Livreur accepté', color: 'purple', bgColor: 'bg-purple-100', textColor: 'text-purple-600', icon: UserCheck, progress: 55 },
+  picked_up: { label: 'Colis récupéré', color: 'violet', bgColor: 'bg-violet-100', textColor: 'text-violet-600', icon: Package, progress: 70 },
+  in_transit: { label: 'En route', color: 'fuchsia', bgColor: 'bg-fuchsia-100', textColor: 'text-fuchsia-600', icon: Truck, progress: 85 },
   delivered: { label: 'Livré', color: 'green', bgColor: 'bg-green-100', textColor: 'text-green-600', icon: CheckCircle, progress: 100 },
   cancelled: { label: 'Annulé', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-600', icon: XCircle, progress: 0 }
 };
@@ -247,9 +247,10 @@ const OrderTrackingPage = () => {
   } : null;
 
   const getStatusProgress = () => {
-    const statuses = ['pending', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'];
+    const statuses = ['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'];
     const currentIndex = statuses.indexOf(order?.status);
-    return ((currentIndex + 1) / statuses.length) * 100;
+    if (currentIndex === -1) return 0;
+    return ORDER_STATUSES[order?.status]?.progress || 0;
   };
 
   if (loading) {
@@ -404,27 +405,31 @@ const OrderTrackingPage = () => {
                   </div>
                   <div className="flex justify-between mt-3 text-xs text-muted-foreground">
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'pending' ? 'bg-amber-500 animate-pulse' : ['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-amber-500' : 'bg-gray-300'}`} />
-                      <span className={order.status === 'pending' ? 'font-bold text-amber-600' : ''}>Commande</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-amber-500' : 'bg-gray-300'} ${order.status === 'pending' ? 'animate-pulse' : ''}`} />
+                      <span className={['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-amber-600' : ''}>Commande</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500 animate-pulse' : order.status === 'assigned' ? 'bg-blue-500' : 'bg-gray-300'}`} />
-                      <span className={['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-blue-600' : ''}>Assigné</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500' : 'bg-gray-300'} ${order.status === 'confirmed' ? 'animate-pulse' : ''}`} />
+                      <span className={['confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-blue-600' : ''}>Confirmée</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-green-500 animate-pulse' : order.status === 'accepted' ? 'bg-green-500' : 'bg-gray-300'}`} />
-                      <span className={['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-green-600' : ''}>Accepté</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500' : 'bg-gray-300'} ${order.status === 'assigned' ? 'animate-pulse' : ''}`} />
+                      <span className={['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-indigo-600' : ''}>Assigné</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500 animate-pulse' : order.status === 'picked_up' ? 'bg-indigo-500' : 'bg-gray-300'}`} />
-                      <span className={['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-indigo-600' : ''}>Récupéré</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500' : 'bg-gray-300'} ${order.status === 'accepted' ? 'animate-pulse' : ''}`} />
+                      <span className={['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-purple-600' : ''}>Accepté</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500 animate-pulse' : order.status === 'in_transit' ? 'bg-purple-500' : 'bg-gray-300'}`} />
-                      <span className={['in_transit', 'delivered'].includes(order.status) ? 'font-bold text-purple-600' : ''}>En route</span>
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-violet-500' : 'bg-gray-300'} ${order.status === 'picked_up' ? 'animate-pulse' : ''}`} />
+                      <span className={['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-violet-600' : ''}>Récupéré</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600 animate-pulse' : 'bg-gray-300'}`} />
+                      <div className={`w-3 h-3 rounded-full mb-1 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-fuchsia-500' : 'bg-gray-300'} ${order.status === 'in_transit' ? 'animate-pulse' : ''}`} />
+                      <span className={['in_transit', 'delivered'].includes(order.status) ? 'font-bold text-fuchsia-600' : ''}>En route</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600' : 'bg-gray-300'} ${order.status === 'delivered' ? 'animate-pulse' : ''}`} />
                       <span className={order.status === 'delivered' ? 'font-bold text-green-600' : ''}>Livré</span>
                     </div>
                   </div>

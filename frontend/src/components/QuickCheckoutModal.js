@@ -195,10 +195,18 @@ const QuickCheckoutModal = ({ product, quantity: initialQuantity = 1, onClose, o
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      setOrderId(response.data.id);
+      const orderId = response.data.id;
+      setOrderId(orderId);
       setOrderPlaced(true);
       setStep(3);
-      toast.success('Commande passée avec succès !');
+      toast.success('Commande passée avec succès ! Redirection vers le suivi...');
+      
+      // Redirect immediately to order tracking page
+      console.log('Redirecting to tracking page for order:', orderId);
+      setTimeout(() => {
+        navigate(`/suivi/${orderId}`, { replace: true });
+        onClose();
+      }, 1500);
       
       if (onSuccess) {
         onSuccess(response.data);
