@@ -53,6 +53,7 @@ const OrderTrackingPage = () => {
   const {
     isConnected: globalConnected,
     orderUpdates,
+    notifications,
     clearOrderUpdates
   } = useUserRealtime(token, user?.id);
   
@@ -69,6 +70,7 @@ const OrderTrackingPage = () => {
   const [ratingOpen, setRatingOpen] = useState(false);
   
   const previousStatusRef = useRef(null);
+  const pinNotifiedRef = useRef(false);
 
   // Sync real-time data with local state
   useEffect(() => {
@@ -76,6 +78,23 @@ const OrderTrackingPage = () => {
       console.log('📱 [TRACKING SYNC] Syncing realtime order data:', realtimeOrder.status, realtimeOrder);
       setOrder(realtimeOrder);
       setLoading(false);
+      
+      // Show notification for delivery PIN
+      if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
+        pinNotifiedRef.current = true;
+        console.log('🔐 [PIN NOTIFICATION] Delivery PIN available:', realtimeOrder.delivery_pin);
+        toast.success('Code de livraison reçu !', {
+          description: `Votre code est : ${realtimeOrder.delivery_pin}. Communiquez-le au livreur.`,
+          duration: 10000,
+          action: {
+            label: 'Copier',
+            onClick: () => {
+              navigator.clipboard.writeText(realtimeOrder.delivery_pin);
+              toast.success('Code copié !');
+            }
+          }
+        });
+      }
       
       // Show notification for status changes
       if (realtimeOrder.status !== previousStatusRef.current) {
@@ -117,6 +136,36 @@ const OrderTrackingPage = () => {
       setDriverLocation(realtimeDriverLocation);
     }
   }, [realtimeDriverLocation]);
+
+  // Listen for chat notifications (PIN messages)
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      notifications.forEach(notification => {
+        if (notification.type === 'chat' && notification.message) {
+          const message = notification.message;
+          if (message.content && message.content.includes('code de livraison')) {
+            // Extract PIN from message content
+            const pinMatch = message.content.match(/(\d{6})/);
+            if (pinMatch) {
+              const pin = pinMatch[1];
+              console.log('🔐 [PIN NOTIFICATION] PIN received via chat notification:', pin);
+              toast.success('Code de livraison reçu !', {
+                description: `Votre code est : ${pin}. Communiquez-le au livreur.`,
+                duration: 10000,
+                action: {
+                  label: 'Copier',
+                  onClick: () => {
+                    navigator.clipboard.writeText(pin);
+                    toast.success('Code copié !');
+                  }
+                }
+              });
+            }
+          }
+        }
+      });
+    }
+  }, [notifications]);
 
   // Handle global order updates for immediate status changes
   useEffect(() => {
