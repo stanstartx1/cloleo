@@ -3572,6 +3572,7 @@ async def driver_upload_license_registration(request: Request, file: UploadFile 
     logger.info(f"📄 [LICENSE REGISTRATION] Driver license upload during registration")
     logger.info(f"📄 [LICENSE REGISTRATION] Request headers: {dict(request.headers)}")
     logger.info(f"📄 [LICENSE REGISTRATION] File info: {file.filename}, content_type: {file.content_type}")
+    logger.info(f"📄 [LICENSE REGISTRATION] Request content type: {request.headers.get('content-type')}")
 
     # Get token from Authorization header
     auth_header = request.headers.get("authorization")
