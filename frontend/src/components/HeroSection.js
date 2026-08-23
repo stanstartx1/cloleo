@@ -10,6 +10,7 @@ const API = API_URL;
 const getImageUrl = (img) => {
   if (!img) return '';
   if (typeof img === 'object') img = img.url || '';
+  if (typeof img === 'string' && img.startsWith('/uploads/')) return `${API_BASE.replace('/api', '')}${img}`;
   if (typeof img === 'string' && img.startsWith('/')) return `${API_BASE}${img}`;
   return img;
 };
