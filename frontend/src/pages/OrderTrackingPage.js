@@ -368,8 +368,8 @@ const OrderTrackingPage = () => {
                 </div>
               </div>
 
-              {/* Delivery PIN Section - Show for customer when order is assigned or in transit */}
-              {order.delivery_pin && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
+              {/* Delivery PIN Section - Show for customer as soon as order is created */}
+              {order.delivery_pin && ['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit'].includes(order.status) && (
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-300 mb-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
