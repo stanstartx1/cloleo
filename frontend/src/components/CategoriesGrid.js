@@ -20,8 +20,11 @@ const CategoriesGrid = () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API}/categories`);
+      // Normaliser la réponse pour accepter un tableau ou un objet { categories: [...] }
+      const raw = response.data;
+      const list = Array.isArray(raw) ? raw : (raw && raw.categories) ? raw.categories : (raw || []);
       // Filtrer pour n'avoir que les catégories parentes (sans parent_slug)
-      const parentCategories = response.data.filter(
+      const parentCategories = list.filter(
         cat => cat.is_active !== false && !cat.parent_slug
       );
       setCategories(parentCategories);

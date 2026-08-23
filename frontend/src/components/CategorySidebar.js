@@ -37,7 +37,11 @@ const CategorySidebar = () => {
   useEffect(() => {
     axios
       .get(`${API}/categories`)
-      .then((res) => setCategories(res.data))
+      .then((res) => {
+        const data = res.data;
+        const cats = Array.isArray(data) ? data : (data && data.categories) ? data.categories : (data || []);
+        setCategories(cats);
+      })
       .catch((err) => console.error('Erreur chargement catégories:', err));
   }, []);
 

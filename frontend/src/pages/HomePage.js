@@ -85,7 +85,8 @@ const HomePage = () => {
         ]);
 
         const allProducts = allRes.data?.products || allRes.data || [];
-        const all = catRes.data || [];
+        const rawCats = catRes.data;
+        const all = Array.isArray(rawCats) ? rawCats : (rawCats && rawCats.categories) ? rawCats.categories : (rawCats || []);
         const subs = all.filter(c => c.parent_slug && c.is_active !== false);
 
         setCategories(all);
