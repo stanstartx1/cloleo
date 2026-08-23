@@ -1728,9 +1728,9 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     )
     logger.info(f"📊 [ORDER CREATION] PIN message result: {pin_result}")
 
-    # Automatic driver assignment after order creation
-    logger.info(f"🔍 [ORDER CREATION] Starting automatic driver search for order {order_id}")
-    await auto_assign_driver(order_id, order, manager)
+    # No automatic driver assignment after order creation
+    # Driver assignment will happen after vendor accepts the order
+    logger.info(f"🔍 [ORDER CREATION] Order created, waiting for vendor acceptance before driver assignment")
 
     return order
 
@@ -2044,19 +2044,18 @@ async def verify_delivery_pin_endpoint(order_id: str, payload: dict, user: dict 
 
 
 @api.put("/orders/{order_id}/accept")
-
 async def driver_accept_order(order_id: str, user: dict = Depends(require_driver)):
-
+    """Driver accepts a confirmed order - assigns them to the order"""
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
 
     if not order:
-
         raise HTTPException(status_code=404, detail="Commande non trouvée")
 
     if order.get("driver_id") and order.get("driver_id") != user["id"]:
         raise HTTPException(status_code=403, detail="Cette commande est déjà attribuée à un autre livreur")
-    if order.get("status") not in {"pending", "confirmed", "assigned"}:
-        raise HTTPException(status_code=400, detail="Cette commande ne peut plus être attribuée")
+    
+    if order.get("status") != "confirmed":
+        raise HTTPException(status_code=400, detail="Cette commande doit être confirmée par le vendeur avant d'être acceptée")
 
     settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
     try:
@@ -2072,24 +2071,30 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         raise HTTPException(status_code=409, detail="Capacité maximale de livraisons actives atteinte")
 
     await db.orders.update_one(
-
         {"id": order_id},
-
         {
-
-            "$set": {"status": "accepted", "driver_id": user["id"], "driver_name": user.get("name"), "driver_vehicle_type": user.get("vehicle_type"), "updated_at": _utc()},
-
-            "$push": {"status_history": {"status": "accepted", "note": "Livreur accepté", "timestamp": _utc()}},
-
+            "$set": {
+                "status": "assigned", 
+                "driver_id": user["id"], 
+                "driver_name": user.get("name"), 
+                "driver_vehicle_type": user.get("vehicle_type"), 
+                "updated_at": _utc()
+            },
+            "$push": {
+                "status_history": {
+                    "status": "assigned", 
+                    "note": f"Livreur {user.get('name')} a accepté la commande", 
+                    "timestamp": _utc()
+                }
+            },
         },
-
     )
 
     # Fetch updated order
     updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
 
     # Broadcast order status update via WebSocket
-    await manager.broadcast_order_status_update(order_id, "accepted", {
+    await manager.broadcast_order_status_update(order_id, "assigned", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
@@ -2226,24 +2231,11 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
     })
     
     # PIN is already sent on order creation, no need to send again
-    # Send delivery PIN via chat message from Cloleo when vendor accepts
-    # (This ensures the customer gets the PIN as soon as the order is confirmed)
-    # if order and order.get("delivery_pin"):
-    #     logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id} (vendor accept)")
-    #     pin_result = await send_system_delivery_pin_message(
-    #         order_id, 
-    #         order["delivery_pin"], 
-    #         order.get("order_number")
-    #     )
-    #     logger.info(f"📊 [SERVER DEBUG] PIN message result (vendor accept): {pin_result}")
-
-    # Check for auto-assign driver setting (default to True for automatic assignment)
-    delivery_settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
-    auto_assign = delivery_settings.get("auto_assign", True)  # Changed default to True
     
-    if auto_assign:
-        logger.info(f"🔍 [VENDOR ACCEPT] Starting automatic driver search for order {order_id}")
-        await auto_assign_driver(order_id, order, manager)
+    # Broadcast vendor-accepted order to all drivers for manual acceptance
+    updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    await manager.broadcast_vendor_accepted_order(order_id, updated_order)
+    logger.info(f"📱 [VENDOR ACCEPT] Order {order_id} broadcast to all drivers for manual acceptance")
 
     # Broadcast update to all order-related rooms
     await manager.broadcast_to_room(f"order_{order_id}", {"type": "order_update", "status": "confirmed", "message": "Commande acceptée"})
@@ -2265,30 +2257,30 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
 
 
 
-@api.put("/orders/{order_id}/driver-accept")
-async def driver_accept_order(order_id: str, user: dict = Depends(require_driver)):
-    """Driver accepts the order assignment - first validation step"""
+@api.put("/orders/{order_id}/driver-start")
+async def driver_start_order(order_id: str, user: dict = Depends(require_driver)):
+    """Driver starts the delivery - second validation step after accepting"""
     order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
     
     if not order:
         raise HTTPException(status_code=404, detail="Commande non trouvée ou non assignée")
     
     if order["status"] != "assigned":
-        raise HTTPException(status_code=400, detail="Cette commande n'est pas en attente d'acceptation")
+        raise HTTPException(status_code=400, detail="Cette commande doit être assignée avant de démarrer")
     
-    # Update order status to 'accepted'
+    # Update order status to 'accepted' (driver starts working on the order)
     await db.orders.update_one(
         {"id": order_id},
         {
             "$set": {
                 "status": "accepted",
-                "driver_accepted_at": _utc(),
+                "driver_started_at": _utc(),
                 "updated_at": _utc()
             },
             "$push": {
                 "status_history": {
                     "status": "accepted",
-                    "note": f"Livreur {user.get('name')} a accepté la commande",
+                    "note": f"Livreur {user.get('name')} a démarré la livraison",
                     "timestamp": _utc()
                 }
             },
@@ -3385,6 +3377,35 @@ async def driver_dashboard(user: dict = Depends(require_driver)):
         },
         "stats": {"total_orders": orders, "active_orders": active}
     }
+
+
+@api.get("/driver/available-orders")
+async def driver_available_orders(user: dict = Depends(require_driver)):
+    """Get all orders available for driver assignment (confirmed by vendor, no driver assigned)"""
+    orders = await db.orders.find(
+        {"status": "confirmed", "driver_id": None},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    # Enrich orders with seller and customer information
+    for order in orders:
+        # Get seller information with location
+        seller_id = order.get("seller_id")
+        if seller_id:
+            seller = await db.users.find_one(
+                {"id": seller_id},
+                {"_id": 0, "name": 1, "phone": 1, "shop_name": 1, "email": 1, "location": 1, "address": 1}
+            )
+            if seller:
+                order["seller_info"] = {
+                    "name": seller.get("shop_name") or seller.get("name"),
+                    "phone": seller.get("phone"),
+                    "email": seller.get("email"),
+                    "location": seller.get("location"),
+                    "address": seller.get("address")
+                }
+    
+    return {"orders": orders}
 
 
 @api.get("/driver/orders")

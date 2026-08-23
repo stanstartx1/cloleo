@@ -272,8 +272,22 @@ class ConnectionManager:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        await self.broadcast_to_all_drivers(message)
-        logger.info(f"📱 [WS BROADCAST] New order: {order_id} to all drivers")
+        # Broadcast to all drivers room
+        await self.broadcast_to_room("all_drivers", message)
+        logger.info(f"📱 [WS BROADCAST] New order broadcast to all drivers: order {order_id}")
+    
+    async def broadcast_vendor_accepted_order(self, order_id: str, order_data: dict):
+        """Broadcast vendor-accepted order to all drivers for manual acceptance"""
+        message = {
+            "type": "vendor_accepted_order",
+            "order_id": order_id,
+            "order_data": order_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Broadcast to all drivers room for manual driver acceptance
+        await self.broadcast_to_room("all_drivers", message)
+        logger.info(f"📱 [WS BROADCAST] Vendor accepted order broadcast to all drivers: order {order_id}")
     
     async def broadcast_new_order_to_vendor(self, seller_id: str, order_id: str, order_data: dict):
         """Broadcast new order to specific vendor"""
