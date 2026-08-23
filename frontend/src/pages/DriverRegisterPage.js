@@ -166,10 +166,10 @@ const DriverRegisterPage = () => {
         console.log(`${key}:`, value);
       }
 
-      console.log('Uploading license to:', `${API}/driver/upload-license`);
+      console.log('Uploading license to:', `${API}/driver/upload-license-registration`);
       console.log('Using token:', tempToken ? 'Token present' : 'No token');
       
-      const response = await axios.post(`${API}/driver/upload-license`, formData, {
+      const response = await axios.post(`${API}/driver/upload-license-registration`, formData, {
         headers: {
           Authorization: `Bearer ${tempToken}`
           // Don't set Content-Type - axios will set it automatically with proper boundary

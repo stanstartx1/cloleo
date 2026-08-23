@@ -3536,6 +3536,70 @@ async def driver_upload_license_test(request: Request, user: dict = Depends(get_
     return {"success": True, "user_id": user.get('id'), "role": user.get('role')}
 
 
+@api.post("/driver/upload-license-registration")
+async def driver_upload_license_registration(request: Request, file: UploadFile = File(...)):
+    """Upload license during registration - uses token to identify user without requiring active driver status"""
+    logger.info(f"📄 [LICENSE REGISTRATION] Driver license upload during registration")
+    logger.info(f"📄 [LICENSE REGISTRATION] Request headers: {dict(request.headers)}")
+    logger.info(f"📄 [LICENSE REGISTRATION] File info: {file.filename}, content_type: {file.content_type}")
+
+    # Get token from Authorization header
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        logger.warning(f"📄 [LICENSE REGISTRATION] Missing or invalid authorization header")
+        raise HTTPException(status_code=401, detail="Token requis")
+
+    token = auth_header.replace("Bearer ", "")
+    
+    try:
+        payload = decode_token(token)
+        user_id = payload.get("user_id")
+        logger.info(f"📄 [LICENSE REGISTRATION] Token decoded for user: {user_id}")
+    except Exception as e:
+        logger.error(f"📄 [LICENSE REGISTRATION] Token decode error: {e}")
+        raise HTTPException(status_code=401, detail="Token invalide")
+
+    # Get user from database
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        logger.error(f"📄 [LICENSE REGISTRATION] User not found: {user_id}")
+        raise HTTPException(status_code=404, detail="Utilisateur non trouve")
+
+    if user.get("role") != "driver":
+        logger.warning(f"📄 [LICENSE REGISTRATION] User is not a driver: {user.get('role')}")
+        raise HTTPException(status_code=403, detail="Acces reserve aux livreurs")
+
+    ext = Path(file.filename or "").suffix or ".bin"
+    logger.info(f"📄 [LICENSE REGISTRATION] File extension: {ext}")
+
+    filename = f"license_{user_id}_{uuid.uuid4()}{ext}"
+    dest = uploads_dir / filename
+
+    try:
+        content = await file.read()
+        logger.info(f"📄 [LICENSE REGISTRATION] File size: {len(content)} bytes")
+        
+        if len(content) == 0:
+            logger.error(f"📄 [LICENSE REGISTRATION] File is empty!")
+            raise HTTPException(status_code=422, detail="Le fichier est vide")
+        
+        dest.write_bytes(content)
+        logger.info(f"📄 [LICENSE REGISTRATION] File saved to: {dest}")
+        
+        url = f"/uploads/{filename}"
+        
+        await db.users.update_one({"id": user_id}, {"$set": {"license_image": url, "updated_at": _utc()}})
+        logger.info(f"📄 [LICENSE REGISTRATION] Database updated for user: {user_id}")
+        
+        logger.info(f"📄 [LICENSE REGISTRATION] Upload successful: {url}")
+        return {"url": url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"📄 [LICENSE REGISTRATION] Error during upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
+
+
 @api.post("/driver/upload-license")
 
 async def driver_upload_license(request: Request, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
