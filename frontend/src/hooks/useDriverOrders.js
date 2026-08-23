@@ -51,7 +51,7 @@ export const useDriverOrders = (driverId, token) => {
             case 'new_order':
               console.log('📱 [WS DRIVER] New order assigned:', data.order_data);
               setNewOrderAlert(data.order_data);
-              
+
               // Add order to the list
               if (data.order_data) {
                 setOrders(prev => {
@@ -64,7 +64,33 @@ export const useDriverOrders = (driverId, token) => {
                   return [...prev, data.order_data];
                 });
               }
-              
+
+              // Show notification sound
+              try {
+                const audio = new Audio('/notification.mp3');
+                audio.play().catch(() => {});
+              } catch (error) {
+                console.log('Could not play notification sound');
+              }
+              break;
+
+            case 'vendor_accepted_order':
+              console.log('📱 [WS DRIVER] Vendor accepted order available for manual acceptance:', data.order_data);
+              setNewOrderAlert(data.order_data);
+
+              // Add order to the list of available orders
+              if (data.order_data) {
+                setOrders(prev => {
+                  const existingIndex = prev.findIndex(o => o.id === data.order_data.id);
+                  if (existingIndex >= 0) {
+                    const updated = [...prev];
+                    updated[existingIndex] = data.order_data;
+                    return updated;
+                  }
+                  return [...prev, data.order_data];
+                });
+              }
+
               // Show notification sound
               try {
                 const audio = new Audio('/notification.mp3');
