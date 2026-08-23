@@ -194,14 +194,23 @@ const DriverRegisterPage = () => {
       console.error('Error data:', error.response?.data);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'upload du permis';
       console.error('Error details:', errorMessage);
-      toast.error(errorMessage);
+      
+      // Show error but don't crash the page
+      toast.error(`${errorMessage}. Vous pourrez uploader votre permis plus tard.`);
       setUploadingLicense(false);
+      
+      // Allow user to proceed anyway after showing error
+      setTimeout(() => {
+        console.log('Proceeding to login despite upload error...');
+        toast.info('Inscription terminée. Vous pourrez uploader votre permis plus tard.');
+        navigate('/connexion', { replace: true });
+      }, 3000);
     }
   };
 
   const handleSkipLicense = () => {
     console.log('Skipping license upload, redirecting to login...');
-    toast.info('Veuillez vous connecter avec vos identifiants');
+    toast.success('Inscription terminée ! Vous pourrez uploader votre permis plus tard.');
     navigate('/connexion', { replace: true });
   };
 
