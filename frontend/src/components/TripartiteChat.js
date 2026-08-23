@@ -399,6 +399,11 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
         const pinMessages = response.data.messages.filter(m => m.is_system && m.content.includes('PIN'));
         if (pinMessages.length > 0) {
           console.log('🔐 [PIN DEBUG] Found PIN messages in chat:', pinMessages);
+          // Show toast notification if PIN is found
+          toast.success('Code de livraison disponible', {
+            description: 'Vérifiez votre chat pour le code de livraison',
+            duration: 5000
+          });
         }
         setMessages(response.data.messages);
       }
@@ -410,9 +415,9 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
     }
   }, [orderId, token]);
 
-  // Initialize WebSocket for real-time chat
+  // Initialize WebSocket for real-time chat (connect when order is loaded, not just when chat is open)
   useEffect(() => {
-    if (!isOpen || !orderId || !user?.id || !token) return;
+    if (!orderId || !user?.id || !token) return;
 
     let wsCleanup;
     wsCleanup = createChatRealtime({
@@ -420,10 +425,16 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
       token,
       isOrderChat: true, // Use order chat endpoint for tripartite conversations
       onEvent: (event) => {
+        console.log('📱 [CHAT DEBUG] WebSocket event received:', event.type, event);
         if (event.type === 'new_message' && event.message) {
           console.log('📱 [CHAT DEBUG] New message received:', event.message);
           if (event.message.is_system && event.message.content.includes('PIN')) {
             console.log('🔐 [PIN DEBUG] PIN message received in chat:', event.message);
+            // Show toast notification for PIN
+            toast.success('Code de livraison reçu', {
+              description: 'Vérifiez votre chat pour le code de livraison',
+              duration: 5000
+            });
           }
           setMessages(prev => {
             // If message already exists, don't add duplicate
@@ -432,8 +443,10 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
             }
             return [...prev, event.message];
           });
-          scrollToBottom();
-          playNotificationSound();
+          if (isOpen) {
+            scrollToBottom();
+            playNotificationSound();
+          }
         }
         if (event.type === 'message_deleted' && event.message_id) {
           setMessages(prev => prev.filter(message => message.id !== event.message_id));
@@ -460,22 +473,22 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
         }
       },
       onStatusChange: (isConnected) => {
-        console.log('Tripartite chat WebSocket status:', isConnected);
+        console.log('📱 [CHAT DEBUG] Tripartite chat WebSocket status:', isConnected);
       }
     });
 
     return () => {
       if (wsCleanup) wsCleanup();
     };
-  }, [isOpen, orderId, token, user?.id, recipientName]);
+  }, [orderId, token, user?.id, recipientName, isOpen]);
 
-  // Initial fetch when chat opens
+  // Initial fetch when order is loaded (not just when chat opens)
   useEffect(() => {
-    if (isOpen) {
-      console.log('📱 [CHAT DEBUG] Chat opening, fetching messages for order:', orderId);
+    if (orderId) {
+      console.log('📱 [CHAT DEBUG] Order loaded, fetching messages for order:', orderId);
       fetchMessages();
     }
-  }, [isOpen, fetchMessages, orderId]);
+  }, [orderId, token, fetchMessages]);
 
   // Scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -684,17 +697,36 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
                   
                   // Special styling for system messages from Cloleo
                   if (isSystemMessage) {
+                    // Highlight PIN messages
+                    const isPinMessage = message.content.includes('code de livraison') || message.content.includes('code de livraison');
+                    
                     return (
                       <div key={message.id || index} className="flex justify-center my-4">
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl px-4 py-3 max-w-[90%] shadow-sm">
+                        <div className={`border rounded-xl px-4 py-3 max-w-[90%] shadow-sm ${
+                          isPinMessage 
+                            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
+                            : 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200'
+                        }`}>
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                              <Store className="w-4 h-4 text-white" />
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isPinMessage 
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                            }`}>
+                              {isPinMessage ? <Check className="w-4 h-4 text-white" /> : <Store className="w-4 h-4 text-white" />}
                             </div>
-                            <span className="font-semibold text-sm text-blue-700">Cloleo</span>
-                            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">Système</Badge>
+                            <span className={`font-semibold text-sm ${
+                              isPinMessage ? 'text-green-700' : 'text-blue-700'
+                            }`}>Cloleo</span>
+                            <Badge variant="outline" className={`text-xs ${
+                              isPinMessage 
+                                ? 'bg-green-100 text-green-700 border-green-300' 
+                                : 'bg-blue-100 text-blue-700 border-blue-300'
+                            }`}>Système</Badge>
                           </div>
-                          <div className="text-sm text-slate-700 whitespace-pre-line">
+                          <div className={`text-sm whitespace-pre-line ${
+                            isPinMessage ? 'text-slate-800 font-medium' : 'text-slate-700'
+                          }`}>
                             {message.content}
                           </div>
                           <div className="text-xs text-slate-400 mt-2">
