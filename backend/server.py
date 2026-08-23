@@ -231,7 +231,8 @@ async def auto_assign_driver(order_id: str, order: dict, manager, excluded_drive
                 "driver_vehicle_type": closest_driver.get("vehicle_type"),
                 "assigned_at": _utc(),
                 "auto_assigned": True,
-                "distance_km": round(min_distance, 2)
+                "distance_km": round(min_distance, 2),
+                "seller_id": order.get("seller_id")
             }, customer_id=order.get("customer_id"))
             
             # Notify the assigned driver specifically with full order data
@@ -2091,7 +2092,8 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
-        "driver_vehicle_type": user.get("vehicle_type")
+        "driver_vehicle_type": user.get("vehicle_type"),
+        "seller_id": order.get("seller_id")
     }, customer_id=order.get("customer_id"))
     
     # Broadcast to driver's room for immediate notification with full order data
@@ -2200,7 +2202,10 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
         )
     
     # Broadcast order status update via WebSocket
-    await manager.broadcast_order_status_update(order_id, "confirmed", {"vendor_name": user.get("name")}, customer_id=order.get("customer_id"))
+    await manager.broadcast_order_status_update(order_id, "confirmed", {
+        "vendor_name": user.get("name"),
+        "seller_id": order.get("seller_id")
+    }, customer_id=order.get("customer_id"))
     
     # Notify customer via all channels
     await notify_all_parties(
@@ -2297,7 +2302,8 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
-        "driver_accepted_at": _utc()
+        "driver_accepted_at": _utc(),
+        "seller_id": order.get("seller_id")
     }, customer_id=order.get("customer_id") if order else None)
 
     # Notify all parties
@@ -2341,7 +2347,8 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
     await manager.broadcast_order_status_update(order_id, "picked_up", {
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
-        "picked_up_at": _utc()
+        "picked_up_at": _utc(),
+        "seller_id": order.get("seller_id")
     }, customer_id=order.get("customer_id"))
 
     # Notify all parties
@@ -2407,7 +2414,8 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
         "in_transit_at": _utc(),
-        "eta_minutes": eta_minutes
+        "eta_minutes": eta_minutes,
+        "seller_id": order.get("seller_id")
     }, customer_id=order.get("customer_id"))
 
     # Notify all parties with ETA information
@@ -2461,7 +2469,8 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     await manager.broadcast_order_status_update(order_id, "delivered", {
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
-        "delivered_at": _utc()
+        "delivered_at": _utc(),
+        "seller_id": order.get("seller_id")
     }, customer_id=order.get("customer_id"))
 
     # Notify all parties

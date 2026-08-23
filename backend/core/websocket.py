@@ -239,6 +239,16 @@ class ConnectionManager:
         if customer_id:
             await self.broadcast_to_room(f"user_{customer_id}", message)
             logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (user_{customer_id} room)")
+        
+        # Also broadcast to seller's user room if seller_id is present
+        if order_data and 'seller_id' in order_data:
+            await self.broadcast_to_room(f"user_{order_data['seller_id']}", message)
+            logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (seller user room)")
+        
+        # Also broadcast to driver's user room if driver_id is present
+        if order_data and 'driver_id' in order_data:
+            await self.broadcast_to_room(f"user_{order_data['driver_id']}", message)
+            logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (driver user room)")
     
     async def broadcast_driver_location_update(self, order_id: str, driver_id: str, location: dict):
         """Broadcast driver location update for an order"""
