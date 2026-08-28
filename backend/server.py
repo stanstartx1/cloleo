@@ -2062,15 +2062,21 @@ async def verify_delivery_pin_endpoint(order_id: str, payload: dict, user: dict 
 @api.put("/orders/{order_id}/accept")
 async def driver_accept_order(order_id: str, user: dict = Depends(require_driver)):
     """Driver accepts a confirmed order - assigns them to the order"""
+    logger.info(f"🚀 [DRIVER ACCEPT] Driver {user['id']} attempting to accept order {order_id}")
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
 
     if not order:
+        logger.error(f"❌ [DRIVER ACCEPT] Order {order_id} not found")
         raise HTTPException(status_code=404, detail="Commande non trouvée")
 
+    logger.info(f"✅ [DRIVER ACCEPT] Order found: status={order.get('status')}, driver_id={order.get('driver_id')}")
+
     if order.get("driver_id") and order.get("driver_id") != user["id"]:
+        logger.warning(f"⚠️  [DRIVER ACCEPT] Order already assigned to another driver")
         raise HTTPException(status_code=403, detail="Cette commande est déjà attribuée à un autre livreur")
     
     if order.get("status") != "confirmed":
+        logger.warning(f"⚠️  [DRIVER ACCEPT] Order status is {order.get('status')}, not confirmed")
         raise HTTPException(status_code=400, detail="Cette commande doit être confirmée par le vendeur avant d'être acceptée")
 
     # Removed limit on active orders - drivers can accept unlimited orders
