@@ -479,6 +479,11 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
       },
       onStatusChange: (isConnected) => {
         console.log('📱 [CHAT DEBUG] Tripartite chat WebSocket status:', isConnected);
+        // When WebSocket connects, refresh messages to catch any missed messages
+        if (isConnected) {
+          console.log('📱 [CHAT DEBUG] WebSocket connected, refreshing messages');
+          fetchMessages();
+        }
       }
     });
 
