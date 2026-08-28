@@ -780,7 +780,6 @@ const DriverDashboard = () => {
   const stats = dashboard?.stats;
   const driverUser = dashboard?.user;
   const isPendingVerification = !driverUser?.is_verified || !driverUser?.is_active;
-  const availableOrders = orders.filter(o => o.driver_id === user?.id && o.status === 'assigned');
   const completedOrders = orders.filter(o => o.driver_id === user?.id && o.status === 'delivered');
 
   // Use selected order for map navigation, fallback to first active order
