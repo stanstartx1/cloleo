@@ -151,6 +151,7 @@ async def _ensure_order_conversation(order_id: str, participants: dict) -> dict:
 
 @router.get("/conversation/{order_id}")
 async def get_order_conversation(order_id: str, user: dict = Depends(get_current_user)):
+    logger.error(f"🚨🚨🚨 [NEW CODE DEPLOYED] get_order_conversation called - NEW VERSION ACTIVE 🚨🚨🚨")
     try:
         logger.info(f"🔍 [CONV GET] Getting conversation for order {order_id}, user {user['id']}")
         participants = await _get_order_participants(order_id)
