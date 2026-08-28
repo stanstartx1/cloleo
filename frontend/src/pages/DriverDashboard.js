@@ -54,6 +54,7 @@ const DriverDashboard = () => {
   const [activeOrders, setActiveOrders] = useState([]); // Multiple active orders
   const [availableOrders, setAvailableOrders] = useState([]); // Orders available for acceptance
   const [selectedOrder, setSelectedOrder] = useState(null); // Currently focused order
+  const [trackingOrder, setTrackingOrder] = useState(null); // Order currently being tracked on map
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingOrderIds, setUpdatingOrderIds] = useState(new Set()); // Track updating orders per-order
@@ -1156,15 +1157,13 @@ const DriverDashboard = () => {
                       </div>
                       
                       {activeOrderForMap.delivery_address?.latitude && activeOrderForMap.delivery_address?.longitude && (
-                        <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${activeOrderForMap.delivery_address.latitude},${activeOrderForMap.delivery_address.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block p-3 text-center text-sm text-blue-400 hover:bg-slate-700/50 border-t border-slate-700"
+                        <Button
+                          onClick={() => setTrackingOrder(activeOrderForMap)}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
                         >
-                          <Navigation className="w-4 h-4 inline mr-2" />
-                          Ouvrir l'itinéraire
-                        </a>
+                          <Navigation className="w-4 h-4 mr-2" />
+                          Suivre l'itinéraire
+                        </Button>
                       )}
                     </div>
                   )}
@@ -1172,52 +1171,6 @@ const DriverDashboard = () => {
               )}
             </div>
           )}
-
-          {/* Map */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <Map className="w-5 h-5 text-blue-600" />
-                {activeOrders.length > 0 ? 'Navigation' : 'Ma position'}
-              </h3>
-              <div className="flex items-center gap-2">
-                {trackingEnabled && (
-                  <span className="flex items-center gap-1 text-xs text-green-600 px-3 py-1 bg-green-100 rounded-full font-medium">
-                    <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse" />
-                    GPS actif
-                  </span>
-                )}
-                <Button size="sm" onClick={getCurrentLocation} className="bg-blue-600 hover:bg-blue-700">
-                  <Navigation className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <MapboxMap
-              driverLocation={currentLocation}
-              customerLocation={customerLocation}
-              showRoute={!!customerLocation && !!currentLocation}
-              height="400px"
-              mapType="streets"
-              followDriver={activeOrders.length > 0}
-              driverVehicleType={driverVehicleType}
-            />
-
-            <div className="p-4 bg-slate-50 flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg">
-                  {driverVehicleType === 'moto' ? '🏍️' : driverVehicleType === 'velo' ? '🚲' : driverVehicleType === 'voiture' ? '🚗' : '📦'}
-                </div>
-                <span className="text-slate-700 font-medium">Ma position</span>
-              </div>
-              {customerLocation && (
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-lg">👤</div>
-                  <span className="text-slate-700 font-medium">Client</span>
-                </div>
-              )}
-            </div>
-          </div>
           
           {activeOrders.length === 0 && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
@@ -1374,6 +1327,71 @@ const DriverDashboard = () => {
                     <p className="text-slate-600">Revenez plus tard pour voir les nouvelles commandes</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Tracking Map Modal */}
+          {trackingOrder && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                      <Navigation className="w-5 h-5 text-blue-600" />
+                      Suivre l'itinéraire
+                    </h3>
+                    <p className="text-sm text-slate-600">Commande #{trackingOrder.order_number || trackingOrder.id?.slice(-8)}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setTrackingOrder(null)}
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                <div className="p-4">
+                  <MapboxMap
+                    driverLocation={currentLocation}
+                    customerLocation={trackingOrder.delivery_address ? {
+                      latitude: trackingOrder.delivery_address.latitude,
+                      longitude: trackingOrder.delivery_address.longitude
+                    } : null}
+                    showRoute={!!currentLocation && !!trackingOrder.delivery_address?.latitude}
+                    height="500px"
+                    mapType="streets"
+                    followDriver={true}
+                    driverVehicleType={driverVehicleType}
+                  />
+                </div>
+
+                <div className="p-4 bg-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg">
+                        {driverVehicleType === 'moto' ? '🏍️' : driverVehicleType === 'velo' ? '🚲' : driverVehicleType === 'voiture' ? '🚗' : '📦'}
+                      </div>
+                      <span className="text-slate-700 font-medium">Ma position</span>
+                    </div>
+                    {trackingOrder.delivery_address?.latitude && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-lg">👤</div>
+                        <span className="text-slate-700 font-medium">Client</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${trackingOrder.delivery_address?.latitude},${trackingOrder.delivery_address?.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Ouvrir dans Google Maps
+                  </a>
+                </div>
               </div>
             </div>
           )}
