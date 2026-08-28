@@ -2121,15 +2121,30 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     })
     logger.info(f"📱 [WS DRIVER] Order {order_id} accepted by driver {user['id']}")
 
-    # Send delivery PIN via chat message from Cloleo when driver accepts
-    if order.get("delivery_pin"):
-        logger.info(f"🚀 [DRIVER ACCEPT] Sending PIN message for order {order_id}")
-        pin_result = await send_system_delivery_pin_message(
-            order_id,
-            order["delivery_pin"],
-            order.get("order_number")
-        )
-        logger.info(f"📊 [DRIVER ACCEPT] PIN message result: {pin_result}")
+    # Generate and send delivery PIN via chat message from Cloleo when driver accepts
+    import secrets
+    import hashlib
+    delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
+    delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
+    
+    # Update order with new PIN
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "delivery_pin_hash": delivery_pin_hash,
+                "delivery_pin_created_at": _utc()
+            }
+        }
+    )
+    
+    logger.info(f"🚀 [DRIVER ACCEPT] Generated PIN {delivery_pin} for order {order_id}")
+    pin_result = await send_system_delivery_pin_message(
+        order_id,
+        delivery_pin,
+        order.get("order_number")
+    )
+    logger.info(f"📊 [DRIVER ACCEPT] PIN message result: {pin_result}")
 
     await notify_all_parties(
         order_id,
@@ -2311,14 +2326,30 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     }, customer_id=order.get("customer_id") if order else None)
 
     # Send delivery PIN via chat message from Cloleo when driver accepts
-    if order.get("delivery_pin"):
-        logger.info(f"🚀 [DRIVER ACCEPT 2] Sending PIN message for order {order_id}")
-        pin_result = await send_system_delivery_pin_message(
-            order_id,
-            order["delivery_pin"],
-            order.get("order_number")
-        )
-        logger.info(f"📊 [DRIVER ACCEPT 2] PIN message result: {pin_result}")
+    # Generate PIN if not already sent
+    import secrets
+    import hashlib
+    delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
+    delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
+    
+    # Update order with new PIN
+    await db.orders.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "delivery_pin_hash": delivery_pin_hash,
+                "delivery_pin_created_at": _utc()
+            }
+        }
+    )
+    
+    logger.info(f"🚀 [DRIVER ACCEPT 2] Generated PIN {delivery_pin} for order {order_id}")
+    pin_result = await send_system_delivery_pin_message(
+        order_id,
+        delivery_pin,
+        order.get("order_number")
+    )
+    logger.info(f"📊 [DRIVER ACCEPT 2] PIN message result: {pin_result}")
 
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Livreur {user.get('name')} a accepté la commande", manager)
