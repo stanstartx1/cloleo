@@ -448,6 +448,11 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
             playNotificationSound();
           }
         }
+        if (event.type === 'chat_notification' && event.message) {
+          console.log('📱 [CHAT DEBUG] Chat notification received:', event.message);
+          // Refresh messages when receiving chat notification
+          fetchMessages();
+        }
         if (event.type === 'message_deleted' && event.message_id) {
           setMessages(prev => prev.filter(message => message.id !== event.message_id));
         }
