@@ -1718,14 +1718,15 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
         "order_data": order
     })
 
+    # PIN will be sent when driver accepts the order, not on creation
     # Send delivery PIN immediately to customer via chat from Cloleo
-    logger.info(f"🚀 [ORDER CREATION] Sending PIN message for order {order_id}")
-    pin_result = await send_system_delivery_pin_message(
-        order_id, 
-        delivery_pin, 
-        order.get("order_number")
-    )
-    logger.info(f"📊 [ORDER CREATION] PIN message result: {pin_result}")
+    # logger.info(f"🚀 [ORDER CREATION] Sending PIN message for order {order_id}")
+    # pin_result = await send_system_delivery_pin_message(
+    #     order_id,
+    #     delivery_pin,
+    #     order.get("order_number")
+    # )
+    # logger.info(f"📊 [ORDER CREATION] PIN message result: {pin_result}")
 
     # No automatic driver assignment after order creation
     # Driver assignment will happen after vendor accepts the order
@@ -2119,16 +2120,15 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     })
     logger.info(f"📱 [WS DRIVER] Order {order_id} accepted by driver {user['id']}")
 
-    # PIN is already sent on order creation, no need to send again
-    # Send delivery PIN via chat message from Cloleo
-    # if order.get("delivery_pin"):
-    #     logger.info(f"🚀 [SERVER DEBUG] Calling send_system_delivery_pin_message for order {order_id}")
-    #     pin_result = await send_system_delivery_pin_message(
-    #         order_id, 
-    #         order["delivery_pin"], 
-    #         order.get("order_number")
-    #     )
-    #     logger.info(f"📊 [SERVER DEBUG] PIN message result: {pin_result}")
+    # Send delivery PIN via chat message from Cloleo when driver accepts
+    if order.get("delivery_pin"):
+        logger.info(f"🚀 [DRIVER ACCEPT] Sending PIN message for order {order_id}")
+        pin_result = await send_system_delivery_pin_message(
+            order_id,
+            order["delivery_pin"],
+            order.get("order_number")
+        )
+        logger.info(f"📊 [DRIVER ACCEPT] PIN message result: {pin_result}")
 
     await notify_all_parties(
         order_id,
@@ -2309,9 +2309,19 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
         "driver_location": driver_location
     }, customer_id=order.get("customer_id") if order else None)
 
+    # Send delivery PIN via chat message from Cloleo when driver accepts
+    if order.get("delivery_pin"):
+        logger.info(f"🚀 [DRIVER ACCEPT 2] Sending PIN message for order {order_id}")
+        pin_result = await send_system_delivery_pin_message(
+            order_id,
+            order["delivery_pin"],
+            order.get("order_number")
+        )
+        logger.info(f"📊 [DRIVER ACCEPT 2] PIN message result: {pin_result}")
+
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Livreur {user.get('name')} a accepté la commande", manager)
-    
+
     return {"ok": True, "message": "Commande acceptée avec succès"}
 
 
