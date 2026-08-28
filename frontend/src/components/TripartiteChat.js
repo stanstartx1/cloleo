@@ -698,7 +698,7 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
                   // Special styling for system messages from Cloleo
                   if (isSystemMessage) {
                     // Highlight PIN messages
-                    const isPinMessage = message.content.includes('code de livraison') || message.content.includes('code de livraison');
+                    const isPinMessage = message.content.includes('code de livraison') || message.content.includes('delivery pin');
                     
                     return (
                       <div key={message.id || index} className="flex justify-center my-4">

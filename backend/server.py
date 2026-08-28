@@ -1995,10 +1995,26 @@ async def get_delivery_pin(order_id: str, user: dict = Depends(get_current_user)
     if user["id"] != order.get("customer_id") and user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Accès non autorisé")
     
+    # Generate PIN if not exists
+    delivery_pin = order.get("delivery_pin")
+    if not delivery_pin:
+        delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
+        delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
+        await db.orders.update_one(
+            {"id": order_id},
+            {
+                "$set": {
+                    "delivery_pin": delivery_pin,
+                    "delivery_pin_hash": delivery_pin_hash,
+                    "delivery_pin_created_at": _utc()
+                }
+            }
+        )
+    
     # Return the delivery PIN (only to the customer)
     return {
         "order_id": order_id,
-        "delivery_pin": order.get("delivery_pin"),
+        "delivery_pin": delivery_pin,
         "delivery_pin_created_at": order.get("delivery_pin_created_at"),
         "delivery_pin_verified": order.get("delivery_pin_verified", False)
     }
@@ -2125,11 +2141,12 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
     
-    # Update order with new PIN
+    # Update order with new PIN (store both hash and plain text temporarily)
     await db.orders.update_one(
         {"id": order_id},
         {
             "$set": {
+                "delivery_pin": delivery_pin,  # Store plain text temporarily for API access
                 "delivery_pin_hash": delivery_pin_hash,
                 "delivery_pin_created_at": _utc()
             }
@@ -2328,11 +2345,12 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
     
-    # Update order with new PIN
+    # Update order with new PIN (store both hash and plain text temporarily)
     await db.orders.update_one(
         {"id": order_id},
         {
             "$set": {
+                "delivery_pin": delivery_pin,  # Store plain text temporarily for API access
                 "delivery_pin_hash": delivery_pin_hash,
                 "delivery_pin_created_at": _utc()
             }
