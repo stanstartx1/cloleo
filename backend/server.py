@@ -3374,11 +3374,17 @@ async def driver_dashboard(user: dict = Depends(require_driver)):
 @api.get("/driver/available-orders")
 async def driver_available_orders(user: dict = Depends(require_driver)):
     """Get all orders available for driver assignment (confirmed by vendor, no driver assigned)"""
+    # Ensure driver is online before showing available orders
+    driver = await db.users.find_one({"id": user["id"]}, {"_id": 0, "is_online": 1, "location": 1})
+    if not driver.get("is_online"):
+        logger.warning(f"📱 [DRIVER] Driver {user['id']} is offline, no available orders shown")
+        return {"orders": [], "message": "Vous devez être en ligne pour voir les commandes disponibles"}
+
     orders = await db.orders.find(
         {"status": "confirmed", "driver_id": None},
         {"_id": 0}
     ).sort("created_at", -1).to_list(50)
-    
+
     # Enrich orders with seller and customer information
     for order in orders:
         # Get seller information with location
@@ -3396,7 +3402,8 @@ async def driver_available_orders(user: dict = Depends(require_driver)):
                     "location": seller.get("location"),
                     "address": seller.get("address")
                 }
-    
+
+    logger.info(f"📱 [DRIVER] Driver {user['id']} fetched {len(orders)} available orders")
     return {"orders": orders}
 
 

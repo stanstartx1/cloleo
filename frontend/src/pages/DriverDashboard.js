@@ -52,6 +52,7 @@ const DriverDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
   const [orders, setOrders] = useState([]);
   const [activeOrders, setActiveOrders] = useState([]); // Multiple active orders
+  const [availableOrders, setAvailableOrders] = useState([]); // Orders available for acceptance
   const [selectedOrder, setSelectedOrder] = useState(null); // Currently focused order
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -101,14 +102,14 @@ const DriverDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOrders(response.data.orders || []);
-      
+
       // Get all active orders for this driver
-      const active = (response.data.orders || []).filter(o => 
-        o.driver_id === user?.id && 
+      const active = (response.data.orders || []).filter(o =>
+        o.driver_id === user?.id &&
         ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(o.status)
       );
       setActiveOrders(active);
-      
+
       // Select the first active order if none selected
       if (active.length > 0 && !selectedOrder) {
         setSelectedOrder(active[0]);
@@ -118,22 +119,53 @@ const DriverDashboard = () => {
     }
   }, [token, user?.id, selectedOrder]);
 
+  const fetchAvailableOrders = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API}/driver/available-orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('📱 [DRIVER] Available orders fetched:', response.data.orders?.length);
+      return response.data.orders || [];
+    } catch (error) {
+      console.error('Error fetching available orders:', error);
+      return [];
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!isDriver) {
       navigate('/connexion');
       return;
     }
-    
+
     const init = async () => {
       setLoading(true);
       await fetchDashboard();
       await fetchOrders();
+
+      // Fetch available orders
+      const available = await fetchAvailableOrders();
+      setAvailableOrders(available);
+
+      // Set driver as online when dashboard loads
+      try {
+        await axios.put(`${API}/driver/status`, { status: 'available' }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('📱 [DRIVER] Driver set to online/available');
+        toast.success('Vous êtes maintenant en ligne', {
+          description: 'Vous pouvez recevoir des commandes'
+        });
+      } catch (error) {
+        console.error('Error setting driver online:', error);
+      }
+
       setLoading(false);
     };
-    
+
     init();
     // Don't request notification permission automatically - it requires user gesture
-  }, [isDriver, navigate, fetchDashboard, fetchOrders]);
+  }, [isDriver, navigate, fetchDashboard, fetchOrders, fetchAvailableOrders, token]);
 
   // Advanced GPS tracking with offline sync
   useEffect(() => {
@@ -178,21 +210,52 @@ const DriverDashboard = () => {
     sendLocationUpdate
   } = useDriverOrders(user?.id, token);
 
+  // Accept available order
+  const acceptOrder = async (orderId) => {
+    try {
+      setUpdatingStatus(true);
+      const response = await axios.put(`${API}/orders/${orderId}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('📱 [DRIVER] Order accepted:', orderId);
+      toast.success('Commande acceptée avec succès');
+      await fetchOrders(); // Refresh orders
+      const available = await fetchAvailableOrders();
+      setAvailableOrders(available);
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      toast.error('Erreur lors de l\'acceptation de la commande', {
+        description: error.response?.data?.detail || 'Veuillez réessayer'
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   // Sync WebSocket orders with local state
   useEffect(() => {
     if (wsOrders.length > 0) {
       console.log('📱 [DRIVER] Syncing WebSocket orders:', wsOrders.length);
       setOrders(wsOrders);
-      const active = wsOrders.filter(o => 
+      const active = wsOrders.filter(o =>
         ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(o.status)
       );
       setActiveOrders(active);
       console.log('📱 [DRIVER] Active orders:', active.length);
-      
+
       // Auto-select first active order if none selected
       if (active.length > 0 && !selectedOrder) {
         console.log('📱 [DRIVER] Auto-selecting first active order:', active[0].id);
         setSelectedOrder(active[0]);
+      }
+    } else {
+      // Also handle the case where orders are confirmed (available for acceptance)
+      const available = wsOrders.filter(o =>
+        ['confirmed'].includes(o.status)
+      );
+      if (available.length > 0) {
+        console.log('📱 [DRIVER] Available orders for manual acceptance:', available.length);
+        setOrders(available);
       }
     }
   }, [wsOrders, selectedOrder]);
@@ -1137,18 +1200,20 @@ const DriverDashboard = () => {
               showRoute={!!customerLocation && !!currentLocation}
               height="400px"
               mapType="streets"
-              followDriver={true}
+              followDriver={activeOrders.length > 0}
               driverVehicleType={driverVehicleType}
             />
-            
+
             <div className="p-4 bg-slate-50 flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-600 rounded-full" />
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-lg">
+                  {driverVehicleType === 'moto' ? '🏍️' : driverVehicleType === 'velo' ? '🚲' : driverVehicleType === 'voiture' ? '🚗' : '📦'}
+                </div>
                 <span className="text-slate-700 font-medium">Ma position</span>
               </div>
               {customerLocation && (
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-600 rounded-full" />
+                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-lg">👤</div>
                   <span className="text-slate-700 font-medium">Client</span>
                 </div>
               )}
@@ -1293,11 +1358,11 @@ const DriverDashboard = () => {
                         )}
 
                         <Button
-                          onClick={() => handleOrderAction(order, 'driver-accept')}
-                          disabled={updatingOrderIds.has(order.id) || isPendingVerification}
+                          onClick={() => acceptOrder(order.id)}
+                          disabled={updatingStatus}
                           className="w-full bg-green-600 hover:bg-green-700"
                         >
-                          {updatingOrderIds.has(order.id) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                          {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                           Accepter la commande
                         </Button>
                       </div>
