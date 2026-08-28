@@ -149,6 +149,8 @@ const OrderTrackingPage = () => {
             if (pinMatch) {
               const pin = pinMatch[1];
               console.log('🔐 [PIN NOTIFICATION] PIN received via chat notification:', pin);
+              // Open the chat to show the PIN message
+              setChatOpen(true);
               toast.success('Code de livraison reçu !', {
                 description: `Votre code est : ${pin}. Communiquez-le au livreur.`,
                 duration: 10000,
