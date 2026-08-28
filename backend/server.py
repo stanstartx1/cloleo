@@ -2057,18 +2057,19 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     if order.get("status") != "confirmed":
         raise HTTPException(status_code=400, detail="Cette commande doit être confirmée par le vendeur avant d'être acceptée")
 
-    settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
-    try:
-        max_active = max(1, int(settings.get("max_active_orders", 5)))
-    except (TypeError, ValueError):
-        max_active = 5
-    active_count = await db.orders.count_documents({
-        "driver_id": user["id"],
-        "id": {"$ne": order_id},
-        "status": {"$in": ["assigned", "accepted", "picked_up", "in_transit"]},
-    })
-    if active_count >= max_active:
-        raise HTTPException(status_code=409, detail="Capacité maximale de livraisons actives atteinte")
+    # Removed limit on active orders - drivers can accept unlimited orders
+    # settings = await db.settings.find_one({"type": "delivery"}, {"_id": 0}) or {}
+    # try:
+    #     max_active = max(1, int(settings.get("max_active_orders", 5)))
+    # except (TypeError, ValueError):
+    #     max_active = 5
+    # active_count = await db.orders.count_documents({
+    #     "driver_id": user["id"],
+    #     "id": {"$ne": order_id},
+    #     "status": {"$in": ["assigned", "accepted", "picked_up", "in_transit"]},
+    # })
+    # if active_count >= max_active:
+    #     raise HTTPException(status_code=409, detail="Capacité maximale de livraisons actives atteinte")
 
     await db.orders.update_one(
         {"id": order_id},
