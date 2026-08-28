@@ -165,7 +165,19 @@ async def get_order_conversation(order_id: str, user: dict = Depends(get_current
             {"order_id": order_id}, {"_id": 0}
         ).sort("created_at", 1).to_list(500)
         logger.info(f"✅ [CONV GET] Messages retrieved: {len(messages)}")
-        return {"conversation": conv, "messages": messages, "order_id": order_id}
+        # Convert ObjectId to string to avoid JSON serialization error
+        from bson import ObjectId
+        def convert_objid(obj):
+            if isinstance(obj, ObjectId):
+                return str(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_objid(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_objid(item) for item in obj]
+            return obj
+        conv_clean = convert_objid(conv)
+        messages_clean = convert_objid(messages)
+        return {"conversation": conv_clean, "messages": messages_clean, "order_id": order_id}
     except Exception as e:
         logger.error(f"❌ [CONV GET] Error getting conversation: {e}")
         import traceback
