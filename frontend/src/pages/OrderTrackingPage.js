@@ -26,9 +26,9 @@ const API = API_URL;
 const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 
 const ORDER_STATUSES = {
-  pending: { label: 'Commande passée', color: 'amber', bgColor: 'bg-amber-100', textColor: 'text-amber-600', icon: CheckCircle, progress: 15 },
-  confirmed: { label: 'Confirmée par le vendeur', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: CheckCircle, progress: 30 },
-  assigned: { label: 'Livreur assigné', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: User, progress: 45 },
+  pending: { label: 'Commande passée', color: 'amber', bgColor: 'bg-amber-100', textColor: 'text-amber-600', icon: CheckCircle, progress: 10 },
+  confirmed: { label: 'Confirmée par le vendeur', color: 'blue', bgColor: 'bg-blue-100', textColor: 'text-blue-600', icon: CheckCircle, progress: 25 },
+  assigned: { label: 'Livreur assigné', color: 'indigo', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', icon: User, progress: 40 },
   accepted: { label: 'Livreur accepté', color: 'purple', bgColor: 'bg-purple-100', textColor: 'text-purple-600', icon: UserCheck, progress: 55 },
   picked_up: { label: 'Colis récupéré', color: 'violet', bgColor: 'bg-violet-100', textColor: 'text-violet-600', icon: Package, progress: 70 },
   in_transit: { label: 'En route', color: 'fuchsia', bgColor: 'bg-fuchsia-100', textColor: 'text-fuchsia-600', icon: Truck, progress: 85 },
@@ -79,10 +79,12 @@ const OrderTrackingPage = () => {
       setOrder(realtimeOrder);
       setLoading(false);
       
-      // Show notification for delivery PIN
+      // Show notification for delivery PIN (only once)
       if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
         pinNotifiedRef.current = true;
         console.log('🔐 [PIN NOTIFICATION] Delivery PIN available:', realtimeOrder.delivery_pin);
+        // Open chat and show toast
+        setChatOpen(true);
         toast.success('Code de livraison reçu !', {
           description: `Votre code est : ${realtimeOrder.delivery_pin}. Communiquez-le au livreur.`,
           duration: 10000,
@@ -96,7 +98,7 @@ const OrderTrackingPage = () => {
         });
       }
       
-      // Show notification for status changes
+      // Show notification for status changes (only when status actually changes)
       if (realtimeOrder.status !== previousStatusRef.current) {
         const oldStatus = previousStatusRef.current;
         previousStatusRef.current = realtimeOrder.status;
@@ -113,6 +115,13 @@ const OrderTrackingPage = () => {
       }
     }
   }, [realtimeOrder]);
+
+  // Sync driver location from WebSocket
+  useEffect(() => {
+    if (realtimeDriverLocation) {
+      setDriverLocation(realtimeDriverLocation);
+    }
+  }, [realtimeDriverLocation]);
 
   // Update driver info when order changes
   useEffect(() => {
@@ -212,8 +221,14 @@ const OrderTrackingPage = () => {
     }
   }, [orderUpdates, orderId, clearOrderUpdates]);
 
-  // Fetch initial order data (fallback if WebSocket fails)
+  // Fetch initial order data (ONLY as fallback if WebSocket fails)
   const fetchOrder = useCallback(async () => {
+    // Skip fetch if WebSocket is already connected and has data
+    if (isConnected && realtimeOrder) {
+      console.log('📱 [TRACKING SKIP] WebSocket active, skipping API fetch');
+      return;
+    }
+    
     try {
       console.log('📱 [TRACKING DEBUG] Fetching order data for:', orderId);
       // Use customer-specific endpoint to get delivery PIN
@@ -284,12 +299,20 @@ const OrderTrackingPage = () => {
         setLoading(false);
       }
     }
-  }, [orderId, token, realtimeOrder, realtimeDriverLocation]);
+  }, [orderId, token, realtimeOrder, realtimeDriverLocation, isConnected]);
 
-  // Fetch initial data
+  // Fetch initial data (only once as fallback)
   useEffect(() => {
-    fetchOrder();
-  }, [fetchOrder]);
+    // Only fetch if WebSocket is not connected after 2 seconds
+    const fallbackTimer = setTimeout(() => {
+      if (!isConnected) {
+        console.log('📱 [TRACKING FALLBACK] WebSocket not connected, fetching from API');
+        fetchOrder();
+      }
+    }, 2000);
+    
+    return () => clearTimeout(fallbackTimer);
+  }, [isConnected, fetchOrder]);
 
   // Calculate customer location for map
   const customerLocation = order?.delivery_address ? {
@@ -298,9 +321,6 @@ const OrderTrackingPage = () => {
   } : null;
 
   const getStatusProgress = () => {
-    const statuses = ['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'];
-    const currentIndex = statuses.indexOf(order?.status);
-    if (currentIndex === -1) return 0;
     return ORDER_STATUSES[order?.status]?.progress || 0;
   };
 
@@ -446,41 +466,43 @@ const OrderTrackingPage = () => {
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">Progression de livraison</span>
-                    <span className="text-sm font-bold text-primary">{Math.round(getStatusProgress())}%</span>
+                    <span className="text-sm font-bold text-primary">{getStatusProgress()}%</span>
                   </div>
-                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-700 ease-out"
+                      className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-500 ease-in-out relative"
                       style={{ width: `${getStatusProgress()}%` }}
-                    />
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                    </div>
                   </div>
                   <div className="flex justify-between mt-3 text-xs text-muted-foreground">
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-amber-500' : 'bg-gray-300'} ${order.status === 'pending' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-amber-500 shadow-lg shadow-amber-500/50' : 'bg-gray-300'} ${order.status === 'pending' ? 'scale-125' : ''}`} />
                       <span className={['pending', 'confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-amber-600' : ''}>Commande</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500' : 'bg-gray-300'} ${order.status === 'confirmed' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${['confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-blue-500 shadow-lg shadow-blue-500/50' : 'bg-gray-300'} ${order.status === 'confirmed' ? 'scale-125' : ''}`} />
                       <span className={['confirmed', 'assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-blue-600' : ''}>Confirmée</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500' : 'bg-gray-300'} ${order.status === 'assigned' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-indigo-500 shadow-lg shadow-indigo-500/50' : 'bg-gray-300'} ${order.status === 'assigned' ? 'scale-125' : ''}`} />
                       <span className={['assigned', 'accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-indigo-600' : ''}>Assigné</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500' : 'bg-gray-300'} ${order.status === 'accepted' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-purple-500 shadow-lg shadow-purple-500/50' : 'bg-gray-300'} ${order.status === 'accepted' ? 'scale-125' : ''}`} />
                       <span className={['accepted', 'picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-purple-600' : ''}>Accepté</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-violet-500' : 'bg-gray-300'} ${order.status === 'picked_up' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'bg-violet-500 shadow-lg shadow-violet-500/50' : 'bg-gray-300'} ${order.status === 'picked_up' ? 'scale-125' : ''}`} />
                       <span className={['picked_up', 'in_transit', 'delivered'].includes(order.status) ? 'font-bold text-violet-600' : ''}>Récupéré</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-fuchsia-500' : 'bg-gray-300'} ${order.status === 'in_transit' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${['in_transit', 'delivered'].includes(order.status) ? 'bg-fuchsia-500 shadow-lg shadow-fuchsia-500/50' : 'bg-gray-300'} ${order.status === 'in_transit' ? 'scale-125' : ''}`} />
                       <span className={['in_transit', 'delivered'].includes(order.status) ? 'font-bold text-fuchsia-600' : ''}>En route</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full mb-1 ${order.status === 'delivered' ? 'bg-green-600' : 'bg-gray-300'} ${order.status === 'delivered' ? 'animate-pulse' : ''}`} />
+                      <div className={`w-4 h-4 rounded-full mb-1 transition-all duration-300 ${order.status === 'delivered' ? 'bg-green-600 shadow-lg shadow-green-600/50' : 'bg-gray-300'} ${order.status === 'delivered' ? 'scale-125' : ''}`} />
                       <span className={order.status === 'delivered' ? 'font-bold text-green-600' : ''}>Livré</span>
                     </div>
                   </div>
