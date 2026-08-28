@@ -88,7 +88,8 @@ class ConnectionManager:
     async def send_to_user(self, user_id: str, message: dict):
         """Send message to all rooms a user is connected to"""
         if user_id in self.user_connections:
-            for room in self.user_connections[user_id]:
+            # Convert to list to avoid "Set changed size during iteration" error
+            for room in list(self.user_connections[user_id]):
                 await self.broadcast_to_room(room, message)
             logger.info(f"Sent to user {user_id} in {len(self.user_connections[user_id])} rooms: {message.get('type', 'unknown')}")
         else:
