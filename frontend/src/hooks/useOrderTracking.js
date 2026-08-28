@@ -71,14 +71,23 @@ export const useOrderTracking = (orderId, token) => {
                 updated_at: data.timestamp,
                 ...(data.driver_id && { driver_id: data.driver_id }),
                 ...(data.driver_name && { driver_name: data.driver_name }),
+                ...(data.driver_vehicle_type && { driver_vehicle_type: data.driver_vehicle_type }),
                 ...(data.vendor_name && { vendor_name: data.vendor_name }),
                 ...(data.picked_up_at && { picked_up_at: data.picked_up_at }),
                 ...(data.in_transit_at && { in_transit_at: data.in_transit_at }),
                 ...(data.delivered_at && { delivered_at: data.delivered_at }),
                 ...(data.eta_minutes !== undefined && { eta_minutes: data.eta_minutes }),
-                ...(data.driver_vehicle_type && { driver_vehicle_type: data.driver_vehicle_type }),
                 ...data.order_data
               }));
+              // Update driver location if provided in the status update
+              if (data.driver_location) {
+                console.log('📱 [WS ORDER] Driver location in status update:', data.driver_location);
+                setDriverLocation(data.driver_location);
+              }
+              // If status is assigned or accepted, we expect driver location to follow
+              if (data.status === 'assigned' || data.status === 'accepted') {
+                console.log('📱 [WS ORDER] Driver assigned/accepted, expecting location updates');
+              }
               break;
 
             case 'driver_location_update':
@@ -91,8 +100,17 @@ export const useOrderTracking = (orderId, token) => {
                 status: data.status || 'assigned',
                 driver_id: data.driver_id,
                 driver_name: data.order_data?.driver_name,
+                driver_vehicle_type: data.order_data?.driver_vehicle_type,
                 ...data.order_data
               }));
+              // Initialize driver location if available in data or order_data
+              if (data.driver_location) {
+                console.log('📱 [WS ORDER] Driver location in order_assigned:', data.driver_location);
+                setDriverLocation(data.driver_location);
+              } else if (data.order_data?.driver_location) {
+                console.log('📱 [WS ORDER] Driver location in order_assigned (order_data):', data.order_data.driver_location);
+                setDriverLocation(data.order_data.driver_location);
+              }
               break;
 
             case 'pong':

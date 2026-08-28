@@ -377,10 +377,10 @@ const OrderTrackingPage = () => {
             <MapboxMap
               driverLocation={driverLocation}
               customerLocation={customerLocation}
-              showRoute={!!driverLocation && !!customerLocation}
+              showRoute={!!customerLocation && ['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order?.status)}
               height="400px"
               mapType="streets"
-              followDriver={order?.status === 'in_transit' || order?.status === 'picked_up'}
+              followDriver={['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order?.status)}
               driverVehicleType={order?.driver_vehicle_type || null}
             />
             

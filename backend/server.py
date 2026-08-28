@@ -2092,14 +2092,19 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     # Fetch updated order
     updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
 
-    # Broadcast order status update via WebSocket
+    # Get driver's current location
+    driver_location = manager.get_driver_location(user["id"])
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} location on accept:", driver_location)
+
+    # Broadcast order status update via WebSocket with driver location
     await manager.broadcast_order_status_update(order_id, "assigned", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
-        "seller_id": order.get("seller_id")
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
     }, customer_id=order.get("customer_id"))
-    
+
     # Broadcast to driver's room for immediate notification with full order data
     await manager.broadcast_to_room(f"driver_{user['id']}", {
         "type": "order_status_update",
@@ -2108,6 +2113,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
+        "driver_location": driver_location,
         "timestamp": _utc(),
         "order_data": updated_order
     })
@@ -2289,12 +2295,18 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     # Broadcast order status update via WebSocket
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     logger.info(f"📱 [WS DRIVER] Driver {user['id']} accepting order {order_id}")
+
+    # Get driver's current location
+    driver_location = manager.get_driver_location(user["id"])
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} location on pickup accept:", driver_location)
+
     await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
         "driver_accepted_at": _utc(),
-        "seller_id": order.get("seller_id")
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
     }, customer_id=order.get("customer_id") if order else None)
 
     # Notify all parties
@@ -2335,11 +2347,17 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
     
     # Broadcast order status update via WebSocket
     logger.info(f"📱 [WS DRIVER] Driver {user['id']} picking up order {order_id}")
+
+    # Get driver's current location
+    driver_location = manager.get_driver_location(user["id"])
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} location on pickup:", driver_location)
+
     await manager.broadcast_order_status_update(order_id, "picked_up", {
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
         "picked_up_at": _utc(),
-        "seller_id": order.get("seller_id")
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
     }, customer_id=order.get("customer_id"))
 
     # Notify all parties
@@ -2401,12 +2419,18 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
     
     # Broadcast order status update via WebSocket
     logger.info(f"📱 [WS DRIVER] Driver {user['id']} starting delivery for order {order_id}")
+
+    # Get driver's current location
+    driver_location = manager.get_driver_location(user["id"])
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} location on in-transit:", driver_location)
+
     await manager.broadcast_order_status_update(order_id, "in_transit", {
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
         "in_transit_at": _utc(),
         "eta_minutes": eta_minutes,
-        "seller_id": order.get("seller_id")
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
     }, customer_id=order.get("customer_id"))
 
     # Notify all parties with ETA information
