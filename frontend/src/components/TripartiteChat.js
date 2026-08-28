@@ -405,6 +405,16 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
             duration: 5000
           });
         }
+        // Log each message for debugging
+        response.data.messages.forEach((msg, idx) => {
+          console.log(`📱 [MSG ${idx}]`, {
+            id: msg.id,
+            sender_role: msg.sender_role,
+            sender_name: msg.sender_name,
+            is_system: msg.is_system,
+            content: msg.content?.substring(0, 50)
+          });
+        });
         setMessages(response.data.messages);
       }
     } catch (error) {
@@ -704,6 +714,14 @@ const TripartiteChat = ({ orderId, recipientType, recipientId, recipientName, is
                 {messages.map((message, index) => {
                   const isOwn = message.sender_id === user.id;
                   const isSystemMessage = message.sender_role === 'system' || message.sender_name === 'Cloleo';
+                  
+                  console.log(`📱 [RENDER MSG ${index}]`, {
+                    sender_role: message.sender_role,
+                    sender_name: message.sender_name,
+                    is_system: message.is_system,
+                    isSystemMessage,
+                    content: message.content?.substring(0, 30)
+                  });
                   
                   // Special styling for system messages from Cloleo
                   if (isSystemMessage) {
