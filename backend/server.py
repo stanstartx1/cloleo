@@ -2122,8 +2122,6 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     logger.info(f"📱 [WS DRIVER] Order {order_id} accepted by driver {user['id']}")
 
     # Generate and send delivery PIN via chat message from Cloleo when driver accepts
-    import secrets
-    import hashlib
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
     
@@ -2327,8 +2325,6 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
 
     # Send delivery PIN via chat message from Cloleo when driver accepts
     # Generate PIN if not already sent
-    import secrets
-    import hashlib
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
     
