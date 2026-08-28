@@ -44,9 +44,12 @@ def _utc():
 
 
 async def _get_order_participants(order_id: str) -> dict:
+    logger.info(f"🔍 [PARTICIPANTS] Getting participants for order {order_id}")
     order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
     if not order:
+        logger.error(f"❌ [PARTICIPANTS] Order {order_id} not found")
         raise HTTPException(status_code=404, detail="Commande non trouvée")
+    logger.info(f"✅ [PARTICIPANTS] Order found: customer_id={order.get('customer_id')}, seller_id={order.get('seller_id')}, driver_id={order.get('driver_id')}")
     return {
         "order": order,
         "customer_id": order.get("customer_id"),
@@ -114,21 +117,33 @@ async def _ensure_order_conversation(order_id: str, participants: dict) -> dict:
         logger.info(f"✅ [CONV DEBUG] Conversation exists: {conv['id']}")
         return conv
     logger.warning(f"⚠️  [CONV DEBUG] Creating new conversation for order {order_id}")
+
+    # Build participants list safely - include all available participants
+    participant_list = []
+    customer_id = participants.get("customer_id")
+    seller_id = participants.get("seller_id")
+    driver_id = participants.get("driver_id")
+
+    if customer_id:
+        participant_list.append(customer_id)
+    if seller_id:
+        participant_list.append(seller_id)
+    if driver_id:
+        participant_list.append(driver_id)
+
+    logger.info(f"📝 [CONV DEBUG] Building conversation with participants: {participant_list}")
+
     conv = {
         "id": str(uuid.uuid4()),
         "order_id": order_id,
-        "customer_id": participants.get("customer_id"),
-        "seller_id": participants.get("seller_id"),
-        "driver_id": participants.get("driver_id"),
-        "participants": [p for p in [
-            participants.get("customer_id"),
-            participants.get("seller_id"),
-            participants.get("driver_id"),
-        ] if p],
+        "customer_id": customer_id,
+        "seller_id": seller_id,
+        "driver_id": driver_id,
+        "participants": participant_list,
         "created_at": _utc(),
         "updated_at": _utc(),
     }
-    logger.info(f"📝 [CONV DEBUG] Conversation data: customer_id={conv['customer_id']}, seller_id={conv['seller_id']}, driver_id={conv['driver_id']}")
+    logger.info(f"📝 [CONV DEBUG] Conversation data: customer_id={conv['customer_id']}, seller_id={conv['seller_id']}, driver_id={conv['driver_id']}, participants={participant_list}")
     await db.delivery_conversations.insert_one(conv)
     logger.info(f"✅ [CONV DEBUG] Conversation created: {conv['id']}")
     return conv
@@ -136,14 +151,25 @@ async def _ensure_order_conversation(order_id: str, participants: dict) -> dict:
 
 @router.get("/conversation/{order_id}")
 async def get_order_conversation(order_id: str, user: dict = Depends(get_current_user)):
-    participants = await _get_order_participants(order_id)
-    if not _can_access(user, participants):
-        raise HTTPException(status_code=403, detail="Accès non autorisé")
-    conv = await _ensure_order_conversation(order_id, participants)
-    messages = await db.delivery_messages.find(
-        {"order_id": order_id}, {"_id": 0}
-    ).sort("created_at", 1).to_list(500)
-    return {"conversation": conv, "messages": messages, "order_id": order_id}
+    try:
+        logger.info(f"🔍 [CONV GET] Getting conversation for order {order_id}, user {user['id']}")
+        participants = await _get_order_participants(order_id)
+        logger.info(f"🔍 [CONV GET] Participants: {participants}")
+        if not _can_access(user, participants):
+            logger.warning(f"⚠️  [CONV GET] User {user['id']} cannot access order {order_id}")
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+        conv = await _ensure_order_conversation(order_id, participants)
+        logger.info(f"✅ [CONV GET] Conversation retrieved: {conv['id']}")
+        messages = await db.delivery_messages.find(
+            {"order_id": order_id}, {"_id": 0}
+        ).sort("created_at", 1).to_list(500)
+        logger.info(f"✅ [CONV GET] Messages retrieved: {len(messages)}")
+        return {"conversation": conv, "messages": messages, "order_id": order_id}
+    except Exception as e:
+        logger.error(f"❌ [CONV GET] Error getting conversation: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération de la conversation: {str(e)}")
 
 
 @router.post("/send")
