@@ -21,7 +21,7 @@ const MobileBottomNav = () => {
       : isDropshipper
         ? '/revendeur'
         : isDriver
-          ? '/livreur'
+          ? '/livreur/stats'
           : null;
 
   const items = [

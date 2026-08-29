@@ -639,7 +639,7 @@ const Navbar = () => {
                     )}
                     {isDriver && (
                       <DropdownMenuItem asChild>
-                        <Link to="/livreur" className="font-semibold">
+                        <Link to="/livreur/stats" className="font-semibold">
                           <Truck className="w-4 h-4 mr-2" /> {t('nav.driverSpace')}
                         </Link>
                       </DropdownMenuItem>

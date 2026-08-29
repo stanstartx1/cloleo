@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -21,13 +21,20 @@ const formatPrice = (price) => new Intl.NumberFormat('fr-FR').format(price) + ' 
 
 const DriverDashboardStats = () => {
   const navigate = useNavigate();
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, isDriver } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Redirect if not driver
+  useEffect(() => {
+    if (!isDriver && user) {
+      navigate('/');
+    }
+  }, [isDriver, user, navigate]);
 
   // WebSocket for real-time updates
   const {
@@ -37,7 +44,9 @@ const DriverDashboardStats = () => {
   } = useUserRealtime(token, user?.id);
 
   // Fetch dashboard stats
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = async () => {
+    if (!token) return;
+    
     try {
       const response = await axios.get(`${API}/driver/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -60,24 +69,43 @@ const DriverDashboardStats = () => {
       setNotifications(dashboardData.notifications || []);
     } catch (error) {
       console.error('Error fetching dashboard:', error);
-      toast.error('Erreur lors du chargement du tableau de bord');
+      // Set default stats on error to prevent disappearing
+      setStats({
+        total_orders: 0,
+        completed_orders: 0,
+        in_progress_orders: 0,
+        total_earnings: 0,
+        today_earnings: 0,
+        rating: 0,
+        is_online: false,
+        driver_status: 'offline'
+      });
+      setRecentOrders([]);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  };
 
   // Handle refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchDashboard();
-    setRefreshing(false);
-    toast.success('Tableau de bord actualisé');
+    try {
+      await fetchDashboard();
+      toast.success('Tableau de bord actualisé');
+    } catch (error) {
+      toast.error('Erreur lors de l\'actualisation');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Initial load
   useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
+    if (token) {
+      fetchDashboard();
+    }
+  }, [token]);
 
   // Handle WebSocket notifications
   useEffect(() => {
@@ -86,12 +114,13 @@ const DriverDashboardStats = () => {
     }
   }, [wsNotifications]);
 
-  // Handle order updates
+  // Handle order updates - manual refresh only
   useEffect(() => {
     if (orderUpdates.length > 0) {
-      fetchDashboard();
+      setRefreshing(true);
+      fetchDashboard().then(() => setRefreshing(false));
     }
-  }, [orderUpdates, fetchDashboard]);
+  }, [orderUpdates]);
 
   // Handle logout
   const handleLogout = () => {
