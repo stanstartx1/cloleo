@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from core.auth import get_current_user
-from core.database import get_database
+from core.database import db
 
 router = APIRouter()
 
@@ -55,7 +55,6 @@ async def upload_license_registration(
     file_path.write_bytes(content)
     
     # Update user document with license path
-    db = get_database()
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"license_url": f"/uploads/licenses/{filename}"}}

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
 
-from core.database import get_database
+from core.database import db
 from core.auth import get_current_user
 
 router = APIRouter()
@@ -19,7 +19,6 @@ async def get_customer_dashboard(user: dict = Depends(get_current_user)):
     if user.get("role") != "customer":
         raise HTTPException(status_code=403, detail="Accès réservé aux clients")
     
-    db = get_database()
     customer_id = user["id"]
     
     try:
