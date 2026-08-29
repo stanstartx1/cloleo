@@ -137,42 +137,12 @@ const DriverRegisterPage = () => {
     setUploadingLicense(true);
 
     try {
-      console.log('Starting license upload...');
-      console.log('License file:', licenseFile);
-      console.log('License file type:', licenseFile.type);
-      console.log('License file size:', licenseFile.size);
-      
-      // First test authentication
-      console.log('Testing authentication...');
-      try {
-        const testResponse = await axios.post(`${API}/driver/upload-license-test`, {}, {
-          headers: {
-            Authorization: `Bearer ${tempToken}`
-          }
-        });
-        console.log('Authentication test successful:', testResponse.data);
-      } catch (testError) {
-        console.error('Authentication test failed:', testError);
-        toast.error('Erreur d\'authentification. Veuillez vous reconnecter.');
-        setUploadingLicense(false);
-        return;
-      }
-      
       const formData = new FormData();
       formData.append('file', licenseFile);
-      
-      console.log('FormData entries:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
-      console.log('Uploading license to:', `${API}/driver/upload-license-registration`);
-      console.log('Using token:', tempToken ? 'Token present' : 'No token');
       
       const response = await axios.post(`${API}/driver/upload-license-registration`, formData, {
         headers: {
           Authorization: `Bearer ${tempToken}`
-          // Don't set Content-Type - axios will set it automatically with proper boundary
         }
       });
 
@@ -182,26 +152,19 @@ const DriverRegisterPage = () => {
       
       // Redirect to login page after 2 seconds
       setTimeout(() => {
-        console.log('Redirecting to login page...');
         toast.info('Veuillez vous connecter avec vos identifiants');
         navigate('/connexion', { replace: true });
       }, 2000);
       
     } catch (error) {
       console.error('Upload error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error status:', error.response?.status);
-      console.error('Error data:', error.response?.data);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'upload du permis';
-      console.error('Error details:', errorMessage);
       
-      // Show error but don't crash the page
+      // Allow user to proceed anyway after showing error
       toast.error(`${errorMessage}. Vous pourrez uploader votre permis plus tard.`);
       setUploadingLicense(false);
       
-      // Allow user to proceed anyway after showing error
       setTimeout(() => {
-        console.log('Proceeding to login despite upload error...');
         toast.info('Inscription terminée. Vous pourrez uploader votre permis plus tard.');
         navigate('/connexion', { replace: true });
       }, 3000);

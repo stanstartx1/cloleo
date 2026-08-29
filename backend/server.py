@@ -105,6 +105,7 @@ from routes.conflicts_api import router as conflicts_router, set_manager as set_
 from routes.security_api import router as security_router
 from routes.osm_api import router as osm_router
 from routes.customer import router as customer_router
+from routes.drivers import router as drivers_router
 
 from core.notification_channels import set_ws_manager, notify_order_parties, notify_user_all_channels
 
@@ -472,6 +473,8 @@ api.include_router(security_router)
 api.include_router(osm_router)
 
 api.include_router(customer_router)
+
+api.include_router(drivers_router)
 
 
 
