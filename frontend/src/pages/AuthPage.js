@@ -189,6 +189,7 @@ const AuthPage = () => {
         console.log('DEBUG: Redirecting enterprise to /enterprise');
         navigate('/enterprise');
       }
+      else if (result.user.role === 'customer') navigate('/tableau-de-bord');
       else navigate(from);
     } else {
       toast.error(result.error || 'Une erreur est survenue');
@@ -215,6 +216,7 @@ const AuthPage = () => {
       else if (result.user.role === 'driver') navigate('/livreur');
       else if (result.user.role === 'dropshipper') navigate('/revendeur');
       else if (result.user.role === 'enterprise') navigate('/enterprise');
+      else if (result.user.role === 'customer') navigate('/tableau-de-bord');
       else navigate('/');
     } else {
       toast.error(result.error || 'Une erreur est survenue');

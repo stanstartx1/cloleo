@@ -85,6 +85,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DriverRegisterPage from "./pages/DriverRegisterPage";
 import DriverDashboard from "./pages/DriverDashboard";
 
+// Customer Pages
+import CustomerDashboard from "./pages/CustomerDashboard";
+
 // Revendeur Pages
 import RevendeurRegisterPage from "./pages/RevendeurRegisterPage";
 import RevendeurDashboard from "./pages/RevendeurDashboard";
@@ -306,6 +309,13 @@ const AppRoutes = () => {
       {/* Auth */}
       <Route path="/connexion" element={<AuthPage />} />
       <Route path="/devenir-vendeur" element={<PublicLayout><BecomeVendorPage /></PublicLayout>} />
+
+      {/* Customer Dashboard */}
+      <Route path="/tableau-de-bord" element={
+        <ProtectedRoute>
+          <CustomerDashboard />
+        </ProtectedRoute>
+      } />
 
       {/* Vendor Routes */}
       <Route path="/vendeur" element={
