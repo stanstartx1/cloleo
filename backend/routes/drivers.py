@@ -23,12 +23,17 @@ async def test_upload_license(user: dict = Depends(get_current_user)):
 
 @router.post("/upload-license-registration")
 async def upload_license_registration(
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
     authorization: Optional[str] = Header(None, alias="Authorization")
 ):
     """
     Upload driver license for registration (uses temp token during registration)
     """
+    print(f"DEBUG: Received upload request - file: {file}, authorization: {authorization}")
+    
+    if not file:
+        raise HTTPException(status_code=400, detail="Aucun fichier fourni")
+    
     # Validate token
     try:
         if not authorization:
