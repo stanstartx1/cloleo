@@ -24,13 +24,16 @@ async def test_upload_license(user: dict = Depends(get_current_user)):
 @router.post("/upload-license-registration")
 async def upload_license_registration(
     file: UploadFile = File(...),
-    authorization: str = Header(..., alias="Authorization")
+    authorization: Optional[str] = Header(None, alias="Authorization")
 ):
     """
     Upload driver license for registration (uses temp token during registration)
     """
     # Validate token
     try:
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Token manquant")
+        
         token = authorization.replace("Bearer ", "")
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         user_id = payload.get("id")
@@ -38,7 +41,8 @@ async def upload_license_registration(
         
         if not user_id or user_role != "driver":
             raise HTTPException(status_code=403, detail="Token invalide ou non autorisé")
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as e:
+        print(f"JWT Error: {e}")
         raise HTTPException(status_code=401, detail="Token invalide")
     
     if not file:
