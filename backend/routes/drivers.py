@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Header
 from pathlib import Path
 from typing import Optional
+import jwt
+import os
 
 from core.auth import get_current_user
 from core.database import db
 
 router = APIRouter()
+
+JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key")
 
 @router.post("/upload-license-test")
 async def test_upload_license(user: dict = Depends(get_current_user)):
@@ -20,13 +24,22 @@ async def test_upload_license(user: dict = Depends(get_current_user)):
 @router.post("/upload-license-registration")
 async def upload_license_registration(
     file: UploadFile = File(...),
-    user: dict = Depends(get_current_user)
+    authorization: str = Header(..., alias="Authorization")
 ):
     """
-    Upload driver license for registration
+    Upload driver license for registration (uses temp token during registration)
     """
-    if user.get("role") != "driver":
-        raise HTTPException(status_code=403, detail="Accès réservé aux livreurs")
+    # Validate token
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("id")
+        user_role = payload.get("role")
+        
+        if not user_id or user_role != "driver":
+            raise HTTPException(status_code=403, detail="Token invalide ou non autorisé")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Token invalide")
     
     if not file:
         raise HTTPException(status_code=400, detail="Aucun fichier fourni")
@@ -48,7 +61,7 @@ async def upload_license_registration(
     # Generate unique filename
     import uuid
     ext = Path(file.filename).suffix
-    filename = f"license_{user['id']}_{uuid.uuid4().hex[:8]}{ext}"
+    filename = f"license_{user_id}_{uuid.uuid4().hex[:8]}{ext}"
     file_path = upload_dir / filename
     
     # Save file
@@ -56,7 +69,7 @@ async def upload_license_registration(
     
     # Update user document with license path
     await db.users.update_one(
-        {"id": user["id"]},
+        {"id": user_id},
         {"$set": {"license_url": f"/uploads/licenses/{filename}"}}
     )
     
