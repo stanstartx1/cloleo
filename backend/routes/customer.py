@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
 
-from ..core.database import get_database
-from ..core.auth import get_current_user
+from core.database import get_database
+from core.auth import get_current_user
 
 router = APIRouter()
 

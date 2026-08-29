@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pathlib import Path
 from typing import Optional
 
-from ..core.auth import get_current_user
-from ..core.database import get_database
+from core.auth import get_current_user
+from core.database import get_database
 
 router = APIRouter()
 
