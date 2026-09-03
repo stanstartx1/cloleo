@@ -17,6 +17,7 @@ import RatingSystem from '../components/RatingSystem';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useUserRealtime } from '../hooks/useUserRealtime';
 import MapboxMap from '../components/MapboxMap';
+import { useChat } from '../components/FloatingChat';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
@@ -57,6 +58,9 @@ const OrderTrackingPage = () => {
     clearOrderUpdates
   } = useUserRealtime(token, user?.id);
   
+  // Use chat functionality
+  const { openOrderConversation, fetchOrderConversation } = useChat();
+  
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -71,6 +75,30 @@ const OrderTrackingPage = () => {
   
   const previousStatusRef = useRef(null);
   const pinNotifiedRef = useRef(false);
+
+  // Handle contact driver - open delivery conversation in floating chat
+  const handleContactDriver = useCallback(async () => {
+    if (!orderId) return;
+    
+    try {
+      console.log('📱 [TRACKING] Opening delivery conversation for order:', orderId);
+      const conversation = await openOrderConversation(orderId);
+      if (conversation) {
+        toast.success('Conversation ouverte', {
+          description: 'Vous pouvez maintenant communiquer avec le livreur',
+          duration: 3000
+        });
+      } else {
+        // Fallback to TripartiteChat if floating chat fails
+        console.log('📱 [TRACKING] Fallback to TripartiteChat');
+        setChatOpen(true);
+      }
+    } catch (error) {
+      console.error('❌ [TRACKING] Error opening delivery conversation:', error);
+      // Fallback to TripartiteChat
+      setChatOpen(true);
+    }
+  }, [orderId, openOrderConversation]);
 
   // Sync real-time data with local state
   useEffect(() => {
@@ -158,17 +186,35 @@ const OrderTrackingPage = () => {
             if (pinMatch) {
               const pin = pinMatch[1];
               console.log('🔐 [PIN NOTIFICATION] PIN received via chat notification:', pin);
-              // Open the chat to show the PIN message
-              setChatOpen(true);
-              toast.success('Code de livraison reçu !', {
-                description: `Votre code est : ${pin}. Communiquez-le au livreur.`,
-                duration: 10000,
-                action: {
-                  label: 'Copier',
-                  onClick: () => {
-                    navigator.clipboard.writeText(pin);
-                    toast.success('Code copié !');
-                  }
+              
+              // Open delivery conversation in floating chat instead of TripartiteChat
+              openOrderConversation(orderId).then(conversation => {
+                if (conversation) {
+                  toast.success('Code de livraison reçu !', {
+                    description: `Votre code est : ${pin}. Consultez le chat pour plus de détails.`,
+                    duration: 10000,
+                    action: {
+                      label: 'Copier',
+                      onClick: () => {
+                        navigator.clipboard.writeText(pin);
+                        toast.success('Code copié !');
+                      }
+                    }
+                  });
+                } else {
+                  // Fallback to TripartiteChat if floating chat fails
+                  setChatOpen(true);
+                  toast.success('Code de livraison reçu !', {
+                    description: `Votre code est : ${pin}. Communiquez-le au livreur.`,
+                    duration: 10000,
+                    action: {
+                      label: 'Copier',
+                      onClick: () => {
+                        navigator.clipboard.writeText(pin);
+                        toast.success('Code copié !');
+                      }
+                    }
+                  });
                 }
               });
             }
@@ -176,7 +222,7 @@ const OrderTrackingPage = () => {
         }
       });
     }
-  }, [notifications]);
+  }, [notifications, orderId, openOrderConversation]);
 
   // Handle global order updates for immediate status changes
   useEffect(() => {
@@ -560,7 +606,7 @@ const OrderTrackingPage = () => {
                   {/* Action Buttons */}
                   <div className="mt-4 flex gap-2">
                     <Button
-                      onClick={() => setChatOpen(true)}
+                      onClick={handleContactDriver}
                       size="sm"
                       variant="outline"
                       className="flex-1"

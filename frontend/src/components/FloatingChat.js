@@ -11,10 +11,11 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const ChatContext = createContext(null);
-import { API_URL } from '../config/api';
+import { API_URL, WS_URL } from '../config/api';
 import { createChatRealtime, createGlobalRealtime } from '../services/chatRealtime';
 import notificationService from '../services/notificationService';
 const API = API_URL;
+const WS = WS_URL;
 
 // Custom Audio Player Component (WhatsApp-style)
 const CustomAudioPlayer = ({ audioUrl, duration }) => {
@@ -103,6 +104,7 @@ export const ChatProvider = ({ children }) => {
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [authError, setAuthError] = useState(false); // Track auth errors to stop retries
+  const [orderConversationId, setOrderConversationId] = useState(null); // For delivery conversations
 
   const startConversation = useCallback(async (productId, dropshippedProductId = null, metadata = {}) => {
     if (!token) return null;
@@ -135,6 +137,29 @@ export const ChatProvider = ({ children }) => {
     setIsOpen(true);
     setActiveConversationId(conversationId);
   }, []);
+
+  // Open delivery conversation for specific order
+  const openOrderConversation = useCallback(async (orderId) => {
+    if (!token || !orderId) return null;
+    try {
+      console.log('📱 [FLOATING CHAT] Opening delivery conversation for order:', orderId);
+      const response = await axios.get(`${API}/chat/conversation/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const conversation = response.data;
+      if (conversation && conversation.id) {
+        setOrderConversationId(conversation.id);
+        setIsOpen(true);
+        setActiveConversationId(conversation.id);
+        console.log('✅ [FLOATING CHAT] Delivery conversation opened:', conversation.id);
+        return conversation;
+      }
+    } catch (error) {
+      console.error('❌ [FLOATING CHAT] Error opening delivery conversation:', error);
+    }
+    return null;
+  }, [token]);
 
   const openChat = useCallback(() => setIsOpen(true), []);
   const closeChat = useCallback(() => setIsOpen(false), []);
@@ -172,6 +197,35 @@ export const ChatProvider = ({ children }) => {
     }
   }, [token, activeConversationId, authError]);
 
+  // Fetch delivery conversation for specific order
+  const fetchOrderConversation = useCallback(async (orderId) => {
+    if (!token || !orderId) return null;
+    try {
+      console.log('📱 [FLOATING CHAT] Fetching delivery conversation for order:', orderId);
+      const response = await axios.get(`${API}/chat/conversation/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const conversation = response.data;
+      if (conversation && conversation.id) {
+        setOrderConversationId(conversation.id);
+        // Add to conversations list if not already there
+        setConversations(prev => {
+          const exists = prev.find(c => c.id === conversation.id);
+          if (!exists) {
+            return [conversation, ...prev];
+          }
+          return prev;
+        });
+        console.log('✅ [FLOATING CHAT] Delivery conversation fetched:', conversation.id);
+        return conversation;
+      }
+    } catch (error) {
+      console.error('❌ [FLOATING CHAT] Error fetching delivery conversation:', error);
+    }
+    return null;
+  }, [token]);
+
   useEffect(() => {
     if (!isOpen) return;
     fetchConversations();
@@ -205,6 +259,9 @@ export const ChatProvider = ({ children }) => {
                     setIsOpen(true);
                     if (event.conversation_id) {
                       setActiveConversationId(event.conversation_id);
+                    } else if (event.order_id) {
+                      // For delivery messages, use order_id to open conversation
+                      openOrderConversation(event.order_id);
                     }
                   }
                 }
@@ -215,12 +272,50 @@ export const ChatProvider = ({ children }) => {
                 body: event.message?.content || event.message?.text || 'Message',
                 icon: '/logo192.png',
                 badge: '/badge72.png',
-                tag: `chat-${event.conversation_id}`,
+                tag: `chat-${event.conversation_id || event.order_id}`,
                 requireInteraction: false,
                 onClick: () => {
                   setIsOpen(true);
                   if (event.conversation_id) {
                     setActiveConversationId(event.conversation_id);
+                  } else if (event.order_id) {
+                    openOrderConversation(event.order_id);
+                  }
+                  window.focus();
+                }
+              });
+            }
+          }
+          
+          // Handle delivery chat messages
+          if (event.type === 'chat_notification' && event.message) {
+            fetchConversations();
+            
+            if (event.message?.sender_id !== user.id) {
+              const senderName = event.message?.sender_name || 'Livreur';
+              
+              toast.info(`Nouveau message de ${senderName}`, {
+                action: {
+                  label: 'Voir',
+                  onClick: () => {
+                    setIsOpen(true);
+                    if (event.order_id) {
+                      openOrderConversation(event.order_id);
+                    }
+                  }
+                }
+              });
+              
+              notificationService.showNotification(`Nouveau message de ${senderName}`, {
+                body: event.message?.content || 'Message',
+                icon: '/logo192.png',
+                badge: '/badge72.png',
+                tag: `delivery-chat-${event.order_id}`,
+                requireInteraction: false,
+                onClick: () => {
+                  setIsOpen(true);
+                  if (event.order_id) {
+                    openOrderConversation(event.order_id);
                   }
                   window.focus();
                 }
@@ -252,7 +347,7 @@ export const ChatProvider = ({ children }) => {
       if (wsCleanup) wsCleanup();
       if (pollingInterval) clearInterval(pollingInterval);
     };
-  }, [token, user?.id, fetchConversations]);
+  }, [token, user?.id, fetchConversations, openOrderConversation]);
 
   const value = useMemo(
     () => ({
@@ -262,13 +357,15 @@ export const ChatProvider = ({ children }) => {
       unreadCount,
       startConversation,
       openConversation,
+      openOrderConversation,
       openChat,
       closeChat,
       refreshConversations: fetchConversations,
+      fetchOrderConversation,
       setConversations,
       setActiveConversationId,
     }),
-    [isOpen, conversations, activeConversationId, unreadCount, startConversation, openConversation, openChat, closeChat, fetchConversations]
+    [isOpen, conversations, activeConversationId, unreadCount, startConversation, openConversation, openOrderConversation, openChat, closeChat, fetchConversations, fetchOrderConversation]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
@@ -284,9 +381,11 @@ export const useChat = () => {
       unreadCount: 0,
       startConversation: async () => null,
       openConversation: () => {},
+      openOrderConversation: async () => null,
       openChat: () => {},
       closeChat: () => {},
       refreshConversations: async () => {},
+      fetchOrderConversation: async () => null,
       setConversations: () => {},
       setActiveConversationId: () => {},
     };
@@ -339,9 +438,22 @@ const FloatingChat = () => {
     if (!token || !activeConversationId) return;
     setLoadingMessages(true);
     try {
-      const response = await axios.get(`${API}/conversations/${activeConversationId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Check if this is a delivery conversation (order_chat format)
+      const isDeliveryConversation = activeConversationId.startsWith('order_chat_') || orderConversationId === activeConversationId;
+      
+      let response;
+      if (isDeliveryConversation) {
+        // For delivery conversations, use the delivery chat endpoint
+        const orderId = activeConversationId.replace('order_chat_', '');
+        response = await axios.get(`${API}/chat/conversation/${orderId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // For product conversations, use the regular endpoint
+        response = await axios.get(`${API}/conversations/${activeConversationId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
       
       const newMessages = response.data?.messages || [];
       
@@ -369,12 +481,85 @@ const FloatingChat = () => {
     } finally {
       setLoadingMessages(false);
     }
-  }, [token, activeConversationId]);
+  }, [token, activeConversationId, orderConversationId]);
 
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
     loadMessages(true); // Force reload on open
   }, [isOpen, activeConversationId]);
+
+  // WebSocket connection for delivery conversations
+  useEffect(() => {
+    if (!token || !user?.id || !activeConversationId) return;
+    
+    // Check if this is a delivery conversation
+    const isDeliveryConversation = activeConversationId.startsWith('order_chat_') || orderConversationId === activeConversationId;
+    
+    if (!isDeliveryConversation) return; // Only connect WebSocket for delivery conversations
+    
+    const orderId = activeConversationId.replace('order_chat_', '');
+    const wsUrl = `${WS}/api/ws/order-chat/${orderId}`;
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('📱 [DELIVERY CHAT] WebSocket connected for order:', orderId);
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('📱 [DELIVERY CHAT] WebSocket message:', data);
+        
+        if (data.type === 'new_message' && data.message) {
+          setMessages(prev => {
+            // If message already exists, don't add duplicate
+            if (prev.some(message => message.id === data.message.id)) {
+              return prev;
+            }
+            // If this is our own message, replace optimistic message
+            if (data.message.sender_id === user?.id) {
+              const optimisticIndex = prev.findIndex(m => m.is_optimistic && m.sender_id === user?.id);
+              if (optimisticIndex >= 0) {
+                const newMessages = [...prev];
+                newMessages[optimisticIndex] = data.message;
+                return newMessages;
+              }
+            }
+            return [...prev, data.message];
+          });
+          
+          // Scroll to bottom when new message arrives
+          setTimeout(() => {
+            listEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+        
+        if (data.type === 'typing') {
+          setTypingUsers(prev => {
+            if (data.is_typing) {
+              return [...prev.filter(u => u.id !== data.user_id), { id: data.user_id, name: data.user_name }];
+            } else {
+              return prev.filter(u => u.id !== data.user_id);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('📱 [DELIVERY CHAT] WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('📱 [DELIVERY CHAT] WebSocket disconnected');
+    };
+    
+    return () => {
+      ws.close();
+    };
+  }, [token, user?.id, activeConversationId, orderConversationId, WS]);
 
   // HTTP polling for messages (backup if WebSocket fails)
   useEffect(() => {
@@ -619,11 +804,30 @@ const FloatingChat = () => {
     setMessages(prev => [...prev, optimisticMessage]);
     
     try {
-      await axios.post(
-        `${API}/conversations/${activeConversationId}/messages`,
-        { content },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // Check if this is a delivery conversation
+      const isDeliveryConversation = activeConversationId.startsWith('order_chat_') || orderConversationId === activeConversationId;
+      
+      if (isDeliveryConversation) {
+        // For delivery conversations, use the delivery chat endpoint
+        const orderId = activeConversationId.replace('order_chat_', '');
+        await axios.post(
+          `${API}/chat/send`,
+          { 
+            order_id: orderId,
+            content: content,
+            message_type: 'text'
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        // For product conversations, use the regular endpoint
+        await axios.post(
+          `${API}/conversations/${activeConversationId}/messages`,
+          { content },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      
       // Message will be updated via WebSocket
       refreshConversations();
     } catch (error) {
