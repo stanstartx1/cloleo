@@ -154,9 +154,6 @@ const DriverDashboard = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('📱 [DRIVER] Driver set to online/available');
-        toast.success('Vous êtes maintenant en ligne', {
-          description: 'Vous pouvez recevoir des commandes'
-        });
       } catch (error) {
         console.error('Error setting driver online:', error);
       }
@@ -219,15 +216,11 @@ const DriverDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('📱 [DRIVER] Order accepted:', orderId);
-      toast.success('Commande acceptée avec succès');
       await fetchOrders(); // Refresh orders
       const available = await fetchAvailableOrders();
       setAvailableOrders(available);
     } catch (error) {
       console.error('Error accepting order:', error);
-      toast.error('Erreur lors de l\'acceptation de la commande', {
-        description: error.response?.data?.detail || 'Veuillez réessayer'
-      });
     } finally {
       setUpdatingStatus(false);
     }
@@ -265,10 +258,6 @@ const DriverDashboard = () => {
   useEffect(() => {
     if (newOrderAlert) {
       console.log('📱 [DRIVER] New order alert received:', newOrderAlert);
-      toast.info('Nouvelle commande assignée !', {
-        description: `Commande #${newOrderAlert.order_number?.slice(0, 8).toUpperCase()}`,
-        duration: 5000
-      });
       audioRef.current?.play().catch(() => {});
       // WebSocket handles the order update, no need to fetch
       // fetchOrders();
@@ -329,7 +318,7 @@ const DriverDashboard = () => {
           }, { enableHighAccuracy: false, timeout: 15000 });
         } else if (error.code === 1) {
           // Permission denied
-          toast.error('Permission GPS refusée. Activez la localisation pour les livraisons.');
+          console.log('GPS permission denied');
         } else if (error.code === 2) {
           // Position unavailable
           console.log('GPS position unavailable, will retry automatically');
@@ -370,21 +359,15 @@ const DriverDashboard = () => {
       
       if (newStatus === 'available') {
         setTrackingEnabled(true);
-        toast.success('Vous êtes disponible !', {
-          description: 'Les commandes proches de votre position vous seront assignées'
-        });
-        
         // REMOVED: Automatic GPS request when becoming available
         // GPS will be requested when driver explicitly accepts an order
       } else if (newStatus === 'busy') {
         setTrackingEnabled(true);
-        toast.info('Vous êtes occupé');
       } else if (newStatus === 'offline') {
         setTrackingEnabled(false);
-        toast.info('Vous êtes hors ligne');
       }
     } catch (error) {
-      toast.error('Erreur');
+      console.error('Status update error:', error);
     } finally {
       setUpdatingStatus(false);
     }
@@ -440,12 +423,6 @@ const DriverDashboard = () => {
           
           // Request GPS with explicit permission request - synchronous with device
           if (navigator.geolocation) {
-            // Immediately trigger GPS permission request
-            toast.loading('📍 Autorisation GPS requise', {
-              description: 'Veuillez autoriser la localisation dans la fenêtre du navigateur',
-              duration: 10000
-            });
-            
             // Use watchPosition for continuous updates
             const watchId = navigator.geolocation.watchPosition(
               async (position) => {
@@ -462,34 +439,12 @@ const DriverDashboard = () => {
                     headers: { Authorization: `Bearer ${token}` }
                   });
                   console.log('📍 GPS position synced:', location);
-                  
-                  // Only show success once
-                  if (!window.gpsSuccessShown) {
-                    window.gpsSuccessShown = true;
-                    toast.success('✅ GPS activé et synchronisé !', {
-                      description: 'Votre position est partagée en temps réel avec le client'
-                    });
-                  }
                 } catch (error) {
                   console.error('GPS sync error:', error);
                 }
               },
               (error) => {
                 console.error('GPS error:', error);
-                let errorMessage = 'Activez votre GPS pour suivre la commande';
-                if (error.code === 1) {
-                  errorMessage = '❌ Permission GPS refusée. Allez dans les paramètres du navigateur > Confidentialité > Localisation et autorisez le site.';
-                } else if (error.code === 2) {
-                  errorMessage = '❌ Position GPS non disponible. Vérifiez que votre GPS est activé dans les paramètres de votre appareil.';
-                } else if (error.code === 3) {
-                  errorMessage = '❌ Délai GPS expiré. Vérifiez votre connexion GPS et réessayez.';
-                }
-                
-                toast.error('GPS non disponible', {
-                  description: errorMessage,
-                  duration: 15000
-                });
-                
                 // Stop watching if permission denied
                 if (error.code === 1) {
                   navigator.geolocation.clearWatch(watchId);
@@ -504,11 +459,6 @@ const DriverDashboard = () => {
             
             // Store watch ID for cleanup
             window.currentGpsWatchId = watchId;
-          } else {
-            toast.error('❌ GPS non disponible', {
-              description: 'Votre navigateur ne supporte pas la géolocalisation',
-              duration: 8000
-            });
           }
           break;
         case 'pickup': 
@@ -559,7 +509,7 @@ const DriverDashboard = () => {
           // Require PIN verification before delivery
           const pin = prompt("Entrez le code de livraison du client (code à 6 chiffres) :");
           if (!pin) {
-            toast.error('Code PIN requis pour confirmer la livraison');
+            console.log('PIN verification cancelled');
             setUpdatingOrderIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(order.id);
@@ -581,7 +531,7 @@ const DriverDashboard = () => {
             );
             
             if (!verifyResponse.data.verified) {
-              toast.error('Code PIN incorrect');
+              console.log('PIN verification failed');
               setUpdatingOrderIds(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(order.id);
@@ -594,7 +544,7 @@ const DriverDashboard = () => {
               return;
             }
           } catch (error) {
-            toast.error(error.response?.data?.detail || 'Erreur lors de la vérification du code PIN');
+            console.error('PIN verification error:', error);
             setUpdatingOrderIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(order.id);
@@ -613,7 +563,7 @@ const DriverDashboard = () => {
           endpoint = `/orders/${order.id}/driver-cancel`;
           const reason = prompt("Veuillez indiquer la raison de l'annulation (ex: accident, problème véhicule) :");
           if (!reason) {
-            toast.error('Annulation annulée');
+            console.log('Cancellation cancelled');
             setUpdatingOrderIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(order.id);
@@ -634,22 +584,11 @@ const DriverDashboard = () => {
       console.log('📱 [DRIVER ACTION] API response:', response.data);
       
       if (action === 'driver-cancel') {
-        toast.success('Commande annulée et réassignée');
         setSelectedOrder(null);
         // Remove from orders list
         setOrders(prev => prev.filter(o => o.id !== order.id));
         setActiveOrders(prev => prev.filter(o => o.id !== order.id));
-      } else if (action === 'driver-accept') {
-        toast.success('Commande acceptée !', {
-          description: 'Votre position GPS est partagée avec le client'
-        });
-      } else {
-        toast.success(
-          action === 'driver-accept' ? 'Commande acceptée !' :
-          action === 'pickup' ? 'Colis récupéré !' :
-          action === 'in-transit' ? `Livraison démarrée ${response.data?.eta_minutes ? `(ETA: ${response.data.eta_minutes} min)` : ''} !` :
-          'Livraison terminée !'
-        );
+      }
         
         if (action === 'deliver') {
           setSelectedOrder(null);
@@ -664,7 +603,6 @@ const DriverDashboard = () => {
       
     } catch (error) {
       console.error('📱 [DRIVER ACTION] Error:', error);
-      toast.error(error.response?.data?.detail || 'Erreur');
       
       // Revert optimistic update on error
       if (statusMap[action]) {
@@ -687,7 +625,7 @@ const DriverDashboard = () => {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('Géolocalisation non supportée');
+      console.log('Geolocation not supported');
       return;
     }
     
@@ -697,9 +635,8 @@ const DriverDashboard = () => {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude
         });
-        toast.success('Position mise à jour');
       },
-      () => toast.error('Impossible de vous localiser'),
+      () => console.log('Failed to get location'),
       { enableHighAccuracy: true }
     );
   };
