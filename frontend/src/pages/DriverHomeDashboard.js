@@ -138,7 +138,10 @@ const DriverHomeDashboard = () => {
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <h1 className="text-xl font-bold text-gray-900">Tableau de bord Livreur</h1>
+              <div className="flex items-center gap-2">
+                <Truck className="w-6 h-6 text-blue-600" />
+                <span className="text-xl font-bold text-gray-900">Espace Livreur</span>
+              </div>
             </div>
             
             <div className="flex items-center gap-4">
@@ -291,50 +294,56 @@ const DriverHomeDashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/livreur')}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Truck className="w-6 h-6 text-blue-600" />
+          <Link to="/livreur">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Mes livraisons</h3>
+                    <p className="text-sm text-gray-500">Gérer les commandes actives</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
                 </div>
-                <div>
-                  <h3 className="font-semibold">Mes livraisons</h3>
-                  <p className="text-sm text-gray-500">Gérer les commandes actives</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/livreur/orders')}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <PackageCheck className="w-6 h-6 text-green-600" />
+          <Link to="/livreur/orders">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <PackageCheck className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Commandes disponibles</h3>
+                    <p className="text-sm text-gray-500">Voir les nouvelles commandes</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
                 </div>
-                <div>
-                  <h3 className="font-semibold">Commandes disponibles</h3>
-                  <p className="text-sm text-gray-500">Voir les nouvelles commandes</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/livreur/messages')}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <MessageCircle className="w-6 h-6 text-purple-600" />
+          <Link to="/livreur/messages">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <MessageCircle className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Messages</h3>
+                    <p className="text-sm text-gray-500">Communications clients</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
                 </div>
-                <div>
-                  <h3 className="font-semibold">Messages</h3>
-                  <p className="text-sm text-gray-500">Communications clients</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Recent Orders */}

@@ -94,19 +94,13 @@ const MapboxMap = ({
       title: 'Livreur',
     });
 
-    if (followDriver && !customerLocation?.latitude) {
-      const hasMoved = previousDriverLocation.current &&
-        (Math.abs(driverLocation.latitude - previousDriverLocation.current.latitude) > 0.0001 ||
-         Math.abs(driverLocation.longitude - previousDriverLocation.current.longitude) > 0.0001);
-
-      if (hasMoved) {
-        mapInstance.current.easeTo({
-          center: toLngLat(driverLocation),
-          zoom: 15,
-          duration: 1000,
-          easing: (t) => t * (2 - t),
-        });
-      }
+    // Always center map on driver location for better visibility
+    if (driverLocation?.latitude && driverLocation?.longitude) {
+      mapInstance.current.easeTo({
+        center: toLngLat(driverLocation),
+        zoom: 14,
+        duration: 500,
+      });
     }
 
     previousDriverLocation.current = driverLocation;

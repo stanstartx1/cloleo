@@ -67,10 +67,10 @@ export const createMarkerElement = (color = '#2563eb', label = '', size = 'norma
 
 // Vehicle icons for different delivery types
 export const VEHICLE_ICONS = {
-  moto: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="m5.25 4-2.75 3.5-2 4"/><path d="m18.75 4 2.75 3.5 2 4"/><path d="M3 12h18"/><path d="M11 5h2"/></svg>`,
-  voiture: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-2.7-.6-4.5-1.1c-.8-.2-1.5-1-1.5-1.9V3c0-.6-.4-1-1-1H6c-.6 0-1 .4-1 1v2c0 .9-.7 1.7-1.5 1.9C1.3 7.4 1.6 7.7 1.6 7.7l1.4 2.3c.6 1 .7 2.2.2 3.2-.5 1-.5 2.2 0 3.2l.7 1.4c.3.6.9 1 1.6 1h2.5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`,
-  velo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="M12 19V9"/><path d="M5 12h2l1-2 4 4 4-4h2"/></svg>`,
-  default: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>`
+  moto: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%;"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="m5.25 4-2.75 3.5-2 4"/><path d="m18.75 4 2.75 3.5 2 4"/><path d="M3 12h18"/><path d="M11 5h2"/></svg>`,
+  voiture: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%;"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-2.7-.6-4.5-1.1c-.8-.2-1.5-1-1.5-1.9V3c0-.6-.4-1-1-1H6c-.6 0-1 .4-1 1v2c0 .9-.7 1.7-1.5 1.9C1.3 7.4 1.6 7.7 1.6 7.7l1.4 2.3c.6 1 .7 2.2.2 3.2-.5 1-.5 2.2 0 3.2l.7 1.4c.3.6.9 1 1.6 1h2.5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`,
+  velo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%;"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="M12 19V9"/><path d="M5 12h2l1-2 4 4 4-4h2"/></svg>`,
+  default: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%;"><path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>`
 };
 
 // Create custom marker for driver based on vehicle type
@@ -102,10 +102,11 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
   el.style.alignItems = 'center';
   el.style.justifyContent = 'center';
   el.style.position = 'relative';
+  el.style.pointerEvents = 'auto'; // Ensure pointer events work
   
   // Add SVG icon
   el.innerHTML = `
-    <div style="color: white; width: 60%; height: 60%;">
+    <div style="color: white; width: 60%; height: 60%; display: flex; align-items: center; justify-content: center;">
       ${icon}
     </div>
   `;
@@ -196,6 +197,7 @@ export const upsertMarker = (mapboxgl, map, markerRef, location, options = {}) =
   markerRef.current = new mapboxgl.Marker({
     element: element,
     draggable: Boolean(options.draggable),
+    anchor: 'center' // Ensure marker is centered on the location
   })
     .setLngLat(lngLat)
     .addTo(map);
