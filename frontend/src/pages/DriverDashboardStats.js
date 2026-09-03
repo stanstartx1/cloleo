@@ -12,7 +12,6 @@ import { useUserRealtime } from '../hooks/useUserRealtime';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { toast } from 'sonner';
 import { API_URL, WS_URL } from '../config/api';
 
 const API = API_URL;
@@ -92,9 +91,8 @@ const DriverDashboardStats = () => {
     setRefreshing(true);
     try {
       await fetchDashboard();
-      toast.success('Tableau de bord actualisé');
     } catch (error) {
-      toast.error('Erreur lors de l\'actualisation');
+      console.error('Dashboard refresh error:', error);
     } finally {
       setRefreshing(false);
     }

@@ -10,7 +10,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
-import { toast } from 'sonner';
 import MapboxMap from '../components/MapboxMap';
 import TripartiteChat from '../components/TripartiteChat';
 import DeliveryProof from '../components/DeliveryProof';
