@@ -78,13 +78,15 @@ const MegaMenu = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get(`${API}/categories/stats`);
+        const response = await axios.get(`${API}/products/categories/stats`);
         setCategoryStats(response.data || {});
       } catch (error) {
         // Silently ignore 404 - endpoint may not exist
         if (error.response?.status !== 404) {
           console.error('Error loading stats:', error);
         }
+        // For 404, just set empty stats and continue
+        setCategoryStats({});
       } finally {
         setLoadingStats(false);
       }

@@ -54,6 +54,11 @@ export const useUserRealtime = (token, userId) => {
           console.log('User global WebSocket message:', data);
 
           switch (data.type) {
+            case 'connected':
+              // Connection confirmation message
+              console.log('📱 [WS USER] Connection confirmed');
+              break;
+
             case 'order_created':
               setOrderUpdates(prev => [...prev, {
                 type: 'order_created',
