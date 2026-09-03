@@ -85,9 +85,9 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
   el.title = `Livreur (${vehicleType})`;
   
   const sizeMap = {
-    normal: { width: '48px', height: '48px' },
-    large: { width: '56px', height: '56px' },
-    small: { width: '40px', height: '40px' }
+    normal: { width: '56px', height: '56px' },
+    large: { width: '64px', height: '64px' },
+    small: { width: '48px', height: '48px' }
   };
   
   const sizeStyles = sizeMap[size] || sizeMap.normal;
@@ -96,17 +96,18 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
   el.style.borderRadius = '50%';
   el.style.background = color;
   el.style.border = '4px solid #fff';
-  el.style.boxShadow = '0 10px 24px rgba(59, 130, 246, 0.4)';
+  el.style.boxShadow = '0 12px 28px rgba(59, 130, 246, 0.5)';
   el.style.cursor = 'pointer';
   el.style.display = 'flex';
   el.style.alignItems = 'center';
   el.style.justifyContent = 'center';
   el.style.position = 'relative';
-  el.style.pointerEvents = 'auto'; // Ensure pointer events work
+  el.style.pointerEvents = 'auto';
+  el.style.zIndex = '9999'; // Ensure marker is on top
   
   // Add SVG icon
   el.innerHTML = `
-    <div style="color: white; width: 60%; height: 60%; display: flex; align-items: center; justify-content: center;">
+    <div style="color: white; width: 65%; height: 65%; display: flex; align-items: center; justify-content: center;">
       ${icon}
     </div>
   `;
@@ -117,9 +118,9 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
     const style = document.createElement('style');
     style.textContent = `
       @keyframes pulse {
-        0% { transform: scale(1); box-shadow: 0 10px 24px rgba(59, 130, 246, 0.4); }
-        50% { transform: scale(1.1); box-shadow: 0 15px 30px rgba(59, 130, 246, 0.6); }
-        100% { transform: scale(1); box-shadow: 0 10px 24px rgba(59, 130, 246, 0.4); }
+        0% { transform: scale(1); box-shadow: 0 12px 28px rgba(59, 130, 246, 0.5); }
+        50% { transform: scale(1.15); box-shadow: 0 18px 36px rgba(59, 130, 246, 0.7); }
+        100% { transform: scale(1); box-shadow: 0 12px 28px rgba(59, 130, 246, 0.5); }
       }
     `;
     document.head.appendChild(style);
@@ -130,7 +131,7 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
 
 // Create custom marker for customer
 export const createCustomerMarker = (size = 'normal', pulse = false) => {
-  const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
   const color = '#ef4444'; // Red for customer
   
   const el = document.createElement('div');
@@ -138,9 +139,9 @@ export const createCustomerMarker = (size = 'normal', pulse = false) => {
   el.title = 'Client';
   
   const sizeMap = {
-    normal: { width: '40px', height: '40px' },
-    large: { width: '48px', height: '48px' },
-    small: { width: '32px', height: '32px' }
+    normal: { width: '48px', height: '48px' },
+    large: { width: '56px', height: '56px' },
+    small: { width: '40px', height: '40px' }
   };
   
   const sizeStyles = sizeMap[size] || sizeMap.normal;
@@ -155,10 +156,12 @@ export const createCustomerMarker = (size = 'normal', pulse = false) => {
   el.style.alignItems = 'center';
   el.style.justifyContent = 'center';
   el.style.position = 'relative';
+  el.style.pointerEvents = 'auto';
+  el.style.zIndex = '9998';
   
   // Add SVG icon
   el.innerHTML = `
-    <div style="color: white; width: 60%; height: 60%;">
+    <div style="color: white; width: 65%; height: 65%; display: flex; align-items: center; justify-content: center;">
       ${icon}
     </div>
   `;
