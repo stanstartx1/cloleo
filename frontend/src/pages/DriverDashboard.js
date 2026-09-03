@@ -587,13 +587,10 @@ const DriverDashboard = () => {
         // Remove from orders list
         setOrders(prev => prev.filter(o => o.id !== order.id));
         setActiveOrders(prev => prev.filter(o => o.id !== order.id));
-      }
-        
-        if (action === 'deliver') {
-          setSelectedOrder(null);
-          // Remove from active orders when delivered
-          setActiveOrders(prev => prev.filter(o => o.id !== order.id));
-        }
+      } else if (action === 'deliver') {
+        setSelectedOrder(null);
+        // Remove from active orders when delivered
+        setActiveOrders(prev => prev.filter(o => o.id !== order.id));
       }
       
       // No need to fetchOrders() - WebSocket will handle updates
