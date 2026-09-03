@@ -438,8 +438,13 @@ const DriverDashboard = () => {
           endpoint = `/orders/${order.id}/driver-accept`; 
           setTrackingEnabled(true);
           
-          // Request GPS immediately when accepting order
+          // Request GPS immediately when accepting order with enhanced feedback
           if (navigator.geolocation) {
+            toast.loading('Activation du GPS en cours...', {
+              description: 'Veuillez autoriser la localisation pour suivre la commande',
+              duration: 5000
+            });
+            
             navigator.geolocation.getCurrentPosition(
               (position) => {
                 const location = {
@@ -447,25 +452,42 @@ const DriverDashboard = () => {
                   longitude: position.coords.longitude
                 };
                 setCurrentLocation(location);
+                
+                // Update backend with location
                 axios.post(`${API}/driver/location/update`, location, {
                   headers: { Authorization: `Bearer ${token}` }
                 }).then(() => {
                   console.log('Location updated on order accept');
-                  toast.success('Position GPS mise à jour', {
-                    description: 'Votre position est partagée avec le client'
+                  toast.success('GPS activé avec succès !', {
+                    description: 'Votre position est partagée en temps réel avec le client'
                   });
                 }).catch(error => {
                   console.error('Error updating location on order accept:', error);
+                  toast.error('Erreur de synchronisation GPS', {
+                    description: 'Votre position sera mise à jour automatiquement'
+                  });
                 });
               },
               (error) => {
                 console.error('GPS error on order accept:', error);
-                toast.error('GPS requis', {
-                  description: 'Activez votre GPS pour suivre la commande'
+                let errorMessage = 'Activez votre GPS pour suivre la commande';
+                if (error.code === 1) {
+                  errorMessage = 'Permission GPS refusée. Activez-la dans les paramètres du navigateur.';
+                } else if (error.code === 2) {
+                  errorMessage = 'Position GPS non disponible. Vérifiez vos paramètres.';
+                } else if (error.code === 3) {
+                  errorMessage = 'Délai GPS expiré. Réessayez.';
+                }
+                toast.error('GPS requis pour la livraison', {
+                  description: errorMessage
                 });
               },
-              { enableHighAccuracy: true, timeout: 10000 }
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
+          } else {
+            toast.error('GPS non disponible', {
+              description: 'Votre navigateur ne supporte pas la géolocalisation'
+            });
           }
           break;
         case 'pickup': 
