@@ -39,7 +39,11 @@ async def upload_license_registration(
         if not authorization:
             raise HTTPException(status_code=401, detail="Token manquant")
         
-        token = authorization.replace("Bearer ", "")
+        # Handle both "Bearer token" and direct token formats
+        token = authorization
+        if authorization.startswith("Bearer "):
+            token = authorization.replace("Bearer ", "")
+        
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         user_id = payload.get("id")
         user_role = payload.get("role")

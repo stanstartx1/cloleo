@@ -438,55 +438,77 @@ const DriverDashboard = () => {
           endpoint = `/orders/${order.id}/driver-accept`; 
           setTrackingEnabled(true);
           
-          // Request GPS immediately when accepting order with enhanced feedback
+          // Request GPS with explicit permission request - synchronous with device
           if (navigator.geolocation) {
-            toast.loading('Activation du GPS en cours...', {
-              description: 'Veuillez autoriser la localisation pour suivre la commande',
-              duration: 5000
+            // Immediately trigger GPS permission request
+            toast.loading('📍 Autorisation GPS requise', {
+              description: 'Veuillez autoriser la localisation dans la fenêtre du navigateur',
+              duration: 10000
             });
             
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
+            // Use watchPosition for continuous updates
+            const watchId = navigator.geolocation.watchPosition(
+              async (position) => {
                 const location = {
                   latitude: position.coords.latitude,
-                  longitude: position.coords.longitude
+                  longitude: position.coords.longitude,
+                  accuracy: position.coords.accuracy
                 };
                 setCurrentLocation(location);
                 
                 // Update backend with location
-                axios.post(`${API}/driver/location/update`, location, {
-                  headers: { Authorization: `Bearer ${token}` }
-                }).then(() => {
-                  console.log('Location updated on order accept');
-                  toast.success('GPS activé avec succès !', {
-                    description: 'Votre position est partagée en temps réel avec le client'
+                try {
+                  await axios.post(`${API}/driver/location/update`, location, {
+                    headers: { Authorization: `Bearer ${token}` }
                   });
-                }).catch(error => {
-                  console.error('Error updating location on order accept:', error);
-                  toast.error('Erreur de synchronisation GPS', {
-                    description: 'Votre position sera mise à jour automatiquement'
-                  });
-                });
+                  console.log('📍 GPS position synced:', location);
+                  
+                  // Only show success once
+                  if (!window.gpsSuccessShown) {
+                    window.gpsSuccessShown = true;
+                    toast.success('✅ GPS activé et synchronisé !', {
+                      description: 'Votre position est partagée en temps réel avec le client'
+                    });
+                  }
+                } catch (error) {
+                  console.error('GPS sync error:', error);
+                }
               },
               (error) => {
-                console.error('GPS error on order accept:', error);
+                console.error('GPS error:', error);
                 let errorMessage = 'Activez votre GPS pour suivre la commande';
                 if (error.code === 1) {
-                  errorMessage = 'Permission GPS refusée. Activez-la dans les paramètres du navigateur.';
+                  errorMessage = '❌ Permission GPS refusée. Allez dans les paramètres du navigateur > Confidentialité > Localisation et autorisez le site.';
                 } else if (error.code === 2) {
-                  errorMessage = 'Position GPS non disponible. Vérifiez vos paramètres.';
+                  errorMessage = '❌ Position GPS non disponible. Vérifiez que votre GPS est activé dans les paramètres de votre appareil.';
                 } else if (error.code === 3) {
-                  errorMessage = 'Délai GPS expiré. Réessayez.';
+                  errorMessage = '❌ Délai GPS expiré. Vérifiez votre connexion GPS et réessayez.';
                 }
-                toast.error('GPS requis pour la livraison', {
-                  description: errorMessage
+                
+                toast.error('GPS non disponible', {
+                  description: errorMessage,
+                  duration: 15000
                 });
+                
+                // Stop watching if permission denied
+                if (error.code === 1) {
+                  navigator.geolocation.clearWatch(watchId);
+                }
               },
-              { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+              { 
+                enableHighAccuracy: true, 
+                timeout: 10000, 
+                maximumAge: 0,
+                distanceFilter: 10 // Update every 10 meters
+              }
             );
+            
+            // Store watch ID for cleanup
+            window.currentGpsWatchId = watchId;
           } else {
-            toast.error('GPS non disponible', {
-              description: 'Votre navigateur ne supporte pas la géolocalisation'
+            toast.error('❌ GPS non disponible', {
+              description: 'Votre navigateur ne supporte pas la géolocalisation',
+              duration: 8000
             });
           }
           break;

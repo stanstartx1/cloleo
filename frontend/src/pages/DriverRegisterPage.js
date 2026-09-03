@@ -140,6 +140,7 @@ const DriverRegisterPage = () => {
       const formData = new FormData();
       formData.append('file', licenseFile);
       
+      console.log('Uploading license with tempToken:', tempToken);
       const response = await axios.post(`${API}/driver/upload-license-registration`, formData, {
         headers: {
           Authorization: `Bearer ${tempToken}`
@@ -148,11 +149,11 @@ const DriverRegisterPage = () => {
 
       console.log('License upload successful:', response.data);
       setRegistrationComplete(true);
-      toast.success('Permis uploadé avec succès ! Inscription terminée.');
+      toast.success('✅ Permis uploadé avec succès ! Inscription terminée.');
       
       // Redirect to login page after 2 seconds
       setTimeout(() => {
-        toast.info('Veuillez vous connecter avec vos identifiants');
+        toast.info('🔑 Veuillez vous connecter avec vos identifiants');
         navigate('/connexion', { replace: true });
       }, 2000);
       
@@ -160,14 +161,13 @@ const DriverRegisterPage = () => {
       console.error('Upload error:', error);
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'upload du permis';
       
-      // Allow user to proceed anyway after showing error
-      toast.error(`${errorMessage}. Vous pourrez uploader votre permis plus tard.`);
+      // Do NOT allow user to proceed - require successful upload
+      toast.error(`❌ ${errorMessage}`, {
+        description: 'L\'upload du permis est obligatoire pour terminer l\'inscription',
+        duration: 8000
+      });
       setUploadingLicense(false);
-      
-      setTimeout(() => {
-        toast.info('Inscription terminée. Vous pourrez uploader votre permis plus tard.');
-        navigate('/connexion', { replace: true });
-      }, 3000);
+      return; // Stop registration process
     }
   };
 
