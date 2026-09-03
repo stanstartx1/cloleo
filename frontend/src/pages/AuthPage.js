@@ -183,7 +183,7 @@ const AuthPage = () => {
       console.log('DEBUG: Login successful, role:', result.user.role);
       if (result.user.role === 'admin') navigate('/admin');
       else if (result.user.role === 'vendor') navigate('/vendeur');
-      else if (result.user.role === 'driver') navigate('/livreur/stats');
+      else if (result.user.role === 'driver') navigate('/livreur/home');
       else if (result.user.role === 'dropshipper') navigate('/revendeur');
       else if (result.user.role === 'enterprise') {
         console.log('DEBUG: Redirecting enterprise to /enterprise');
@@ -213,7 +213,7 @@ const AuthPage = () => {
     if (result.success) {
       toast.success('Compte créé avec succès ! 🎉');
       if (result.user.role === 'vendor') navigate('/vendeur');
-      else if (result.user.role === 'driver') navigate('/livreur');
+      else if (result.user.role === 'driver') navigate('/livreur/home');
       else if (result.user.role === 'dropshipper') navigate('/revendeur');
       else if (result.user.role === 'enterprise') navigate('/enterprise');
       else if (result.user.role === 'customer') navigate('/tableau-de-bord');
