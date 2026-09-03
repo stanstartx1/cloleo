@@ -6717,10 +6717,164 @@ async def admin_toggle_driver(driver_id: str, user: dict = Depends(require_admin
 @api.delete("/admin/drivers/{driver_id}")
 
 async def admin_delete_driver(driver_id: str, user: dict = Depends(require_admin)):
+    """
+    Supprimer un livreur et toutes ses dépendances :
+    - Commandes assignées (mettre driver_id à null et status à pending)
+    - Messages de livraison
+    - Conversations de livraison
+    - Localisations du livreur
+    - Notifications liées
+    - Évaluations du livreur
+    - Preuves de livraison
+    - Fichiers uploadés
+    """
+    try:
+        # Vérifier que le livreur existe
+        driver = await db.users.find_one({"id": driver_id, "role": "driver"}, {"_id": 0})
+        if not driver:
+            raise HTTPException(status_code=404, detail="Livreur non trouvé")
 
-    await db.users.delete_one({"id": driver_id, "role": "driver"})
+        logger.info(f"🗑️ [ADMIN DELETE] Starting deletion of driver {driver_id}")
 
-    return {"ok": True}
+        # 1. Remettre les commandes en attente (driver_id = null, status = pending)
+        orders_result = await db.orders.update_many(
+            {"driver_id": driver_id, "status": {"$in": ["assigned", "accepted", "picked_up", "in_transit"]}},
+            {"$set": {"driver_id": None, "status": "pending", "updated_at": _utc()}}
+        )
+        logger.info(f"📦 [ADMIN DELETE] Reset {orders_result.modified_count} orders to pending")
+
+        # Marquer les commandes livrées comme sans livreur
+        delivered_orders_result = await db.orders.update_many(
+            {"driver_id": driver_id, "status": "delivered"},
+            {"$set": {"driver_id": None, "driver_name": None, "driver_phone": None, "updated_at": _utc()}}
+        )
+        logger.info(f"📦 [ADMIN DELETE] Removed driver from {delivered_orders_result.modified_count} delivered orders")
+
+        # 2. Supprimer les messages de livraison
+        messages_result = await db.delivery_messages.delete_many({"sender_id": driver_id})
+        logger.info(f"💬 [ADMIN DELETE] Deleted {messages_result.deleted_count} delivery messages")
+
+        # 3. Supprimer les conversations de livraison où le livreur est le seul participant
+        # (ou marquer comme inactives si d'autres participants existent)
+        conversations = await db.delivery_conversations.find({"order_id": {"$exists": True}}).to_list(None)
+        for conv in conversations:
+            # Récupérer la commande pour vérifier les participants
+            order = await db.orders.find_one({"id": conv["order_id"]}, {"_id": 0})
+            if order and order.get("driver_id") == driver_id:
+                # Supprimer la conversation si le livreur était le driver
+                await db.delivery_conversations.delete_one({"order_id": conv["order_id"]})
+                logger.info(f"🗑️ [ADMIN DELETE] Deleted conversation for order {conv['order_id']}")
+
+        # 4. Nettoyer les localisations du livreur dans le WebSocket manager
+        if hasattr(manager, 'driver_locations') and driver_id in manager.driver_locations:
+            del manager.driver_locations[driver_id]
+            logger.info(f"📍 [ADMIN DELETE] Removed driver location from WebSocket manager")
+
+        # 5. Supprimer les notifications liées au livreur
+        notifications_result = await db.notifications.delete_many({"user_id": driver_id})
+        logger.info(f"🔔 [ADMIN DELETE] Deleted {notifications_result.deleted_count} notifications")
+
+        # 6. Supprimer les évaluations/ratings du livreur
+        ratings_result = await db.ratings.delete_many({"driver_id": driver_id})
+        logger.info(f"⭐ [ADMIN DELETE] Deleted {ratings_result.deleted_count} ratings")
+
+        # 6.1. Supprimer les delivery_ratings spécifiques
+        try:
+            delivery_ratings_result = await db.delivery_ratings.delete_many({"driver_id": driver_id})
+            logger.info(f"⭐ [ADMIN DELETE] Deleted {delivery_ratings_result.deleted_count} delivery ratings")
+        except AttributeError:
+            logger.info(f"⭐ [ADMIN DELETE] delivery_ratings collection not found, skipping")
+            delivery_ratings_result = type('obj', (object,), {'deleted_count': 0})
+
+        # 6.2. Supprimer l'historique de position du livreur
+        try:
+            position_history_result = await db.driver_position_history.delete_many({"driver_id": driver_id})
+            logger.info(f"📍 [ADMIN DELETE] Deleted {position_history_result.deleted_count} position history records")
+        except AttributeError:
+            logger.info(f"📍 [ADMIN DELETE] driver_position_history collection not found, skipping")
+            position_history_result = type('obj', (object,), {'deleted_count': 0})
+
+        # 6.3. Supprimer les livraisons planifiées pour ce livreur
+        try:
+            scheduled_deliveries_result = await db.scheduled_deliveries.delete_many({"driver_id": driver_id})
+            logger.info(f"📅 [ADMIN DELETE] Deleted {scheduled_deliveries_result.deleted_count} scheduled deliveries")
+        except AttributeError:
+            logger.info(f"📅 [ADMIN DELETE] scheduled_deliveries collection not found, skipping")
+            scheduled_deliveries_result = type('obj', (object,), {'deleted_count': 0})
+
+        # 7. Supprimer les preuves de livraison
+        try:
+            delivery_proofs_result = await db.delivery_proofs.delete_many({"driver_id": driver_id})
+            logger.info(f"📸 [ADMIN DELETE] Deleted {delivery_proofs_result.deleted_count} delivery proofs")
+        except AttributeError:
+            # Collection delivery_proofs might not exist
+            logger.info(f"📸 [ADMIN DELETE] delivery_proofs collection not found, skipping")
+            delivery_proofs_result = type('obj', (object,), {'deleted_count': 0})
+
+        # 8. Supprimer les fichiers uploadés par le livreur (licence, documents)
+        try:
+            driver_documents_result = await db.driver_documents.delete_many({"driver_id": driver_id})
+            logger.info(f"📄 [ADMIN DELETE] Deleted {driver_documents_result.deleted_count} driver documents")
+        except AttributeError:
+            # Collection driver_documents might not exist
+            logger.info(f"📄 [ADMIN DELETE] driver_documents collection not found, skipping")
+            driver_documents_result = type('obj', (object,), {'deleted_count': 0})
+
+        # 7. Supprimer les preuves de livraison
+        try:
+            delivery_proofs_result = await db.delivery_proofs.delete_many({"driver_id": driver_id})
+            logger.info(f"📸 [ADMIN DELETE] Deleted {delivery_proofs_result.deleted_count} delivery proofs")
+        except AttributeError:
+            # Collection delivery_proofs might not exist
+            logger.info(f"📸 [ADMIN DELETE] delivery_proofs collection not found, skipping")
+            delivery_proofs_result = type('obj', (object,), {'deleted_count': 0})
+
+        # 8. Supprimer les fichiers uploadés par le livreur (licence, documents)
+        # Note: Cette partie peut être étendue pour supprimer les fichiers physiques sur le disque
+        try:
+            await db.driver_documents.delete_many({"driver_id": driver_id})
+            logger.info(f"📄 [ADMIN DELETE] Deleted driver documents")
+        except AttributeError:
+            # Collection driver_documents might not exist
+            logger.info(f"📄 [ADMIN DELETE] driver_documents collection not found, skipping")
+            pass
+
+        # 9. Enfin, supprimer le livreur lui-même
+        user_result = await db.users.delete_one({"id": driver_id, "role": "driver"})
+        if user_result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Livreur non trouvé")
+
+        # 10. Nettoyer les logs d'audit liés au livreur
+        audit_logs_result = await db.audit_logs.delete_many({"user_id": driver_id})
+        logger.info(f"📋 [ADMIN DELETE] Deleted {audit_logs_result.deleted_count} audit logs")
+
+        logger.info(f"✅ [ADMIN DELETE] Successfully deleted driver {driver_id} and all dependencies")
+
+        return {
+            "ok": True,
+            "message": "Livreur supprimé avec succès",
+            "details": {
+                "orders_reset": orders_result.modified_count,
+                "delivered_orders_updated": delivered_orders_result.modified_count,
+                "messages_deleted": messages_result.deleted_count,
+                "notifications_deleted": notifications_result.deleted_count,
+                "ratings_deleted": ratings_result.deleted_count,
+                "delivery_ratings_deleted": getattr(delivery_ratings_result, 'deleted_count', 0),
+                "position_history_deleted": getattr(position_history_result, 'deleted_count', 0),
+                "scheduled_deliveries_deleted": getattr(scheduled_deliveries_result, 'deleted_count', 0),
+                "delivery_proofs_deleted": getattr(delivery_proofs_result, 'deleted_count', 0),
+                "driver_documents_deleted": getattr(driver_documents_result, 'deleted_count', 0),
+                "audit_logs_deleted": audit_logs_result.deleted_count
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ [ADMIN DELETE] Error deleting driver {driver_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la suppression du livreur: {str(e)}")
 
 
 
