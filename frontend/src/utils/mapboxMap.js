@@ -67,10 +67,10 @@ export const createMarkerElement = (color = '#2563eb', label = '', size = 'norma
 
 // Vehicle icons for different delivery types
 export const VEHICLE_ICONS = {
-  moto: '🏍️',
-  voiture: '🚗',
-  velo: '🚲',
-  default: '📦'
+  moto: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="m5.25 4-2.75 3.5-2 4"/><path d="m18.75 4 2.75 3.5 2 4"/><path d="M3 12h18"/><path d="M11 5h2"/></svg>`,
+  voiture: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-2.7-.6-4.5-1.1c-.8-.2-1.5-1-1.5-1.9V3c0-.6-.4-1-1-1H6c-.6 0-1 .4-1 1v2c0 .9-.7 1.7-1.5 1.9C1.3 7.4 1.6 7.7 1.6 7.7l1.4 2.3c.6 1 .7 2.2.2 3.2-.5 1-.5 2.2 0 3.2l.7 1.4c.3.6.9 1 1.6 1h2.5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`,
+  velo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/><path d="M12 19V9"/><path d="M5 12h2l1-2 4 4 4-4h2"/></svg>`,
+  default: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>`
 };
 
 // Create custom marker for driver based on vehicle type
@@ -80,15 +80,103 @@ export const createDriverMarker = (vehicleType = 'default', size = 'normal', pul
   
   console.log('🗺️ [MARKER] Creating driver marker:', { vehicleType, icon, size, pulse });
   
-  return createMarkerElement(color, `Livreur (${vehicleType})`, size, pulse, icon);
+  const el = document.createElement('div');
+  el.className = 'mapbox-custom-marker';
+  el.title = `Livreur (${vehicleType})`;
+  
+  const sizeMap = {
+    normal: { width: '48px', height: '48px' },
+    large: { width: '56px', height: '56px' },
+    small: { width: '40px', height: '40px' }
+  };
+  
+  const sizeStyles = sizeMap[size] || sizeMap.normal;
+  el.style.width = sizeStyles.width;
+  el.style.height = sizeStyles.height;
+  el.style.borderRadius = '50%';
+  el.style.background = color;
+  el.style.border = '4px solid #fff';
+  el.style.boxShadow = '0 10px 24px rgba(59, 130, 246, 0.4)';
+  el.style.cursor = 'pointer';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.position = 'relative';
+  
+  // Add SVG icon
+  el.innerHTML = `
+    <div style="color: white; width: 60%; height: 60%;">
+      ${icon}
+    </div>
+  `;
+  
+  // Add pulse animation
+  if (pulse) {
+    el.style.animation = 'pulse 2s infinite';
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 10px 24px rgba(59, 130, 246, 0.4); }
+        50% { transform: scale(1.1); box-shadow: 0 15px 30px rgba(59, 130, 246, 0.6); }
+        100% { transform: scale(1); box-shadow: 0 10px 24px rgba(59, 130, 246, 0.4); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return el;
 };
 
 // Create custom marker for customer
 export const createCustomerMarker = (size = 'normal', pulse = false) => {
-  const icon = '👤'; // Person icon for customer
+  const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
   const color = '#ef4444'; // Red for customer
   
-  return createMarkerElement(color, 'Client', size, pulse, icon);
+  const el = document.createElement('div');
+  el.className = 'mapbox-custom-marker';
+  el.title = 'Client';
+  
+  const sizeMap = {
+    normal: { width: '40px', height: '40px' },
+    large: { width: '48px', height: '48px' },
+    small: { width: '32px', height: '32px' }
+  };
+  
+  const sizeStyles = sizeMap[size] || sizeMap.normal;
+  el.style.width = sizeStyles.width;
+  el.style.height = sizeStyles.height;
+  el.style.borderRadius = '50%';
+  el.style.background = color;
+  el.style.border = '3px solid #fff';
+  el.style.boxShadow = '0 10px 24px rgba(239, 68, 68, 0.4)';
+  el.style.cursor = 'pointer';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.position = 'relative';
+  
+  // Add SVG icon
+  el.innerHTML = `
+    <div style="color: white; width: 60%; height: 60%;">
+      ${icon}
+    </div>
+  `;
+  
+  // Add pulse animation if requested
+  if (pulse) {
+    el.style.animation = 'pulse 2s infinite';
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 10px 24px rgba(239, 68, 68, 0.4); }
+        50% { transform: scale(1.1); box-shadow: 0 15px 30px rgba(239, 68, 68, 0.6); }
+        100% { transform: scale(1); box-shadow: 0 10px 24px rgba(239, 68, 68, 0.4); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return el;
 };
 
 export const upsertMarker = (mapboxgl, map, markerRef, location, options = {}) => {
@@ -224,6 +312,10 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
       console.log('🗺️ [ROUTE] Removing existing layer');
       map.removeLayer(sourceId);
     }
+    if (map.getLayer(`${sourceId}-glow`)) {
+      console.log('🗺️ [ROUTE] Removing existing glow layer');
+      map.removeLayer(`${sourceId}-glow`);
+    }
     if (map.getSource(sourceId)) {
       console.log('🗺️ [ROUTE] Removing existing source');
       map.removeSource(sourceId);
@@ -239,11 +331,27 @@ export const setRouteLine = async (map, sourceId, from, to, color = '#4f46e5') =
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': color,
-        'line-width': 4,
-        'line-opacity': 0.9,
+        'line-width': 5,
+        'line-opacity': 0.8,
+        'line-dasharray': [2, 2],
       },
     });
-    console.log('🗺️ [ROUTE] Route layer added successfully');
+    
+    // Add a second layer for a glow effect
+    map.addLayer({
+      id: `${sourceId}-glow`,
+      type: 'line',
+      source: sourceId,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': color,
+        'line-width': 10,
+        'line-opacity': 0.3,
+        'line-blur': 8,
+      },
+    });
+    
+    console.log('🗺️ [ROUTE] Route layer added successfully with glow effect');
   } catch (error) {
     console.error('🗺️ [ROUTE] Error adding route to map:', error);
   }
