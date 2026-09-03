@@ -355,6 +355,7 @@ export const ChatProvider = ({ children }) => {
       conversations,
       activeConversationId,
       unreadCount,
+      orderConversationId,
       startConversation,
       openConversation,
       openOrderConversation,
@@ -365,7 +366,7 @@ export const ChatProvider = ({ children }) => {
       setConversations,
       setActiveConversationId,
     }),
-    [isOpen, conversations, activeConversationId, unreadCount, startConversation, openConversation, openOrderConversation, openChat, closeChat, fetchConversations, fetchOrderConversation]
+    [isOpen, conversations, activeConversationId, unreadCount, orderConversationId, startConversation, openConversation, openOrderConversation, openChat, closeChat, fetchConversations, fetchOrderConversation]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
@@ -379,6 +380,7 @@ export const useChat = () => {
       conversations: [],
       activeConversationId: null,
       unreadCount: 0,
+      orderConversationId: null,
       startConversation: async () => null,
       openConversation: () => {},
       openOrderConversation: async () => null,
@@ -397,7 +399,7 @@ const FloatingChat = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, isAuthenticated } = useAuth();
-  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations, setActiveConversationId, unreadCount } = useChat();
+  const { isOpen, closeChat, conversations, activeConversationId, openConversation, openChat, refreshConversations, setActiveConversationId, unreadCount, orderConversationId } = useChat();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
