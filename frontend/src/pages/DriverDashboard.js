@@ -498,8 +498,7 @@ const DriverDashboard = () => {
               { 
                 enableHighAccuracy: true, 
                 timeout: 10000, 
-                maximumAge: 0,
-                distanceFilter: 10 // Update every 10 meters
+                maximumAge: 0
               }
             );
             
