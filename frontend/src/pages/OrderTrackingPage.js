@@ -84,7 +84,7 @@ const OrderTrackingPage = () => {
   const [ratingOpen, setRatingOpen] = useState(false);
   
   const previousStatusRef = useRef(null);
-  const pinNotifiedRef = useRef(false);
+  const pinNotifiedRef = useRef(null); // Store the PIN that was notified
 
   // Handle contact driver - open delivery conversation in floating chat
   const handleContactDriver = useCallback(async () => {
@@ -139,10 +139,11 @@ const OrderTrackingPage = () => {
       setLoading(false);
       previousStatusRef.current = newStatus;
       
-      // Show notification for delivery PIN (only once)
-      if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
-        pinNotifiedRef.current = true;
-        console.log('🔐 [PIN NOTIFICATION] Delivery PIN available:', realtimeOrder.delivery_pin);
+      // Show notification for delivery PIN (only once per PIN value)
+      if (realtimeOrder.delivery_pin && pinNotifiedRef.current !== realtimeOrder.delivery_pin) {
+        pinNotifiedRef.current = realtimeOrder.delivery_pin;
+        console.log('🔐 [PIN NOTIFICATION] NEW PIN detected:', realtimeOrder.delivery_pin);
+        console.log('🔐 [PIN NOTIFICATION] Previous PIN:', pinNotifiedRef.current);
         console.log('🔐 [PIN NOTIFICATION] Order ID:', realtimeOrder.id);
         console.log('🔐 [PIN NOTIFICATION] Full order data for PIN:', {
           id: realtimeOrder.id,
@@ -165,6 +166,10 @@ const OrderTrackingPage = () => {
             }
           }
         });
+      } else if (realtimeOrder.delivery_pin && pinNotifiedRef.current === realtimeOrder.delivery_pin) {
+        console.log('🔐 [PIN NOTIFICATION] Same PIN already notified, skipping toast');
+      } else if (!realtimeOrder.delivery_pin) {
+        console.log('🔐 [PIN NOTIFICATION] No PIN in order data');
       }
       
       // Show notification for status changes (only when status actually changes)
