@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WS_URL } from '../config/api';
 
+// Module-level counter for location update logging to reduce spam
+let locationLogCounter = 0;
+
 export const useOrderTracking = (orderId, token) => {
   const [order, setOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -52,7 +55,17 @@ export const useOrderTracking = (orderId, token) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Order tracking WebSocket message:', data);
+          
+          // Reduce logging for high-frequency messages (location updates)
+          if (data.type === 'driver_location_update') {
+            // Only log location updates every 10th time to reduce spam
+            locationLogCounter++;
+            if (locationLogCounter % 10 === 0) {
+              console.log('📍 [WS ORDER] Driver location update (log every 10th):', data.driver_id);
+            }
+          } else {
+            console.log('Order tracking WebSocket message:', data);
+          }
 
           switch (data.type) {
             case 'order_connected':

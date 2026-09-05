@@ -252,7 +252,24 @@ class ConnectionManager:
             logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (driver user room)")
     
     async def broadcast_driver_location_update(self, order_id: str, driver_id: str, location: dict):
-        """Broadcast driver location update for an order"""
+        """Broadcast driver location update for an order with throttling"""
+        # Throttle location updates to avoid spamming
+        current_time = datetime.now(timezone.utc).timestamp()
+        
+        # Initialize throttling tracking for this order if not exists
+        if not hasattr(self, '_last_location_broadcast'):
+            self._last_location_broadcast = {}
+        if not hasattr(self, '_location_broadcast_interval'):
+            self._location_broadcast_interval = 2.0  # Minimum seconds between location broadcasts
+        
+        last_broadcast_time = self._last_location_broadcast.get(order_id, 0)
+        
+        if current_time - last_broadcast_time < self._location_broadcast_interval:
+            # Skip this broadcast - too soon since last one
+            return
+        
+        self._last_location_broadcast[order_id] = current_time
+        
         message = {
             "type": "driver_location_update",
             "order_id": order_id,
@@ -262,7 +279,18 @@ class ConnectionManager:
         }
         
         await self.broadcast_to_room(f"order_{order_id}", message)
-        logger.info(f"📱 [WS BROADCAST] Driver location update: order {order_id}, driver {driver_id}")
+        logger.info(f"📍 [WS BROADCAST] Driver location update (throttled): order {order_id}, driver {driver_id}")
+        
+        message = {
+            "type": "driver_location_update",
+            "order_id": order_id,
+            "driver_id": driver_id,
+            "location": location,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await self.broadcast_to_room(f"order_{order_id}", message)
+        logger.info(f"� [WS BROADCAST] Driver location update (throttled): order {order_id}, driver {driver_id}")
     
     async def broadcast_new_order(self, order_id: str, order_data: dict):
         """Broadcast new order to all drivers"""

@@ -1007,18 +1007,6 @@ const DriverDashboard = () => {
                           <p className="font-bold text-white text-lg">{formatPrice(activeOrderForMap.total_fcfa)} FCFA</p>
                         </div>
                         
-                        {activeOrderForMap.status in ['assigned', 'accepted'] && (
-                          <Button
-                            onClick={() => handleOrderAction(activeOrderForMap, 'driver-cancel')}
-                            disabled={updatingOrderIds.has(activeOrderForMap.id)}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            {updatingOrderIds.has(activeOrderForMap.id) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
-                            Annuler
-                          </Button>
-                        )}
-                        
                         {ORDER_STATUSES[activeOrderForMap.status]?.action && (
                           <Button
                             onClick={() => handleOrderAction(
@@ -1037,6 +1025,20 @@ const DriverDashboard = () => {
                              activeOrderForMap.status === 'picked_up' ? <Play className="w-5 h-5 mr-2" /> :
                              <Flag className="w-5 h-5 mr-2" />}
                             {ORDER_STATUSES[activeOrderForMap.status]?.action}
+                          </Button>
+                        )}
+                        
+                        {/* Only show cancel button for assigned/accepted status */}
+                        {activeOrderForMap.status === 'assigned' && (
+                          <Button
+                            onClick={() => handleOrderAction(activeOrderForMap, 'driver-cancel')}
+                            disabled={updatingOrderIds.has(activeOrderForMap.id)}
+                            variant="destructive"
+                            size="sm"
+                            className="mt-2"
+                          >
+                            {updatingOrderIds.has(activeOrderForMap.id) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                            Annuler la commande
                           </Button>
                         )}
                       </div>
