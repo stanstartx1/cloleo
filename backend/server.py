@@ -2380,7 +2380,7 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Livreur {user.get('name')} a accepté la commande", manager)
 
-    return {"ok": True, "message": "Commande acceptée avec succès"}
+    return {"ok": True, "message": "Commande acceptée avec succès", "status": "accepted"}
 
 
 @api.put("/orders/{order_id}/pickup")
@@ -2431,7 +2431,7 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Colis récupéré par le livreur {user.get('name')}", manager)
     
-    return {"ok": True, "message": "Colis récupéré avec succès"}
+    return {"ok": True, "message": "Colis récupéré avec succès", "status": "picked_up"}
 
 
 @api.put("/orders/{order_id}/in-transit")
@@ -2505,7 +2505,7 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
     eta_message = f"Livraison en cours (arrivée estimée: {eta_minutes} min)" if eta_minutes else "Livraison en cours"
     await notify_all_parties(order_id, "order_update", f"{eta_message} - Livreur {user.get('name')}", manager)
     
-    return {"ok": True, "message": "Livraison démarrée", "eta_minutes": eta_minutes}
+    return {"ok": True, "message": "Livraison démarrée", "eta_minutes": eta_minutes, "status": "in_transit"}
 
 
 
@@ -2567,7 +2567,7 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
     if seller_id:
         await add_delivery_points(seller_id, "fast_preparation", 10)
     
-    return {"ok": True, "message": "Livraison confirmée avec succès"}
+    return {"ok": True, "message": "Livraison confirmée avec succès", "status": "delivered"}
 
 
 @api.post("/orders/{order_id}/delivery-proof")
