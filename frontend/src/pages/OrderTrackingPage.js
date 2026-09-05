@@ -11,13 +11,12 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import UserAvatar from '../components/UserAvatar';
-import TripartiteChat from '../components/TripartiteChat';
+import FloatingChat, { useChat } from '../components/FloatingChat';
 import DeliveryScheduler from '../components/DeliveryScheduler';
 import RatingSystem from '../components/RatingSystem';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useUserRealtime } from '../hooks/useUserRealtime';
 import MapboxMap from '../components/MapboxMap';
-import { useChat } from '../components/FloatingChat';
 
 // Import centralisé
 import { API_URL, WS_URL } from '../config/api';
@@ -81,7 +80,6 @@ const OrderTrackingPage = () => {
   const [lastStatus, setLastStatus] = useState(null);
   
   // New component states
-  const [chatOpen, setChatOpen] = useState(false);
   const [schedulerOpen, setSchedulerOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   
@@ -101,14 +99,18 @@ const OrderTrackingPage = () => {
           duration: 3000
         });
       } else {
-        // Fallback to TripartiteChat if floating chat fails
-        console.log('📱 [TRACKING] Fallback to TripartiteChat');
-        setChatOpen(true);
+        console.error('❌ [TRACKING] Failed to open delivery conversation');
+        toast.error('Erreur', {
+          description: 'Impossible d\'ouvrir la conversation avec le livreur',
+          duration: 3000
+        });
       }
     } catch (error) {
       console.error('❌ [TRACKING] Error opening delivery conversation:', error);
-      // Fallback to TripartiteChat
-      setChatOpen(true);
+      toast.error('Erreur', {
+        description: 'Erreur lors de l\'ouverture de la conversation',
+        duration: 3000
+      });
     }
   }, [orderId, openOrderConversation]);
 
@@ -141,17 +143,33 @@ const OrderTrackingPage = () => {
       if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
         pinNotifiedRef.current = true;
         console.log('🔐 [PIN NOTIFICATION] Delivery PIN available:', realtimeOrder.delivery_pin);
-        // Open chat and show toast
-        setChatOpen(true);
-        toast.success('Code de livraison reçu !', {
-          description: `Votre code est : ${realtimeOrder.delivery_pin}. Communiquez-le au livreur.`,
-          duration: 10000,
-          action: {
-            label: 'Copier',
-            onClick: () => {
-              navigator.clipboard.writeText(realtimeOrder.delivery_pin);
-              toast.success('Code copié !');
-            }
+        // Open floating chat and show toast
+        openOrderConversation(orderId).then(conversation => {
+          if (conversation) {
+            toast.success('Code de livraison reçu !', {
+              description: `Votre code est : ${realtimeOrder.delivery_pin}. Consultez le chat pour plus de détails.`,
+              duration: 10000,
+              action: {
+                label: 'Copier',
+                onClick: () => {
+                  navigator.clipboard.writeText(realtimeOrder.delivery_pin);
+                  toast.success('Code copié !');
+                }
+              }
+            });
+          } else {
+            console.error('❌ [PIN NOTIFICATION] Failed to open conversation for PIN');
+            toast.success('Code de livraison reçu !', {
+              description: `Votre code est : ${realtimeOrder.delivery_pin}. Communiquez-le au livreur.`,
+              duration: 10000,
+              action: {
+                label: 'Copier',
+                onClick: () => {
+                  navigator.clipboard.writeText(realtimeOrder.delivery_pin);
+                  toast.success('Code copié !');
+                }
+              }
+            });
           }
         });
       }
@@ -211,7 +229,7 @@ const OrderTrackingPage = () => {
               const pin = pinMatch[1];
               console.log('🔐 [PIN NOTIFICATION] PIN received via chat notification:', pin);
               
-              // Open delivery conversation in floating chat instead of TripartiteChat
+              // Open delivery conversation in floating chat
               openOrderConversation(orderId).then(conversation => {
                 if (conversation) {
                   toast.success('Code de livraison reçu !', {
@@ -226,8 +244,7 @@ const OrderTrackingPage = () => {
                     }
                   });
                 } else {
-                  // Fallback to TripartiteChat if floating chat fails
-                  setChatOpen(true);
+                  console.error('❌ [PIN NOTIFICATION] Failed to open conversation for PIN notification');
                   toast.success('Code de livraison reçu !', {
                     description: `Votre code est : ${pin}. Communiquez-le au livreur.`,
                     duration: 10000,
@@ -780,15 +797,8 @@ const OrderTrackingPage = () => {
       </div>
 
       {/* Integrated Components */}
-      <TripartiteChat
-        orderId={order?.id}
-        recipientType="driver"
-        recipientId={order?.driver_id}
-        recipientName={driverInfo?.name || 'Livreur'}
-        isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
-      />
-
+      <FloatingChat />
+      
       <DeliveryScheduler
         orderId={order?.id}
         isOpen={schedulerOpen}

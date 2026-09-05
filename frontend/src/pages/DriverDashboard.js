@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import MapboxMap from '../components/MapboxMap';
-import TripartiteChat from '../components/TripartiteChat';
+import FloatingChat, { useChat } from '../components/FloatingChat';
 import DeliveryProof from '../components/DeliveryProof';
 import { geolocationService } from '../services/geolocationService';
 import { notificationService } from '../services/notificationService';
@@ -45,6 +45,7 @@ const NAV_ITEMS = [
 const DriverDashboard = () => {
   const navigate = useNavigate();
   const { user, token, logout, isDriver } = useAuth();
+  const { openOrderConversation } = useChat();
   
   const [activeSection, setActiveSection] = useState('map');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,8 +65,6 @@ const DriverDashboard = () => {
   const [forceUpdate, setForceUpdate] = useState(0); // Force re-render trigger
   
   // New component states
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatRecipient, setChatRecipient] = useState(null);
   const [deliveryProofOpen, setDeliveryProofOpen] = useState(false);
   
   const wsRef = React.useRef(null);
@@ -964,6 +963,34 @@ const DriverDashboard = () => {
                           <a href={`tel:${activeOrderForMap.delivery_address?.phone}`} className="p-3 bg-green-100 rounded-xl text-green-600 hover:bg-green-200 transition-colors">
                             <Phone className="w-5 h-5" />
                           </a>
+                          <button 
+                            onClick={async () => {
+                              console.log('📱 [DRIVER] Opening chat with customer for order:', activeOrderForMap.id);
+                              try {
+                                const conversation = await openOrderConversation(activeOrderForMap.id);
+                                if (conversation) {
+                                  toast.success('Chat ouvert', {
+                                    description: 'Vous pouvez maintenant communiquer avec le client',
+                                    duration: 3000
+                                  });
+                                } else {
+                                  toast.error('Erreur', {
+                                    description: 'Impossible d\'ouvrir le chat',
+                                    duration: 3000
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('❌ [DRIVER] Error opening chat:', error);
+                                toast.error('Erreur', {
+                                  description: 'Erreur lors de l\'ouverture du chat',
+                                  duration: 3000
+                                });
+                              }
+                            }}
+                            className="p-3 bg-blue-100 rounded-xl text-blue-600 hover:bg-blue-200 transition-colors"
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
 
@@ -1449,15 +1476,8 @@ const DriverDashboard = () => {
       </div>
 
       {/* Integrated Components */}
-      <TripartiteChat
-        orderId={selectedOrder?.id}
-        recipientType={chatRecipient?.type || 'customer'}
-        recipientId={chatRecipient?.id || selectedOrder?.customer_id}
-        recipientName={chatRecipient?.name || selectedOrder?.customer_name || selectedOrder?.delivery_address?.name}
-        isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
-      />
-
+      <FloatingChat />
+      
       <DeliveryProof
         orderId={selectedOrder?.id}
         isOpen={deliveryProofOpen}
