@@ -1489,6 +1489,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
     logger.info(f"🔐 [ORDER CREATION] Generated delivery PIN {delivery_pin} for order {order_id} - THIS IS THE FINAL PIN")
+    logger.info(f"🔐 [ORDER CREATION] PIN hash: {delivery_pin_hash}")
 
     # Si c'est une commande dropshippée, créer deux commandes optimisées : une pour le vendeur, une pour le revendeur
 
@@ -1638,11 +1639,13 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
             await manager.broadcast_new_order_to_vendor(seller_id, main_order["id"], main_order)
             
             # Broadcast order creation to customer via WebSocket
+            logger.info(f"🔐 [ORDER CREATION] Broadcasting order to customer with PIN: {main_order.get('delivery_pin')}")
             await manager.broadcast_to_room(f"user_{user['id']}", {
                 "type": "order_created",
                 "order_id": main_order["id"],
                 "order_data": main_order
             })
+            logger.info(f"🔐 [ORDER CREATION] Order broadcasted - PIN in broadcast: {main_order.get('delivery_pin')}")
 
             # PIN will be sent when driver accepts the order, not on creation
 
@@ -1716,11 +1719,13 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     await manager.broadcast_new_order_to_vendor(seller_id, order["id"], order)
     
     # Broadcast order creation to customer via WebSocket
+    logger.info(f"🔐 [ORDER CREATION] Broadcasting normal order to customer with PIN: {order.get('delivery_pin')}")
     await manager.broadcast_to_room(f"user_{user['id']}", {
         "type": "order_created",
         "order_id": order["id"],
         "order_data": order
     })
+    logger.info(f"🔐 [ORDER CREATION] Normal order broadcasted - PIN in broadcast: {order.get('delivery_pin')}")
 
     # PIN will be sent when driver accepts the order, not on creation
     # No automatic driver assignment after order creation
@@ -2383,29 +2388,34 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     logger.info(f"📱 [WS DRIVER] Also broadcasted to driver's own room: user_{user['id']}")
 
     # Send delivery PIN via chat message from Cloleo when driver accepts
-    # ONLY generate PIN if it doesn't already exist (don't regenerate!)
+    # ONLY use the EXISTING PIN from order creation - NEVER regenerate
     existing_pin = order.get("delivery_pin")
     if not existing_pin:
-        # Generate PIN only if it doesn't exist
+        logger.error(f"❌ [DRIVER ACCEPT START] CRITICAL: No PIN found for order {order_id}!")
+        logger.error(f"❌ [DRIVER ACCEPT START] This should never happen - PIN should be generated at order creation")
+        # Emergency PIN generation (should not happen)
         delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
         delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
         
-        # Update order with new PIN (store both hash and plain text temporarily)
         await db.orders.update_one(
             {"id": order_id},
             {
                 "$set": {
-                    "delivery_pin": delivery_pin,  # Store plain text temporarily for API access
+                    "delivery_pin": delivery_pin,
                     "delivery_pin_hash": delivery_pin_hash,
                     "delivery_pin_created_at": _utc()
                 }
             }
         )
         
-        logger.info(f"🚀 [DRIVER ACCEPT START] Generated NEW PIN {delivery_pin} for order {order_id}")
+        logger.error(f"🚨 [DRIVER ACCEPT START] EMERGENCY PIN GENERATED {delivery_pin} for order {order_id}")
     else:
         delivery_pin = existing_pin
-        logger.info(f"🔄 [DRIVER ACCEPT START] Using EXISTING PIN {delivery_pin} for order {order_id}")
+        logger.info(f"✅ [DRIVER ACCEPT START] Using EXISTING PIN {delivery_pin} for order {order_id} (from order creation)")
+    
+    # Verify PIN is consistent
+    logger.info(f"🔐 [DRIVER ACCEPT START] Final PIN to use: {delivery_pin}")
+    logger.info(f"🔐 [DRIVER ACCEPT START] Order stored PIN: {order.get('delivery_pin')}")
     
     pin_result = await send_system_delivery_pin_message(
         order_id,

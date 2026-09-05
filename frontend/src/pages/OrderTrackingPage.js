@@ -143,6 +143,15 @@ const OrderTrackingPage = () => {
       if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
         pinNotifiedRef.current = true;
         console.log('🔐 [PIN NOTIFICATION] Delivery PIN available:', realtimeOrder.delivery_pin);
+        console.log('🔐 [PIN NOTIFICATION] Order ID:', realtimeOrder.id);
+        console.log('🔐 [PIN NOTIFICATION] Full order data for PIN:', {
+          id: realtimeOrder.id,
+          delivery_pin: realtimeOrder.delivery_pin,
+          delivery_pin_hash: realtimeOrder.delivery_pin_hash,
+          status: realtimeOrder.status
+        });
+        console.log('🔐 [PIN NOTIFICATION] WARNING: This PIN should match the one in the database');
+        
         // Only show toast, don't open chat automatically - let the system chat message handle it
         toast.success('Code de livraison reçu !', {
           description: `Votre code est : ${realtimeOrder.delivery_pin}. Consultez le chat pour plus de détails.`,
@@ -152,6 +161,7 @@ const OrderTrackingPage = () => {
             onClick: () => {
               navigator.clipboard.writeText(realtimeOrder.delivery_pin);
               toast.success('Code copié !');
+              console.log('🔐 [PIN NOTIFICATION] PIN copied to clipboard:', realtimeOrder.delivery_pin);
             }
           }
         });
@@ -263,6 +273,8 @@ const OrderTrackingPage = () => {
           // Check for PIN
           if (latestUpdate.delivery_pin) {
             console.log('🔐 [PIN DEBUG] PIN received in order update:', latestUpdate.delivery_pin);
+            console.log('🔐 [PIN DEBUG] Order ID:', latestUpdate.order_id);
+            console.log('🔐 [PIN DEBUG] This should match the order creation PIN');
           }
         } else if (latestUpdate.type === 'order_created' && latestUpdate.order_data) {
           setOrder(latestUpdate.order_data);
@@ -511,6 +523,9 @@ const OrderTrackingPage = () => {
                       </p>
                     </div>
                   </div>
+                  <p className="text-xs text-green-600 mt-2 text-center">
+                    🔐 Code unique : {order.delivery_pin} (ID: {order.id?.slice(-8)})
+                  </p>
                 </div>
               )}
 
