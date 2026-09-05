@@ -581,6 +581,18 @@ const DriverDashboard = () => {
       
       const response = await axios.put(`${API}${endpoint}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       console.log('📱 [DRIVER ACTION] API response:', response.data);
+      console.log('📱 [DRIVER ACTION] Order status updated to:', response.data.status || statusMap[action]);
+
+      // Verify status sync with backend
+      if (response.data && response.data.status) {
+        console.log('📱 [DRIVER ACTION] Backend confirmed status:', response.data.status);
+        
+        // Update local state to match backend response
+        const backendStatus = response.data.status;
+        setSelectedOrder(prev => prev ? { ...prev, status: backendStatus } : null);
+        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o));
+        setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o));
+      }
       
       if (action === 'driver-cancel') {
         setSelectedOrder(null);

@@ -37,6 +37,18 @@ const ORDER_STATUSES = {
   cancelled: { label: 'Annulé', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-600', icon: XCircle, progress: 0 }
 };
 
+// Ensure all status transitions are logged for debugging
+const STATUS_TRANSITIONS = {
+  'pending': ['confirmed', 'cancelled'],
+  'confirmed': ['assigned', 'cancelled'],
+  'assigned': ['accepted', 'cancelled'],
+  'accepted': ['picked_up', 'cancelled'],
+  'picked_up': ['in_transit', 'cancelled'],
+  'in_transit': ['delivered', 'cancelled'],
+  'delivered': [],
+  'cancelled': []
+};
+
 const OrderTrackingPage = () => {
   const { orderId } = useParams();
   const { token, user } = useAuth();
@@ -104,8 +116,26 @@ const OrderTrackingPage = () => {
   useEffect(() => {
     if (realtimeOrder) {
       console.log('📱 [TRACKING SYNC] Syncing realtime order data:', realtimeOrder.status, realtimeOrder);
+      
+      // Validate status transition
+      const newStatus = realtimeOrder.status;
+      const oldStatus = previousStatusRef.current;
+      
+      if (oldStatus && oldStatus !== newStatus) {
+        console.log('📱 [TRACKING SYNC] Status transition:', oldStatus, '->', newStatus);
+        
+        // Check if transition is valid
+        const validTransitions = STATUS_TRANSITIONS[oldStatus] || [];
+        if (!validTransitions.includes(newStatus) && newStatus !== 'cancelled') {
+          console.warn('⚠️ [TRACKING SYNC] Invalid status transition:', oldStatus, '->', newStatus);
+        } else {
+          console.log('✅ [TRACKING SYNC] Valid status transition:', oldStatus, '->', newStatus);
+        }
+      }
+      
       setOrder(realtimeOrder);
       setLoading(false);
+      previousStatusRef.current = newStatus;
       
       // Show notification for delivery PIN (only once)
       if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
@@ -127,19 +157,13 @@ const OrderTrackingPage = () => {
       }
       
       // Show notification for status changes (only when status actually changes)
-      if (realtimeOrder.status !== previousStatusRef.current) {
-        const oldStatus = previousStatusRef.current;
-        previousStatusRef.current = realtimeOrder.status;
-        
-        console.log('📱 [TRACKING SYNC] Status changed from', oldStatus, 'to', realtimeOrder.status);
-        
-        if (ORDER_STATUSES[realtimeOrder.status] && oldStatus !== realtimeOrder.status) {
-          const statusInfo = ORDER_STATUSES[realtimeOrder.status];
-          toast.success(`Statut mis à jour: ${statusInfo.label}`, {
-            description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
-            duration: 3000
-          });
-        }
+      if (oldStatus !== newStatus && ORDER_STATUSES[newStatus]) {
+        const statusInfo = ORDER_STATUSES[newStatus];
+        console.log('📱 [TRACKING SYNC] Status changed to:', newStatus, statusInfo.label);
+        toast.success(`Statut mis à jour: ${statusInfo.label}`, {
+          description: `Votre commande est maintenant ${statusInfo.label.toLowerCase()}`,
+          duration: 3000
+        });
       }
     }
   }, [realtimeOrder]);
