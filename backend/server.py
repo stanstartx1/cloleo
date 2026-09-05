@@ -1535,6 +1535,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "delivery_address": payload.delivery_address.model_dump(),
                 "payment_method": payload.payment_method,
                 "payment_status": "pending",
+                "delivery_pin": delivery_pin,  # Store plain text for API access
                 "delivery_pin_hash": delivery_pin_hash,
                 "delivery_pin_created_at": _utc(),
                 "delivery_proof_required": True,
@@ -1580,6 +1581,10 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "delivery_address": payload.delivery_address.model_dump(),
                 "payment_method": payload.payment_method,
                 "payment_status": "pending",
+                "delivery_pin": delivery_pin,  # Store plain text for API access
+                "delivery_pin_hash": delivery_pin_hash,
+                "delivery_pin_created_at": _utc(),
+                "delivery_proof_required": True,
                 "subtotal_fcfa": dropshipper_subtotal,
                 "delivery_fee_fcfa": delivery_fee,
                 "total_fcfa": dropshipper_subtotal + delivery_fee,
@@ -1610,6 +1615,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "notes": payload.notes,
                 "payment_method": payload.payment_method,
                 "payment_status": "pending",
+                "delivery_pin": delivery_pin,  # Store plain text for API access
                 "delivery_pin_hash": delivery_pin_hash,
                 "delivery_pin_created_at": _utc(),
                 "delivery_proof_required": True,
@@ -1624,9 +1630,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
             await db.orders.insert_one(main_order)
             main_order.pop("_id", None)
-            # The PIN is returned once to the authenticated customer; only its
-            # hash is persisted in MongoDB.
-            main_order["delivery_pin"] = delivery_pin
+            # The PIN is already stored in the database with plain text for API access
 
             # Broadcast new order to vendor via WebSocket
             await manager.broadcast_new_order_to_vendor(seller_id, main_order["id"], main_order)
@@ -1638,14 +1642,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
                 "order_data": main_order
             })
 
-            # Send delivery PIN immediately to customer via chat from Cloleo
-            logger.info(f"🚀 [DROP ORDER CREATION] Sending PIN message for order {order_id}")
-            pin_result = await send_system_delivery_pin_message(
-                order_id, 
-                delivery_pin, 
-                main_order.get("order_number")
-            )
-            logger.info(f"📊 [DROP ORDER CREATION] PIN message result: {pin_result}")
+            # PIN will be sent when driver accepts the order, not on creation
 
             # Manual driver assignment - driver will be assigned after vendor acceptance
             logger.info(f"🔍 [DROP ORDER CREATION] Order created, waiting for vendor acceptance before driver assignment")
@@ -1686,6 +1683,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
         "payment_status": "pending",
 
+        "delivery_pin": delivery_pin,  # Store plain text for API access
         "delivery_pin_hash": delivery_pin_hash,
 
         "delivery_pin_created_at": _utc(),
@@ -1712,8 +1710,6 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
     order.pop("_id", None)
 
-    order["delivery_pin"] = delivery_pin
-
     # Broadcast new order to vendor via WebSocket
     await manager.broadcast_new_order_to_vendor(seller_id, order["id"], order)
     
@@ -1725,15 +1721,6 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     })
 
     # PIN will be sent when driver accepts the order, not on creation
-    # Send delivery PIN immediately to customer via chat from Cloleo
-    # logger.info(f"🚀 [ORDER CREATION] Sending PIN message for order {order_id}")
-    # pin_result = await send_system_delivery_pin_message(
-    #     order_id,
-    #     delivery_pin,
-    #     order.get("order_number")
-    # )
-    # logger.info(f"📊 [ORDER CREATION] PIN message result: {pin_result}")
-
     # No automatic driver assignment after order creation
     # Driver assignment will happen after vendor accepts the order
     logger.info(f"🔍 [ORDER CREATION] Order created, waiting for vendor acceptance before driver assignment")
