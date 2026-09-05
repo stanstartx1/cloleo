@@ -506,6 +506,10 @@ const DriverDashboard = () => {
           break;
         case 'deliver': 
           // Require PIN verification before delivery
+          console.log('🔐 [DELIVER] Starting delivery process for order:', order.id);
+          console.log('🔐 [DELIVER] Current order status:', order.status);
+          console.log('🔐 [DELIVER] API URL:', API);
+          
           const pin = prompt("Entrez le code de livraison du client (code à 6 chiffres) :");
           if (!pin) {
             console.log('🔐 [DELIVER] PIN verification cancelled by user');
@@ -522,16 +526,24 @@ const DriverDashboard = () => {
           }
           
           console.log('🔐 [DELIVER] Verifying PIN for order:', order.id);
+          console.log('🔐 [DELIVER] PIN entered:', pin);
+          console.log('🔐 [DELIVER] API URL:', `${API}/orders/${order.id}/verify-delivery-pin`);
+          console.log('🔐 [DELIVER] Token exists:', !!token);
           
           // Verify PIN first
           try {
+            console.log('🔐 [DELIVER] Sending PIN verification request...');
             const verifyResponse = await axios.post(
               `${API}/orders/${order.id}/verify-delivery-pin`,
               { pin },
-              { headers: { Authorization: `Bearer ${token}` } }
+              { 
+                headers: { Authorization: `Bearer ${token}` },
+                timeout: 30000 // 30 second timeout
+              }
             );
             
             console.log('🔐 [DELIVER] PIN verification response:', verifyResponse.data);
+            console.log('🔐 [DELIVER] Response status:', verifyResponse.status);
             
             if (!verifyResponse.data.verified) {
               console.log('❌ [DELIVER] PIN verification failed');
@@ -551,8 +563,14 @@ const DriverDashboard = () => {
             console.log('✅ [DELIVER] PIN verified successfully, proceeding with delivery');
           } catch (error) {
             console.error('❌ [DELIVER] PIN verification error:', error);
-            const errorMessage = error.response?.data?.detail || 'Erreur lors de la vérification du PIN';
+            console.error('❌ [DELIVER] Error response:', error.response);
+            console.error('❌ [DELIVER] Error message:', error.message);
+            console.error('❌ [DELIVER] Error code:', error.code);
+            
+            const errorMessage = error.response?.data?.detail || error.message || 'Erreur lors de la vérification du PIN';
+            console.error('❌ [DELIVER] Displaying error to user:', errorMessage);
             alert(errorMessage);
+            
             setUpdatingOrderIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(order.id);
