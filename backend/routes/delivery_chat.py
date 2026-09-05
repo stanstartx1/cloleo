@@ -327,6 +327,7 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
     """
     try:
         logger.info(f"🔍 [PIN DEBUG] Starting PIN message send for order {order_id}")
+        logger.info(f"🔍 [PIN DEBUG] PIN to send: {delivery_pin}")
         
         order = await db.orders.find_one({"id": order_id, "is_deleted": {"$ne": True}}, {"_id": 0})
         if not order:
@@ -334,6 +335,14 @@ async def send_system_delivery_pin_message(order_id: str, delivery_pin: str, ord
             return {"ok": False, "error": "Order not found"}
         
         logger.info(f"✅ [PIN DEBUG] Order found: {order.get('order_number')}, status: {order.get('status')}")
+        logger.info(f"✅ [PIN DEBUG] Order stored PIN: {order.get('delivery_pin')}")
+        
+        # Verify PIN consistency
+        if order.get("delivery_pin") != delivery_pin:
+            logger.error(f"❌ [PIN DEBUG] PIN MISMATCH! Order has {order.get('delivery_pin')} but trying to send {delivery_pin}")
+            # Use the PIN from the order to ensure consistency
+            delivery_pin = order.get("delivery_pin")
+            logger.info(f"🔄 [PIN DEBUG] Using order PIN instead: {delivery_pin}")
         
         customer_id = order.get("customer_id")
         if not customer_id:

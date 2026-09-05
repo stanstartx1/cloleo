@@ -1488,7 +1488,7 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
     # Generate delivery PIN for order verification - Generate ONCE at order creation
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
-    logger.info(f"🔐 [ORDER CREATION] Generated delivery PIN {delivery_pin} for order {order_id}")
+    logger.info(f"🔐 [ORDER CREATION] Generated delivery PIN {delivery_pin} for order {order_id} - THIS IS THE FINAL PIN")
 
     # Si c'est une commande dropshippée, créer deux commandes optimisées : une pour le vendeur, une pour le revendeur
 
@@ -2362,7 +2362,8 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
         "driver_vehicle_type": user.get("vehicle_type"),
         "driver_accepted_at": _utc(),
         "seller_id": order.get("seller_id"),
-        "driver_location": driver_location
+        "driver_location": driver_location,
+        "delivery_pin": delivery_pin  # Include PIN in broadcast for immediate client display
     }, customer_id=order.get("customer_id") if order else None)
     
     # Also broadcast to driver's own user room to ensure they see the status change
@@ -2376,7 +2377,8 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
         "driver_vehicle_type": user.get("vehicle_type"),
         "driver_accepted_at": _utc(),
         "seller_id": order.get("seller_id"),
-        "driver_location": driver_location
+        "driver_location": driver_location,
+        "delivery_pin": delivery_pin  # Include PIN for consistency
     })
     logger.info(f"📱 [WS DRIVER] Also broadcasted to driver's own room: user_{user['id']}")
 

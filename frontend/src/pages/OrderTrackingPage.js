@@ -143,33 +143,16 @@ const OrderTrackingPage = () => {
       if (realtimeOrder.delivery_pin && !pinNotifiedRef.current) {
         pinNotifiedRef.current = true;
         console.log('🔐 [PIN NOTIFICATION] Delivery PIN available:', realtimeOrder.delivery_pin);
-        // Open floating chat and show toast
-        openOrderConversation(orderId).then(conversation => {
-          if (conversation) {
-            toast.success('Code de livraison reçu !', {
-              description: `Votre code est : ${realtimeOrder.delivery_pin}. Consultez le chat pour plus de détails.`,
-              duration: 10000,
-              action: {
-                label: 'Copier',
-                onClick: () => {
-                  navigator.clipboard.writeText(realtimeOrder.delivery_pin);
-                  toast.success('Code copié !');
-                }
-              }
-            });
-          } else {
-            console.error('❌ [PIN NOTIFICATION] Failed to open conversation for PIN');
-            toast.success('Code de livraison reçu !', {
-              description: `Votre code est : ${realtimeOrder.delivery_pin}. Communiquez-le au livreur.`,
-              duration: 10000,
-              action: {
-                label: 'Copier',
-                onClick: () => {
-                  navigator.clipboard.writeText(realtimeOrder.delivery_pin);
-                  toast.success('Code copié !');
-                }
-              }
-            });
+        // Only show toast, don't open chat automatically - let the system chat message handle it
+        toast.success('Code de livraison reçu !', {
+          description: `Votre code est : ${realtimeOrder.delivery_pin}. Consultez le chat pour plus de détails.`,
+          duration: 15000,
+          action: {
+            label: 'Copier',
+            onClick: () => {
+              navigator.clipboard.writeText(realtimeOrder.delivery_pin);
+              toast.success('Code copié !');
+            }
           }
         });
       }
@@ -228,34 +211,17 @@ const OrderTrackingPage = () => {
             if (pinMatch) {
               const pin = pinMatch[1];
               console.log('🔐 [PIN NOTIFICATION] PIN received via chat notification:', pin);
+              console.log('🔐 [PIN NOTIFICATION] Opening chat to show system message');
               
-              // Open delivery conversation in floating chat
+              // Open delivery conversation in floating chat to show the system message
               openOrderConversation(orderId).then(conversation => {
                 if (conversation) {
-                  toast.success('Code de livraison reçu !', {
-                    description: `Votre code est : ${pin}. Consultez le chat pour plus de détails.`,
-                    duration: 10000,
-                    action: {
-                      label: 'Copier',
-                      onClick: () => {
-                        navigator.clipboard.writeText(pin);
-                        toast.success('Code copié !');
-                      }
-                    }
+                  toast.success('Message système reçu', {
+                    description: 'Consultez le chat pour voir votre code de livraison',
+                    duration: 5000
                   });
                 } else {
                   console.error('❌ [PIN NOTIFICATION] Failed to open conversation for PIN notification');
-                  toast.success('Code de livraison reçu !', {
-                    description: `Votre code est : ${pin}. Communiquez-le au livreur.`,
-                    duration: 10000,
-                    action: {
-                      label: 'Copier',
-                      onClick: () => {
-                        navigator.clipboard.writeText(pin);
-                        toast.success('Code copié !');
-                      }
-                    }
-                  });
                 }
               });
             }
