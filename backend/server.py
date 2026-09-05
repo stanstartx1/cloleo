@@ -1483,11 +1483,11 @@ async def create_order(payload: CreateOrder, user: dict = Depends(get_current_us
 
     order_id = str(uuid.uuid4())
     
-    # Generate delivery PIN for order verification
+    # Generate delivery PIN for order verification - Generate ONCE at order creation
     delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
     delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
+    logger.info(f"🔐 [ORDER CREATION] Generated delivery PIN {delivery_pin} for order {order_id}")
 
-    
     # Si c'est une commande dropshippée, créer deux commandes optimisées : une pour le vendeur, une pour le revendeur
 
     if is_dropshipped_order and dropshipped_product_info:
@@ -2041,17 +2041,30 @@ async def verify_delivery_pin_endpoint(order_id: str, payload: dict, user: dict 
     if not pin:
         raise HTTPException(status_code=400, detail="Code PIN requis")
     
+    logger.info(f"🔐 [PIN VERIFY] Driver {user['id']} attempting to verify PIN for order {order_id}")
+    logger.info(f"🔐 [PIN VERIFY] PIN entered: {pin}")
+    
     pin_hash = order.get("delivery_pin_hash")
+    logger.info(f"🔐 [PIN VERIFY] Stored PIN hash exists: {bool(pin_hash)}")
+    
     # Support for existing orders without hash
     if not pin_hash and order.get("delivery_pin"):
+        logger.info(f"🔐 [PIN VERIFY] Generating hash from stored plain PIN")
         pin_hash = hashlib.sha256(str(order["delivery_pin"]).encode()).hexdigest()
     
     if not pin_hash:
+        logger.info(f"🔐 [PIN VERIFY] No PIN required for this order")
         return {"ok": True, "verified": True, "message": "Aucun PIN requis"}
     
     candidate = hashlib.sha256(str(pin).encode()).hexdigest()
+    logger.info(f"🔐 [PIN VERIFY] Candidate hash: {candidate}")
+    logger.info(f"🔐 [PIN VERIFY] Stored hash: {pin_hash}")
+    
     if not hmac.compare_digest(candidate, pin_hash):
+        logger.warning(f"❌ [PIN VERIFY] PIN mismatch for order {order_id}")
         raise HTTPException(status_code=400, detail="Code PIN incorrect")
+    
+    logger.info(f"✅ [PIN VERIFY] PIN verified successfully for order {order_id}")
     
     # Mark PIN as verified
     await db.orders.update_one(
@@ -2353,23 +2366,30 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     }, customer_id=order.get("customer_id") if order else None)
 
     # Send delivery PIN via chat message from Cloleo when driver accepts
-    # Generate PIN if not already sent
-    delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
-    delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
-    
-    # Update order with new PIN (store both hash and plain text temporarily)
-    await db.orders.update_one(
-        {"id": order_id},
-        {
-            "$set": {
-                "delivery_pin": delivery_pin,  # Store plain text temporarily for API access
-                "delivery_pin_hash": delivery_pin_hash,
-                "delivery_pin_created_at": _utc()
+    # ONLY generate PIN if it doesn't already exist (don't regenerate!)
+    existing_pin = order.get("delivery_pin")
+    if not existing_pin:
+        # Generate PIN only if it doesn't exist
+        delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
+        delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
+        
+        # Update order with new PIN (store both hash and plain text temporarily)
+        await db.orders.update_one(
+            {"id": order_id},
+            {
+                "$set": {
+                    "delivery_pin": delivery_pin,  # Store plain text temporarily for API access
+                    "delivery_pin_hash": delivery_pin_hash,
+                    "delivery_pin_created_at": _utc()
+                }
             }
-        }
-    )
+        )
+        
+        logger.info(f"🚀 [DRIVER ACCEPT 2] Generated NEW PIN {delivery_pin} for order {order_id}")
+    else:
+        delivery_pin = existing_pin
+        logger.info(f"🔄 [DRIVER ACCEPT 2] Using EXISTING PIN {delivery_pin} for order {order_id}")
     
-    logger.info(f"🚀 [DRIVER ACCEPT 2] Generated PIN {delivery_pin} for order {order_id}")
     pin_result = await send_system_delivery_pin_message(
         order_id,
         delivery_pin,
