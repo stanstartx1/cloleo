@@ -567,11 +567,11 @@ const FloatingChat = () => {
   useEffect(() => {
     if (!isOpen || !activeConversationId || isRealtimeConnected) return;
 
-    // Poll for new messages every 10 seconds only if WebSocket is not connected
+    // Poll for new messages every 5 seconds for delivery conversations
     const pollingInterval = setInterval(() => {
       loadMessages(false); // Don't force reload, just merge new messages
       refreshConversations();
-    }, 10000); // Poll every 10 seconds
+    }, 5000); // Poll every 5 seconds for faster delivery communication
     
     return () => clearInterval(pollingInterval);
   }, [isOpen, activeConversationId, isRealtimeConnected, loadMessages, refreshConversations]);
