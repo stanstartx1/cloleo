@@ -115,7 +115,7 @@ export const useDriverOrders = (driverId, token) => {
               break;
 
             case 'order_status_update':
-              console.log('📱 [WS DRIVER] Order status update:', data.order_id, data.status);
+              console.log('📱 [WS DRIVER] Order status update:', data.order_id, data.status, data);
               // Update order status
               setOrders(prev => {
                 const existingIndex = prev.findIndex(o => o.id === data.order_id);
@@ -132,8 +132,10 @@ export const useDriverOrders = (driverId, token) => {
                     ...(data.eta_minutes !== undefined && { eta_minutes: data.eta_minutes }),
                     ...data.order_data
                   };
+                  console.log('📱 [WS DRIVER] Updated order status to:', data.status, 'for order:', data.order_id);
                   return updated;
                 }
+                console.log('📱 [WS DRIVER] Order not found in list:', data.order_id);
                 return prev;
               });
               break;

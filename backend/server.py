@@ -2139,7 +2139,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
     await manager.broadcast_to_room(f"driver_{user['id']}", {
         "type": "order_status_update",
         "order_id": order_id,
-        "status": "accepted",
+        "status": "assigned",
         "driver_id": user["id"],
         "driver_name": user.get("name"),
         "driver_vehicle_type": user.get("vehicle_type"),
@@ -2147,6 +2147,7 @@ async def driver_accept_order(order_id: str, user: dict = Depends(require_driver
         "timestamp": _utc(),
         "order_data": updated_order
     })
+    logger.info(f"📱 [WS DRIVER] Order assigned to driver, broadcasted to driver room: driver_{user['id']}")
     logger.info(f"📱 [WS DRIVER] Order {order_id} accepted by driver {user['id']}")
 
     # Generate and send delivery PIN via chat message from Cloleo when driver accepts
@@ -2307,28 +2308,33 @@ async def vendor_accept_order(order_id: str, user: dict = Depends(get_current_us
 
 @api.put("/orders/{order_id}/driver-start")
 async def driver_start_order(order_id: str, user: dict = Depends(require_driver)):
-    """Driver starts the delivery - second validation step after accepting"""
+    """Driver accepts an assigned order - transitions from assigned to accepted"""
+    logger.info(f"🚀 [DRIVER ACCEPT START] Driver {user['id']} accepting assigned order {order_id}")
     order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
     
     if not order:
+        logger.error(f"❌ [DRIVER ACCEPT START] Order {order_id} not found or not assigned to driver")
         raise HTTPException(status_code=404, detail="Commande non trouvée ou non assignée")
     
-    if order["status"] != "assigned":
-        raise HTTPException(status_code=400, detail="Cette commande doit être assignée avant de démarrer")
+    logger.info(f"✅ [DRIVER ACCEPT START] Order found: status={order.get('status')}, driver_id={order.get('driver_id')}")
     
-    # Update order status to 'accepted' (driver starts working on the order)
+    if order.get("status") != "assigned":
+        logger.warning(f"⚠️  [DRIVER ACCEPT START] Order status is {order.get('status')}, not assigned")
+        raise HTTPException(status_code=400, detail="Cette commande doit être assignée avant d'être acceptée")
+    
+    # Update order status to 'accepted' (driver accepts the assignment)
     await db.orders.update_one(
         {"id": order_id},
         {
             "$set": {
                 "status": "accepted",
-                "driver_started_at": _utc(),
+                "driver_accepted_at": _utc(),
                 "updated_at": _utc()
             },
             "$push": {
                 "status_history": {
                     "status": "accepted",
-                    "note": f"Livreur {user.get('name')} a démarré la livraison",
+                    "note": f"Livreur {user.get('name')} a accepté la commande",
                     "timestamp": _utc()
                 }
             },
@@ -2336,12 +2342,11 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
     )
     
     # Broadcast order status update via WebSocket
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-    logger.info(f"📱 [WS DRIVER] Driver {user['id']} accepting order {order_id}")
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} accepting assigned order {order_id}")
 
     # Get driver's current location
     driver_location = manager.get_driver_location(user["id"])
-    logger.info(f"📱 [WS DRIVER] Driver {user['id']} location on pickup accept:", driver_location)
+    logger.info(f"📱 [WS DRIVER] Driver {user['id']} location on accept:", driver_location)
 
     await manager.broadcast_order_status_update(order_id, "accepted", {
         "driver_id": user["id"],
@@ -2351,6 +2356,58 @@ async def driver_start_order(order_id: str, user: dict = Depends(require_driver)
         "seller_id": order.get("seller_id"),
         "driver_location": driver_location
     }, customer_id=order.get("customer_id") if order else None)
+    
+    # Also broadcast to driver's own user room to ensure they see the status change
+    await manager.broadcast_to_room(f"user_{user['id']}", {
+        "type": "order_status_update",
+        "order_id": order_id,
+        "status": "accepted",
+        "timestamp": _utc(),
+        "driver_id": user["id"],
+        "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
+        "driver_accepted_at": _utc(),
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
+    })
+    logger.info(f"📱 [WS DRIVER] Also broadcasted to driver's own room: user_{user['id']}")
+
+    # Send delivery PIN via chat message from Cloleo when driver accepts
+    # ONLY generate PIN if it doesn't already exist (don't regenerate!)
+    existing_pin = order.get("delivery_pin")
+    if not existing_pin:
+        # Generate PIN only if it doesn't exist
+        delivery_pin = f"{secrets.randbelow(1_000_000):06d}"
+        delivery_pin_hash = hashlib.sha256(delivery_pin.encode()).hexdigest()
+        
+        # Update order with new PIN (store both hash and plain text temporarily)
+        await db.orders.update_one(
+            {"id": order_id},
+            {
+                "$set": {
+                    "delivery_pin": delivery_pin,  # Store plain text temporarily for API access
+                    "delivery_pin_hash": delivery_pin_hash,
+                    "delivery_pin_created_at": _utc()
+                }
+            }
+        )
+        
+        logger.info(f"🚀 [DRIVER ACCEPT START] Generated NEW PIN {delivery_pin} for order {order_id}")
+    else:
+        delivery_pin = existing_pin
+        logger.info(f"🔄 [DRIVER ACCEPT START] Using EXISTING PIN {delivery_pin} for order {order_id}")
+    
+    pin_result = await send_system_delivery_pin_message(
+        order_id,
+        delivery_pin,
+        order.get("order_number")
+    )
+    logger.info(f"📊 [DRIVER ACCEPT START] PIN message result: {pin_result}")
+
+    # Notify all parties
+    await notify_all_parties(order_id, "order_update", f"Livreur {user.get('name')} a accepté la commande", manager)
+    
+    return {"ok": True, "message": "Commande acceptée avec succès", "status": "accepted"}
 
     # Send delivery PIN via chat message from Cloleo when driver accepts
     # ONLY generate PIN if it doesn't already exist (don't regenerate!)
@@ -2434,6 +2491,20 @@ async def driver_pickup_order(order_id: str, user: dict = Depends(require_driver
         "seller_id": order.get("seller_id"),
         "driver_location": driver_location
     }, customer_id=order.get("customer_id"))
+    
+    # Also broadcast to driver's own user room to ensure they see the status change
+    await manager.broadcast_to_room(f"user_{user['id']}", {
+        "type": "order_status_update",
+        "order_id": order_id,
+        "status": "picked_up",
+        "timestamp": _utc(),
+        "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
+        "picked_up_at": _utc(),
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
+    })
+    logger.info(f"📱 [WS DRIVER] Also broadcasted to driver's own room: user_{user['id']}")
 
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Colis récupéré par le livreur {user.get('name')}", manager)
@@ -2507,6 +2578,21 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
         "seller_id": order.get("seller_id"),
         "driver_location": driver_location
     }, customer_id=order.get("customer_id"))
+    
+    # Also broadcast to driver's own user room to ensure they see the status change
+    await manager.broadcast_to_room(f"user_{user['id']}", {
+        "type": "order_status_update",
+        "order_id": order_id,
+        "status": "in_transit",
+        "timestamp": _utc(),
+        "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
+        "in_transit_at": _utc(),
+        "eta_minutes": eta_minutes,
+        "seller_id": order.get("seller_id"),
+        "driver_location": driver_location
+    })
+    logger.info(f"📱 [WS DRIVER] Also broadcasted to driver's own room: user_{user['id']}")
 
     # Notify all parties with ETA information
     eta_message = f"Livraison en cours (arrivée estimée: {eta_minutes} min)" if eta_minutes else "Livraison en cours"
@@ -2562,6 +2648,19 @@ async def driver_deliver_order(order_id: str, user: dict = Depends(require_drive
         "delivered_at": _utc(),
         "seller_id": order.get("seller_id")
     }, customer_id=order.get("customer_id"))
+    
+    # Also broadcast to driver's own user room to ensure they see the status change
+    await manager.broadcast_to_room(f"user_{user['id']}", {
+        "type": "order_status_update",
+        "order_id": order_id,
+        "status": "delivered",
+        "timestamp": _utc(),
+        "driver_name": user.get("name"),
+        "driver_vehicle_type": user.get("vehicle_type"),
+        "delivered_at": _utc(),
+        "seller_id": order.get("seller_id")
+    })
+    logger.info(f"📱 [WS DRIVER] Also broadcasted to driver's own room: user_{user['id']}")
 
     # Notify all parties
     await notify_all_parties(order_id, "order_update", f"Commande livrée avec succès par {user.get('name')}", manager)

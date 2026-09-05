@@ -98,6 +98,21 @@ export const useUserRealtime = (token, userId) => {
               // Heartbeat response
               break;
 
+            case 'chat_notification':
+              // Chat notification (PIN messages, etc.)
+              console.log('📱 [WS USER] Chat notification received');
+              break;
+
+            case 'notification':
+              // General notification
+              console.log('📱 [WS USER] Notification received');
+              break;
+
+            case 'order_update':
+              // Order update notification
+              console.log('📱 [WS USER] Order update received');
+              break;
+
             default:
               console.log('Unknown user message type:', data.type);
           }

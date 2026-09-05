@@ -417,7 +417,7 @@ const DriverDashboard = () => {
       
       switch (action) {
         case 'driver-accept': 
-          endpoint = `/orders/${order.id}/driver-accept`; 
+          endpoint = `/orders/${order.id}/driver-start`; 
           setTrackingEnabled(true);
           
           // Request GPS with explicit permission request - synchronous with device
@@ -680,6 +680,7 @@ const DriverDashboard = () => {
     customerLocation,
     activeOrdersCount: activeOrders.length,
     activeOrderForMap: activeOrderForMap?.id,
+    activeOrderForMapStatus: activeOrderForMap?.status,
     showRoute: activeOrders.length > 0,
     driverVehicleType
   });

@@ -130,6 +130,24 @@ export const useOrderTracking = (orderId, token) => {
               // Heartbeat response
               break;
 
+            case 'chat_notification':
+              // Chat notification - handle PIN messages
+              if (data.message && data.message.content) {
+                console.log('📱 [WS ORDER] Chat notification received:', data.message.content);
+                // Could update order with PIN if needed
+              }
+              break;
+
+            case 'notification':
+              // General notification
+              console.log('📱 [WS ORDER] Notification received:', data.notification);
+              break;
+
+            case 'order_update':
+              // Order update notification
+              console.log('📱 [WS ORDER] Order update received:', data.message);
+              break;
+
             default:
               console.log('Unknown message type:', data.type);
           }
