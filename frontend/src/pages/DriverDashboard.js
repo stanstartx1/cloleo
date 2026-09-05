@@ -611,7 +611,6 @@ const DriverDashboard = () => {
           alert('Livraison confirmée avec succès!');
         }
       }
-      }
       
       if (action === 'driver-cancel') {
         setSelectedOrder(null);
