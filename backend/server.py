@@ -2030,6 +2030,7 @@ async def verify_delivery_pin_endpoint(order_id: str, payload: dict, user: dict 
     
     logger.info(f"🔐 [PIN VERIFY] Driver {user['id']} attempting to verify PIN for order {order_id}")
     logger.info(f"🔐 [PIN VERIFY] PIN entered: {pin}")
+    logger.info(f"🔐 [PIN VERIFY] Current order status: {order.get('status')}")
     
     pin_hash = order.get("delivery_pin_hash")
     logger.info(f"🔐 [PIN VERIFY] Stored PIN hash exists: {bool(pin_hash)}")
@@ -2054,10 +2055,15 @@ async def verify_delivery_pin_endpoint(order_id: str, payload: dict, user: dict 
     logger.info(f"✅ [PIN VERIFY] PIN verified successfully for order {order_id}")
     
     # Mark PIN as verified
-    await db.orders.update_one(
+    update_result = await db.orders.update_one(
         {"id": order_id},
         {"$set": {"delivery_pin_verified": True, "delivery_pin_verified_at": _utc()}}
     )
+    logger.info(f"🔐 [PIN VERIFY] Update result: {update_result.modified_count} document(s) modified")
+    
+    # Verify the update was successful
+    updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    logger.info(f"🔐 [PIN VERIFY] Verified delivery_pin_verified: {updated_order.get('delivery_pin_verified')}")
     
     return {"ok": True, "verified": True, "message": "Code PIN vérifié avec succès"}
 
@@ -2607,18 +2613,32 @@ async def driver_start_delivery(order_id: str, user: dict = Depends(require_driv
 @api.put("/orders/{order_id}/deliver")
 async def driver_deliver_order(order_id: str, user: dict = Depends(require_driver)):
     """Driver confirms delivery - final validation step"""
+    logger.info(f"🚚 [DELIVER] Driver {user['id']} attempting to deliver order {order_id}")
     order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
     
     if not order:
+        logger.error(f"❌ [DELIVER] Order {order_id} not found or not assigned to driver")
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     
+    logger.info(f"✅ [DELIVER] Order found: status={order.get('status')}, driver_id={order.get('driver_id')}")
+    
     if order["status"] != "in_transit":
+        logger.warning(f"⚠️  [DELIVER] Order status is {order.get('status')}, not in_transit")
         raise HTTPException(status_code=400, detail="La livraison doit être en cours pour confirmer")
+    
     # Photo requirement removed - delivery can be confirmed without proof
     # if order.get("delivery_proof_required") and not order.get("delivery_proof"):
     #     raise HTTPException(status_code=400, detail="Une photo de preuve est requise avant confirmation")
+    
+    logger.info(f"🔐 [DELIVER] Checking PIN verification status for order {order_id}")
+    logger.info(f"🔐 [DELIVER] delivery_pin_hash exists: {bool(order.get('delivery_pin_hash'))}")
+    logger.info(f"🔐 [DELIVER] delivery_pin_verified: {order.get('delivery_pin_verified')}")
+    
     if order.get("delivery_pin_hash") and not order.get("delivery_pin_verified"):
+        logger.warning(f"❌ [DELIVER] PIN not verified for order {order_id}")
         raise HTTPException(status_code=400, detail="Le code PIN client doit être vérifié avant confirmation")
+    
+    logger.info(f"✅ [DELIVER] PIN verification passed, proceeding with delivery confirmation")
     
     # Update order status to 'delivered'
     await db.orders.update_one(

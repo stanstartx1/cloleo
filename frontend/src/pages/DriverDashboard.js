@@ -508,7 +508,7 @@ const DriverDashboard = () => {
           // Require PIN verification before delivery
           const pin = prompt("Entrez le code de livraison du client (code à 6 chiffres) :");
           if (!pin) {
-            console.log('PIN verification cancelled');
+            console.log('🔐 [DELIVER] PIN verification cancelled by user');
             setUpdatingOrderIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(order.id);
@@ -521,6 +521,8 @@ const DriverDashboard = () => {
             return;
           }
           
+          console.log('🔐 [DELIVER] Verifying PIN for order:', order.id);
+          
           // Verify PIN first
           try {
             const verifyResponse = await axios.post(
@@ -529,8 +531,11 @@ const DriverDashboard = () => {
               { headers: { Authorization: `Bearer ${token}` } }
             );
             
+            console.log('🔐 [DELIVER] PIN verification response:', verifyResponse.data);
+            
             if (!verifyResponse.data.verified) {
-              console.log('PIN verification failed');
+              console.log('❌ [DELIVER] PIN verification failed');
+              alert('Code PIN incorrect. Veuillez réessayer.');
               setUpdatingOrderIds(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(order.id);
@@ -542,8 +547,12 @@ const DriverDashboard = () => {
               setSelectedOrder(order);
               return;
             }
+            
+            console.log('✅ [DELIVER] PIN verified successfully, proceeding with delivery');
           } catch (error) {
-            console.error('PIN verification error:', error);
+            console.error('❌ [DELIVER] PIN verification error:', error);
+            const errorMessage = error.response?.data?.detail || 'Erreur lors de la vérification du PIN';
+            alert(errorMessage);
             setUpdatingOrderIds(prev => {
               const newSet = new Set(prev);
               newSet.delete(order.id);
@@ -582,6 +591,7 @@ const DriverDashboard = () => {
       const response = await axios.put(`${API}${endpoint}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       console.log('📱 [DRIVER ACTION] API response:', response.data);
       console.log('📱 [DRIVER ACTION] Order status updated to:', response.data.status || statusMap[action]);
+      console.log('📱 [DRIVER ACTION] Full response data:', JSON.stringify(response.data, null, 2));
 
       // Verify status sync with backend
       if (response.data && response.data.status) {
@@ -592,6 +602,15 @@ const DriverDashboard = () => {
         setSelectedOrder(prev => prev ? { ...prev, status: backendStatus } : null);
         setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o));
         setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o));
+        
+        console.log('📱 [DRIVER ACTION] Local state updated to:', backendStatus);
+        
+        // If delivery was successful, show success message
+        if (backendStatus === 'delivered') {
+          console.log('🎉 [DRIVER ACTION] Delivery completed successfully!');
+          alert('Livraison confirmée avec succès!');
+        }
+      }
       }
       
       if (action === 'driver-cancel') {
