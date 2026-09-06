@@ -132,11 +132,6 @@ const DriverDashboard = () => {
   }, [token]);
 
   useEffect(() => {
-    if (!isDriver) {
-      navigate('/connexion');
-      return;
-    }
-
     const init = async () => {
       setLoading(true);
       await fetchDashboard();
@@ -159,7 +154,11 @@ const DriverDashboard = () => {
       setLoading(false);
     };
 
-    init();
+    if (isDriver) {
+      init();
+    } else {
+      navigate('/connexion');
+    }
     // Don't request notification permission automatically - it requires user gesture
   }, [isDriver, navigate, fetchDashboard, fetchOrders, fetchAvailableOrders, token]);
 
@@ -699,14 +698,6 @@ const DriverDashboard = () => {
     navigate('/');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-blue-400" />
-      </div>
-    );
-  }
-
   const stats = dashboard?.stats;
   const driverUser = dashboard?.user;
   const isPendingVerification = !driverUser?.is_verified || !driverUser?.is_active;
@@ -734,6 +725,14 @@ const DriverDashboard = () => {
     latitude: activeOrderForMap.delivery_address.latitude,
     longitude: activeOrderForMap.delivery_address.longitude
   } : null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-blue-400" />
+      </div>
+    );
+  }
 
   console.log('🗺️ [DRIVER MAP] Map state:', {
     currentLocation,
