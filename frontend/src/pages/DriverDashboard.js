@@ -616,9 +616,18 @@ const DriverDashboard = () => {
         
         // Update local state to match backend response
         const backendStatus = response.data.status;
-        setSelectedOrder(prev => prev ? { ...prev, status: backendStatus } : null);
-        setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o));
-        setActiveOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o));
+        setSelectedOrder(prev => {
+          console.log('📱 [DRIVER ACTION] Updating selectedOrder from:', prev?.status, 'to:', backendStatus);
+          return prev ? { ...prev, status: backendStatus } : null;
+        });
+        setOrders(prev => {
+          console.log('📱 [DRIVER ACTION] Updating orders list status to:', backendStatus);
+          return prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o);
+        });
+        setActiveOrders(prev => {
+          console.log('📱 [DRIVER ACTION] Updating activeOrders status to:', backendStatus);
+          return prev.map(o => o.id === order.id ? { ...o, status: backendStatus } : o);
+        });
         
         console.log('📱 [DRIVER ACTION] Local state updated to:', backendStatus);
         
@@ -709,6 +718,22 @@ const DriverDashboard = () => {
     latitude: activeOrderForMap.delivery_address.latitude,
     longitude: activeOrderForMap.delivery_address.longitude
   } : null;
+
+  // Auto-sync selectedOrder when activeOrders changes
+  useEffect(() => {
+    if (selectedOrder && activeOrders.length > 0) {
+      // Find the updated version of the selected order in activeOrders
+      const updatedOrder = activeOrders.find(o => o.id === selectedOrder.id);
+      if (updatedOrder && updatedOrder.status !== selectedOrder.status) {
+        console.log('📱 [DRIVER SYNC] Auto-syncing selectedOrder status:', selectedOrder.status, '->', updatedOrder.status);
+        setSelectedOrder(updatedOrder);
+      }
+    } else if (!selectedOrder && activeOrders.length > 0) {
+      // Auto-select first active order if none selected
+      console.log('📱 [DRIVER SYNC] Auto-selecting first active order:', activeOrders[0].id);
+      setSelectedOrder(activeOrders[0]);
+    }
+  }, [activeOrders, selectedOrder]);
 
   console.log('🗺️ [DRIVER MAP] Map state:', {
     currentLocation,

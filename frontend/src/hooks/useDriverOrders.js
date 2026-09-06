@@ -133,6 +133,7 @@ export const useDriverOrders = (driverId, token) => {
                     ...data.order_data
                   };
                   console.log('📱 [WS DRIVER] Updated order status to:', data.status, 'for order:', data.order_id);
+                  console.log('📱 [WS DRIVER] Full updated order:', updated[existingIndex]);
                   return updated;
                 }
                 console.log('📱 [WS DRIVER] Order not found in list:', data.order_id);
