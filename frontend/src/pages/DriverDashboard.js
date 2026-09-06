@@ -712,13 +712,6 @@ const DriverDashboard = () => {
   const isPendingVerification = !driverUser?.is_verified || !driverUser?.is_active;
   const completedOrders = orders.filter(o => o.driver_id === user?.id && o.status === 'delivered');
 
-  // Use selected order for map navigation, fallback to first active order
-  const activeOrderForMap = selectedOrder || activeOrders[0];
-  const customerLocation = activeOrderForMap?.delivery_address ? {
-    latitude: activeOrderForMap.delivery_address.latitude,
-    longitude: activeOrderForMap.delivery_address.longitude
-  } : null;
-
   // Auto-sync selectedOrder when activeOrders changes
   useEffect(() => {
     if (selectedOrder && activeOrders.length > 0) {
@@ -734,6 +727,13 @@ const DriverDashboard = () => {
       setSelectedOrder(activeOrders[0]);
     }
   }, [activeOrders, selectedOrder]);
+
+  // Use selected order for map navigation, fallback to first active order
+  const activeOrderForMap = selectedOrder || activeOrders[0];
+  const customerLocation = activeOrderForMap?.delivery_address ? {
+    latitude: activeOrderForMap.delivery_address.latitude,
+    longitude: activeOrderForMap.delivery_address.longitude
+  } : null;
 
   console.log('🗺️ [DRIVER MAP] Map state:', {
     currentLocation,
