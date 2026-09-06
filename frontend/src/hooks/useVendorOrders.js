@@ -3,14 +3,25 @@ import { WS_URL } from '../config/api';
 
 export const useVendorOrders = (vendorId, token) => {
   const [newOrderAlert, setNewOrderAlert] = useState(null);
+  const [orders, setOrders] = useState([]); // Add orders state for real-time updates
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [error, setError] = useState(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const heartbeatIntervalRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const connect = useCallback(() => {
     if (!vendorId || !token) return;
+
+    // Check if we've exceeded max reconnect attempts
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.log('📱 [WS VENDOR] Max reconnect attempts reached, stopping reconnection');
+      setConnectionStatus('error');
+      setError('Impossible de se connecter après plusieurs tentatives');
+      return;
+    }
 
     // Close existing connection
     if (wsRef.current) {
@@ -25,8 +36,9 @@ export const useVendorOrders = (vendorId, token) => {
         console.log('📱 [WS VENDOR] Vendor orders WebSocket connected for vendor:', vendorId);
         setConnectionStatus('connected');
         setError(null);
+        reconnectAttemptsRef.current = 0; // Reset on successful connection
 
-        // Start heartbeat
+        // Start heartbeat with faster interval for better real-time performance
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current);
         }
@@ -34,13 +46,14 @@ export const useVendorOrders = (vendorId, token) => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping' }));
           }
-        }, 30000);
+        }, 10000); // 10 second heartbeat (reduced from 30s for faster reconnection)
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Vendor orders WebSocket message:', data);
+          console.log('📱 [WS VENDOR] Message received:', data.type, data);
+          console.log('📱 [WS VENDOR] Full message data:', JSON.stringify(data, null, 2));
 
           switch (data.type) {
             case 'vendor_connected':
@@ -48,7 +61,22 @@ export const useVendorOrders = (vendorId, token) => {
               break;
 
             case 'new_order':
+              console.log('📱 [WS VENDOR] New order received:', data.order_data);
               setNewOrderAlert(data.order_data);
+              
+              // Immediately add the new order to the list for real-time update
+              if (data.order_data) {
+                setOrders(prev => {
+                  // Check if order already exists to avoid duplicates
+                  const exists = prev.some(o => o.id === data.order_data.id);
+                  if (!exists) {
+                    console.log('📱 [WS VENDOR] Adding new order to list:', data.order_data.id);
+                    return [data.order_data, ...prev];
+                  }
+                  return prev;
+                });
+              }
+              
               // Show notification sound
               try {
                 const audio = new Audio('/notification.mp3');
@@ -94,12 +122,16 @@ export const useVendorOrders = (vendorId, token) => {
           clearInterval(heartbeatIntervalRef.current);
         }
 
-        // Auto-reconnect after 5 seconds
+        // Auto-reconnect with faster exponential backoff
         if (event.code !== 1000) {
+          reconnectAttemptsRef.current++;
+          const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000); // Max 10 seconds
+          
+          console.log(`📱 [WS VENDOR] Attempting to reconnect in ${backoffTime}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+          
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('Attempting to reconnect vendor orders WebSocket...');
             connect();
-          }, 5000);
+          }, backoffTime);
         }
       };
     } catch (error) {
@@ -141,12 +173,26 @@ export const useVendorOrders = (vendorId, token) => {
     setNewOrderAlert(null);
   }, []);
 
+  const addOrder = useCallback((order) => {
+    setOrders(prev => {
+      // Check if order already exists to avoid duplicates
+      const exists = prev.some(o => o.id === order.id);
+      if (!exists) {
+        console.log('📱 [WS VENDOR] Adding new order to list:', order.id);
+        return [order, ...prev];
+      }
+      return prev;
+    });
+  }, []);
+
   return {
     newOrderAlert,
+    orders, // Expose orders for real-time updates
     connectionStatus,
     error,
     sendMessage,
     clearNewOrderAlert,
+    addOrder, // Expose addOrder for manual order addition
     isConnected: connectionStatus === 'connected'
   };
 };

@@ -221,7 +221,7 @@ class ConnectionManager:
     # ==================== ORDER STATUS UPDATES ====================
     
     async def broadcast_order_status_update(self, order_id: str, status: str, order_data: dict = None, customer_id: str = None):
-        """Broadcast order status update to all relevant users"""
+        """Broadcast order status update to all relevant users with priority for customer"""
         message = {
             "type": "order_status_update",
             "order_id": order_id,
@@ -232,21 +232,21 @@ class ConnectionManager:
         if order_data:
             message.update(order_data)
         
-        # Broadcast to order-specific room
+        # Priority 1: Broadcast to customer user room FIRST for immediate UI update
+        if customer_id:
+            await self.broadcast_to_room(f"user_{customer_id}", message)
+            logger.info(f"📱 [WS BROADCAST] Order status update (PRIORITY): order {order_id} -> {status} (user_{customer_id} room)")
+        
+        # Priority 2: Broadcast to order-specific room
         await self.broadcast_to_room(f"order_{order_id}", message)
         logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (order room)")
         
-        # Also broadcast to customer user room for immediate UI update
-        if customer_id:
-            await self.broadcast_to_room(f"user_{customer_id}", message)
-            logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (user_{customer_id} room)")
-        
-        # Also broadcast to seller's user room if seller_id is present
+        # Priority 3: Broadcast to seller's user room if seller_id is present
         if order_data and 'seller_id' in order_data:
             await self.broadcast_to_room(f"user_{order_data['seller_id']}", message)
             logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (seller user room)")
         
-        # Also broadcast to driver's user room if driver_id is present
+        # Priority 4: Broadcast to driver's user room if driver_id is present
         if order_data and 'driver_id' in order_data:
             await self.broadcast_to_room(f"user_{order_data['driver_id']}", message)
             logger.info(f"📱 [WS BROADCAST] Order status update: order {order_id} -> {status} (driver user room)")
@@ -327,8 +327,13 @@ class ConnectionManager:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
+        # Broadcast to vendor room
         await self.broadcast_to_room(f"vendor_{seller_id}", message)
-        logger.info(f"Broadcast new order: {order_id} to vendor {seller_id}")
+        logger.info(f"📱 [WS BROADCAST] New order broadcast to vendor_{seller_id}: order {order_id}")
+        
+        # Also broadcast to user room for immediate update (double-broadcast for redundancy)
+        await self.broadcast_to_room(f"user_{seller_id}", message)
+        logger.info(f"📱 [WS BROADCAST] New order broadcast to user_{seller_id}: order {order_id}")
     
     async def broadcast_order_assigned(self, order_id: str, driver_id: str, order_data: dict):
         """Broadcast order assignment to customer and driver"""

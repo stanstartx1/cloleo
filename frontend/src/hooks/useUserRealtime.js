@@ -37,7 +37,7 @@ export const useUserRealtime = (token, userId) => {
         setConnectionError(null);
         reconnectAttemptsRef.current = 0; // Reset on successful connection
 
-        // Start heartbeat
+        // Start heartbeat with faster interval for better real-time performance
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current);
         }
@@ -45,7 +45,7 @@ export const useUserRealtime = (token, userId) => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping' }));
           }
-        }, 30000); // 30 second heartbeat
+        }, 10000); // 10 second heartbeat (reduced from 30s for faster reconnection)
       };
 
       ws.onmessage = (event) => {
@@ -135,10 +135,10 @@ export const useUserRealtime = (token, userId) => {
           clearInterval(heartbeatIntervalRef.current);
         }
 
-        // Auto-reconnect after 10 seconds (unless it was a manual close)
+        // Auto-reconnect after 2 seconds (unless it was a manual close) - faster for better real-time
         if (event.code !== 1000) {
           reconnectAttemptsRef.current += 1;
-          const delay = Math.min(10000 * reconnectAttemptsRef.current, 60000); // Exponential backoff, max 60s
+          const delay = Math.min(2000 * reconnectAttemptsRef.current, 10000); // Exponential backoff, max 10s
           
           if (reconnectAttemptsRef.current < maxReconnectAttempts) {
             console.log(`📱 [WS USER] Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts}) in ${delay/1000}s...`);

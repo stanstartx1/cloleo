@@ -27,7 +27,7 @@ export const useDriverOrders = (driverId, token) => {
         setConnectionStatus('connected');
         setError(null);
 
-        // Start heartbeat
+        // Start heartbeat with faster interval for better real-time performance
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current);
         }
@@ -35,7 +35,7 @@ export const useDriverOrders = (driverId, token) => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping' }));
           }
-        }, 30000);
+        }, 10000); // 10 second heartbeat (reduced from 30s for faster reconnection)
       };
 
       ws.onmessage = (event) => {

@@ -41,7 +41,7 @@ export const useOrderTracking = (orderId, token) => {
         setError(null);
         reconnectAttemptsRef.current = 0; // Reset on successful connection
 
-        // Start heartbeat
+        // Start heartbeat with faster interval for better real-time performance
         if (heartbeatIntervalRef.current) {
           clearInterval(heartbeatIntervalRef.current);
         }
@@ -49,7 +49,7 @@ export const useOrderTracking = (orderId, token) => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping' }));
           }
-        }, 30000); // 30 second heartbeat
+        }, 10000); // 10 second heartbeat (reduced from 30s for faster reconnection)
       };
 
       ws.onmessage = (event) => {
@@ -171,12 +171,12 @@ export const useOrderTracking = (orderId, token) => {
           clearInterval(heartbeatIntervalRef.current);
         }
 
-        // Auto-reconnect with exponential backoff (unless it was a manual close)
+        // Auto-reconnect with faster exponential backoff (unless it was a manual close)
         if (event.code !== 1000) {
           reconnectAttemptsRef.current++;
-          const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000); // Max 30 seconds
+          const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000); // Max 10 seconds (reduced from 30s)
           
-          console.log(`Attempting to reconnect order tracking WebSocket in ${backoffTime}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+          console.log(`📱 [WS ORDER] Attempting to reconnect in ${backoffTime}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
