@@ -93,6 +93,7 @@ const CustomerDashboard = () => {
   }
 
   const NAV_ITEMS = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: BarChart3, path: '/tableau-de-bord' },
     { id: 'home', label: 'Accueil', icon: Home, path: '/' },
     { id: 'orders', label: 'Mes commandes', icon: Package, path: '/commandes' },
     { id: 'tracking', label: 'Suivi en direct', icon: Truck, path: '/commandes' },
@@ -166,9 +167,32 @@ const CustomerDashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* Welcome Banner */}
+        <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 rounded-2xl p-8 mb-8 text-white shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Bonjour, {user?.name || 'Client'} ! 👋</h1>
+              <p className="text-purple-100">Bienvenue sur votre espace personnel</p>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge className="bg-white/20 text-white border-white/30">
+                  {stats?.total_orders || 0} commandes
+                </Badge>
+                <Badge className="bg-white/20 text-white border-white/30">
+                  {stats?.loyalty_points || 0} points
+                </Badge>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
+                <ShoppingBag className="w-12 h-12 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-blue-100">Commandes totales</CardTitle>
             </CardHeader>
@@ -183,7 +207,7 @@ const CustomerDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-xl shadow-green-500/30 hover:shadow-green-500/50 transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-green-100">Dépenses totales</CardTitle>
             </CardHeader>
@@ -198,7 +222,7 @@ const CustomerDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-purple-100">Commandes en cours</CardTitle>
             </CardHeader>
@@ -213,7 +237,7 @@ const CustomerDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
+          <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0 shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-amber-100">Points de fidélité</CardTitle>
             </CardHeader>
@@ -249,11 +273,17 @@ const CustomerDashboard = () => {
               </CardHeader>
               <CardContent>
                 {recentOrders.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Package className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                    <p>Aucune commande récente</p>
-                    <Link to="/" className="text-purple-600 hover:underline mt-2 inline-block">
-                      Commencer vos achats
+                  <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <ShoppingBag className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-700 mb-2">Aucune commande récente</h3>
+                    <p className="text-slate-500 mb-4">Commencez vos achats pour voir vos commandes ici</p>
+                    <Link to="/">
+                      <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                        <ShoppingBag className="w-4 h-4 mr-2" />
+                        Découvrir nos produits
+                      </Button>
                     </Link>
                   </div>
                 ) : (
@@ -261,38 +291,38 @@ const CustomerDashboard = () => {
                     {recentOrders.map(order => (
                       <div
                         key={order.id}
-                        className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl hover:from-purple-100 hover:to-pink-100 transition-all cursor-pointer border border-purple-100 hover:border-purple-200"
                         onClick={() => navigate(`/suivi/${order.id}`)}
                       >
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          order.status === 'delivered' ? 'bg-green-100' :
-                          order.status === 'in_transit' ? 'bg-purple-100' :
-                          order.status === 'cancelled' ? 'bg-red-100' : 'bg-blue-100'
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md ${
+                          order.status === 'delivered' ? 'bg-gradient-to-br from-green-400 to-green-500' :
+                          order.status === 'in_transit' ? 'bg-gradient-to-br from-purple-400 to-purple-500' :
+                          order.status === 'cancelled' ? 'bg-gradient-to-br from-red-400 to-red-500' : 'bg-gradient-to-br from-blue-400 to-blue-500'
                         }`}>
-                          {order.status === 'delivered' ? <CheckCircle className="w-6 h-6 text-green-600" /> :
-                           order.status === 'in_transit' ? <Truck className="w-6 h-6 text-purple-600" /> :
-                           order.status === 'cancelled' ? <X className="w-6 h-6 text-red-600" /> :
-                           <Clock className="w-6 h-6 text-blue-600" />}
+                          {order.status === 'delivered' ? <CheckCircle className="w-7 h-7 text-white" /> :
+                           order.status === 'in_transit' ? <Truck className="w-7 h-7 text-white" /> :
+                           order.status === 'cancelled' ? <X className="w-7 h-7 text-white" /> :
+                           <Clock className="w-7 h-7 text-white" />}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-slate-800">{order.order_number}</h4>
-                            <span className="text-sm text-slate-500">{formatPrice(order.total_amount)}</span>
+                            <h4 className="font-semibold text-slate-800">{order.order_number}</h4>
+                            <span className="text-lg font-bold text-purple-600">{formatPrice(order.total_amount)}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className={
-                              order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                              order.status === 'in_transit' ? 'bg-purple-100 text-purple-700' :
-                              order.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge className={
+                              order.status === 'delivered' ? 'bg-green-100 text-green-700 border-green-200' :
+                              order.status === 'in_transit' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-blue-100 text-blue-700 border-blue-200'
                             }>
                               {order.status}
                             </Badge>
                             <span className="text-xs text-slate-400">
-                              {new Date(order.created_at).toLocaleDateString('fr-FR')}
+                              {new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                           </div>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-slate-400" />
+                        <ArrowRight className="w-6 h-6 text-purple-400" />
                       </div>
                     ))}
                   </div>
@@ -303,13 +333,13 @@ const CustomerDashboard = () => {
 
           {/* Notifications */}
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-purple-600" />
+            <Card className="shadow-lg border-purple-100">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                <CardTitle className="flex items-center gap-2 text-purple-700">
+                  <Bell className="w-5 h-5" />
                   Notifications
                   {notifications.length > 0 && (
-                    <Badge variant="destructive" className="ml-auto">
+                    <Badge className="ml-auto bg-gradient-to-r from-purple-600 to-pink-600">
                       {notifications.length}
                     </Badge>
                   )}
@@ -317,20 +347,22 @@ const CustomerDashboard = () => {
               </CardHeader>
               <CardContent>
                 {notifications.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Bell className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                    <p>Aucune notification</p>
+                  <div className="text-center py-12 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                      <Bell className="w-8 h-8 text-white" />
+                    </div>
+                    <p className="text-slate-500">Aucune notification</p>
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {notifications.map((notif, index) => (
                       <div
                         key={index}
-                        className="p-3 bg-gray-50 rounded-lg border-l-4 border-purple-500"
+                        className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-l-4 border-purple-500 hover:from-purple-100 hover:to-pink-100 transition-all"
                       >
-                        <p className="text-sm text-slate-700">{notif.message || notif.content}</p>
-                        <span className="text-xs text-slate-400 mt-1 block">
-                          {new Date(notif.timestamp || notif.created_at).toLocaleString('fr-FR')}
+                        <p className="text-sm text-slate-700 font-medium">{notif.message || notif.content}</p>
+                        <span className="text-xs text-slate-400 mt-2 block">
+                          {new Date(notif.timestamp || notif.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     ))}
@@ -340,38 +372,30 @@ const CustomerDashboard = () => {
             </Card>
 
             {/* Quick Actions */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-purple-600" />
+            <Card className="mt-6 shadow-lg border-purple-100">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                <CardTitle className="flex items-center gap-2 text-purple-700">
+                  <Target className="w-5 h-5" />
                   Actions rapides
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <Link to="/" className="block">
-                    <Button variant="outline" className="w-full justify-start">
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      Nouvelle commande
-                    </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Link to="/" className="flex flex-col items-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl hover:from-purple-100 hover:to-pink-100 transition-all">
+                    <ShoppingBag className="w-6 h-6 text-purple-600 mb-2" />
+                    <span className="text-sm font-medium text-slate-700">Acheter</span>
                   </Link>
-                  <Link to="/commandes" className="block">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Package className="w-4 h-4 mr-2" />
-                      Mes commandes
-                    </Button>
+                  <Link to="/favoris" className="flex flex-col items-center p-4 bg-gradient-to-br from-pink-50 to-orange-50 rounded-xl hover:from-pink-100 hover:to-orange-100 transition-all">
+                    <Heart className="w-6 h-6 text-pink-600 mb-2" />
+                    <span className="text-sm font-medium text-slate-700">Favoris</span>
                   </Link>
-                  <Link to="/favoris" className="block">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Heart className="w-4 h-4 mr-2" />
-                      Mes favoris
-                    </Button>
+                  <Link to="/commandes" className="flex flex-col items-center p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl hover:from-orange-100 hover:to-amber-100 transition-all">
+                    <Package className="w-6 h-6 text-orange-600 mb-2" />
+                    <span className="text-sm font-medium text-slate-700">Commandes</span>
                   </Link>
-                  <Link to="/mes-messages" className="block">
-                    <Button variant="outline" className="w-full justify-start">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Mes messages
-                    </Button>
+                  <Link to="/parametres" className="flex flex-col items-center p-4 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl hover:from-amber-100 hover:to-yellow-100 transition-all">
+                    <Settings className="w-6 h-6 text-amber-600 mb-2" />
+                    <span className="text-sm font-medium text-slate-700">Paramètres</span>
                   </Link>
                 </div>
               </CardContent>

@@ -113,10 +113,21 @@ async def register(data: UserRegister):
         "location": None,
         "city": None,
     }
-    await db.users.insert_one(user)
+    
+    try:
+        await db.users.insert_one(user)
+    except Exception as e:
+        print(f"❌ [REGISTER ERROR] Error inserting user: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors de la création du compte")
+    
+    # Remove password from response
+    user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
+    
     return {
         "token": create_token(user["id"], user["role"]),
-        "user": {k: v for k, v in user.items() if k not in ["password", "_id"]},
+        "user": user_response
     }
 
 
