@@ -89,10 +89,16 @@ async def get_customer_dashboard(user: dict = Depends(get_current_user)):
             "is_deleted": {"$ne": True}
         }).sort("created_at", -1).limit(5).to_list(length=5)
         
+        # Remove _id from orders
+        recent_orders = [{**order, "_id": None} for order in recent_orders]
+        
         # Get recent notifications (last 10)
         notifications = await db.notifications.find({
             "user_id": customer_id
         }).sort("created_at", -1).limit(10).to_list(length=10)
+        
+        # Remove _id from notifications
+        notifications = [{**notif, "_id": None} for notif in notifications]
         
         return {
             "stats": {
@@ -110,5 +116,8 @@ async def get_customer_dashboard(user: dict = Depends(get_current_user)):
         }
         
     except Exception as e:
-        print(f"Error fetching customer dashboard: {e}")
+        print(f"❌ [CUSTOMER DASHBOARD] Error fetching dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors du chargement du tableau de bord: {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur lors du chargement du tableau de bord")
