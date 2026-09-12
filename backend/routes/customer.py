@@ -6,7 +6,7 @@ from bson import ObjectId
 from core.database import db
 from core.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/customer", tags=["Customer"])
 
 def _utc():
     return datetime.now(timezone.utc).isoformat()
