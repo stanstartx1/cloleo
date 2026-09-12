@@ -6850,10 +6850,30 @@ async def admin_delete_vendor(vendor_id: str, user: dict = Depends(require_admin
 @api.put("/admin/drivers/{driver_id}/verify")
 
 async def admin_verify_driver(driver_id: str, user: dict = Depends(require_admin)):
-
-    await db.users.update_one({"id": driver_id, "role": "driver"}, {"$set": {"is_verified": True, "is_active": True, "updated_at": _utc()}})
-
-    return {"ok": True}
+    """
+    Verify a driver - only allows verification if license is uploaded
+    """
+    driver = await db.users.find_one({"id": driver_id, "role": "driver"}, {"_id": 0})
+    
+    if not driver:
+        raise HTTPException(status_code=404, detail="Livreur non trouvé")
+    
+    # Check if license is uploaded
+    if not driver.get("license_image"):
+        logger.warning(f"📄 [DRIVER VERIFY] Attempting to verify driver {driver_id} without license")
+        raise HTTPException(
+            status_code=400, 
+            detail="Ce livreur n'a pas encore uploadé son permis. Veuillez lui demander de le faire."
+        )
+    
+    # Verify and activate the driver
+    await db.users.update_one(
+        {"id": driver_id, "role": "driver"}, 
+        {"$set": {"is_verified": True, "is_active": True, "updated_at": _utc()}}
+    )
+    
+    logger.info(f"✅ [DRIVER VERIFY] Driver {driver_id} verified successfully with license")
+    return {"ok": True, "message": "Livreur vérifié avec succès"}
 
 
 

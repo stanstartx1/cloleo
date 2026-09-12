@@ -1030,28 +1030,17 @@ const DriversSection = ({ drivers, onVerify, onToggle, onDelete, onMessage, auto
                 <td className="p-4">{driver.city}</td>
                 <td className="p-4">
                   {driver.license_image ? (
-                    <div className="flex flex-col gap-1">
-                      <a 
-                        href={`${API_BASE}${driver.license_image}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-blue-400 hover:underline text-sm flex items-center gap-1"
-                      >
-                        <Image className="w-4 h-4" />
-                        Voir le permis
-                      </a>
-                      {driver.license_uploaded && (
-                        <span className="text-green-400 text-xs flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Uploadé
-                        </span>
-                      )}
-                    </div>
+                    <a 
+                      href={`${API_BASE}${driver.license_image}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 px-3 py-1.5 rounded-lg text-sm transition-all"
+                    >
+                      <Image className="w-4 h-4" />
+                      Voir le permis
+                    </a>
                   ) : (
-                    <span className="text-red-400 text-sm flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      Non uploadé
-                    </span>
+                    <span className="text-slate-600 text-sm">—</span>
                   )}
                 </td>
                 <td className="p-4">
