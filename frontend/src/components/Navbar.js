@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
   Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
-  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight, Clock, Headphones
+  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight, Clock, Headphones, BarChart3
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -281,7 +281,7 @@ const SearchMegaMenu = ({ isOpen, onClose, onSearch, searchQuery, setSearchQuery
 const Navbar = () => {
   const navigate = useNavigate();
   const { cart } = useCart();
-  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, isEnterprise, logout } = useAuth();
+  const { user, isAuthenticated, isVendor, isAdmin, isDriver, isDropshipper: isRevendeur, isEnterprise, isCustomer, logout } = useAuth();
   const { t, categoryName } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -704,6 +704,11 @@ const Navbar = () => {
                         <Link to="/forum" className="font-semibold"><MessageSquare className="w-4 h-4 mr-2" /> {t('nav.forum')}</Link>
                       </DropdownMenuItem>
                     )}
+                    {isCustomer && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/tableau-de-bord" className="font-semibold"><BarChart3 className="w-4 h-4 mr-2" /> Mon espace</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link to="/support" className="font-semibold"><Headphones className="w-4 h-4 mr-2" /> Support</Link>
                     </DropdownMenuItem>
@@ -831,6 +836,11 @@ const Navbar = () => {
                   <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <Bell className="w-4 h-4" /> {t('nav.subscriptions')}
                   </Link>
+                  {isCustomer && (
+                    <Link to="/tableau-de-bord" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-purple-500 rounded-lg hover:bg-purple-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                      <BarChart3 className="w-4 h-4" /> Mon espace
+                    </Link>
+                  )}
                   <Link to="/support" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-purple-500 rounded-lg hover:bg-purple-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <Headphones className="w-4 h-4" /> Support
                   </Link>
