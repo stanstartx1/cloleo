@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Package, Truck, Clock, CheckCircle, Star, Bell,
-  MapPin, DollarSign, Award, ShoppingBag, Calendar,
+  Award, ShoppingBag, Calendar,
   ArrowRight, Settings, LogOut, User, RefreshCw, MessageCircle,
   Heart, Wallet, Target, BarChart3, Menu, XCircle, Home,
-  Sparkles, Zap, Crown, Flame, Search
+  Search
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUserRealtime } from '../hooks/useUserRealtime';
