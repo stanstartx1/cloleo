@@ -12,10 +12,10 @@ from core.auth import get_current_user, get_current_user_optional
 router = APIRouter(prefix="/support", tags=["Support"])
 
 # SMTP Configuration
-SMTP_SERVER = "mail.cloleo.com"
-SMTP_PORT = 587
-SMTP_USE_SSL = False
-SMTP_USE_STARTTLS = True
+SMTP_SERVER = "mail95.lwspanel.com"
+SMTP_PORT = 465
+SMTP_USE_SSL = True
+SMTP_USE_STARTTLS = False
 SUPPORT_EMAIL = "support@cloleo.com"
 SUPPORT_PASSWORD = "L87413001@"
 
