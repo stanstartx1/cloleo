@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, Heart, Search, Menu, X, ChevronDown, User, Store, 
   Crown, LogOut, Truck, MessageCircle, Bell, Settings, Eye, 
-  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight, Clock
+  Filter, Star, DollarSign, Building2, MessageSquare, Wallet, EyeOff, ArrowUpRight, Clock, Headphones
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -592,6 +592,13 @@ const Navbar = () => {
                 </Link>
               </Button>
 
+              {/* Support */}
+              <Button variant="ghost" size="icon" asChild className="hidden sm:flex rounded-full w-9 h-9 md:w-10 md:h-10 hover:bg-purple-50">
+                <Link to="/support" data-testid="support-btn">
+                  <Headphones className="w-5 h-5 text-slate-700 hover:text-purple-500 transition-colors" />
+                </Link>
+              </Button>
+
               {/* Bouton Connexion (non connecté, desktop) */}
               {!isAuthenticated && (
                 <Button
@@ -697,6 +704,9 @@ const Navbar = () => {
                         <Link to="/forum" className="font-semibold"><MessageSquare className="w-4 h-4 mr-2" /> {t('nav.forum')}</Link>
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem asChild>
+                      <Link to="/support" className="font-semibold"><Headphones className="w-4 h-4 mr-2" /> Support</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/parametres" className="font-semibold"><Settings className="w-4 h-4 mr-2" /> {t('nav.settings')}</Link>
                     </DropdownMenuItem>
@@ -820,6 +830,9 @@ const Navbar = () => {
                   )}
                   <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <Bell className="w-4 h-4" /> {t('nav.subscriptions')}
+                  </Link>
+                  <Link to="/support" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-purple-500 rounded-lg hover:bg-purple-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <Headphones className="w-4 h-4" /> Support
                   </Link>
                 </>
               )}

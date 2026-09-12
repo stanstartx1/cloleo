@@ -45,12 +45,15 @@ const SupportPage = () => {
     setError('');
 
     try {
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await axios.post(
         `${API}/api/support/contact`,
         formData,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers }
       );
 
       if (response.data.success) {

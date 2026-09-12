@@ -320,12 +320,8 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
 
-      {/* Support Page */}
-      <Route path="/support" element={
-        <ProtectedRoute>
-          <SupportPage />
-        </ProtectedRoute>
-      } />
+      {/* Support Page - Accessible to everyone */}
+      <Route path="/support" element={<SupportPage />} />
 
       {/* Vendor Routes */}
       <Route path="/vendeur" element={

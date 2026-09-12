@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
-from core.auth import get_current_user
+from core.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(prefix="/support", tags=["Support"])
 
@@ -29,10 +29,11 @@ class SupportRequest(BaseModel):
 @router.post("/contact")
 async def send_support_email(
     request: SupportRequest,
-    user: dict = Depends(get_current_user)
+    user: Optional[dict] = Depends(get_current_user_optional)
 ):
     """
     Send a support email to the support team
+    Authentication is optional - works for both logged in and guest users
     """
     try:
         # Create email message
@@ -40,6 +41,10 @@ async def send_support_email(
         msg['From'] = SUPPORT_EMAIL
         msg['To'] = SUPPORT_EMAIL
         msg['Subject'] = f"[{request.category.upper()}] {request.subject} - {request.name}"
+
+        # Get user info if authenticated
+        user_id = user.get('id') if user else 'Guest'
+        user_role = user.get('role') if user else 'Guest'
 
         # Create HTML email body
         html_content = f"""
@@ -121,12 +126,12 @@ async def send_support_email(
                     
                     <div class="field">
                         <div class="label">ID Utilisateur</div>
-                        <div class="value">{user.get('id', 'N/A')}</div>
+                        <div class="value">{user_id}</div>
                     </div>
                     
                     <div class="field">
                         <div class="label">Rôle</div>
-                        <div class="value">{user.get('role', 'N/A')}</div>
+                        <div class="value">{user_role}</div>
                     </div>
                     
                     {request.order_id and f"""
@@ -177,6 +182,8 @@ async def send_support_email(
         print(f"   From: {request.email}")
         print(f"   Subject: {request.subject}")
         print(f"   Category: {request.category}")
+        print(f"   User ID: {user_id}")
+        print(f"   User Role: {user_role}")
 
         return {
             "success": True,
