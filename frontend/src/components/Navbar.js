@@ -681,8 +681,39 @@ const Navbar = () => {
                         <Building2 className="w-4 h-4 mr-2" /> {t('nav.enterpriseSpace')}
                       </DropdownMenuItem>
                     )}
+                    {isCustomer && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/tableau-de-bord" className="font-semibold"><BarChart3 className="w-4 h-4 mr-2" /> Mon espace</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link to="/favoris" className="font-semibold"><Heart className="w-4 h-4 mr-2" /> {t('nav.favorites')}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> {t('nav.orders')}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/wallet" className="font-semibold"><Wallet className="w-4 h-4 mr-2" /> {t('nav.wallet')}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> {t('nav.offers')}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> {t('nav.subscriptions')}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/mes-messages" className="font-semibold"><MessageCircle className="w-4 h-4 mr-2" /> {t('nav.messages')}</Link>
+                    </DropdownMenuItem>
+                    {(isVendor || isEnterprise) && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/forum" className="font-semibold"><MessageSquare className="w-4 h-4 mr-2" /> {t('nav.forum')}</Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link to="/support" className="font-semibold"><Headphones className="w-4 h-4 mr-2" /> Support</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/parametres" className="font-semibold"><Settings className="w-4 h-4 mr-2" /> {t('nav.settings')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/commandes" className="font-semibold"><ShoppingCart className="w-4 h-4 mr-2" /> {t('nav.orders')}</Link>
