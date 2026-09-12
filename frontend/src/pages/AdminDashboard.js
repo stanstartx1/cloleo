@@ -527,7 +527,7 @@ const AdminDashboard = () => {
 
   const fetchSupportRequests = async () => {
     try {
-      const response = await axios.get(`${API}/api/support/requests`, {
+      const response = await axios.get(`${API}/support/requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSupportRequests(response.data?.requests || []);
