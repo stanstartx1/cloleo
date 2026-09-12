@@ -7,7 +7,7 @@ import {
   Users, Package, DollarSign, Clock, CheckCircle, XCircle, TrendingUp,
   Store, Crown, Search, Eye, Ban, Check, X, Settings, Truck, MapPin,
   BarChart3, CreditCard, ChevronRight, Menu, Home, UserCog, Cog, Sparkles, Star, MessageCircle,
-  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp, Image, Upload, GripVertical, Building2
+  Trash2, Edit, Plus, AlertTriangle, RefreshCw, LogOut, Zap, Grip, Tag, Palette, Ruler, Footprints, Shirt, Gem, Weight, Box, Type, List, Hash, ChevronDown, ChevronUp, Image, Upload, GripVertical, Building2, Headphones
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../components/FloatingChat';
@@ -31,6 +31,7 @@ const SIDEBAR_ITEMS = [
   { id: 'enterprises', label: 'Entreprises', icon: Building2, color: 'text-green-400' },
   { id: 'products', label: 'Produits', icon: Package, color: 'text-green-400' },
   { id: 'messages', label: 'Messages', icon: MessageCircle, color: 'text-fuchsia-400' },
+  { id: 'support', label: 'Support', icon: Headphones, color: 'text-purple-500' },
   { id: 'categories', label: 'Catégories', icon: Cog, color: 'text-teal-400' },
   { id: 'transactions', label: 'Transactions', icon: CreditCard, color: 'text-emerald-400' },
   { id: 'plans', label: 'Plans abonnement', icon: Crown, color: 'text-yellow-400' },
@@ -72,6 +73,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [adminConversations, setAdminConversations] = useState([]);
   const [enterprises, setEnterprises] = useState([]);
+  const [supportRequests, setSupportRequests] = useState([]);
 
   // ===== AUTO-APPROVE STATES =====
   const [autoApprove, setAutoApprove] = useState({
@@ -103,6 +105,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!isAdmin || !token) return;
     fetchAdminConversations();
+    fetchSupportRequests();
   }, [isAdmin, token]);
 
   const fetchAllData = async () => {
@@ -522,6 +525,19 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchSupportRequests = async () => {
+    try {
+      const response = await axios.get(`${API}/api/support/requests`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSupportRequests(response.data?.requests || []);
+    } catch (error) {
+      if (error.response?.status !== 401) {
+        toast.error('Erreur de chargement des demandes de support');
+      }
+    }
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategory.name) { toast.error('Le nom est requis'); return; }
     try {
@@ -653,6 +669,8 @@ const AdminDashboard = () => {
         return <ProductsSection products={products} pendingProducts={pendingProducts} filter={productFilter} setFilter={setProductFilter} onApprove={handleApproveProduct} onReject={handleRejectProduct} onToggleFeatured={handleToggleProductFeatured} onDelete={handleDeleteProduct} autoApprove={autoApprove.products} onToggleAutoApprove={() => handleToggleAutoApprove('products')} />;
       case 'messages':
         return <AdminMessagesSection conversations={adminConversations} onRefresh={fetchAdminConversations} onOpenConversation={handleOpenConversation} />;
+      case 'support':
+        return <SupportSection supportRequests={supportRequests} onRefresh={fetchSupportRequests} />;
       case 'categories':
         return <CategoriesSection token={token} categories={categories} editingCategory={editingCategory} setEditingCategory={setEditingCategory} newCategory={newCategory} setNewCategory={setNewCategory} showNewForm={showNewCategoryForm} setShowNewForm={setShowNewCategoryForm} onCreate={handleCreateCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} onToggle={handleToggleCategory} onRefresh={fetchAllData} products={products} />;
       case 'transactions':
@@ -2482,6 +2500,77 @@ const AdminMessagesSection = ({ conversations, onRefresh, onOpenConversation }) 
         </div>
         {conversations.length === 0 && (
           <div className="p-12 text-center text-slate-500">Aucune conversation pour le moment</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SupportSection = ({ supportRequests, onRefresh }) => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">Demandes de Support ({supportRequests.length})</h2>
+        <Button variant="outline" onClick={onRefresh}>
+          <RefreshCw className="w-4 h-4 mr-2" /> Actualiser
+        </Button>
+      </div>
+
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="overflow-x-auto touch-scroll-x">
+          <table className="w-full">
+            <thead className="bg-slate-700/50">
+              <tr>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Client</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Catégorie</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Sujet</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Message</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Date</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Statut</th>
+                <th className="text-left p-4 text-sm font-medium text-slate-400">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {supportRequests.map((request) => (
+                <tr key={request._id} className="border-t border-slate-700 hover:bg-slate-700/20">
+                  <td className="p-4">
+                    <div>
+                      <p className="font-medium">{request.name}</p>
+                      <p className="text-xs text-slate-400">{request.email}</p>
+                      {request.user_id !== 'Guest' && (
+                        <p className="text-xs text-purple-400">ID: {request.user_id}</p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded-full">
+                      {request.category}
+                    </span>
+                  </td>
+                  <td className="p-4 text-sm text-slate-300">{request.subject}</td>
+                  <td className="p-4 text-sm text-slate-300 max-w-xs truncate">{request.message}</td>
+                  <td className="p-4 text-sm text-slate-400">
+                    {request.created_at ? new Date(request.created_at).toLocaleString('fr-FR') : '-'}
+                  </td>
+                  <td className="p-4">
+                    {request.email_sent ? (
+                      <span className="bg-green-500/20 text-green-300 text-xs px-2 py-1 rounded-full">Email envoyé</span>
+                    ) : (
+                      <span className="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-1 rounded-full">En attente</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <Button variant="outline" size="sm" onClick={() => window.open(`mailto:${request.email}?subject=Re: ${request.subject}`, '_blank')}>
+                      <MessageCircle className="w-4 h-4 mr-2" /> Répondre
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {supportRequests.length === 0 && (
+          <div className="p-12 text-center text-slate-500">Aucune demande de support pour le moment</div>
         )}
       </div>
     </div>

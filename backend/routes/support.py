@@ -29,6 +29,56 @@ class SupportRequest(BaseModel):
     message: str
     order_id: Optional[str] = None
 
+@router.get("/requests")
+async def get_support_requests(user: dict = Depends(get_current_user)):
+    """
+    Get all support requests (admin only)
+    """
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    
+    try:
+        requests = await db.support_requests.find().sort("created_at", -1).to_list(length=100)
+        
+        # Convert ObjectId to string for JSON serialization
+        for req in requests:
+            req["_id"] = str(req["_id"])
+        
+        return {
+            "requests": requests,
+            "total": len(requests)
+        }
+    except Exception as e:
+        print(f"❌ [SUPPORT] Error fetching support requests: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors du chargement des demandes de support")
+
+@router.get("/requests")
+async def get_support_requests(user: dict = Depends(get_current_user)):
+    """
+    Get all support requests (admin only)
+    """
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+    
+    try:
+        requests = await db.support_requests.find().sort("created_at", -1).to_list(length=100)
+        
+        # Convert ObjectId to string for JSON serialization
+        for req in requests:
+            req["_id"] = str(req["_id"])
+        
+        return {
+            "requests": requests,
+            "total": len(requests)
+        }
+    except Exception as e:
+        print(f"❌ [SUPPORT] Error fetching support requests: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors du chargement des demandes de support")
+
 @router.post("/contact")
 async def send_support_email(
     request: SupportRequest,
