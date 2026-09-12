@@ -13,12 +13,13 @@ from core.database import db
 router = APIRouter(prefix="/support", tags=["Support"])
 
 # SMTP Configuration
-SMTP_SERVER = "mail95.lwspanel.com"
+SMTP_SERVER = "mail.cloleo.com"
 SMTP_PORT = 465
 SMTP_USE_SSL = True
 SMTP_USE_STARTTLS = False
-SUPPORT_EMAIL = "support@cloleo.com"
-SUPPORT_PASSWORD = "L87413001@"
+SMTP_EMAIL = "infos@cloleo.com"  # Email pour l'authentification SMTP
+SUPPORT_EMAIL = "support@cloleo.com"  # Email destinataire
+SMTP_PASSWORD = "L87413001@"
 
 class SupportRequest(BaseModel):
     name: str
@@ -68,8 +69,9 @@ async def send_support_email(
         try:
             # Create email message
             msg = MIMEMultipart('alternative')
-            msg['From'] = SUPPORT_EMAIL
-            msg['To'] = SUPPORT_EMAIL
+            msg['From'] = SMTP_EMAIL  # Email d'authentification comme expéditeur
+            msg['To'] = SUPPORT_EMAIL  # Email destinataire
+            msg['Reply-To'] = request.email  # Pour que l'admin puisse répondre directement
             msg['Subject'] = f"[{request.category.upper()}] {request.subject} - {request.name}"
 
             # Create HTML email body
@@ -197,16 +199,16 @@ async def send_support_email(
             try:
                 if SMTP_USE_SSL:
                     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-                        server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
+                        server.login(SMTP_EMAIL, SMTP_PASSWORD)
                         server.send_message(msg)
                 elif SMTP_USE_STARTTLS:
                     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
                         server.starttls()
-                        server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
+                        server.login(SMTP_EMAIL, SMTP_PASSWORD)
                         server.send_message(msg)
                 else:
                     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-                        server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
+                        server.login(SMTP_EMAIL, SMTP_PASSWORD)
                         server.send_message(msg)
 
                 # Update document to mark email as sent
@@ -216,7 +218,8 @@ async def send_support_email(
                 )
 
                 print(f"✅ [SUPPORT] Email sent successfully to {SUPPORT_EMAIL}")
-                print(f"   From: {request.email}")
+                print(f"   From: {SMTP_EMAIL} (auth)")
+                print(f"   To: {SUPPORT_EMAIL} (recipient)")
                 print(f"   Subject: {request.subject}")
                 print(f"   Category: {request.category}")
                 print(f"   User ID: {user_id}")
@@ -225,7 +228,8 @@ async def send_support_email(
             except smtplib.SMTPAuthenticationError as e:
                 print(f"⚠️ [SUPPORT] SMTP Authentication Error: {e}")
                 print(f"   Server: {SMTP_SERVER}:{SMTP_PORT}")
-                print(f"   Email: {SUPPORT_EMAIL}")
+                print(f"   Auth Email: {SMTP_EMAIL}")
+                print(f"   To Email: {SUPPORT_EMAIL}")
                 print(f"   Support request stored in MongoDB as fallback")
             except smtplib.SMTPException as e:
                 print(f"⚠️ [SUPPORT] SMTP Error: {e}")
