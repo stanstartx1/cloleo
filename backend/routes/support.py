@@ -13,8 +13,9 @@ router = APIRouter(prefix="/support", tags=["Support"])
 
 # SMTP Configuration
 SMTP_SERVER = "mail.cloleo.com"
-SMTP_PORT = 465
-SMTP_USE_SSL = True
+SMTP_PORT = 587
+SMTP_USE_SSL = False
+SMTP_USE_STARTTLS = True
 SUPPORT_EMAIL = "support@cloleo.com"
 SUPPORT_PASSWORD = "L87413001@"
 
@@ -168,15 +169,31 @@ async def send_support_email(
         msg.attach(MIMEText(html_content, 'html'))
 
         # Send email via SMTP
-        if SMTP_USE_SSL:
-            with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-                server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
-                server.send_message(msg)
-        else:
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-                server.starttls()
-                server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
-                server.send_message(msg)
+        try:
+            if SMTP_USE_SSL:
+                with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+                    server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
+                    server.send_message(msg)
+            elif SMTP_USE_STARTTLS:
+                with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                    server.starttls()
+                    server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                    server.login(SUPPORT_EMAIL, SUPPORT_PASSWORD)
+                    server.send_message(msg)
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ [SUPPORT] SMTP Authentication Error: {e}")
+            print(f"   Server: {SMTP_SERVER}:{SMTP_PORT}")
+            print(f"   Email: {SUPPORT_EMAIL}")
+            raise HTTPException(status_code=500, detail="Erreur d'authentification SMTP. Vérifiez les identifiants.")
+        except smtplib.SMTPException as e:
+            print(f"❌ [SUPPORT] SMTP Error: {e}")
+            raise HTTPException(status_code=500, detail="Erreur lors de l'envoi de l'email. Veuillez réessayer.")
+        except Exception as e:
+            print(f"❌ [SUPPORT] Connection Error: {e}")
+            raise HTTPException(status_code=500, detail="Erreur de connexion au serveur SMTP.")
 
         print(f"✅ [SUPPORT] Email sent successfully to {SUPPORT_EMAIL}")
         print(f"   From: {request.email}")
@@ -190,12 +207,6 @@ async def send_support_email(
             "message": "Votre message a été envoyé avec succès. Notre équipe vous répondra dans les plus brefs délais."
         }
 
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"❌ [SUPPORT] SMTP Authentication Error: {e}")
-        raise HTTPException(status_code=500, detail="Erreur d'authentification SMTP. Veuillez contacter l'administrateur.")
-    except smtplib.SMTPException as e:
-        print(f"❌ [SUPPORT] SMTP Error: {e}")
-        raise HTTPException(status_code=500, detail="Erreur lors de l'envoi de l'email. Veuillez réessayer.")
     except Exception as e:
         print(f"❌ [SUPPORT] Unexpected Error: {e}")
         import traceback
