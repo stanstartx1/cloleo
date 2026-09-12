@@ -89,6 +89,7 @@ import DriverHomeDashboard from "./pages/DriverHomeDashboard";
 
 // Customer Pages
 import CustomerDashboard from "./pages/CustomerDashboard";
+import SupportPage from "./pages/SupportPage";
 
 // Revendeur Pages
 import RevendeurRegisterPage from "./pages/RevendeurRegisterPage";
@@ -316,6 +317,13 @@ const AppRoutes = () => {
       <Route path="/tableau-de-bord" element={
         <ProtectedRoute>
           <CustomerDashboard />
+        </ProtectedRoute>
+      } />
+
+      {/* Support Page */}
+      <Route path="/support" element={
+        <ProtectedRoute>
+          <SupportPage />
         </ProtectedRoute>
       } />
 

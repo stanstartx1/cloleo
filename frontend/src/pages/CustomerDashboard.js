@@ -6,7 +6,7 @@ import {
   DollarSign, Award, ShoppingBag, Calendar,
   ArrowRight, Settings, LogOut, User, RefreshCw, MessageCircle,
   Heart, Wallet, Target, BarChart3, Menu, XCircle, Home,
-  Search
+  Search, Headphones
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUserRealtime } from '../hooks/useUserRealtime';
@@ -101,6 +101,7 @@ const CustomerDashboard = () => {
     { id: 'favorites', label: 'Favoris', icon: Heart, path: '/favoris' },
     { id: 'wallet', label: 'Portefeuille', icon: Wallet, path: '/wallet' },
     { id: 'messages', label: 'Messages', icon: MessageCircle, path: '/mes-messages' },
+    { id: 'support', label: 'Support', icon: Headphones, path: '/support' },
     { id: 'settings', label: 'Paramètres', icon: Settings, path: '/parametres' },
     { id: 'logout', label: 'Déconnexion', icon: LogOut, action: logout },
   ];
