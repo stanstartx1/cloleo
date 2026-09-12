@@ -3811,34 +3811,57 @@ async def driver_upload_license_registration(request: Request, file: UploadFile 
         logger.warning(f"📄 [LICENSE REGISTRATION] User is not a driver: {user.get('role')}")
         raise HTTPException(status_code=403, detail="Acces reserve aux livreurs")
 
+    # Validate file
+    if not file or not file.filename:
+        logger.error(f"📄 [LICENSE REGISTRATION] No file provided")
+        raise HTTPException(status_code=422, detail="Fichier requis")
+
     ext = Path(file.filename or "").suffix or ".bin"
     logger.info(f"📄 [LICENSE REGISTRATION] File extension: {ext}")
+
+    # Validate file size (max 10MB)
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        logger.error(f"📄 [LICENSE REGISTRATION] File too large: {len(content)} bytes")
+        raise HTTPException(status_code=422, detail="Le fichier est trop volumineux (max 10 MB)")
+    
+    if len(content) == 0:
+        logger.error(f"📄 [LICENSE REGISTRATION] File is empty!")
+        raise HTTPException(status_code=422, detail="Le fichier est vide")
 
     filename = f"license_{user_id}_{uuid.uuid4()}{ext}"
     dest = uploads_dir / filename
 
     try:
-        content = await file.read()
         logger.info(f"📄 [LICENSE REGISTRATION] File size: {len(content)} bytes")
-        
-        if len(content) == 0:
-            logger.error(f"📄 [LICENSE REGISTRATION] File is empty!")
-            raise HTTPException(status_code=422, detail="Le fichier est vide")
-        
         dest.write_bytes(content)
         logger.info(f"📄 [LICENSE REGISTRATION] File saved to: {dest}")
         
         url = f"/uploads/{filename}"
         
-        await db.users.update_one({"id": user_id}, {"$set": {"license_image": url, "updated_at": _utc()}})
+        # Update user with license image and mark as uploaded
+        await db.users.update_one(
+            {"id": user_id}, 
+            {
+                "$set": {
+                    "license_image": url,
+                    "license_uploaded": True,
+                    "license_uploaded_at": _utc(),
+                    "updated_at": _utc()
+                }
+            }
+        )
         logger.info(f"📄 [LICENSE REGISTRATION] Database updated for user: {user_id}")
+        logger.info(f"📄 [LICENSE REGISTRATION] License fields updated: license_image={url}, license_uploaded=True")
         
         logger.info(f"📄 [LICENSE REGISTRATION] Upload successful: {url}")
-        return {"url": url}
+        return {"url": url, "success": True}
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"📄 [LICENSE REGISTRATION] Error during upload: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
 
 

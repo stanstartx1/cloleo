@@ -140,14 +140,19 @@ const DriverRegisterPage = () => {
       const formData = new FormData();
       formData.append('file', licenseFile);
       
-      console.log('Uploading license with tempToken:', tempToken);
+      console.log('📄 [LICENSE UPLOAD] Starting upload...');
+      console.log('📄 [LICENSE UPLOAD] File:', licenseFile.name, licenseFile.size, licenseFile.type);
+      console.log('📄 [LICENSE UPLOAD] TempToken:', tempToken);
+      
       const response = await axios.post(`${API}/driver/upload-license-registration`, formData, {
         headers: {
-          Authorization: `Bearer ${tempToken}`
-        }
+          Authorization: `Bearer ${tempToken}`,
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 60000 // 60 second timeout for large files
       });
 
-      console.log('License upload successful:', response.data);
+      console.log('✅ [LICENSE UPLOAD] Upload successful:', response.data);
       setRegistrationComplete(true);
       toast.success('✅ Permis uploadé avec succès ! Inscription terminée.');
       
@@ -158,7 +163,10 @@ const DriverRegisterPage = () => {
       }, 2000);
       
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ [LICENSE UPLOAD] Upload error:', error);
+      console.error('❌ [LICENSE UPLOAD] Error response:', error.response?.data);
+      console.error('❌ [LICENSE UPLOAD] Error status:', error.response?.status);
+      
       const errorMessage = error.response?.data?.detail || 'Erreur lors de l\'upload du permis';
       
       // Do NOT allow user to proceed - require successful upload
@@ -169,12 +177,6 @@ const DriverRegisterPage = () => {
       setUploadingLicense(false);
       return; // Stop registration process
     }
-  };
-
-  const handleSkipLicense = () => {
-    console.log('Skipping license upload, redirecting to login...');
-    toast.success('Inscription terminée ! Vous pourrez uploader votre permis plus tard.');
-    navigate('/connexion', { replace: true });
   };
 
   if (registrationComplete) {
@@ -434,24 +436,20 @@ const DriverRegisterPage = () => {
 
               <div className="flex gap-3">
                 <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleSkipLicense}
-                >
-                  Passer pour l'instant
-                </Button>
-                <Button
                   className="flex-1"
                   onClick={handleUploadLicense}
                   disabled={!licenseFile || uploadingLicense}
                 >
                   {uploadingLicense ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Upload...</>
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Upload en cours...</>
                   ) : (
                     <>Terminer l'inscription</>
                   )}
                 </Button>
               </div>
+              <p className="text-xs text-center text-gray-500 mt-2">
+                ⚠️ L'upload du permis est obligatoire pour terminer l'inscription
+              </p>
             </div>
           )}
 
