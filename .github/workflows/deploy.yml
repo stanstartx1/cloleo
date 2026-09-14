@@ -166,7 +166,7 @@ jobs:
               echo "✅ SSL certificates found, configuring Apache for WebSocket support"
               
               # Create/update SSL configuration with WebSocket support
-              cat > /etc/apache2/sites-available/cloleo-le-ssl.conf << 'EOF'
+              cat > /etc/apache2/sites-available/cloleo-le-ssl.conf << 'SSLEOF'
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
     ServerName cloleo.com
@@ -201,7 +201,7 @@ jobs:
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 </IfModule>
-EOF
+SSLEOF
               
               # Enable the SSL site
               a2ensite cloleo-le-ssl.conf 2>/dev/null || true
