@@ -8456,5 +8456,20 @@ async def startup_event():
 
 
 if __name__ == "__main__":
-
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    import ssl
+    
+    # Check if SSL certificates exist
+    cert_path = "/etc/letsencrypt/live/cloleo.com/fullchain.pem"
+    key_path = "/etc/letsencrypt/live/cloleo.com/privkey.pem"
+    
+    import os
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        # Run with SSL on port 8443 for WebSocket (avoids proxy issues)
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(certfile=cert_path, keyfile=key_path)
+        print("🔒 Running with SSL on port 8443 for better WebSocket support")
+        uvicorn.run(app, host="0.0.0.0", port=8443, ssl=ssl_context, reload=True)
+    else:
+        # Fallback to HTTP on port 8000
+        print("⚠️ SSL certificates not found, running on HTTP port 8000")
+        uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
