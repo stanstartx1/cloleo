@@ -695,12 +695,16 @@ const Navbar = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/wallet" className="font-semibold"><Wallet className="w-4 h-4 mr-2" /> {t('nav.wallet')}</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> {t('nav.offers')}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> {t('nav.subscriptions')}</Link>
-                    </DropdownMenuItem>
+                    {!isCustomer && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/mes-offres" className="font-semibold"><DollarSign className="w-4 h-4 mr-2" /> {t('nav.offers')}</Link>
+                      </DropdownMenuItem>
+                    )}
+                    {!isCustomer && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/abonnements" className="font-semibold"><Bell className="w-4 h-4 mr-2" /> {t('nav.subscriptions')}</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link to="/mes-messages" className="font-semibold"><MessageCircle className="w-4 h-4 mr-2" /> {t('nav.messages')}</Link>
                     </DropdownMenuItem>
@@ -856,6 +860,11 @@ const Navbar = () => {
               </Link>
               {isAuthenticated && (
                 <>
+                  {isCustomer && (
+                    <Link to="/tableau-de-bord" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-purple-500 rounded-lg hover:bg-purple-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                      <BarChart3 className="w-4 h-4" /> Mon espace
+                    </Link>
+                  )}
                   <Link to="/commandes" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <ShoppingCart className="w-4 h-4" /> {t('nav.orders')}
                   </Link>
@@ -864,12 +873,9 @@ const Navbar = () => {
                       <MessageSquare className="w-4 h-4" /> {t('nav.forum')}
                     </Link>
                   )}
-                  <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                    <Bell className="w-4 h-4" /> {t('nav.subscriptions')}
-                  </Link>
-                  {isCustomer && (
-                    <Link to="/tableau-de-bord" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-purple-500 rounded-lg hover:bg-purple-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                      <BarChart3 className="w-4 h-4" /> Mon espace
+                  {!isCustomer && (
+                    <Link to="/abonnements" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                      <Bell className="w-4 h-4" /> {t('nav.subscriptions')}
                     </Link>
                   )}
                   <Link to="/support" className="flex items-center gap-2.5 py-2.5 px-2 text-sm font-semibold text-slate-700 hover:text-purple-500 rounded-lg hover:bg-purple-50 transition-colors" onClick={() => setMobileMenuOpen(false)}>
