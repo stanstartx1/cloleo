@@ -4,9 +4,9 @@
     return process.env.REACT_APP_BACKEND_URL;
   }
   
-  // In production, use the backend URL with SSL port for WebSocket
+  // In production, use the backend URL directly (for WebSocket)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://cloleo.com:8443';
+    return 'https://cloleo.com';
   }
   
   // In development, use local backend
