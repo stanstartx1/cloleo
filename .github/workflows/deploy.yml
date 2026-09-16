@@ -164,9 +164,13 @@ jobs:
               mv /etc/apache2/sites-enabled/cloleo-le-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf.disabled 2>/dev/null || true
             else
               echo "✅ SSL certificates found, copying Apache configuration"
-              # Copy Apache configuration from repository
-              cp /var/www/cloleo/apache-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf 2>/dev/null || true
-              a2ensite cloleo-le-ssl.conf 2>/dev/null || true
+              # Copy Apache configuration from repository if it exists
+              if [ -f "/var/www/cloleo/apache-ssl.conf" ]; then
+                cp /var/www/cloleo/apache-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf
+                a2ensite cloleo-le-ssl.conf 2>/dev/null || true
+              else
+                echo "⚠️ apache-ssl.conf not found in repository, skipping Apache config"
+              fi
             fi
             
             # Start or reload Apache
