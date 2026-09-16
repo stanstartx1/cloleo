@@ -31,6 +31,12 @@ export const useOrderTracking = (orderId, token) => {
       return;
     }
 
+    // Disable WebSocket in production temporarily
+    if (!WS_URL) {
+      console.log('📱 [WS ORDER] WebSocket disabled in production');
+      return;
+    }
+
     try {
       const ws = new WebSocket(`${WS_URL}/api/ws/order/${orderId}?token=${token}`);
       wsRef.current = ws;

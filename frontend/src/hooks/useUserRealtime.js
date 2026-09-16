@@ -27,6 +27,12 @@ export const useUserRealtime = (token, userId) => {
       wsRef.current.close();
     }
 
+    // Disable WebSocket in production temporarily
+    if (!WS_URL) {
+      console.log('📱 [WS USER] WebSocket disabled in production');
+      return;
+    }
+
     try {
       const ws = new WebSocket(`${WS_URL}/api/ws/user?token=${token}`);
       wsRef.current = ws;
