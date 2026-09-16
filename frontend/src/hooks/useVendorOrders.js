@@ -28,12 +28,6 @@ export const useVendorOrders = (vendorId, token) => {
       wsRef.current.close();
     }
 
-    // Disable WebSocket in production temporarily
-    if (!WS_URL) {
-      console.log('📱 [WS VENDOR] WebSocket disabled in production');
-      return;
-    }
-
     try {
       const ws = new WebSocket(`${WS_URL}/api/ws/vendor-orders/${vendorId}?token=${token}`);
       wsRef.current = ws;

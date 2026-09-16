@@ -21,7 +21,7 @@ const BACKEND_URL = getBackendUrl().replace(/\/$/, "");
 
 export const API_BASE = BACKEND_URL;
 export const API_URL = `${BACKEND_URL}/api`;
-// Disable WebSocket in production temporarily due to proxy issues
-export const WS_URL = process.env.NODE_ENV === 'production' ? null : BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+// Use wss:// for production, ws:// for development
+export const WS_URL = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 export default BACKEND_URL;

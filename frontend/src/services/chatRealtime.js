@@ -13,12 +13,6 @@ export const createChatRealtime = ({ conversationId, token, onEvent, onStatusCha
   const connect = () => {
     if (closed || !conversationId || !token) return;
     
-    // Disable WebSocket in production temporarily
-    if (!WS_URL) {
-      console.log('📱 [WS CHAT] WebSocket disabled in production');
-      return;
-    }
-    
     // Use order chat endpoint for order-based conversations
     const wsEndpoint = isOrderChat 
       ? `${WS_URL}/api/ws/order-chat/${conversationId}?token=${encodeURIComponent(token)}`
@@ -68,12 +62,6 @@ export const createGlobalRealtime = ({ token, onEvent, onStatusChange }) => {
 
   const connect = () => {
     if (closed || !token) return;
-    
-    // Disable WebSocket in production temporarily
-    if (!WS_URL) {
-      console.log('📱 [WS GLOBAL] WebSocket disabled in production');
-      return;
-    }
     
     // Stop trying if we've exceeded max attempts
     if (attempts >= maxAttempts) {
