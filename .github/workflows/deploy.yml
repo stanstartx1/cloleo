@@ -163,36 +163,9 @@ jobs:
               echo "⚠️ SSL certificates not found, disabling SSL configuration temporarily"
               mv /etc/apache2/sites-enabled/cloleo-le-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf.disabled 2>/dev/null || true
             else
-              echo "✅ SSL certificates found, configuring Apache for WebSocket support"
-              
-              # Create/update SSL configuration with WebSocket support
-              cat > /etc/apache2/sites-available/cloleo-le-ssl.conf << 'SSLEOF'
-<IfModule mod_ssl.c>
-<VirtualHost *:443>
-    ServerName cloleo.com
-    ServerAlias www.cloleo.com
-    DocumentRoot /var/www/cloleo/frontend/build
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/cloleo.com/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/cloleo.com/privkey.pem
-    <Directory /var/www/cloleo/frontend/build>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-    ProxyPass /api http://127.0.0.1:8000/api
-    ProxyPassReverse /api http://127.0.0.1:8000/api
-    ProxyPass /uploads http://127.0.0.1:8000/uploads
-    ProxyPassReverse /uploads http://127.0.0.1:8000/uploads
-    ProxyPass /ws ws://127.0.0.1:8000/ws
-    ProxyPassReverse /ws ws://127.0.0.1:8000/ws
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
-</VirtualHost>
-</IfModule>
-SSLEOF
-              
-              # Enable the SSL site
+              echo "✅ SSL certificates found, copying Apache configuration"
+              # Copy Apache configuration from repository
+              cp /var/www/cloleo/apache-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf 2>/dev/null || true
               a2ensite cloleo-le-ssl.conf 2>/dev/null || true
             fi
             
