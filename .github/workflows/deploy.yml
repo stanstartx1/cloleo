@@ -158,30 +158,8 @@ jobs:
               sleep 5
             done
             
-            # Handle SSL certificate issue
-            if [ ! -f "/etc/letsencrypt/live/cloleo.com/fullchain.pem" ]; then
-              echo "⚠️ SSL certificates not found, disabling SSL configuration temporarily"
-              mv /etc/apache2/sites-enabled/cloleo-le-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf.disabled 2>/dev/null || true
-            else
-              echo "✅ SSL certificates found, copying Apache configuration"
-              # Copy Apache configuration from repository if it exists
-              if [ -f "/var/www/cloleo/apache-ssl.conf" ]; then
-                cp /var/www/cloleo/apache-ssl.conf /etc/apache2/sites-available/cloleo-le-ssl.conf
-                a2ensite cloleo-le-ssl.conf 2>/dev/null || true
-              else
-                echo "⚠️ apache-ssl.conf not found in repository, skipping Apache config"
-              fi
-            fi
-            
-            # Start or reload Apache
-            echo "Starting/reloading Apache..."
-            systemctl restart apache2
-            if systemctl is-active --quiet apache2; then
-              echo "✅ Apache is active"
-            else
-              echo "⚠️ Apache failed to start/restart - check SSL certificates"
-              echo "⚠️ Deployment continued despite Apache issues - frontend is built"
-            fi
+            # Skip Apache configuration for now - configure manually on VPS
+            echo "⚠️ Apache configuration skipped - configure manually with apache-ssl.conf"
             
             echo "✅ Deployment finished successfully at $(date)"
             echo "Deployment completed successfully!"
