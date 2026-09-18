@@ -349,9 +349,8 @@ async def websocket_authenticated_user(websocket: WebSocket) -> Optional[dict]:
     """Authenticate browser WebSockets with their JWT query parameter."""
     token = websocket.query_params.get("token")
     if not token:
-        # Temporarily allow unauthenticated connections for debugging
-        print("⚠️ WebSocket connection without token - allowing for debugging")
-        return {"id": "guest", "role": "guest"}
+        await websocket.close(code=1008, reason="Authentification requise")
+        return None
     try:
         payload = decode_token(token)
         user_id = payload["user_id"]
@@ -361,10 +360,8 @@ async def websocket_authenticated_user(websocket: WebSocket) -> Optional[dict]:
         if not user or not user.get("is_active", False):
             raise ValueError("Compte inactif")
         return user
-    except Exception as e:
-        # Temporarily allow connections even with invalid tokens for debugging
-        print(f"⚠️ WebSocket authentication failed: {e} - allowing for debugging")
-        return {"id": "guest", "role": "guest"}
+    except Exception:
+        await websocket.close(code=1008, reason="Token invalide")
         return None
 
 
