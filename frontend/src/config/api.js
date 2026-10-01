@@ -21,7 +21,7 @@ const BACKEND_URL = getBackendUrl().replace(/\/$/, "");
 
 export const API_BASE = BACKEND_URL;
 export const API_URL = `${BACKEND_URL}/api`;
-// Disable WebSocket completely until Apache proxy is fixed
-export const WS_URL = null;
+// Use wss:// for production, ws:// for development
+export const WS_URL = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 export default BACKEND_URL;
