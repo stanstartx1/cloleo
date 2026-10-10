@@ -800,6 +800,8 @@ const AuthPage = () => {
                   )}
                 </TabsContent>
               </Tabs>
+                </TabsContent>
+              </Tabs>
             </div>
 
             <div className="border-t border-slate-200 bg-slate-50 px-8 py-5 text-center">
