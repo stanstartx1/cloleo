@@ -12,3 +12,4 @@ pywebpush
 redis
 httpx
 aiohttp
+firebase-admin
