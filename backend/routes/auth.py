@@ -332,11 +332,9 @@ async def verify_phone_register(request: VerifyPhoneRegisterRequest):
         }:
             raise HTTPException(status_code=400, detail="Role utilisateur invalide")
         
-        # Vérifier si le numéro de téléphone est déjà utilisé
-        if await db.users.find_one({"phone": request.phone_number}):
-            raise HTTPException(status_code=400, detail="Numéro de téléphone déjà utilisé")
-        
         # Vérifier si l'email est déjà utilisé (si fourni)
+        # Note: On permet plusieurs comptes avec le même numéro de téléphone
+        # (utile pour les familles, entreprises, etc.)
         if request.email and await db.users.find_one({"email": request.email}):
             raise HTTPException(status_code=400, detail="Email déjà utilisé")
         
