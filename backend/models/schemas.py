@@ -93,6 +93,24 @@ class DriverLocationUpdate(BaseModel):
     longitude: float
 
 
+class SendVerificationCodeRequest(BaseModel):
+    phone_number: str
+
+
+class VerifyPhoneRegisterRequest(BaseModel):
+    phone_number: str
+    verification_code: str
+    password: str
+    name: str
+    role: str = UserRole.CUSTOMER
+    email: Optional[str] = None
+
+
+class VerifyPhoneLoginRequest(BaseModel):
+    phone_number: str
+    verification_code: str
+
+
 class OrderAddress(BaseModel):
     street: str
     city: str

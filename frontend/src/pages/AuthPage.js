@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles, Building2, Check } from 'lucide-react';
+import { Eye, EyeOff, Store, User, Mail, Lock, Phone, ArrowRight, Truck, Package, Sparkles, Building2, Check, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,6 +8,9 @@ import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { API_BASE, API_URL } from '../config/api';
+import PhoneInput from '../components/PhoneInput';
+import VerificationCodeInput from '../components/VerificationCodeInput';
+import { usePhoneVerification } from '../hooks/usePhoneVerification';
 
 const API = API_URL;
 
@@ -28,6 +31,20 @@ const AuthPage = () => {
     background_images: [],
     layout_type: 'single'
   });
+
+  // Phone verification states
+  const [phoneLoginStep, setPhoneLoginStep] = useState(1); // 1: input phone, 2: verify code
+  const [phoneRegisterStep, setPhoneRegisterStep] = useState(1); // 1: input phone, 2: verify code
+  const [phoneLoginNumber, setPhoneLoginNumber] = useState('');
+  const [phoneRegisterNumber, setPhoneRegisterNumber] = useState('');
+  const [phoneLoginCode, setPhoneLoginCode] = useState('');
+  const [phoneRegisterCode, setPhoneRegisterCode] = useState('');
+  const [phoneRegisterName, setPhoneRegisterName] = useState('');
+  const [phoneRegisterPassword, setPhoneRegisterPassword] = useState('');
+  const [phoneRegisterRole, setPhoneRegisterRole] = useState('customer');
+  const [phoneRegisterEmail, setPhoneRegisterEmail] = useState('');
+
+  const { sendCode, verifyCodeLogin, verifyCodeRegister, resendCode, loading: phoneLoading, countdown, canResend } = usePhoneVerification();
 
   useEffect(() => {
     const fetchLogo = async () => {
@@ -237,6 +254,78 @@ const AuthPage = () => {
     }
   };
 
+  // Phone login handlers
+  const handlePhoneLoginSendCode = async () => {
+    if (!phoneLoginNumber) {
+      toast.error('Veuillez entrer un numéro de téléphone');
+      return;
+    }
+    const result = await sendCode(phoneLoginNumber);
+    if (result.success) {
+      setPhoneLoginStep(2);
+    }
+  };
+
+  const handlePhoneLoginVerify = async () => {
+    if (phoneLoginCode.length !== 6) {
+      toast.error('Veuillez entrer le code à 6 chiffres');
+      return;
+    }
+    const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginCode);
+    if (result.success) {
+      const { token, user } = result;
+      toast.success(`Bienvenue, ${user.name} !`);
+      if (user.role === 'admin') navigate('/admin');
+      else if (user.role === 'vendor') navigate('/vendeur');
+      else if (user.role === 'driver') navigate('/livreur/home');
+      else if (user.role === 'dropshipper') navigate('/revendeur');
+      else if (user.role === 'enterprise') navigate('/enterprise');
+      else if (user.role === 'customer') navigate('/tableau-de-bord');
+      else navigate('/');
+    }
+  };
+
+  // Phone register handlers
+  const handlePhoneRegisterSendCode = async () => {
+    if (!phoneRegisterNumber) {
+      toast.error('Veuillez entrer un numéro de téléphone');
+      return;
+    }
+    const result = await sendCode(phoneRegisterNumber);
+    if (result.success) {
+      setPhoneRegisterStep(2);
+    }
+  };
+
+  const handlePhoneRegisterVerify = async () => {
+    if (phoneRegisterCode.length !== 6) {
+      toast.error('Veuillez entrer le code à 6 chiffres');
+      return;
+    }
+    if (!phoneRegisterName || !phoneRegisterPassword) {
+      toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+    const result = await verifyCodeRegister(
+      phoneRegisterNumber,
+      phoneRegisterCode,
+      phoneRegisterPassword,
+      phoneRegisterName,
+      phoneRegisterRole,
+      phoneRegisterEmail || null
+    );
+    if (result.success) {
+      const { token, user } = result;
+      toast.success('Compte créé avec succès ! 🎉');
+      if (user.role === 'vendor') navigate('/vendeur');
+      else if (user.role === 'driver') navigate('/livreur/home');
+      else if (user.role === 'dropshipper') navigate('/revendeur');
+      else if (user.role === 'enterprise') navigate('/enterprise');
+      else if (user.role === 'customer') navigate('/tableau-de-bord');
+      else navigate('/');
+    }
+  };
+
   return (
     <div
       className={`relative min-h-screen overflow-hidden py-12 ${
@@ -296,9 +385,10 @@ const AuthPage = () => {
           <div className="bg-white rounded-3xl shadow-2xl shadow-orange-500/10 overflow-hidden border-4 border-blue-900">
             <div className="p-10">
               <Tabs defaultValue="login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-8 bg-transparent">
-                  <TabsTrigger value="login" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Connexion</TabsTrigger>
-                  <TabsTrigger value="register" className="rounded-xl py-3 text-base font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Inscription</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 mb-8 bg-transparent">
+                  <TabsTrigger value="login" className="rounded-xl py-3 text-sm font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Email</TabsTrigger>
+                  <TabsTrigger value="phone" className="rounded-xl py-3 text-sm font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Téléphone</TabsTrigger>
+                  <TabsTrigger value="register" className="rounded-xl py-3 text-sm font-medium data-[state=active]:shadow-sm data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600">Inscription</TabsTrigger>
                 </TabsList>
 
                 {/* ====================== LOGIN TAB ====================== */}
@@ -354,9 +444,87 @@ const AuthPage = () => {
                   </form>
                 </TabsContent>
 
+                {/* ====================== PHONE LOGIN TAB ====================== */}
+                <TabsContent value="phone">
+                  {phoneLoginStep === 1 ? (
+                    <div className="space-y-6">
+                      <div className="text-center mb-6">
+                        <Phone className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                        <h3 className="text-lg font-semibold text-gray-800">Se connecter avec un numéro</h3>
+                        <p className="text-sm text-gray-600">Entrez votre numéro pour recevoir un code de vérification</p>
+                      </div>
+
+                      <PhoneInput
+                        value={phoneLoginNumber}
+                        onChange={setPhoneLoginNumber}
+                        label="Numéro de téléphone"
+                      />
+
+                      <Button
+                        onClick={handlePhoneLoginSendCode}
+                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
+                        disabled={phoneLoading}
+                      >
+                        {phoneLoading ? 'Envoi en cours...' : 'Envoyer le code'}
+                        <ArrowRight className="ml-2" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="text-center mb-6">
+                        <Lock className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                        <h3 className="text-lg font-semibold text-gray-800">Vérification</h3>
+                        <p className="text-sm text-gray-600">Entrez le code à 6 chiffres envoyé à {phoneLoginNumber}</p>
+                      </div>
+
+                      <VerificationCodeInput
+                        value={phoneLoginCode}
+                        onChange={setPhoneLoginCode}
+                        length={6}
+                      />
+
+                      <Button
+                        onClick={handlePhoneLoginVerify}
+                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
+                        disabled={phoneLoading}
+                      >
+                        {phoneLoading ? 'Vérification en cours...' : 'Vérifier et se connecter'}
+                        <Check className="ml-2" />
+                      </Button>
+
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600 mb-2">
+                          Code non reçu ?{' '}
+                          <button
+                            onClick={() => resendCode(phoneLoginNumber)}
+                            disabled={!canResend}
+                            className="text-orange-600 font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
+                          >
+                            {canResend ? 'Renvoyer le code' : `Réessayer dans ${countdown}s`}
+                          </button>
+                        </p>
+                        <button
+                          onClick={() => setPhoneLoginStep(1)}
+                          className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                          Changer de numéro
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
                 {/* ====================== REGISTER TAB ====================== */}
                 <TabsContent value="register">
-                  <form onSubmit={handleRegister} className="space-y-6">
+                  <Tabs defaultValue="email" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100">
+                      <TabsTrigger value="email" className="text-sm">Email</TabsTrigger>
+                      <TabsTrigger value="phone" className="text-sm">Téléphone</TabsTrigger>
+                    </TabsList>
+
+                    {/* Email Register */}
+                    <TabsContent value="email">
+                      <form onSubmit={handleRegister} className="space-y-6">
                     {/* Role Selection */}
                     <div>
                       <Label className="text-base font-medium mb-3 block">Je suis...</Label>
@@ -463,8 +631,8 @@ const AuthPage = () => {
                       </div>
                     </div>
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all mt-4"
                       disabled={loading}
                     >
@@ -472,6 +640,164 @@ const AuthPage = () => {
                       <Sparkles className="ml-2 w-5 h-5" />
                     </Button>
                   </form>
+                </TabsContent>
+
+                {/* Phone Register */}
+                <TabsContent value="phone">
+                  {phoneRegisterStep === 1 ? (
+                    <div className="space-y-6">
+                      <div className="text-center mb-6">
+                        <Phone className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                        <h3 className="text-lg font-semibold text-gray-800">S'inscrire avec un numéro</h3>
+                        <p className="text-sm text-gray-600">Entrez votre numéro pour recevoir un code de vérification</p>
+                      </div>
+
+                      <PhoneInput
+                        value={phoneRegisterNumber}
+                        onChange={setPhoneRegisterNumber}
+                        label="Numéro de téléphone"
+                      />
+
+                      <div className="space-y-2">
+                        <Label>Nom complet</Label>
+                        <div className="relative">
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                          <Input
+                            type="text"
+                            placeholder="Votre nom complet"
+                            value={phoneRegisterName}
+                            onChange={(e) => setPhoneRegisterName(e.target.value)}
+                            className="pl-12 h-12 rounded-2xl"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Mot de passe</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Créer un mot de passe"
+                            value={phoneRegisterPassword}
+                            onChange={(e) => setPhoneRegisterPassword(e.target.value)}
+                            className="pl-12 pr-12 h-12 rounded-2xl"
+                            required
+                            minLength={6}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Email (optionnel)</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                          <Input
+                            type="email"
+                            placeholder="votre@email.com"
+                            value={phoneRegisterEmail}
+                            onChange={(e) => setPhoneRegisterEmail(e.target.value)}
+                            className="pl-12 h-12 rounded-2xl"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-base font-medium mb-3 block">Je suis...</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {[
+                            { value: 'customer', label: 'Acheteur', icon: User, color: 'text-orange-500', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+                            { value: 'vendor', label: 'Vendeur', icon: Store, color: 'text-amber-500', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+                            { value: 'dropshipper', label: 'Revendeur', icon: Package, color: 'text-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+                            { value: 'driver', label: 'Livreur', icon: Truck, color: 'text-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+                            { value: 'enterprise', label: 'Entreprise', icon: Building2, color: 'text-green-500', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+                          ].map((role) => {
+                            const Icon = role.icon;
+                            const isSelected = phoneRegisterRole === role.value;
+                            return (
+                              <button
+                                key={role.value}
+                                type="button"
+                                onClick={() => setPhoneRegisterRole(role.value)}
+                                className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                                  isSelected
+                                    ? `${role.bgColor} ${role.borderColor} border-current shadow-md`
+                                    : 'bg-white border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                {isSelected && (
+                                  <div className="absolute top-2 right-2 w-5 h-5 bg-current rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-white" />
+                                  </div>
+                                )}
+                                <Icon className={`w-6 h-6 ${role.color} mb-2`} />
+                                <span className="text-sm font-medium text-gray-700">{role.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={handlePhoneRegisterSendCode}
+                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
+                        disabled={phoneLoading}
+                      >
+                        {phoneLoading ? 'Envoi en cours...' : 'Envoyer le code'}
+                        <ArrowRight className="ml-2" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="text-center mb-6">
+                        <Lock className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                        <h3 className="text-lg font-semibold text-gray-800">Vérification</h3>
+                        <p className="text-sm text-gray-600">Entrez le code à 6 chiffres envoyé à {phoneRegisterNumber}</p>
+                      </div>
+
+                      <VerificationCodeInput
+                        value={phoneRegisterCode}
+                        onChange={setPhoneRegisterCode}
+                        length={6}
+                      />
+
+                      <Button
+                        onClick={handlePhoneRegisterVerify}
+                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
+                        disabled={phoneLoading}
+                      >
+                        {phoneLoading ? 'Vérification en cours...' : 'Vérifier et créer le compte'}
+                        <Check className="ml-2" />
+                      </Button>
+
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600 mb-2">
+                          Code non reçu ?{' '}
+                          <button
+                            onClick={() => resendCode(phoneRegisterNumber)}
+                            disabled={!canResend}
+                            className="text-orange-600 font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
+                          >
+                            {canResend ? 'Renvoyer le code' : `Réessayer dans ${countdown}s`}
+                          </button>
+                        </p>
+                        <button
+                          onClick={() => setPhoneRegisterStep(1)}
+                          className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                          Changer de numéro
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>

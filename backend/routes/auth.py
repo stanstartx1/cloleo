@@ -11,12 +11,16 @@ from pymongo.errors import PyMongoError
 
 from core.database import db
 from core.auth import get_current_user
+from services.firebase_sms import firebase_sms_service
 from models.schemas import (
     UserRegister,
     UserLogin,
     UserRole,
     DropshipperRegister,
     DriverRegister,
+    SendVerificationCodeRequest,
+    VerifyPhoneRegisterRequest,
+    VerifyPhoneLoginRequest,
 )
 
 JWT_SECRET = os.environ.get("JWT_SECRET", secrets.token_hex(32))
@@ -281,3 +285,144 @@ async def get_recommended_categories(user: dict = Depends(get_current_user)):
     except Exception as e:
         print(f"Error getting recommended categories: {e}")
         return []
+
+
+@router.post("/send-verification-code")
+async def send_verification_code(request: SendVerificationCodeRequest):
+    """
+    Envoie un code de vérification par SMS au numéro de téléphone.
+    """
+    try:
+        result = await firebase_sms_service.send_verification_code(request.phone_number)
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message"))
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ [SMS ERROR] Error sending verification code: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de l'envoi du code de vérification")
+
+
+@router.post("/verify-phone-register")
+async def verify_phone_register(request: VerifyPhoneRegisterRequest):
+    """
+    Vérifie le code de vérification et crée le compte utilisateur.
+    """
+    try:
+        # Vérifier le code
+        verification_result = await firebase_sms_service.verify_code(
+            request.phone_number,
+            request.verification_code
+        )
+        
+        if not verification_result.get("success"):
+            raise HTTPException(status_code=400, detail=verification_result.get("message"))
+        
+        # Normaliser le rôle
+        normalized_role = normalize_role(request.role)
+        if normalized_role not in {
+            UserRole.CUSTOMER,
+            UserRole.VENDOR,
+            UserRole.DRIVER,
+            UserRole.DROPSHIPPER,
+            UserRole.ADMIN,
+        }:
+            raise HTTPException(status_code=400, detail="Role utilisateur invalide")
+        
+        # Vérifier si le numéro de téléphone est déjà utilisé
+        if await db.users.find_one({"phone": request.phone_number}):
+            raise HTTPException(status_code=400, detail="Numéro de téléphone déjà utilisé")
+        
+        # Vérifier si l'email est déjà utilisé (si fourni)
+        if request.email and await db.users.find_one({"email": request.email}):
+            raise HTTPException(status_code=400, detail="Email déjà utilisé")
+        
+        # Récupérer les paramètres de la plateforme
+        platform = await _get_platform_settings()
+        is_vendor = normalized_role == UserRole.VENDOR
+        auto_approve_vendor = bool(platform.get("auto_approve_vendors", False))
+        vendor_approved = is_vendor and auto_approve_vendor
+        
+        # Créer l'utilisateur
+        user = {
+            "id": str(uuid.uuid4()),
+            "email": request.email,
+            "password": hash_password(request.password),
+            "name": request.name,
+            "role": normalized_role,
+            "phone": request.phone_number,
+            "phone_verified": True,
+            "phone_verified_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "is_active": (not is_vendor) or vendor_approved,
+            "is_verified": (not is_vendor) or vendor_approved,
+            "approval_status": "approved" if (not is_vendor or vendor_approved) else "pending",
+            "subscription_plan": "free" if is_vendor else None,
+            "subscription_expires": None,
+            "shop_name": request.name if is_vendor else None,
+            "location": None,
+            "city": None,
+        }
+        
+        try:
+            await db.users.insert_one(user)
+        except Exception as e:
+            print(f"❌ [REGISTER ERROR] Error inserting user: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail="Erreur lors de la création du compte")
+        
+        # Supprimer le mot de passe de la réponse
+        user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
+        
+        return {
+            "token": create_token(user["id"], user["role"]),
+            "user": user_response
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ [PHONE REGISTER ERROR] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors de l'inscription par téléphone")
+
+
+@router.post("/verify-phone-login")
+async def verify_phone_login(request: VerifyPhoneLoginRequest):
+    """
+    Vérifie le code de vérification et connecte l'utilisateur.
+    """
+    try:
+        # Vérifier le code
+        verification_result = await firebase_sms_service.verify_code(
+            request.phone_number,
+            request.verification_code
+        )
+        
+        if not verification_result.get("success"):
+            raise HTTPException(status_code=400, detail=verification_result.get("message"))
+        
+        # Trouver l'utilisateur par numéro de téléphone
+        user = await db.users.find_one({"phone": request.phone_number}, {"_id": 0})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Aucun compte trouvé avec ce numéro de téléphone")
+        
+        if not user.get("is_active", True):
+            raise HTTPException(status_code=401, detail="Compte en attente d'approbation administrateur")
+        
+        return {
+            "token": create_token(user["id"], user["role"]),
+            "user": {k: v for k, v in user.items() if k != "password"},
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ [PHONE LOGIN ERROR] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erreur lors de la connexion par téléphone")
