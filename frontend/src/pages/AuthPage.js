@@ -17,7 +17,7 @@ const API = API_URL;
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { login, register, loginWithToken } = useAuth();
  
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -273,10 +273,16 @@ const AuthPage = () => {
     }
     const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginCode);
     if (result.success) {
-      const { token, user } = result;
+      const { user } = result;
       toast.success(`Bienvenue, ${user.name} !`);
-      // Recharger la page pour que le AuthContext se charge depuis localStorage
-      window.location.href = '/';
+      // Rediriger selon le rôle (même logique que handleLogin)
+      if (user.role === 'admin') navigate('/admin');
+      else if (user.role === 'vendor') navigate('/vendeur');
+      else if (user.role === 'driver') navigate('/livreur/home');
+      else if (user.role === 'dropshipper') navigate('/revendeur');
+      else if (user.role === 'enterprise') navigate('/enterprise');
+      else if (user.role === 'customer') navigate('/tableau-de-bord');
+      else navigate('/');
     }
   };
 
@@ -310,10 +316,15 @@ const AuthPage = () => {
       phoneRegisterEmail || null
     );
     if (result.success) {
-      const { token, user } = result;
+      const { user } = result;
       toast.success('Compte créé avec succès ! 🎉');
-      // Recharger la page pour que le AuthContext se charge depuis localStorage
-      window.location.href = '/';
+      // Rediriger selon le rôle (même logique que handleRegister)
+      if (user.role === 'vendor') navigate('/vendeur');
+      else if (user.role === 'driver') navigate('/livreur/home');
+      else if (user.role === 'dropshipper') navigate('/revendeur');
+      else if (user.role === 'enterprise') navigate('/enterprise');
+      else if (user.role === 'customer') navigate('/tableau-de-bord');
+      else navigate('/');
     }
   };
 

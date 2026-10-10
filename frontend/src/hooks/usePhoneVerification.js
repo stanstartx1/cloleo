@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const API = API_URL;
 
 export const usePhoneVerification = () => {
-  const { login: authLogin, register: authRegister } = useAuth();
+  const { loginWithToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(0);
@@ -88,9 +88,8 @@ export const usePhoneVerification = () => {
 
       toast.success('Compte créé avec succès ! 🎉');
       
-      // Stocker le token et l'utilisateur dans localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Utiliser loginWithToken du AuthContext pour connecter l'utilisateur
+      loginWithToken(data.token, data.user);
       
       return { success: true, token: data.token, user: data.user };
     } catch (err) {
@@ -100,7 +99,7 @@ export const usePhoneVerification = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loginWithToken]);
 
   const verifyCodeLogin = useCallback(async (phoneNumber, code) => {
     setLoading(true);
@@ -126,9 +125,8 @@ export const usePhoneVerification = () => {
 
       toast.success('Connexion réussie ! 🎉');
       
-      // Stocker le token et l'utilisateur dans localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Utiliser loginWithToken du AuthContext pour connecter l'utilisateur
+      loginWithToken(data.token, data.user);
       
       return { success: true, token: data.token, user: data.user };
     } catch (err) {
@@ -138,7 +136,7 @@ export const usePhoneVerification = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loginWithToken]);
 
   const resendCode = useCallback(async (phoneNumber) => {
     if (!canResend) {
