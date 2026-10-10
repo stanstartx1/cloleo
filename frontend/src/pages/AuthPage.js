@@ -44,7 +44,7 @@ const AuthPage = () => {
   const [phoneRegisterRole, setPhoneRegisterRole] = useState('customer');
   const [phoneRegisterEmail, setPhoneRegisterEmail] = useState('');
 
-  const { sendCode, verifyCodeLogin, verifyCodeRegister, resendCode, loading: phoneLoading, countdown, canResend } = usePhoneVerification();
+  const { sendCode, verifyCodeLogin, verifyCodeRegister, resendCode, loading: phoneLoading, countdown, canResend } = usePhoneVerification(loginWithToken);
 
   useEffect(() => {
     const fetchLogo = async () => {

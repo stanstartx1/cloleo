@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_URL } from '../config/api';
 import { toast } from 'sonner';
-import { useAuth } from '../context/AuthContext';
 
 const API = API_URL;
 
-export const usePhoneVerification = () => {
-  const { loginWithToken } = useAuth();
+export const usePhoneVerification = (loginWithToken) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(0);
@@ -89,7 +87,9 @@ export const usePhoneVerification = () => {
       toast.success('Compte créé avec succès ! 🎉');
       
       // Utiliser loginWithToken du AuthContext pour connecter l'utilisateur
-      loginWithToken(data.token, data.user);
+      if (loginWithToken) {
+        loginWithToken(data.token, data.user);
+      }
       
       return { success: true, token: data.token, user: data.user };
     } catch (err) {
@@ -126,7 +126,9 @@ export const usePhoneVerification = () => {
       toast.success('Connexion réussie ! 🎉');
       
       // Utiliser loginWithToken du AuthContext pour connecter l'utilisateur
-      loginWithToken(data.token, data.user);
+      if (loginWithToken) {
+        loginWithToken(data.token, data.user);
+      }
       
       return { success: true, token: data.token, user: data.user };
     } catch (err) {
@@ -145,7 +147,7 @@ export const usePhoneVerification = () => {
     }
 
     return sendCode(phoneNumber);
-  }, [canResend, countdown, sendCode]);
+  }, [canResend, countdown, sendCode, loginWithToken]);
 
   return {
     sendCode,
