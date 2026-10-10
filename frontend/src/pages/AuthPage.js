@@ -275,13 +275,8 @@ const AuthPage = () => {
     if (result.success) {
       const { token, user } = result;
       toast.success(`Bienvenue, ${user.name} !`);
-      if (user.role === 'admin') navigate('/admin');
-      else if (user.role === 'vendor') navigate('/vendeur');
-      else if (user.role === 'driver') navigate('/livreur/home');
-      else if (user.role === 'dropshipper') navigate('/revendeur');
-      else if (user.role === 'enterprise') navigate('/enterprise');
-      else if (user.role === 'customer') navigate('/tableau-de-bord');
-      else navigate('/');
+      // Recharger la page pour que le AuthContext se charge depuis localStorage
+      window.location.href = '/';
     }
   };
 
@@ -317,12 +312,8 @@ const AuthPage = () => {
     if (result.success) {
       const { token, user } = result;
       toast.success('Compte créé avec succès ! 🎉');
-      if (user.role === 'vendor') navigate('/vendeur');
-      else if (user.role === 'driver') navigate('/livreur/home');
-      else if (user.role === 'dropshipper') navigate('/revendeur');
-      else if (user.role === 'enterprise') navigate('/enterprise');
-      else if (user.role === 'customer') navigate('/tableau-de-bord');
-      else navigate('/');
+      // Recharger la page pour que le AuthContext se charge depuis localStorage
+      window.location.href = '/';
     }
   };
 
