@@ -12,6 +12,7 @@ from core.database import db
 from core.geo_utils import haversine_km, calculate_eta_minutes, optimize_route_stops, is_in_geofence, utc_now
 from core.notification_channels import notify_user_all_channels
 from core.cache import cache_get, cache_set
+from core.osm_services import get_osrm_directions
 
 router = APIRouter(prefix="/delivery", tags=["Delivery"])
 
@@ -348,3 +349,152 @@ async def calculate_dynamic_eta(payload: dict, user: dict = Depends(require_driv
     distance = haversine_km(lat, lon, dest_lat, dest_lon)
     eta = calculate_eta_minutes(distance, traffic_factor=traffic_factor)
     return {"distance_km": round(distance, 2), "eta_minutes": eta, "traffic_factor": traffic_factor}
+
+
+@router.get("/tracking/{order_id}")
+async def get_delivery_tracking(order_id: str, user: dict = Depends(get_current_user)):
+    """
+    Get real-time delivery tracking information with route geometry
+    Returns driver location, route to destination, and progress
+    """
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande non trouvée")
+    
+    # Check authorization
+    if user.get("role") != "admin" and user["id"] != order.get("customer_id") and user["id"] != order.get("driver_id"):
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    # Get driver location
+    driver_location = None
+    if order.get("driver_id"):
+        driver = await db.users.find_one({"id": order["driver_id"]}, {"_id": 0, "location": 1})
+        if driver and driver.get("location"):
+            driver_location = driver["location"]
+    
+    # Get delivery address
+    delivery_address = order.get("delivery_address", {})
+    dest_lat = delivery_address.get("latitude")
+    dest_lon = delivery_address.get("longitude")
+    
+    result = {
+        "order_id": order_id,
+        "status": order.get("status"),
+        "driver_location": driver_location,
+        "destination": {
+            "latitude": dest_lat,
+            "longitude": dest_lon,
+            "address": delivery_address
+        },
+        "route": None,
+        "progress": {
+            "distance_remaining_km": None,
+            "eta_minutes": None,
+            "progress_percent": 0
+        }
+    }
+    
+    # Calculate route if driver is en route
+    if driver_location and dest_lat and dest_lon and order.get("status") in ["accepted", "picked_up", "in_transit"]:
+        try:
+            # Get OSRM route
+            route_result = await get_osrm_directions(
+                driver_location["latitude"],
+                driver_location["longitude"],
+                dest_lat,
+                dest_lon,
+                alternatives=False
+            )
+            
+            if "error" not in route_result:
+                result["route"] = {
+                    "geometry": route_result.get("geometry"),
+                    "distance_m": route_result.get("distance_m"),
+                    "duration_s": route_result.get("duration_s"),
+                    "steps": route_result.get("steps", [])
+                }
+                
+                # Calculate progress
+                total_distance_m = route_result.get("distance_m", 0)
+                remaining_distance_m = total_distance_m
+                eta_minutes = route_result.get("duration_s", 0) / 60
+                
+                # Calculate progress based on status
+                progress_percent = 0
+                if order.get("status") == "accepted":
+                    progress_percent = 30
+                elif order.get("status") == "picked_up":
+                    progress_percent = 50
+                elif order.get("status") == "in_transit":
+                    # Calculate based on distance traveled
+                    if total_distance_m > 0:
+                        progress_percent = min(95, max(30, (1 - remaining_distance_m / total_distance_m) * 100))
+                
+                result["progress"] = {
+                    "distance_remaining_km": round(remaining_distance_m / 1000, 2),
+                    "eta_minutes": round(eta_minutes, 1),
+                    "progress_percent": round(progress_percent, 1)
+                }
+        except Exception as e:
+            print(f"Error calculating route: {e}")
+            # Fallback to haversine distance
+            distance_km = haversine_km(
+                driver_location["latitude"],
+                driver_location["longitude"],
+                dest_lat,
+                dest_lon
+            )
+            result["progress"] = {
+                "distance_remaining_km": round(distance_km, 2),
+                "eta_minutes": round(distance_km * 1.5, 1),  # Approximate: 40 km/h
+                "progress_percent": 50
+            }
+    
+    return result
+
+
+@router.post("/driver/update-location")
+async def update_driver_location(payload: dict, user: dict = Depends(require_driver)):
+    """
+    Update driver location in real-time with WebSocket broadcast
+    This endpoint is called by the driver app to send GPS updates
+    """
+    lat = payload.get("latitude")
+    lon = payload.get("longitude")
+    accuracy = payload.get("accuracy")
+    order_id = payload.get("order_id")
+    
+    if lat is None or lon is None:
+        raise HTTPException(status_code=400, detail="latitude et longitude requis")
+    
+    lat, lon = _coordinates(lat, lon)
+    
+    # Update driver location in database
+    loc = {"latitude": lat, "longitude": lon, "accuracy": accuracy}
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"location": loc, "updated_at": utc_now()}}
+    )
+    
+    # Update in WebSocket manager
+    if _manager:
+        _manager.update_driver_location(user["id"], loc)
+    
+    # Broadcast to specific order if provided
+    if order_id:
+        order = await db.orders.find_one({"id": order_id, "driver_id": user["id"]}, {"_id": 0})
+        if order:
+            # Broadcast to order room (customer)
+            await _manager.broadcast_driver_location_update(order_id, user["id"], loc)
+            
+            # Also broadcast to customer's user room for faster updates
+            if order.get("customer_id"):
+                await _manager.broadcast_to_room(f"user_{order['customer_id']}", {
+                    "type": "driver_location_update",
+                    "order_id": order_id,
+                    "driver_id": user["id"],
+                    "location": loc,
+                    "timestamp": utc_now().isoformat()
+                })
+    
+    return {"ok": True, "location": loc}

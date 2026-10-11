@@ -18,6 +18,8 @@ const MapboxMap = ({
   mapType = 'roadmap',
   followDriver = false,
   driverVehicleType = null, // Updated prop name
+  routeGeometry = null, // New prop for OSRM route geometry
+  progressPercent = 0, // New prop for progress
 }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -141,7 +143,7 @@ const MapboxMap = ({
       const driverLngDiff = Math.abs(driverLocation.longitude - previousDriverLocation.current.longitude);
       const customerLatDiff = Math.abs(customerLocation.latitude - previousCustomerLocation.current.latitude);
       const customerLngDiff = Math.abs(customerLocation.longitude - previousCustomerLocation.current.longitude);
-      
+
       if (driverLatDiff < 0.001 && driverLngDiff < 0.001 && customerLatDiff < 0.001 && customerLngDiff < 0.001) {
         return; // Skip update if changes are minimal
       }
@@ -157,10 +159,55 @@ const MapboxMap = ({
       }
 
       try {
-        console.log('🗺️ [MAP] Calling setRouteLine');
-        setRouteLine(mapInstance.current, 'delivery-route', driverLocation, customerLocation);
-        routeSourceRef.current = true;
-        console.log('🗺️ [MAP] Route drawn successfully, fitting to locations');
+        if (routeGeometry) {
+          // Use OSRM route geometry if available
+          console.log('🗺️ [MAP] Using OSRM route geometry');
+          const map = mapInstance.current;
+
+          // Remove existing route layer and source
+          if (map.getLayer('delivery-route')) {
+            map.removeLayer('delivery-route');
+          }
+          if (map.getSource('delivery-route')) {
+            map.removeSource('delivery-route');
+          }
+
+          // Add route source with OSRM geometry
+          map.addSource('delivery-route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: routeGeometry
+            }
+          });
+
+          // Add route layer
+          map.addLayer({
+            id: 'delivery-route',
+            type: 'line',
+            source: 'delivery-route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#3b82f6',
+              'line-width': 5,
+              'line-opacity': 0.8
+            }
+          });
+
+          routeSourceRef.current = true;
+          console.log('🗺️ [MAP] OSRM route drawn successfully');
+        } else {
+          // Fallback to straight line
+          console.log('🗺️ [MAP] Using straight line fallback');
+          setRouteLine(mapInstance.current, 'delivery-route', driverLocation, customerLocation);
+          routeSourceRef.current = true;
+        }
+
+        console.log('🗺️ [MAP] Fitting to locations');
         fitToLocations(mapboxRef.current, mapInstance.current, [driverLocation, customerLocation], {
           padding: { top: 50, bottom: 50, left: 50, right: 50 },
           maxZoom: 16,
@@ -185,7 +232,7 @@ const MapboxMap = ({
     previousCustomerLocation.current = customerLocation;
 
     return () => clearTimeout(timeoutId);
-  }, [driverLocation, customerLocation, showRoute]);
+  }, [driverLocation, customerLocation, showRoute, routeGeometry]);
 
   // Clean up route when showRoute becomes false
   useEffect(() => {

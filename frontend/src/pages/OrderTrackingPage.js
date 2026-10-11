@@ -16,6 +16,7 @@ import DeliveryScheduler from '../components/DeliveryScheduler';
 import RatingSystem from '../components/RatingSystem';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useUserRealtime } from '../hooks/useUserRealtime';
+import { useDeliveryTracking } from '../hooks/useDeliveryTracking';
 import MapboxMap from '../components/MapboxMap';
 
 // Import centralisé
@@ -60,7 +61,15 @@ const OrderTrackingPage = () => {
     error: wsError,
     isConnected
   } = useOrderTracking(orderId, token);
-  
+
+  // Use delivery tracking for route and progress
+  const {
+    trackingData,
+    route: deliveryRoute,
+    progress: deliveryProgress,
+    refresh: refreshTracking
+  } = useDeliveryTracking(orderId, token);
+
   // Use global user real-time for immediate status updates
   const {
     isConnected: globalConnected,
@@ -474,6 +483,8 @@ const OrderTrackingPage = () => {
               mapType="streets"
               followDriver={['assigned', 'accepted', 'picked_up', 'in_transit'].includes(order?.status)}
               driverVehicleType={order?.driver_vehicle_type || null}
+              routeGeometry={deliveryRoute?.geometry}
+              progressPercent={deliveryProgress?.progress_percent || 0}
             />
             
             {/* Legend */}
@@ -491,6 +502,36 @@ const OrderTrackingPage = () => {
                 </div>
               )}
             </div>
+
+            {/* Progress Indicator */}
+            {deliveryProgress && ['accepted', 'picked_up', 'in_transit'].includes(order?.status) && (
+              <div className="p-4 bg-blue-50 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900">Progression de la livraison</span>
+                  <span className="text-sm font-bold text-blue-600">{Math.round(deliveryProgress.progress_percent)}%</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${deliveryProgress.progress_percent}%` }}
+                  />
+                </div>
+                <div className="flex items-center gap-4 text-sm text-blue-800">
+                  {deliveryProgress.distance_remaining_km !== null && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{deliveryProgress.distance_remaining_km} km restants</span>
+                    </div>
+                  )}
+                  {deliveryProgress.eta_minutes !== null && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>ETA: {Math.round(deliveryProgress.eta_minutes)} min</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Order Details */}
