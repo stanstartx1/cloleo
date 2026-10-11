@@ -147,7 +147,7 @@ export const usePhoneVerification = (loginWithToken) => {
     }
 
     return sendCode(phoneNumber);
-  }, [canResend, countdown, sendCode, loginWithToken]);
+  }, [canResend, countdown, sendCode]);
 
   return {
     sendCode,

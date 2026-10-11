@@ -189,6 +189,14 @@ const AuthPage = () => {
     }
   }, [location.search]);
 
+  // Reset phone verification steps when switching tabs
+  useEffect(() => {
+    setPhoneLoginStep(1);
+    setPhoneRegisterStep(1);
+    setPhoneLoginCode('');
+    setPhoneRegisterCode('');
+  }, [activeTab]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
