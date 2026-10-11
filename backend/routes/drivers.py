@@ -61,11 +61,20 @@ async def upload_license_registration(
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Le fichier est trop volumineux (max 10 MB)")
+
+    # Validate file type using both content-type and extension
+    allowed_types = ["image/jpeg", "image/png", "image/jpg", "image/webp", "image/gif", "image/bmp", "application/pdf"]
+    allowed_extensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".pdf"]
     
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Type de fichier non supporté. Utilisez JPG, PNG ou PDF")
+    file_ext = Path(file.filename).suffix.lower()
+    
+    # Check either content-type or extension
+    if file.content_type not in allowed_types and file_ext not in allowed_extensions:
+        print(f"DEBUG: File rejected - content_type: {file.content_type}, extension: {file_ext}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Type de fichier non supporté. Utilisez JPG, PNG, WebP, GIF, BMP ou PDF. Reçu: {file.content_type or file_ext}"
+        )
     
     # Create upload directory
     upload_dir = Path(__file__).resolve().parents[1] / "uploads" / "licenses"
