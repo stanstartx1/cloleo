@@ -86,6 +86,7 @@ import DriverRegisterPage from "./pages/DriverRegisterPage";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDashboardStats from "./pages/DriverDashboardStats";
 import DriverHomeDashboard from "./pages/DriverHomeDashboard";
+import DriverNavigationPage from "./pages/DriverNavigationPage";
 
 // Customer Pages
 import CustomerDashboard from "./pages/CustomerDashboard";
@@ -372,6 +373,11 @@ const AppRoutes = () => {
       <Route path="/livreur" element={
         <ProtectedRoute requireDriver>
           <DriverDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/livreur/navigation/:orderId" element={
+        <ProtectedRoute requireDriver>
+          <DriverNavigationPage />
         </ProtectedRoute>
       } />
 

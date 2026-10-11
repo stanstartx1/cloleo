@@ -137,19 +137,8 @@ const MapboxMap = ({
   useEffect(() => {
     if (!mapInstance.current || !showRoute || !driverLocation?.latitude || !customerLocation?.latitude) return;
 
-    // Skip if route params haven't changed significantly
-    if (previousShowRoute.current && previousDriverLocation.current && previousCustomerLocation.current) {
-      const driverLatDiff = Math.abs(driverLocation.latitude - previousDriverLocation.current.latitude);
-      const driverLngDiff = Math.abs(driverLocation.longitude - previousDriverLocation.current.longitude);
-      const customerLatDiff = Math.abs(customerLocation.latitude - previousCustomerLocation.current.latitude);
-      const customerLngDiff = Math.abs(customerLocation.longitude - previousCustomerLocation.current.longitude);
-
-      if (driverLatDiff < 0.001 && driverLngDiff < 0.001 && customerLatDiff < 0.001 && customerLngDiff < 0.001) {
-        return; // Skip update if changes are minimal
-      }
-    }
-
     console.log('🗺️ [MAP] Drawing route from driver to customer:', driverLocation, customerLocation);
+    console.log('🗺️ [MAP] Route geometry available:', !!routeGeometry);
 
     const drawRoute = () => {
       // Check if map is ready before drawing route
@@ -159,18 +148,19 @@ const MapboxMap = ({
       }
 
       try {
+        const map = mapInstance.current;
+
+        // Remove existing route layer and source
+        if (map.getLayer('delivery-route')) {
+          map.removeLayer('delivery-route');
+        }
+        if (map.getSource('delivery-route')) {
+          map.removeSource('delivery-route');
+        }
+
         if (routeGeometry) {
           // Use OSRM route geometry if available
           console.log('🗺️ [MAP] Using OSRM route geometry');
-          const map = mapInstance.current;
-
-          // Remove existing route layer and source
-          if (map.getLayer('delivery-route')) {
-            map.removeLayer('delivery-route');
-          }
-          if (map.getSource('delivery-route')) {
-            map.removeSource('delivery-route');
-          }
 
           // Add route source with OSRM geometry
           map.addSource('delivery-route', {

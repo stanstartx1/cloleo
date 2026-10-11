@@ -394,8 +394,8 @@ async def get_delivery_tracking(order_id: str, user: dict = Depends(get_current_
         }
     }
     
-    # Calculate route if driver is en route
-    if driver_location and dest_lat and dest_lon and order.get("status") in ["accepted", "picked_up", "in_transit"]:
+    # Calculate route if driver is assigned or en route
+    if driver_location and dest_lat and dest_lon and order.get("status") in ["assigned", "accepted", "picked_up", "in_transit"]:
         try:
             # Get OSRM route
             route_result = await get_osrm_directions(
@@ -405,7 +405,9 @@ async def get_delivery_tracking(order_id: str, user: dict = Depends(get_current_
                 dest_lon,
                 alternatives=False
             )
-            
+
+            print(f"📍 [TRACKING] OSRM route result for order {order_id}: {route_result.get('error', 'success')}")
+
             if "error" not in route_result:
                 result["route"] = {
                     "geometry": route_result.get("geometry"),
@@ -413,6 +415,24 @@ async def get_delivery_tracking(order_id: str, user: dict = Depends(get_current_
                     "duration_s": route_result.get("duration_s"),
                     "steps": route_result.get("steps", [])
                 }
+                print(f"✅ [TRACKING] Route calculated: {route_result.get('distance_m')}m, {route_result.get('duration_s')}s")
+            else:
+                print(f"⚠️ [TRACKING] OSRM error: {route_result.get('error')}")
+                # Fallback to straight line calculation
+                distance_km = haversine_km(
+                    driver_location["latitude"],
+                    driver_location["longitude"],
+                    dest_lat,
+                    dest_lon
+                )
+                result["route"] = {
+                    "geometry": None,
+                    "distance_m": distance_km * 1000,
+                    "duration_s": distance_km * 60,  # Approximate: 60 km/h
+                    "steps": [],
+                    "fallback": True
+                }
+                print(f"📍 [TRACKING] Fallback straight line: {distance_km}km")
                 
                 # Calculate progress
                 total_distance_m = route_result.get("distance_m", 0)

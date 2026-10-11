@@ -15,6 +15,7 @@ export const useDeliveryTracking = (orderId, token) => {
       setLoading(true);
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await axios.get(`${API_URL}/delivery/tracking/${orderId}`, { headers });
+      console.log('📍 [DELIVERY TRACKING] Tracking data fetched:', response.data);
       setTrackingData(response.data);
       setError(null);
     } catch (err) {
@@ -30,11 +31,11 @@ export const useDeliveryTracking = (orderId, token) => {
     fetchTrackingData();
   }, [fetchTrackingData]);
 
-  // Set up auto-refresh every 5 seconds
+  // Set up auto-refresh every 3 seconds (faster for better real-time)
   useEffect(() => {
     const interval = setInterval(() => {
       fetchTrackingData();
-    }, 5000);
+    }, 3000);
 
     setRefreshInterval(interval);
 
