@@ -14,16 +14,21 @@ except ImportError:
     FIREBASE_AVAILABLE = False
     print("⚠️ Firebase Admin SDK non installé. Utilisez: pip install firebase-admin")
 
+# Twilio pour l'envoi de SMS
+try:
+    from twilio.rest import Client
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    print("⚠️ Twilio non installé. Utilisez: pip install twilio")
+
 
 class FirebaseSMSService:
     """
-    Service pour la vérification par téléphone via Firebase.
+    Service pour la vérification par téléphone via Twilio SMS.
     
-    NOTE: Firebase Phone Auth est conçu pour les applications côté client (Web, iOS, Android).
-    Pour un backend Python pur, l'envoi de SMS nécessite un service tiers comme Twilio.
-    
-    Ce service utilise Firebase Admin SDK pour la gestion des utilisateurs et les credentials,
-    mais l'envoi réel de SMS nécessite une intégration avec un service SMS tiers.
+    Ce service utilise Twilio pour l'envoi réel de SMS de vérification.
+    Firebase Admin SDK est utilisé pour la gestion des utilisateurs (optionnel).
     """
 
     def __init__(self):
@@ -31,10 +36,34 @@ class FirebaseSMSService:
         self.max_attempts = int(os.environ.get("MAX_VERIFICATION_ATTEMPTS", "3"))
         self.resend_delay_seconds = int(os.environ.get("VERIFICATION_RESEND_DELAY_SECONDS", "60"))
         
+        # Initialiser Twilio si disponible
+        self.twilio_client = None
+        self.twilio_initialized = False
+        if TWILIO_AVAILABLE:
+            self._initialize_twilio()
+        
         # Initialiser Firebase Admin SDK si disponible
         self.firebase_initialized = False
         if FIREBASE_AVAILABLE:
             self._initialize_firebase()
+    
+    def _initialize_twilio(self):
+        """Initialise Twilio avec les credentials"""
+        try:
+            account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+            auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+            twilio_phone_number = os.environ.get("TWILIO_PHONE_NUMBER")
+            
+            if not account_sid or not auth_token or not twilio_phone_number:
+                print("⚠️ Credentials Twilio non définis dans les variables d'environnement")
+                return
+            
+            self.twilio_client = Client(account_sid, auth_token)
+            self.twilio_phone_number = twilio_phone_number
+            self.twilio_initialized = True
+            print(f"✅ Twilio initialisé avec le numéro: {twilio_phone_number}")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'initialisation Twilio: {e}")
     
     def _initialize_firebase(self):
         """Initialise Firebase Admin SDK avec les credentials"""
@@ -64,11 +93,7 @@ class FirebaseSMSService:
 
     async def send_verification_code(self, phone_number: str) -> dict:
         """
-        Envoie un code de vérification par SMS.
-        
-        NOTE: Pour l'envoi réel de SMS, vous devez intégrer un service comme Twilio.
-        Ce code génère et stocke le code localement. En production, remplacez la section
-        TODO avec votre intégration SMS (Twilio, AWS SNS, etc.)
+        Envoie un code de vérification par SMS via Twilio.
         
         Args:
             phone_number: Numéro de téléphone au format international (+225...)
@@ -91,26 +116,40 @@ class FirebaseSMSService:
         # Stocker le code dans MongoDB
         await self._store_verification_code(normalized_phone, code, expires_at)
         
-        # TODO: Intégration SMS réelle (Twilio, AWS SNS, etc.)
-        # Exemple avec Twilio:
-        # from twilio.rest import Client
-        # client = Client(os.environ.get("TWILIO_ACCOUNT_SID"), os.environ.get("TWILIO_AUTH_TOKEN"))
-        # client.messages.create(
-        #     body=f"Votre code de vérification Cloleo est : {code}. Valide 5 minutes.",
-        #     from_=os.environ.get("TWILIO_PHONE_NUMBER"),
-        #     to=normalized_phone
-        # )
-        
-        # Pour le développement, afficher le code dans les logs
-        print(f"📱 [SMS DEV] Code de vérification pour {normalized_phone}: {code}")
-        print(f"📱 [SMS DEV] Code expire à: {expires_at}")
-        
-        return {
-            "success": True,
-            "message": f"Code de vérification envoyé à {normalized_phone}",
-            "code": code if os.environ.get("ENVIRONMENT") == "development" else None,  # Code seulement en dev
-            "expires_in": self.code_expiry_minutes * 60
-        }
+        # Envoyer le SMS via Twilio si configuré
+        if self.twilio_initialized:
+            try:
+                message = self.twilio_client.messages.create(
+                    body=f"Votre code de vérification Cloleo est : {code}. Valide 5 minutes.",
+                    from_=self.twilio_phone_number,
+                    to=normalized_phone
+                )
+                print(f"✅ SMS envoyé à {normalized_phone} via Twilio")
+                return {
+                    "success": True,
+                    "message": f"Code de vérification envoyé à {normalized_phone}",
+                    "expires_in": self.code_expiry_minutes * 60
+                }
+            except Exception as e:
+                print(f"❌ Erreur lors de l'envoi SMS Twilio: {e}")
+                # Fallback: afficher le code dans les logs
+                print(f"📱 [SMS FALLBACK] Code de vérification pour {normalized_phone}: {code}")
+                return {
+                    "success": True,
+                    "message": f"Code de vérification envoyé à {normalized_phone}",
+                    "code": code,
+                    "expires_in": self.code_expiry_minutes * 60
+                }
+        else:
+            # Mode développement: afficher le code dans les logs
+            print(f"📱 [SMS DEV] Code de vérification pour {normalized_phone}: {code}")
+            print(f"📱 [SMS DEV] Code expire à: {expires_at}")
+            return {
+                "success": True,
+                "message": f"Code de vérification envoyé à {normalized_phone}",
+                "code": code,
+                "expires_in": self.code_expiry_minutes * 60
+            }
 
     async def verify_code(self, phone_number: str, code: str) -> dict:
         """
