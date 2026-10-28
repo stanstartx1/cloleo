@@ -350,6 +350,8 @@ const RevendeurDashboard = () => {
 
       });
 
+      console.log('📦 [REVENDEUR] Catalog products fetched:', response.data);
+
       setCatalogProducts(Array.isArray(response.data?.products) ? response.data.products : []);
 
       setCatalogTotal(Number(response.data?.total || 0));
@@ -357,6 +359,8 @@ const RevendeurDashboard = () => {
       setCatalogCategories(Array.isArray(response.data?.categories) ? response.data.categories : []);
 
     } catch (error) {
+
+      console.error('❌ [REVENDEUR] Error fetching catalog:', error);
 
       toast.error(error.response?.data?.detail || 'Erreur lors du chargement du catalogue');
 
