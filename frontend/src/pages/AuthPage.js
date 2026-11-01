@@ -40,9 +40,9 @@ const AuthPage = () => {
   const [phoneLoginCode, setPhoneLoginCode] = useState('');
   const [phoneRegisterCode, setPhoneRegisterCode] = useState('');
   const [phoneRegisterName, setPhoneRegisterName] = useState('');
-  const [phoneRegisterPassword, setPhoneRegisterPassword] = useState('');
   const [phoneRegisterRole, setPhoneRegisterRole] = useState('customer');
   const [phoneRegisterEmail, setPhoneRegisterEmail] = useState('');
+  const [phoneLoginPassword, setPhoneLoginPassword] = useState('');
 
   const { sendCode, verifyCodeLogin, verifyCodeRegister, resendCode, loading: phoneLoading, countdown, canResend } = usePhoneVerification(loginWithToken);
 
@@ -279,7 +279,11 @@ const AuthPage = () => {
       toast.error('Veuillez entrer le code à 6 chiffres');
       return;
     }
-    const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginCode);
+    if (!phoneLoginPassword) {
+      toast.error('Veuillez entrer votre mot de passe');
+      return;
+    }
+    const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginCode, phoneLoginPassword);
     console.log('📱 [PHONE LOGIN] Result:', result);
     if (result.success) {
       const { user } = result;
@@ -313,14 +317,13 @@ const AuthPage = () => {
       toast.error('Veuillez entrer le code à 6 chiffres');
       return;
     }
-    if (!phoneRegisterName || !phoneRegisterPassword) {
-      toast.error('Veuillez remplir tous les champs');
+    if (!phoneRegisterName) {
+      toast.error('Veuillez entrer votre nom');
       return;
     }
     const result = await verifyCodeRegister(
       phoneRegisterNumber,
       phoneRegisterCode,
-      phoneRegisterPassword,
       phoneRegisterName,
       phoneRegisterRole,
       phoneRegisterEmail || null
@@ -496,6 +499,28 @@ const AuthPage = () => {
                         onChange={setPhoneLoginCode}
                         length={6}
                       />
+
+                      <div className="space-y-2">
+                        <Label>Mot de passe</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Votre mot de passe"
+                            value={phoneLoginPassword}
+                            onChange={(e) => setPhoneLoginPassword(e.target.value)}
+                            className="pl-12 pr-12 h-12 rounded-2xl"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                      </div>
 
                       <Button
                         onClick={handlePhoneLoginVerify}
@@ -687,21 +712,11 @@ const AuthPage = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Mot de passe</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Créer un mot de passe"
-                            value={phoneRegisterPassword}
-                            onChange={(e) => setPhoneRegisterPassword(e.target.value)}
-                            className="pl-12 pr-12 h-12 rounded-2xl"
-                            required
-                            minLength={6}
-                          />
-                          <button
-                            type="button"
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <p className="text-sm text-orange-800">
+                          <strong>Note :</strong> Un mot de passe temporaire vous sera envoyé par SMS après la vérification.
+                        </p>
+                      </div>
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           >

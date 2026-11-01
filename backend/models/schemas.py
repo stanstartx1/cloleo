@@ -109,6 +109,7 @@ class VerifyPhoneRegisterRequest(BaseModel):
 class VerifyPhoneLoginRequest(BaseModel):
     phone_number: str
     verification_code: str
+    password: str
 
 
 class OrderAddress(BaseModel):
