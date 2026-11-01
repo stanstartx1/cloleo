@@ -280,8 +280,10 @@ const AuthPage = () => {
       return;
     }
     const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginCode);
+    console.log('📱 [PHONE LOGIN] Result:', result);
     if (result.success) {
       const { user } = result;
+      console.log('📱 [PHONE LOGIN] User data:', user);
       toast.success(`Bienvenue, ${user.name} !`);
       // Rediriger selon le rôle (même logique que handleLogin)
       if (user.role === 'admin') navigate('/admin');
@@ -323,8 +325,10 @@ const AuthPage = () => {
       phoneRegisterRole,
       phoneRegisterEmail || null
     );
+    console.log('📱 [PHONE REGISTER] Result:', result);
     if (result.success) {
       const { user } = result;
+      console.log('📱 [PHONE REGISTER] User data:', user);
       toast.success('Compte créé avec succès ! 🎉');
       // Rediriger selon le rôle (même logique que handleRegister)
       if (user.role === 'vendor') navigate('/vendeur');
