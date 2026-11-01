@@ -58,7 +58,7 @@ export const usePhoneVerification = (loginWithToken) => {
     }
   }, []);
 
-  const verifyCodeRegister = useCallback(async (phoneNumber, code, name, role, email = null) => {
+  const verifyCodeRegister = useCallback(async (phoneNumber, password, name, role, email = null) => {
     setLoading(true);
     setError(null);
     
@@ -70,7 +70,7 @@ export const usePhoneVerification = (loginWithToken) => {
         },
         body: JSON.stringify({
           phone_number: phoneNumber,
-          verification_code: code,
+          password,
           name,
           role,
           email,
@@ -84,9 +84,6 @@ export const usePhoneVerification = (loginWithToken) => {
       }
 
       toast.success('Compte créé avec succès ! 🎉');
-      if (data.temp_password_sent) {
-        toast.success('Un mot de passe temporaire vous a été envoyé par SMS');
-      }
       
       // Utiliser loginWithToken du AuthContext pour connecter l'utilisateur
       if (loginWithToken) {
@@ -103,7 +100,7 @@ export const usePhoneVerification = (loginWithToken) => {
     }
   }, [loginWithToken]);
 
-  const verifyCodeLogin = useCallback(async (phoneNumber, code, password) => {
+  const verifyCodeLogin = useCallback(async (phoneNumber, password) => {
     setLoading(true);
     setError(null);
     
@@ -115,7 +112,6 @@ export const usePhoneVerification = (loginWithToken) => {
         },
         body: JSON.stringify({
           phone_number: phoneNumber,
-          verification_code: code,
           password,
         }),
       });

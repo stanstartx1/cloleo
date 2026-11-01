@@ -99,7 +99,6 @@ class SendVerificationCodeRequest(BaseModel):
 
 class VerifyPhoneRegisterRequest(BaseModel):
     phone_number: str
-    verification_code: str
     password: str
     name: str
     role: str = UserRole.CUSTOMER
@@ -108,7 +107,6 @@ class VerifyPhoneRegisterRequest(BaseModel):
 
 class VerifyPhoneLoginRequest(BaseModel):
     phone_number: str
-    verification_code: str
     password: str
 
 

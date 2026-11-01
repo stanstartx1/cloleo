@@ -33,16 +33,13 @@ const AuthPage = () => {
   });
 
   // Phone verification states
-  const [phoneLoginStep, setPhoneLoginStep] = useState(1); // 1: input phone, 2: verify code
-  const [phoneRegisterStep, setPhoneRegisterStep] = useState(1); // 1: input phone, 2: verify code
   const [phoneLoginNumber, setPhoneLoginNumber] = useState('');
   const [phoneRegisterNumber, setPhoneRegisterNumber] = useState('');
-  const [phoneLoginCode, setPhoneLoginCode] = useState('');
-  const [phoneRegisterCode, setPhoneRegisterCode] = useState('');
   const [phoneRegisterName, setPhoneRegisterName] = useState('');
   const [phoneRegisterRole, setPhoneRegisterRole] = useState('customer');
   const [phoneRegisterEmail, setPhoneRegisterEmail] = useState('');
   const [phoneLoginPassword, setPhoneLoginPassword] = useState('');
+  const [phoneRegisterPassword, setPhoneRegisterPassword] = useState('');
 
   const { sendCode, verifyCodeLogin, verifyCodeRegister, resendCode, loading: phoneLoading, countdown, canResend } = usePhoneVerification(loginWithToken);
 
@@ -262,28 +259,14 @@ const AuthPage = () => {
     }
   };
 
-  // Phone login handlers
-  const handlePhoneLoginSendCode = async () => {
-    if (!phoneLoginNumber) {
-      toast.error('Veuillez entrer un numéro de téléphone');
+  // Phone login handler
+  const handlePhoneLogin = async (e) => {
+    e.preventDefault();
+    if (!phoneLoginNumber || !phoneLoginPassword) {
+      toast.error('Veuillez remplir tous les champs');
       return;
     }
-    const result = await sendCode(phoneLoginNumber);
-    if (result.success) {
-      setPhoneLoginStep(2);
-    }
-  };
-
-  const handlePhoneLoginVerify = async () => {
-    if (phoneLoginCode.length !== 6) {
-      toast.error('Veuillez entrer le code à 6 chiffres');
-      return;
-    }
-    if (!phoneLoginPassword) {
-      toast.error('Veuillez entrer votre mot de passe');
-      return;
-    }
-    const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginCode, phoneLoginPassword);
+    const result = await verifyCodeLogin(phoneLoginNumber, phoneLoginPassword);
     console.log('📱 [PHONE LOGIN] Result:', result);
     if (result.success) {
       const { user } = result;
@@ -300,30 +283,16 @@ const AuthPage = () => {
     }
   };
 
-  // Phone register handlers
-  const handlePhoneRegisterSendCode = async () => {
-    if (!phoneRegisterNumber) {
-      toast.error('Veuillez entrer un numéro de téléphone');
-      return;
-    }
-    const result = await sendCode(phoneRegisterNumber);
-    if (result.success) {
-      setPhoneRegisterStep(2);
-    }
-  };
-
-  const handlePhoneRegisterVerify = async () => {
-    if (phoneRegisterCode.length !== 6) {
-      toast.error('Veuillez entrer le code à 6 chiffres');
-      return;
-    }
-    if (!phoneRegisterName) {
-      toast.error('Veuillez entrer votre nom');
+  // Phone register handler
+  const handlePhoneRegister = async (e) => {
+    e.preventDefault();
+    if (!phoneRegisterNumber || !phoneRegisterPassword || !phoneRegisterName) {
+      toast.error('Veuillez remplir tous les champs');
       return;
     }
     const result = await verifyCodeRegister(
       phoneRegisterNumber,
-      phoneRegisterCode,
+      phoneRegisterPassword,
       phoneRegisterName,
       phoneRegisterRole,
       phoneRegisterEmail || null
@@ -463,94 +432,50 @@ const AuthPage = () => {
 
                 {/* ====================== PHONE LOGIN TAB ====================== */}
                 <TabsContent value="phone">
-                  {phoneLoginStep === 1 ? (
-                    <div className="space-y-6">
-                      <div className="text-center mb-6">
-                        <Phone className="w-12 h-12 mx-auto text-orange-500 mb-3" />
-                        <h3 className="text-lg font-semibold text-gray-800">Se connecter avec un numéro</h3>
-                        <p className="text-sm text-gray-600">Entrez votre numéro pour recevoir un code de vérification</p>
-                      </div>
-
-                      <PhoneInput
-                        value={phoneLoginNumber}
-                        onChange={setPhoneLoginNumber}
-                        label="Numéro de téléphone"
-                      />
-
-                      <Button
-                        onClick={handlePhoneLoginSendCode}
-                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
-                        disabled={phoneLoading}
-                      >
-                        {phoneLoading ? 'Envoi en cours...' : 'Envoyer le code'}
-                        <ArrowRight className="ml-2" />
-                      </Button>
+                  <form onSubmit={handlePhoneLogin} className="space-y-6">
+                    <div className="text-center mb-6">
+                      <Phone className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                      <h3 className="text-lg font-semibold text-gray-800">Se connecter avec un numéro</h3>
+                      <p className="text-sm text-gray-600">Entrez votre numéro et mot de passe</p>
                     </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="text-center mb-6">
-                        <Lock className="w-12 h-12 mx-auto text-orange-500 mb-3" />
-                        <h3 className="text-lg font-semibold text-gray-800">Vérification</h3>
-                        <p className="text-sm text-gray-600">Entrez le code à 6 chiffres envoyé à {phoneLoginNumber}</p>
-                      </div>
 
-                      <VerificationCodeInput
-                        value={phoneLoginCode}
-                        onChange={setPhoneLoginCode}
-                        length={6}
-                      />
+                    <PhoneInput
+                      value={phoneLoginNumber}
+                      onChange={setPhoneLoginNumber}
+                      label="Numéro de téléphone"
+                    />
 
-                      <div className="space-y-2">
-                        <Label>Mot de passe</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Votre mot de passe"
-                            value={phoneLoginPassword}
-                            onChange={(e) => setPhoneLoginPassword(e.target.value)}
-                            className="pl-12 pr-12 h-12 rounded-2xl"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          >
-                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={handlePhoneLoginVerify}
-                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
-                        disabled={phoneLoading}
-                      >
-                        {phoneLoading ? 'Vérification en cours...' : 'Vérifier et se connecter'}
-                        <Check className="ml-2" />
-                      </Button>
-
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600 mb-2">
-                          Code non reçu ?{' '}
-                          <button
-                            onClick={() => resendCode(phoneLoginNumber)}
-                            disabled={!canResend}
-                            className="text-orange-600 font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
-                          >
-                            {canResend ? 'Renvoyer le code' : `Réessayer dans ${countdown}s`}
-                          </button>
-                        </p>
+                    <div className="space-y-2">
+                      <Label>Mot de passe</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Votre mot de passe"
+                          value={phoneLoginPassword}
+                          onChange={(e) => setPhoneLoginPassword(e.target.value)}
+                          className="pl-12 pr-12 h-12 rounded-2xl"
+                          required
+                        />
                         <button
-                          onClick={() => setPhoneLoginStep(1)}
-                          className="text-sm text-gray-500 hover:text-gray-700"
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                          Changer de numéro
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
                     </div>
-                  )}
+
+                    <Button
+                      type="submit"
+                      className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
+                      disabled={phoneLoading}
+                    >
+                      {phoneLoading ? 'Connexion en cours...' : 'Se connecter'}
+                      <ArrowRight className="ml-2" />
+                    </Button>
+                  </form>
                 </TabsContent>
 
                 {/* ====================== REGISTER TAB ====================== */}
@@ -683,84 +608,93 @@ const AuthPage = () => {
 
                 {/* Phone Register */}
                 <TabsContent value="phone">
-                  {phoneRegisterStep === 1 ? (
-                    <div className="space-y-6">
-                      <div className="text-center mb-6">
-                        <Phone className="w-12 h-12 mx-auto text-orange-500 mb-3" />
-                        <h3 className="text-lg font-semibold text-gray-800">S'inscrire avec un numéro</h3>
-                        <p className="text-sm text-gray-600">Entrez votre numéro pour recevoir un code de vérification</p>
-                      </div>
+                  <form onSubmit={handlePhoneRegister} className="space-y-6">
+                    <div className="text-center mb-6">
+                      <Phone className="w-12 h-12 mx-auto text-orange-500 mb-3" />
+                      <h3 className="text-lg font-semibold text-gray-800">S'inscrire avec un numéro</h3>
+                      <p className="text-sm text-gray-600">Entrez votre numéro et mot de passe</p>
+                    </div>
 
-                      <PhoneInput
-                        value={phoneRegisterNumber}
-                        onChange={setPhoneRegisterNumber}
-                        label="Numéro de téléphone"
-                      />
+                    <PhoneInput
+                      value={phoneRegisterNumber}
+                      onChange={setPhoneRegisterNumber}
+                      label="Numéro de téléphone"
+                    />
 
-                      <div className="space-y-2">
-                        <Label>Nom complet</Label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
-                          <Input
-                            type="text"
-                            placeholder="Votre nom complet"
-                            value={phoneRegisterName}
-                            onChange={(e) => setPhoneRegisterName(e.target.value)}
-                            className="pl-12 h-12 rounded-2xl"
-                            required
-                          />
-                        </div>
+                    <div className="space-y-2">
+                      <Label>Nom complet</Label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                        <Input
+                          type="text"
+                          placeholder="Votre nom complet"
+                          value={phoneRegisterName}
+                          onChange={(e) => setPhoneRegisterName(e.target.value)}
+                          className="pl-12 h-12 rounded-2xl"
+                          required
+                        />
                       </div>
+                    </div>
 
-                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                        <p className="text-sm text-orange-800">
-                          <strong>Note :</strong> Un mot de passe temporaire vous sera envoyé par SMS après la vérification.
-                        </p>
+                    <div className="space-y-2">
+                      <Label>Mot de passe</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Créer un mot de passe"
+                          value={phoneRegisterPassword}
+                          onChange={(e) => setPhoneRegisterPassword(e.target.value)}
+                          className="pl-12 pr-12 h-12 rounded-2xl"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                       </div>
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          >
-                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                          </button>
-                        </div>
-                      </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>Email (optionnel)</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
-                          <Input
-                            type="email"
-                            placeholder="votre@email.com"
-                            value={phoneRegisterEmail}
-                            onChange={(e) => setPhoneRegisterEmail(e.target.value)}
-                            className="pl-12 h-12 rounded-2xl"
-                          />
-                        </div>
+                    <div className="space-y-2">
+                      <Label>Email (optionnel)</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
+                        <Input
+                          type="email"
+                          placeholder="votre@email.com"
+                          value={phoneRegisterEmail}
+                          onChange={(e) => setPhoneRegisterEmail(e.target.value)}
+                          className="pl-12 h-12 rounded-2xl"
+                        />
                       </div>
+                    </div>
 
-                      <div>
-                        <Label className="text-base font-medium mb-3 block">Je suis...</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {[
-                            { value: 'customer', label: 'Acheteur', icon: User, color: 'text-orange-500', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
-                            { value: 'vendor', label: 'Vendeur', icon: Store, color: 'text-amber-500', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
-                            { value: 'dropshipper', label: 'Revendeur', icon: Package, color: 'text-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
-                            { value: 'driver', label: 'Livreur', icon: Truck, color: 'text-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
-                            { value: 'enterprise', label: 'Entreprise', icon: Building2, color: 'text-green-500', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
-                          ].map((role) => {
-                            const Icon = role.icon;
-                            const isSelected = phoneRegisterRole === role.value;
-                            return (
-                              <button
-                                key={role.value}
-                                type="button"
-                                onClick={() => setPhoneRegisterRole(role.value)}
-                                className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
-                                  isSelected
-                                    ? `${role.bgColor} ${role.borderColor} border-current shadow-md`
-                                    : 'bg-white border-gray-200 hover:border-gray-300'
-                                }`}
+                    <div>
+                      <Label className="text-base font-medium mb-3 block">Je suis...</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          { value: 'customer', label: 'Acheteur', icon: User, color: 'text-orange-500', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+                          { value: 'vendor', label: 'Vendeur', icon: Store, color: 'text-amber-500', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
+                          { value: 'dropshipper', label: 'Revendeur', icon: Package, color: 'text-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+                          { value: 'driver', label: 'Livreur', icon: Truck, color: 'text-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+                          { value: 'enterprise', label: 'Entreprise', icon: Building2, color: 'text-green-500', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+                        ].map((role) => {
+                          const Icon = role.icon;
+                          const isSelected = phoneRegisterRole === role.value;
+                          return (
+                            <button
+                              key={role.value}
+                              type="button"
+                              onClick={() => setPhoneRegisterRole(role.value)}
+                              className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                                isSelected
+                                  ? `${role.bgColor} ${role.borderColor} border-current shadow-md`
+                                  : 'bg-white border-gray-200 hover:border-gray-300'
+                              }`}
                               >
                                 {isSelected && (
                                   <div className="absolute top-2 right-2 w-5 h-5 bg-current rounded-full flex items-center justify-center">
@@ -775,44 +709,16 @@ const AuthPage = () => {
                         </div>
                       </div>
 
-                      <Button
-                        onClick={handlePhoneRegisterSendCode}
-                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
-                        disabled={phoneLoading}
-                      >
-                        {phoneLoading ? 'Envoi en cours...' : 'Envoyer le code'}
-                        <ArrowRight className="ml-2" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="text-center mb-6">
-                        <Lock className="w-12 h-12 mx-auto text-orange-500 mb-3" />
-                        <h3 className="text-lg font-semibold text-gray-800">Vérification</h3>
-                        <p className="text-sm text-gray-600">Entrez le code à 6 chiffres envoyé à {phoneRegisterNumber}</p>
-                      </div>
-
-                      <VerificationCodeInput
-                        value={phoneRegisterCode}
-                        onChange={setPhoneRegisterCode}
-                        length={6}
-                      />
-
-                      <Button
-                        onClick={handlePhoneRegisterVerify}
-                        className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
-                        disabled={phoneLoading}
-                      >
-                        {phoneLoading ? 'Vérification en cours...' : 'Vérifier et créer le compte'}
-                        <Check className="ml-2" />
-                      </Button>
-
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600 mb-2">
-                          Code non reçu ?{' '}
-                          <button
-                            onClick={() => resendCode(phoneRegisterNumber)}
-                            disabled={!canResend}
+                    <Button
+                      type="submit"
+                      className="w-full h-12 rounded-2xl text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all"
+                      disabled={phoneLoading}
+                    >
+                      {phoneLoading ? 'Création du compte...' : 'Créer mon compte'}
+                      <Sparkles className="ml-2" />
+                    </Button>
+                  </form>
+                </TabsContent>
                             className="text-orange-600 font-medium hover:underline disabled:text-gray-400 disabled:no-underline"
                           >
                             {canResend ? 'Renvoyer le code' : `Réessayer dans ${countdown}s`}

@@ -309,19 +309,10 @@ async def send_verification_code(request: SendVerificationCodeRequest):
 @router.post("/verify-phone-register")
 async def verify_phone_register(request: VerifyPhoneRegisterRequest):
     """
-    Vérifie le code de vérification et crée le compte utilisateur.
-    Génère un mot de passe temporaire qui sera envoyé par SMS.
+    Crée un compte utilisateur avec numéro de téléphone et mot de passe.
+    Pas de code SMS requis pour l'inscription.
     """
     try:
-        # Vérifier le code
-        verification_result = await firebase_sms_service.verify_code(
-            request.phone_number,
-            request.verification_code
-        )
-        
-        if not verification_result.get("success"):
-            raise HTTPException(status_code=400, detail=verification_result.get("message"))
-        
         # Normaliser le rôle
         normalized_role = normalize_role(request.role)
         if normalized_role not in {
@@ -347,15 +338,11 @@ async def verify_phone_register(request: VerifyPhoneRegisterRequest):
         auto_approve_vendor = bool(platform.get("auto_approve_vendors", False))
         vendor_approved = is_vendor and auto_approve_vendor
         
-        # Générer un mot de passe temporaire
-        import secrets
-        temp_password = secrets.token_urlsafe(12)
-        
-        # Créer l'utilisateur
+        # Créer l'utilisateur avec le mot de passe fourni
         user = {
             "id": str(uuid.uuid4()),
             "email": request.email,
-            "password": hash_password(temp_password),
+            "password": hash_password(request.password),
             "name": request.name,
             "role": normalized_role,
             "phone": request.phone_number,
@@ -380,26 +367,12 @@ async def verify_phone_register(request: VerifyPhoneRegisterRequest):
             traceback.print_exc()
             raise HTTPException(status_code=500, detail="Erreur lors de la création du compte")
         
-        # Envoyer le mot de passe temporaire par SMS
-        try:
-            from services.firebase_sms import firebase_sms_service
-            message_body = f"Bienvenue sur Cloleo ! Votre mot de passe temporaire est : {temp_password}. Veuillez le changer dès votre première connexion."
-            await firebase_sms_service.twilio_client.messages.create(
-                body=message_body,
-                from_=firebase_sms_service.twilio_phone_number,
-                to=request.phone_number
-            )
-            print(f"✅ Mot de passe temporaire envoyé à {request.phone_number}")
-        except Exception as e:
-            print(f"⚠️ Erreur lors de l'envoi du mot de passe temporaire: {e}")
-        
         # Supprimer le mot de passe de la réponse
         user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
         
         return {
             "token": create_token(user["id"], user["role"]),
-            "user": user_response,
-            "temp_password_sent": True
+            "user": user_response
         }
     except HTTPException:
         raise
@@ -413,18 +386,10 @@ async def verify_phone_register(request: VerifyPhoneRegisterRequest):
 @router.post("/verify-phone-login")
 async def verify_phone_login(request: VerifyPhoneLoginRequest):
     """
-    Vérifie le code de vérification et connecte l'utilisateur avec mot de passe.
+    Connecte l'utilisateur avec numéro de téléphone et mot de passe.
+    Pas de code SMS requis pour la connexion.
     """
     try:
-        # Vérifier le code
-        verification_result = await firebase_sms_service.verify_code(
-            request.phone_number,
-            request.verification_code
-        )
-        
-        if not verification_result.get("success"):
-            raise HTTPException(status_code=400, detail=verification_result.get("message"))
-        
         # Trouver l'utilisateur par numéro de téléphone
         user = await db.users.find_one({"phone": request.phone_number}, {"_id": 0})
         
